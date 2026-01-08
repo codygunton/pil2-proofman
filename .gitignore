@@ -3,7 +3,7 @@ tmp
 pil_helpers
 build*/
 *.pilout
-run.sh
+pil2-stark/lib/
 vendor
 .cargo
 MyLogFile.log
