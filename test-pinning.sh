@@ -31,6 +31,9 @@ EXPECTED_GLOBAL_CHALLENGE="[1461052753056858962, 17277128619110652023, 184408471
 
 echo "=== FRI PCS Pinning Test ==="
 echo ""
+echo "This test verifies that proof output matches expected golden checksums."
+echo "If this fails, the FRI implementation has changed in a way that affects proof output."
+echo ""
 
 # Build
 echo "Building..."
@@ -46,12 +49,29 @@ mkdir -p "$TEST_DIR"
 
 # Run proof generation
 echo "Generating proofs..."
+set +e  # Temporarily disable exit on error to capture failures
 OUTPUT=$(cargo run --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli prove \
     --witness-lib "$ROOT_DIR/target/debug/libsimple.so" \
     --proving-key "$BUILD_DIR/provingKey" \
     --output-dir "$TEST_DIR" \
     --save-proofs \
     --verify-proofs 2>&1)
+PROVE_EXIT_CODE=$?
+set -e  # Re-enable exit on error
+
+# Check if proof generation/verification failed
+if [ $PROVE_EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "=== PINNING TEST FAILED ==="
+    echo ""
+    echo "Proof generation or verification failed."
+    echo "This means the FRI implementation is producing INVALID proofs (not just different ones)."
+    echo ""
+    echo "Error details:"
+    echo "$OUTPUT" | grep -E "(ERROR|FAILED|error|failed)" | head -20
+    echo ""
+    exit 1
+fi
 
 # Check global challenge
 ACTUAL_CHALLENGE=$(echo "$OUTPUT" | grep "Global challenge:" | sed 's/.*Global challenge: //')
@@ -88,10 +108,16 @@ done
 echo ""
 if [ $FAILED -eq 0 ]; then
     echo "=== PINNING TEST PASSED ==="
+    echo "All proof checksums match expected golden values."
     rm -rf "$TEST_DIR"
     exit 0
 else
     echo "=== PINNING TEST FAILED ==="
+    echo ""
+    echo "Proof checksums do not match expected golden values."
+    echo "This means the FRI implementation has changed in a way that produces DIFFERENT (but possibly valid) proofs."
+    echo ""
+    echo "If this change is intentional, update EXPECTED_CHECKSUMS in this script."
     echo "Proof output preserved in: $TEST_DIR"
     exit 1
 fi
