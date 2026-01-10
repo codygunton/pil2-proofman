@@ -5,9 +5,13 @@
  * This serves as a regression test - if FRI output changes unexpectedly,
  * these tests will fail and show exactly which values differ.
  *
+ * Supports multiple AIRs:
+ *   - SimpleLeft (8 rows) - basic test
+ *   - Lookup2_12 (4096 rows) - more complex lookup operations
+ *
  * Prerequisites:
- *   Run test-pinning.sh first to generate proof files in:
- *   pil2-components/test/simple/build/pinning_test_output/proofs/
+ *   Run test-pinning.sh first to generate proof files, or
+ *   run generate-fri-vectors.sh to generate vectors for new AIRs.
  *
  * Build:
  *   cd pil2-stark/src/goldilocks && make fri_pinning_test
@@ -22,6 +26,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <memory>
+#include <regex>
 
 #include "../src/goldilocks_base_field.hpp"
 #include "../src/poseidon2_goldilocks.hpp"
@@ -33,16 +38,58 @@ using Poseidon2 = Poseidon2Goldilocks<16>;  // SPONGE_WIDTH=16, outputs CAPACITY
 
 namespace {
 
-// Default path to proof file (relative to pil2-proofman root)
-constexpr const char* const kDefaultProofPath =
-    "pil2-components/test/simple/build/pinning_test_output/proofs/SimpleLeft_0.json";
-
-// Alternative relative path when running from goldilocks directory
-constexpr const char* const kAlternativeProofPath =
-    "../../../pil2-components/test/simple/build/pinning_test_output/proofs/SimpleLeft_0.json";
+// Supported AIR types
+enum class AirType {
+    SimpleLeft,
+    Lookup2_12,
+    Unknown
+};
 
 // Global proof path (can be overridden via command line)
 std::string g_proof_path;
+
+// Detected AIR type based on proof file name
+AirType g_air_type = AirType::Unknown;
+
+/**
+ * Detect AIR type from proof file path.
+ */
+AirType detectAirType(const std::string& path) {
+    if (path.find("SimpleLeft") != std::string::npos) {
+        return AirType::SimpleLeft;
+    }
+    if (path.find("Lookup2_12") != std::string::npos) {
+        return AirType::Lookup2_12;
+    }
+    return AirType::Unknown;
+}
+
+/**
+ * Get AIR type name for display.
+ */
+const char* airTypeName(AirType type) {
+    switch (type) {
+        case AirType::SimpleLeft: return "SimpleLeft";
+        case AirType::Lookup2_12: return "Lookup2_12";
+        default: return "Unknown";
+    }
+}
+
+// Default paths to try for different AIRs
+struct ProofPaths {
+    const char* root_relative;
+    const char* goldilocks_relative;
+};
+
+const ProofPaths kSimpleLeftPaths = {
+    "pil2-components/test/simple/build/pinning_test_output/proofs/SimpleLeft_0.json",
+    "../../../pil2-components/test/simple/build/pinning_test_output/proofs/SimpleLeft_0.json"
+};
+
+const ProofPaths kLookup2_12Paths = {
+    "pil2-components/test/lookup/build/pinning_test_output/proofs/Lookup2_12_2.json",
+    "../../../pil2-components/test/lookup/build/pinning_test_output/proofs/Lookup2_12_2.json"
+};
 
 /**
  * Resolve the proof file path, trying multiple locations.
@@ -53,21 +100,36 @@ std::string resolveProofPath() {
     if (!g_proof_path.empty()) {
         std::ifstream test(g_proof_path);
         if (test.is_open()) {
+            g_air_type = detectAirType(g_proof_path);
             return g_proof_path;
         }
         return "";
     }
 
-    // Try default path
-    std::ifstream test1(kDefaultProofPath);
+    // Try SimpleLeft paths first (default for backward compatibility)
+    std::ifstream test1(kSimpleLeftPaths.root_relative);
     if (test1.is_open()) {
-        return kDefaultProofPath;
+        g_air_type = AirType::SimpleLeft;
+        return kSimpleLeftPaths.root_relative;
     }
 
-    // Try alternative relative path
-    std::ifstream test2(kAlternativeProofPath);
+    std::ifstream test2(kSimpleLeftPaths.goldilocks_relative);
     if (test2.is_open()) {
-        return kAlternativeProofPath;
+        g_air_type = AirType::SimpleLeft;
+        return kSimpleLeftPaths.goldilocks_relative;
+    }
+
+    // Try Lookup2_12 paths
+    std::ifstream test3(kLookup2_12Paths.root_relative);
+    if (test3.is_open()) {
+        g_air_type = AirType::Lookup2_12;
+        return kLookup2_12Paths.root_relative;
+    }
+
+    std::ifstream test4(kLookup2_12Paths.goldilocks_relative);
+    if (test4.is_open()) {
+        g_air_type = AirType::Lookup2_12;
+        return kLookup2_12Paths.goldilocks_relative;
     }
 
     return "";
@@ -80,6 +142,7 @@ std::string resolveProofPath() {
  *
  * Handles loading and parsing the proof JSON file once per test suite,
  * providing const access to proof data for individual tests.
+ * Detects AIR type from proof file name to use correct expected values.
  */
 class FriOutputValidationTest : public ::testing::Test {
 protected:
@@ -87,10 +150,11 @@ protected:
         s_proof_path = resolveProofPath();
         if (s_proof_path.empty()) {
             s_load_error = "Proof file not found. Run test-pinning.sh first.\n"
-                          "Tried: " + std::string(kDefaultProofPath) + "\n"
-                          "  and: " + std::string(kAlternativeProofPath);
+                          "Tried SimpleLeft and Lookup2_12 paths.";
             return;
         }
+
+        std::cout << "Testing AIR: " << airTypeName(g_air_type) << "\n";
 
         std::ifstream file(s_proof_path);
         if (!file.is_open()) {
@@ -129,6 +193,10 @@ protected:
         return s_proof_path;
     }
 
+    static AirType airType() {
+        return g_air_type;
+    }
+
 private:
     static std::unique_ptr<json> s_proof;
     static std::string s_proof_path;
@@ -144,22 +212,37 @@ std::string FriOutputValidationTest::s_load_error;
  * Test: Validate all finalPol values match expected golden values.
  *
  * finalPol contains the final polynomial after all FRI folding steps.
- * For SimpleLeft: 16 cubic extension elements = 48 Goldilocks field elements.
+ * The size depends on the AIR and FRI configuration.
  */
 TEST_F(FriOutputValidationTest, FinalPolynomialValues) {
-    using namespace FriPinningVectors::SimpleLeft;
-
     ASSERT_TRUE(proof().contains("finalPol")) << "Proof missing 'finalPol' field";
 
     const auto& final_pol = proof()["finalPol"];
-    constexpr size_t kExpectedCubicElements = 16;
     constexpr size_t kFieldExtension = 3;
 
-    ASSERT_EQ(final_pol.size(), kExpectedCubicElements)
-        << "Expected " << kExpectedCubicElements << " cubic elements in finalPol";
-
-    std::cout << "Validating finalPol (" << final_pol.size() << " cubic elements, "
+    std::cout << "Validating finalPol for " << airTypeName(airType()) << " ("
+              << final_pol.size() << " cubic elements, "
               << final_pol.size() * kFieldExtension << " Goldilocks values)...\n";
+
+    // Get expected values based on AIR type
+    const uint64_t* expected_pol = nullptr;
+    size_t expected_size = 0;
+
+    switch (airType()) {
+        case AirType::SimpleLeft:
+            expected_pol = FriPinningVectors::SimpleLeft::EXPECTED_FINAL_POL.data();
+            expected_size = FriPinningVectors::SimpleLeft::EXPECTED_FINAL_POL.size();
+            break;
+        case AirType::Lookup2_12:
+            expected_pol = FriPinningVectors::Lookup2_12::EXPECTED_FINAL_POL.data();
+            expected_size = FriPinningVectors::Lookup2_12::EXPECTED_FINAL_POL.size();
+            break;
+        default:
+            FAIL() << "Unknown AIR type - cannot validate";
+    }
+
+    ASSERT_EQ(final_pol.size() * kFieldExtension, expected_size)
+        << "Unexpected finalPol size";
 
     size_t mismatch_count = 0;
 
@@ -170,7 +253,7 @@ TEST_F(FriOutputValidationTest, FinalPolynomialValues) {
 
         for (size_t j = 0; j < kFieldExtension; ++j) {
             const uint64_t actual = std::stoull(elem[j].get<std::string>());
-            const uint64_t expected = EXPECTED_FINAL_POL[i * kFieldExtension + j];
+            const uint64_t expected = expected_pol[i * kFieldExtension + j];
 
             if (actual != expected) {
                 ++mismatch_count;
@@ -193,20 +276,30 @@ TEST_F(FriOutputValidationTest, FinalPolynomialValues) {
  * Test: Validate grinding nonce matches expected value.
  *
  * The nonce is computed via proof-of-work grinding to satisfy
- * the security parameter (powBits). For SimpleLeft: expected nonce = 56.
+ * the security parameter (powBits).
  */
 TEST_F(FriOutputValidationTest, GrindingNonce) {
-    using namespace FriPinningVectors::SimpleLeft;
-
     ASSERT_TRUE(proof().contains("nonce")) << "Proof missing 'nonce' field";
 
     const uint64_t actual_nonce = std::stoull(proof()["nonce"].get<std::string>());
 
-    std::cout << "Validating nonce...\n"
-              << "  Expected: " << EXPECTED_NONCE << "\n"
+    uint64_t expected_nonce = 0;
+    switch (airType()) {
+        case AirType::SimpleLeft:
+            expected_nonce = FriPinningVectors::SimpleLeft::EXPECTED_NONCE;
+            break;
+        case AirType::Lookup2_12:
+            expected_nonce = FriPinningVectors::Lookup2_12::EXPECTED_NONCE;
+            break;
+        default:
+            FAIL() << "Unknown AIR type - cannot validate";
+    }
+
+    std::cout << "Validating nonce for " << airTypeName(airType()) << "...\n"
+              << "  Expected: " << expected_nonce << "\n"
               << "  Actual:   " << actual_nonce << "\n";
 
-    EXPECT_EQ(actual_nonce, EXPECTED_NONCE) << "Nonce mismatch";
+    EXPECT_EQ(actual_nonce, expected_nonce) << "Nonce mismatch";
 }
 
 /**
@@ -219,7 +312,7 @@ TEST_F(FriOutputValidationTest, GrindingNonce) {
  * - s0_* fields: FRI query proofs (values, siblings, last levels)
  */
 TEST_F(FriOutputValidationTest, ProofStructure) {
-    std::cout << "Validating proof structure...\n";
+    std::cout << "Validating proof structure for " << airTypeName(airType()) << "...\n";
 
     // Required top-level fields
     const std::vector<std::string> required_fields = {
@@ -234,16 +327,17 @@ TEST_F(FriOutputValidationTest, ProofStructure) {
     // Validate finalPol structure
     if (proof().contains("finalPol")) {
         const auto& final_pol = proof()["finalPol"];
-        constexpr size_t kExpectedCubicElements = 16;
         constexpr size_t kFieldExtension = 3;
 
-        EXPECT_EQ(final_pol.size(), kExpectedCubicElements)
-            << "finalPol should have " << kExpectedCubicElements << " cubic elements";
+        // finalPol size varies by AIR - just verify it's non-empty and has correct structure
+        EXPECT_GT(final_pol.size(), 0u) << "finalPol should not be empty";
 
         if (!final_pol.empty()) {
             EXPECT_EQ(final_pol[0].size(), kFieldExtension)
                 << "Each finalPol element should have " << kFieldExtension << " components";
         }
+
+        std::cout << "  finalPol: " << final_pol.size() << " cubic elements\n";
     }
 
     // Validate Merkle roots have correct size (4 elements for arity 4)
@@ -277,46 +371,54 @@ TEST_F(FriOutputValidationTest, ProofStructure) {
  * against the expected hash stored in the test vectors.
  */
 TEST_F(FriOutputValidationTest, FinalPolPoseidon2Hash) {
-    using namespace FriPinningVectors::SimpleLeft;
-
     ASSERT_TRUE(proof().contains("finalPol")) << "Proof missing 'finalPol' field";
 
     const auto& final_pol = proof()["finalPol"];
-    constexpr size_t kNumElements = 48;  // 16 cubic * 3 components
 
     // Convert JSON values to Goldilocks elements
-    std::vector<Goldilocks::Element> elements(kNumElements);
-    size_t idx = 0;
+    std::vector<Goldilocks::Element> elements;
     for (const auto& elem : final_pol) {
         for (const auto& val : elem) {
-            elements[idx++] = Goldilocks::fromU64(std::stoull(val.get<std::string>()));
+            elements.push_back(Goldilocks::fromU64(std::stoull(val.get<std::string>())));
         }
     }
-    ASSERT_EQ(idx, kNumElements) << "Unexpected number of elements";
 
     // Compute Poseidon2 hash
     Goldilocks::Element hash_output[HASH_SIZE];
-    Poseidon2::linear_hash_seq(hash_output, elements.data(), kNumElements);
+    Poseidon2::linear_hash_seq(hash_output, elements.data(), elements.size());
 
-    std::cout << "Validating finalPol Poseidon2 hash...\n"
+    // Get expected hash based on AIR type
+    const uint64_t* expected_hash = nullptr;
+    switch (airType()) {
+        case AirType::SimpleLeft:
+            expected_hash = FriPinningVectors::SimpleLeft::EXPECTED_FINAL_POL_HASH.data();
+            break;
+        case AirType::Lookup2_12:
+            expected_hash = FriPinningVectors::Lookup2_12::EXPECTED_FINAL_POL_HASH.data();
+            break;
+        default:
+            FAIL() << "Unknown AIR type - cannot validate";
+    }
+
+    std::cout << "Validating finalPol Poseidon2 hash for " << airTypeName(airType()) << "...\n"
               << "  Computed hash: ["
               << Goldilocks::toU64(hash_output[0]) << ", "
               << Goldilocks::toU64(hash_output[1]) << ", "
               << Goldilocks::toU64(hash_output[2]) << ", "
               << Goldilocks::toU64(hash_output[3]) << "]\n"
               << "  Expected hash: ["
-              << EXPECTED_FINAL_POL_HASH[0] << ", "
-              << EXPECTED_FINAL_POL_HASH[1] << ", "
-              << EXPECTED_FINAL_POL_HASH[2] << ", "
-              << EXPECTED_FINAL_POL_HASH[3] << "]\n";
+              << expected_hash[0] << ", "
+              << expected_hash[1] << ", "
+              << expected_hash[2] << ", "
+              << expected_hash[3] << "]\n";
 
     // Compare hash elements
     bool hash_matches = true;
     for (size_t i = 0; i < HASH_SIZE; ++i) {
-        if (Goldilocks::toU64(hash_output[i]) != EXPECTED_FINAL_POL_HASH[i]) {
+        if (Goldilocks::toU64(hash_output[i]) != expected_hash[i]) {
             hash_matches = false;
             std::cerr << "  MISMATCH at hash[" << i << "]: expected "
-                      << EXPECTED_FINAL_POL_HASH[i] << ", got "
+                      << expected_hash[i] << ", got "
                       << Goldilocks::toU64(hash_output[i]) << "\n";
         }
     }
@@ -332,6 +434,7 @@ TEST_F(FriOutputValidationTest, FinalPolPoseidon2Hash) {
  */
 TEST_F(FriOutputValidationTest, OutputSummary) {
     std::cout << "\n=== FRI Output Summary ===\n"
+              << "AIR type: " << airTypeName(airType()) << "\n"
               << "Proof file: " << proofPath() << "\n";
 
     if (proof().contains("finalPol")) {

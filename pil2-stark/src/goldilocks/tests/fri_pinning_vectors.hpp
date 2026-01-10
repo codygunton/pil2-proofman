@@ -151,6 +151,186 @@ namespace SimpleLeft {
 
 }  // namespace SimpleLeft
 
+/**
+ * Lookup2_12: More complex AIR with 4096 rows (2^12)
+ *
+ * This AIR tests lookup operations with significantly more rows than SimpleLeft.
+ * It exercises FRI folding over larger traces, which requires more folding steps.
+ */
+namespace Lookup2_12 {
+
+    //=========================================================================
+    // FRI Configuration (from Lookup2_12.starkinfo.json)
+    //=========================================================================
+
+    /// Base domain size: 2^N_BITS = 4096 rows
+    constexpr uint64_t N_BITS = 12;
+
+    /// Extended domain size: 2^N_BITS_EXT (with blowup factor)
+    constexpr uint64_t N_BITS_EXT = 13;
+
+    /// Number of FRI queries for soundness
+    constexpr uint64_t N_QUERIES = 228;
+
+    /// Proof-of-work grinding bits
+    constexpr uint64_t POW_BITS = 16;
+
+    /// Merkle tree branching factor
+    constexpr uint64_t MERKLE_ARITY = 4;
+
+    /// Transcript (Fiat-Shamir) arity
+    constexpr uint64_t TRANSCRIPT_ARITY = 4;
+
+    //=========================================================================
+    // Expected FRI Output (from Lookup2_12_2.json)
+    //=========================================================================
+
+    /// Final polynomial after all FRI folding steps.
+    /// Structure: 32 cubic extension elements = 96 Goldilocks field elements.
+    constexpr std::array<uint64_t, 96> EXPECTED_FINAL_POL = {
+        // Element 0
+        14434583126679987313ULL,
+        5482150761621168896ULL,
+        3249328641526182044ULL,
+        // Element 1
+        15342740250347407991ULL,
+        3376553363229461591ULL,
+        4257268957549436242ULL,
+        // Element 2
+        7204487384040872062ULL,
+        1419173031459822675ULL,
+        2061249537966676017ULL,
+        // Element 3
+        2360586269179456038ULL,
+        15376369807336137918ULL,
+        9353401887418425164ULL,
+        // Element 4
+        10412156313889373274ULL,
+        3591314333206605595ULL,
+        4803765269341221341ULL,
+        // Element 5
+        5033644672118612008ULL,
+        7219991869283703241ULL,
+        5001325043480604972ULL,
+        // Element 6
+        15948725184182871707ULL,
+        15522723472618604735ULL,
+        9907990838610836609ULL,
+        // Element 7
+        9470319161037913018ULL,
+        17268345614200704752ULL,
+        3654202055025360269ULL,
+        // Element 8
+        13100866642308064996ULL,
+        17341759162511200959ULL,
+        7319519320015423486ULL,
+        // Element 9
+        12084612760618137204ULL,
+        7454792536055106792ULL,
+        2659215907969302634ULL,
+        // Element 10
+        197416323470751095ULL,
+        4767691990383163790ULL,
+        6429445215664945539ULL,
+        // Element 11
+        15599679625630644600ULL,
+        10704837000018217994ULL,
+        14619111704412444750ULL,
+        // Element 12
+        15879145559683750116ULL,
+        10806891138089601907ULL,
+        6398240568623563867ULL,
+        // Element 13
+        14868897281419723370ULL,
+        924837540248075600ULL,
+        13479315813292439965ULL,
+        // Element 14
+        11860535291544263725ULL,
+        9525832088029768261ULL,
+        1056937185540367752ULL,
+        // Element 15
+        9242712766516462579ULL,
+        3678973432283065878ULL,
+        6246989568381022564ULL,
+        // Element 16
+        3986523664812881640ULL,
+        15175234450602730740ULL,
+        12905501262580237230ULL,
+        // Element 17
+        10705369138838456284ULL,
+        10702382605332658692ULL,
+        7629631655928945403ULL,
+        // Element 18
+        9262724744720817643ULL,
+        15887564237035175821ULL,
+        9968888681798946160ULL,
+        // Element 19
+        5157862280797414087ULL,
+        15846645308041041927ULL,
+        14044103179964922718ULL,
+        // Element 20
+        7541286177638753403ULL,
+        9959371914069074779ULL,
+        4742210589618127119ULL,
+        // Element 21
+        8945694359776425999ULL,
+        5857016951276199961ULL,
+        15956542795161863896ULL,
+        // Element 22
+        5097832630748515311ULL,
+        2805433767902235137ULL,
+        14156619039058681370ULL,
+        // Element 23
+        5359383358562328040ULL,
+        10696011412389368858ULL,
+        14259441144882985156ULL,
+        // Element 24
+        10562871434525600334ULL,
+        2950782197354151668ULL,
+        5287728438265398672ULL,
+        // Element 25
+        4179399445730488462ULL,
+        699779008451773962ULL,
+        6724499112382485659ULL,
+        // Element 26
+        17736390686191080988ULL,
+        6782110977108258102ULL,
+        9204523493687027062ULL,
+        // Element 27
+        6821914454530953253ULL,
+        14820845627046358896ULL,
+        12893257468286467420ULL,
+        // Element 28
+        4125657212508052294ULL,
+        11795123797861066031ULL,
+        2646944690559974986ULL,
+        // Element 29
+        8386604238912971683ULL,
+        12635389879257946431ULL,
+        788283794214107156ULL,
+        // Element 30
+        9665347948841523245ULL,
+        10612365642456120293ULL,
+        15820909052152390155ULL,
+        // Element 31
+        5010386192355180209ULL,
+        7162751007858926896ULL,
+        2839955806073769762ULL
+    };
+
+    /// Expected grinding nonce (proof-of-work result).
+    constexpr uint64_t EXPECTED_NONCE = 33180;
+
+    /// Expected Poseidon2 hash of EXPECTED_FINAL_POL (4 Goldilocks elements).
+    constexpr std::array<uint64_t, 4> EXPECTED_FINAL_POL_HASH = {
+        16724271852290172135ULL,
+        167123672743506872ULL,
+        85739372367436007ULL,
+        15077976899410783742ULL
+    };
+
+}  // namespace Lookup2_12
+
 }  // namespace FriPinningVectors
 
 #endif  // FRI_PINNING_VECTORS_HPP

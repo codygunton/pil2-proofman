@@ -2,8 +2,6 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="$ROOT_DIR/pil2-components/test/simple/build"
-SIMPLE_DIR="$ROOT_DIR/pil2-components/test/simple"
 PIL2_STARK_DIR="$ROOT_DIR/pil2-stark"
 
 # Use GCC 13 for C++ compilation (GCC 14+ has stricter cstdint requirements)
@@ -56,34 +54,109 @@ if [ ! -d "$PIL2_PROOFMAN_JS/node_modules" ]; then
     npm install --prefix "$PIL2_PROOFMAN_JS"
 fi
 
-echo "Setting up simple test..."
+# ===========================================================================
+# Setup simple test
+# ===========================================================================
+setup_simple() {
+    echo ""
+    echo "=== Setting up simple test ==="
 
-# Create build directory if it doesn't exist
-if [ ! -d "$BUILD_DIR" ]; then
-    echo "Creating build directory..."
-    mkdir -p "$BUILD_DIR"
-fi
+    local BUILD_DIR="$ROOT_DIR/pil2-components/test/simple/build"
+    local SIMPLE_DIR="$ROOT_DIR/pil2-components/test/simple"
 
-# Compile PIL (skip if pilout already exists)
-if [ ! -f "$BUILD_DIR/build.pilout" ]; then
-    echo "Compiling PIL..."
-    node "$PIL2_COMPILER/src/pil.js" \
-        "$SIMPLE_DIR/simple.pil" \
-        -I "$ROOT_DIR/pil2-components/lib/std/pil" \
-        -o "$BUILD_DIR/build.pilout"
-else
-    echo "PIL already compiled, skipping..."
-fi
+    # Create build directory if it doesn't exist
+    if [ ! -d "$BUILD_DIR" ]; then
+        echo "Creating build directory..."
+        mkdir -p "$BUILD_DIR"
+    fi
 
-# Generate setup (skip if provingKey already exists)
-if [ ! -d "$BUILD_DIR/provingKey" ]; then
-    echo "Generating setup..."
-    node "$PIL2_PROOFMAN_JS/src/main_setup.js" \
-        -a "$BUILD_DIR/build.pilout" \
-        -b "$BUILD_DIR"
-else
-    echo "Setup already generated, skipping..."
-fi
+    # Compile PIL (skip if pilout already exists)
+    if [ ! -f "$BUILD_DIR/build.pilout" ]; then
+        echo "Compiling PIL..."
+        node "$PIL2_COMPILER/src/pil.js" \
+            "$SIMPLE_DIR/simple.pil" \
+            -I "$ROOT_DIR/pil2-components/lib/std/pil" \
+            -o "$BUILD_DIR/build.pilout"
+    else
+        echo "PIL already compiled, skipping..."
+    fi
+
+    # Generate setup (skip if provingKey already exists)
+    if [ ! -d "$BUILD_DIR/provingKey" ]; then
+        echo "Generating setup..."
+        node "$PIL2_PROOFMAN_JS/src/main_setup.js" \
+            -a "$BUILD_DIR/build.pilout" \
+            -b "$BUILD_DIR"
+    else
+        echo "Setup already generated, skipping..."
+    fi
+
+    # Run check-setup to generate constant trees (skip if already done)
+    if [ ! -f "$BUILD_DIR/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.consttree" ]; then
+        echo "Running check-setup..."
+        cargo run --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli check-setup \
+            --proving-key "$BUILD_DIR/provingKey"
+    else
+        echo "Check-setup already done, skipping..."
+    fi
+
+    echo "Simple test setup complete!"
+}
+
+# ===========================================================================
+# Setup lookup test
+# ===========================================================================
+setup_lookup() {
+    echo ""
+    echo "=== Setting up lookup test ==="
+
+    local BUILD_DIR="$ROOT_DIR/pil2-components/test/lookup/build"
+    local LOOKUP_DIR="$ROOT_DIR/pil2-components/test/lookup"
+
+    # Create build directory if it doesn't exist
+    if [ ! -d "$BUILD_DIR" ]; then
+        echo "Creating build directory..."
+        mkdir -p "$BUILD_DIR"
+    fi
+
+    # Compile PIL (skip if pilout already exists)
+    if [ ! -f "$BUILD_DIR/lookup.pilout" ]; then
+        echo "Compiling PIL..."
+        node "$PIL2_COMPILER/src/pil.js" \
+            "$LOOKUP_DIR/lookup.pil" \
+            -I "$ROOT_DIR/pil2-components/lib/std/pil" \
+            -u "$BUILD_DIR/fixed" -O fixed-to-file \
+            -o "$BUILD_DIR/lookup.pilout"
+    else
+        echo "PIL already compiled, skipping..."
+    fi
+
+    # Generate setup (skip if provingKey already exists)
+    if [ ! -d "$BUILD_DIR/provingKey" ]; then
+        echo "Generating setup..."
+        node "$PIL2_PROOFMAN_JS/src/main_setup.js" \
+            -a "$BUILD_DIR/lookup.pilout" \
+            -u "$BUILD_DIR/fixed" \
+            -b "$BUILD_DIR"
+    else
+        echo "Setup already generated, skipping..."
+    fi
+
+    # Run check-setup to generate constant trees (skip if already done)
+    if [ ! -f "$BUILD_DIR/provingKey/build/Lookup/airs/Lookup2_12/air/Lookup2_12.consttree" ]; then
+        echo "Running check-setup..."
+        cargo run --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli check-setup \
+            --proving-key "$BUILD_DIR/provingKey"
+    else
+        echo "Check-setup already done, skipping..."
+    fi
+
+    echo "Lookup test setup complete!"
+}
+
+# ===========================================================================
+# Main setup
+# ===========================================================================
 
 # Pre-compile pil2-stark C++ library with correct compiler
 # (cargo build.rs doesn't pass CXX to make, so we do it here)
@@ -93,13 +166,23 @@ if [ ! -f "$PIL2_STARK_DIR/lib/libstarks.a" ]; then
     make -C "$PIL2_STARK_DIR" CXX=g++-13 -j starks_lib
 fi
 
-# Run check-setup to generate constant trees (skip if already done)
-if [ ! -f "$BUILD_DIR/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.consttree" ]; then
-    echo "Running check-setup..."
-    cargo run --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli check-setup \
-        --proving-key "$BUILD_DIR/provingKey"
-else
-    echo "Check-setup already done, skipping..."
-fi
+# Setup tests based on argument or all if none specified
+case "${1:-all}" in
+    simple)
+        setup_simple
+        ;;
+    lookup)
+        setup_lookup
+        ;;
+    all)
+        setup_simple
+        setup_lookup
+        ;;
+    *)
+        echo "Usage: $0 [simple|lookup|all]"
+        exit 1
+        ;;
+esac
 
+echo ""
 echo "Setup complete!"
