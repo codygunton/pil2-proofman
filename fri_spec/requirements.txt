@@ -1,0 +1,5 @@
+# Python FRI Specification Requirements
+# Install with: pip install -r requirements.txt
+
+galois>=0.4.10    # NumPy extension for Galois fields (includes NTT)
+numpy>=1.21.0     # Required by galois
