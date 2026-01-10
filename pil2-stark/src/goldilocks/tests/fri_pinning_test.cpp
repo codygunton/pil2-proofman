@@ -427,6 +427,80 @@ TEST_F(FriOutputValidationTest, FinalPolPoseidon2Hash) {
 }
 
 /**
+ * Test: Validate FRI input vectors are correctly captured.
+ *
+ * This test verifies that the input polynomial and challenges stored in
+ * fri_pinning_vectors.hpp match what's expected. For SimpleLeft, the input
+ * and output polynomials are identical (no FRI folding needed for small AIRs).
+ */
+TEST_F(FriOutputValidationTest, InputVectorsConsistency) {
+    std::cout << "Validating FRI input vectors consistency for " << airTypeName(airType()) << "...\n";
+
+    // Only validate for SimpleLeft where we have input vectors
+    if (airType() != AirType::SimpleLeft) {
+        std::cout << "  Skipping: input vectors only available for SimpleLeft currently.\n";
+        GTEST_SKIP() << "Input vectors not yet captured for this AIR";
+    }
+
+    // Verify input polynomial hash matches the stored hash
+    std::vector<Goldilocks::Element> input_elements;
+    for (size_t i = 0; i < FriPinningVectors::SimpleLeft::FRI_INPUT_POLYNOMIAL.size(); ++i) {
+        input_elements.push_back(Goldilocks::fromU64(
+            FriPinningVectors::SimpleLeft::FRI_INPUT_POLYNOMIAL[i]));
+    }
+
+    Goldilocks::Element computed_hash[HASH_SIZE];
+    Poseidon2::linear_hash_seq(computed_hash, input_elements.data(), input_elements.size());
+
+    std::cout << "  Input polynomial size: " << input_elements.size() << " elements\n";
+    std::cout << "  Computed input hash: ["
+              << Goldilocks::toU64(computed_hash[0]) << ", "
+              << Goldilocks::toU64(computed_hash[1]) << ", "
+              << Goldilocks::toU64(computed_hash[2]) << ", "
+              << Goldilocks::toU64(computed_hash[3]) << "]\n";
+    std::cout << "  Expected input hash: ["
+              << FriPinningVectors::SimpleLeft::FRI_INPUT_POL_HASH[0] << ", "
+              << FriPinningVectors::SimpleLeft::FRI_INPUT_POL_HASH[1] << ", "
+              << FriPinningVectors::SimpleLeft::FRI_INPUT_POL_HASH[2] << ", "
+              << FriPinningVectors::SimpleLeft::FRI_INPUT_POL_HASH[3] << "]\n";
+
+    // Validate hash matches
+    bool hash_matches = true;
+    for (size_t i = 0; i < HASH_SIZE; ++i) {
+        if (Goldilocks::toU64(computed_hash[i]) != FriPinningVectors::SimpleLeft::FRI_INPUT_POL_HASH[i]) {
+            hash_matches = false;
+        }
+    }
+    EXPECT_TRUE(hash_matches) << "Input polynomial hash mismatch - vectors may be corrupted";
+
+    // For SimpleLeft, verify input equals output (no folding occurs)
+    bool input_equals_output = (FriPinningVectors::SimpleLeft::FRI_INPUT_POLYNOMIAL.size() ==
+                                FriPinningVectors::SimpleLeft::EXPECTED_FINAL_POL.size());
+    if (input_equals_output) {
+        for (size_t i = 0; i < FriPinningVectors::SimpleLeft::FRI_INPUT_POLYNOMIAL.size(); ++i) {
+            if (FriPinningVectors::SimpleLeft::FRI_INPUT_POLYNOMIAL[i] !=
+                FriPinningVectors::SimpleLeft::EXPECTED_FINAL_POL[i]) {
+                input_equals_output = false;
+                break;
+            }
+        }
+    }
+
+    std::cout << "  Input equals output: " << (input_equals_output ? "yes" : "no")
+              << " (expected for small AIRs with no FRI folding)\n";
+    EXPECT_TRUE(input_equals_output)
+        << "For SimpleLeft, input should equal output (no FRI folding occurs)";
+
+    // Validate challenge count matches FRI step count
+    EXPECT_EQ(FriPinningVectors::SimpleLeft::FRI_CHALLENGES.size(),
+              FriPinningVectors::SimpleLeft::NUM_FRI_STEPS)
+        << "Challenge count should match number of FRI steps";
+
+    std::cout << "  FRI challenges: " << FriPinningVectors::SimpleLeft::FRI_CHALLENGES.size()
+              << " (matching " << FriPinningVectors::SimpleLeft::NUM_FRI_STEPS << " FRI steps)\n";
+}
+
+/**
  * Test: Print FRI output summary for debugging.
  *
  * Outputs key FRI values and computed hashes to aid debugging

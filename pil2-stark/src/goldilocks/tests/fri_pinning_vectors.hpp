@@ -58,6 +58,57 @@ namespace SimpleLeft {
     constexpr std::array<uint64_t, 1> FRI_STEPS = {4};
 
     //=========================================================================
+    // FRI Input Vectors (captured from gen_proof.hpp with CAPTURE_FRI_VECTORS)
+    //=========================================================================
+    // NOTE: For SimpleLeft, the input polynomial equals the output polynomial
+    // because the AIR is small enough that no FRI folding actually occurs.
+    // This is expected behavior and validates deterministic proof generation.
+
+    /// Input polynomial to FRI (before any folding).
+    /// For SimpleLeft: identical to EXPECTED_FINAL_POL (no folding needed).
+    constexpr std::array<uint64_t, 48> FRI_INPUT_POLYNOMIAL = {
+        3055503030217023883ULL, 14674508583309298785ULL, 5885849117767276278ULL,  // Element 0
+        13701831255698438944ULL, 1283723217496151905ULL, 6787061737207648806ULL,  // Element 1
+        1490285254039880334ULL, 12206638945089264610ULL, 4028039824881281066ULL,  // Element 2
+        6173674811141161353ULL, 12727931143765845850ULL, 11772504568132636170ULL,  // Element 3
+        2124711334127787032ULL, 2422792798526012876ULL, 595475889981943084ULL,  // Element 4
+        12895309280498340374ULL, 10209758780222158475ULL, 11026945906801590302ULL,  // Element 5
+        7932333378049291554ULL, 11698649812757253058ULL, 65233997353509573ULL,  // Element 6
+        8522747463959870547ULL, 12526681977083944153ULL, 8187629827557060993ULL,  // Element 7
+        15943641703712512390ULL, 13900674231866633987ULL, 9119815241417913437ULL,  // Element 8
+        13214328069786755482ULL, 1290362087763361579ULL, 15374365308707279671ULL,  // Element 9
+        14555069521905791416ULL, 12285886796485120627ULL, 14952573041881450266ULL,  // Element 10
+        7489272786740350018ULL, 184279497294762181ULL, 6702168602610022660ULL,  // Element 11
+        2872310693891620498ULL, 18442687036345179693ULL, 12600134693347240975ULL,  // Element 12
+        15762660494228645950ULL, 1089223122280328124ULL, 12538857081211527031ULL,  // Element 13
+        3260775988529739921ULL, 3467800841604774028ULL, 5041750969204501126ULL,  // Element 14
+        10368294881249253002ULL, 12894191081247816755ULL, 16792827882436518814ULL   // Element 15
+    };
+
+    /// Hash of input polynomial (Poseidon2).
+    /// For SimpleLeft: identical to EXPECTED_FINAL_POL_HASH.
+    constexpr std::array<uint64_t, 4> FRI_INPUT_POL_HASH = {
+        16201618454940366509ULL,
+        9223689653289312170ULL,
+        6707438330426141909ULL,
+        10762121192969877648ULL
+    };
+
+    /// FRI folding challenges (one per FRI step).
+    /// Each challenge is a cubic extension field element (3 Goldilocks values).
+    constexpr std::array<std::array<uint64_t, 3>, 1> FRI_CHALLENGES = {{
+        {5360955783996970004ULL, 3623636231864186898ULL, 10531370013360693355ULL}  // Challenge 0
+    }};
+
+    /// Grinding challenge (used for proof-of-work).
+    /// For SimpleLeft with single FRI step, equals the last FRI challenge.
+    constexpr std::array<uint64_t, 3> GRINDING_CHALLENGE = {
+        5360955783996970004ULL,
+        3623636231864186898ULL,
+        10531370013360693355ULL
+    };
+
+    //=========================================================================
     // Expected FRI Output (from SimpleLeft_0.json)
     //=========================================================================
 
