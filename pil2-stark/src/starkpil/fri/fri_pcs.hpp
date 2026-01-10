@@ -349,6 +349,10 @@ uint64_t FriPcs<MerkleTreeType>::prove(
     Goldilocks::Element challenge[FIELD_EXTENSION];
     Goldilocks::Element* friPol = polynomial;
 
+#ifdef CAPTURE_FRI_VECTORS
+    std::vector<std::array<uint64_t, FIELD_EXTENSION>> captured_challenges;
+#endif
+
     // FRI Folding loop - matches gen_proof.hpp lines 216-238
     uint64_t nBitsExt = config_.fri_steps[0];
     for (uint64_t step = 0; step < config_.num_steps(); step++) {
@@ -381,7 +385,36 @@ uint64_t FriPcs<MerkleTreeType>::prove(
 
         // Get challenge for next step - matches line 237: starks.getChallenge(transcript, *challenge)
         transcript.getField((uint64_t*)challenge);
+
+#ifdef CAPTURE_FRI_VECTORS
+        captured_challenges.push_back({
+            Goldilocks::toU64(challenge[0]),
+            Goldilocks::toU64(challenge[1]),
+            Goldilocks::toU64(challenge[2])
+        });
+#endif
     }
+
+#ifdef CAPTURE_FRI_VECTORS
+    // Output captured challenges
+    std::cerr << "constexpr std::array<std::array<uint64_t, 3>, " << captured_challenges.size() << "> FRI_CHALLENGES = {{\n";
+    for (size_t i = 0; i < captured_challenges.size(); i++) {
+        std::cerr << "    {" << captured_challenges[i][0] << "ULL, "
+                  << captured_challenges[i][1] << "ULL, "
+                  << captured_challenges[i][2] << "ULL}";
+        if (i < captured_challenges.size() - 1) std::cerr << ",";
+        std::cerr << "  // Challenge " << i << "\n";
+    }
+    std::cerr << "}};\n\n";
+
+    // Output grinding challenge (the last challenge before grinding)
+    std::cerr << "constexpr std::array<uint64_t, 3> GRINDING_CHALLENGE = {\n";
+    std::cerr << "    " << Goldilocks::toU64(challenge[0]) << "ULL,\n";
+    std::cerr << "    " << Goldilocks::toU64(challenge[1]) << "ULL,\n";
+    std::cerr << "    " << Goldilocks::toU64(challenge[2]) << "ULL\n";
+    std::cerr << "};\n\n";
+    std::cerr << "// === END FRI INPUT VECTORS ===\n\n";
+#endif
 
     // Grinding - matches gen_proof.hpp lines 244-245
     uint64_t nonce;

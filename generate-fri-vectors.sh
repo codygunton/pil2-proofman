@@ -5,10 +5,20 @@
 #   ./generate-fri-vectors.sh [simple|lookup|all]
 #
 # This script:
-#   1. Builds the project and generates proof files
-#   2. Extracts FRI values (finalPol, nonce) from proof JSON
-#   3. Computes Poseidon2 hash using the C++ binary
-#   4. Outputs values ready to paste into fri_pinning_vectors.hpp
+#   1. Builds the project with CAPTURE_FRI_VECTORS flag to capture FRI inputs
+#   2. Generates proof files and captures FRI input vectors from stderr
+#   3. Extracts FRI output values (finalPol, nonce) from proof JSON
+#   4. Computes Poseidon2 hash using the C++ binary
+#   5. Outputs all values ready to paste into fri_pinning_vectors.hpp
+#
+# The captured vectors include:
+#   - FRI_INPUT_POLYNOMIAL: Input polynomial before FRI folding
+#   - FRI_INPUT_POL_HASH: Hash of input polynomial for validation
+#   - FRI_CHALLENGES: Challenges used at each FRI step
+#   - GRINDING_CHALLENGE: Challenge used for grinding
+#   - EXPECTED_FINAL_POL: Output polynomial after FRI folding
+#   - EXPECTED_NONCE: Grinding result
+#   - EXPECTED_FINAL_POL_HASH: Hash of output polynomial
 
 set -e
 
@@ -24,6 +34,9 @@ if [ -d "/opt/intel/oneapi/compiler/2025.0/lib" ]; then
     export LIBRARY_PATH="${LIBRARY_PATH:+$LIBRARY_PATH:}/opt/intel/oneapi/compiler/2025.0/lib"
     export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/opt/intel/oneapi/compiler/2025.0/lib"
 fi
+
+# Flag to enable FRI input vector capture
+CAPTURE_FLAG="-DCAPTURE_FRI_VECTORS"
 
 # ===========================================================================
 # Generate vectors for a specific test
@@ -53,17 +66,38 @@ generate_vectors() {
     echo "Building $LIB_NAME with debug feature..."
     cargo build --manifest-path "$ROOT_DIR/pil2-components/test/$TEST_NAME/rs/Cargo.toml" --features debug 2>/dev/null
 
-    # Generate proofs
-    echo "Generating proofs..."
+    # Build C++ library with CAPTURE_FRI_VECTORS flag
+    echo "Building C++ library with FRI capture flag..."
+    cd "$ROOT_DIR/pil2-stark"
+    make clean > /dev/null 2>&1 || true
+    make -j starks_lib EXTRA_CXXFLAGS="$CAPTURE_FLAG" 2>&1 | tail -5
+    cd "$ROOT_DIR"
+
+    # Force rebuild of proofman-cli to link against the new library
+    echo "Rebuilding proofman-cli..."
+    touch "$ROOT_DIR/provers/starks-lib-c/build.rs"
+    cargo build --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli 2>/dev/null
+
+    # Generate proofs and capture FRI input vectors from stderr
+    echo "Generating proofs (capturing FRI vectors)..."
     rm -rf "$TEST_DIR"
     mkdir -p "$TEST_DIR"
+
+    local FRI_VECTORS_FILE="$TEST_DIR/fri_input_vectors.txt"
 
     cargo run --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli prove \
         --witness-lib "$ROOT_DIR/target/debug/$LIB_NAME" \
         --proving-key "$BUILD_DIR/provingKey" \
         --output-dir "$TEST_DIR" \
         --save-proofs \
-        --verify-proofs > /dev/null 2>&1
+        --verify-proofs 2> "$FRI_VECTORS_FILE" > /dev/null || true
+
+    # Rebuild C++ library without the capture flag (restore normal state)
+    echo "Restoring C++ library to normal state..."
+    cd "$ROOT_DIR/pil2-stark"
+    make clean > /dev/null 2>&1 || true
+    make -j starks_lib > /dev/null 2>&1
+    cd "$ROOT_DIR"
 
     # Check proof file exists
     if [ ! -f "$PROOF_FILE" ]; then
@@ -74,7 +108,20 @@ generate_vectors() {
     echo "Extracting values from proof..."
     echo ""
 
-    # Extract values using Python
+    # Output FRI input vectors (captured from C++)
+    echo "=== FRI INPUT VECTORS for fri_pinning_vectors.hpp (namespace $NAMESPACE) ==="
+    echo ""
+    if [ -f "$FRI_VECTORS_FILE" ] && grep -q "FRI_INPUT_POLYNOMIAL" "$FRI_VECTORS_FILE"; then
+        # Extract and display the captured FRI input vectors
+        grep -A 1000 "=== FRI INPUT VECTORS" "$FRI_VECTORS_FILE" | grep -B 1000 "=== END FRI INPUT VECTORS" | head -n -1 | tail -n +2
+    else
+        echo "// WARNING: FRI input vectors not captured."
+        echo "// Make sure the build includes CAPTURE_FRI_VECTORS flag."
+    fi
+    echo ""
+
+    # Extract output values using Python
+    echo "=== FRI OUTPUT VECTORS for fri_pinning_vectors.hpp (namespace $NAMESPACE) ==="
     python3 << EOF
 import json
 
@@ -86,7 +133,6 @@ final_pol = proof['finalPol']
 nonce = int(proof['nonce'])
 num_elements = len(final_pol) * 3  # 3 components per cubic extension element
 
-print("=== Values for fri_pinning_vectors.hpp (namespace $NAMESPACE) ===")
 print("")
 print(f"// EXPECTED_FINAL_POL ({num_elements} values):")
 print(f"constexpr std::array<uint64_t, {num_elements}> EXPECTED_FINAL_POL = {{")

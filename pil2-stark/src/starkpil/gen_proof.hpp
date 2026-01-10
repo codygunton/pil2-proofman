@@ -211,6 +211,39 @@ void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t 
 
     Goldilocks::Element *friPol = &params.aux_trace[setupCtx.starkInfo.mapOffsets[std::make_pair("f", true)]];
 
+#ifdef CAPTURE_FRI_VECTORS
+    // Capture FRI input polynomial for test vector generation
+    {
+        uint64_t friPolSize = (1ULL << setupCtx.starkInfo.starkStruct.steps[0].nBits) * FIELD_EXTENSION;
+        std::cerr << "\n// === FRI INPUT VECTORS (CAPTURE_FRI_VECTORS) ===\n";
+        std::cerr << "// AIR: airgroup=" << airgroupId << " air=" << airId << " instance=" << instanceId << "\n";
+        std::cerr << "// friPolSize: " << friPolSize << " elements\n\n";
+
+        std::cerr << "constexpr std::array<uint64_t, " << friPolSize << "> FRI_INPUT_POLYNOMIAL = {\n";
+        for (uint64_t i = 0; i < friPolSize; i++) {
+            std::cerr << "    " << Goldilocks::toU64(friPol[i]) << "ULL";
+            if (i < friPolSize - 1) std::cerr << ",";
+            if ((i + 1) % 3 == 0) std::cerr << "  // Element " << (i / 3);
+            std::cerr << "\n";
+        }
+        std::cerr << "};\n\n";
+
+        // Also compute and output hash of input polynomial for validation
+        Goldilocks::Element inputHash[HASH_SIZE];
+        TranscriptGL hashTranscript(setupCtx.starkInfo.starkStruct.transcriptArity,
+                                    setupCtx.starkInfo.starkStruct.merkleTreeCustom);
+        hashTranscript.put(friPol, friPolSize);
+        hashTranscript.getState(inputHash);
+        std::cerr << "constexpr std::array<uint64_t, 4> FRI_INPUT_POL_HASH = {\n";
+        for (uint64_t i = 0; i < HASH_SIZE; i++) {
+            std::cerr << "    " << Goldilocks::toU64(inputHash[i]) << "ULL";
+            if (i < HASH_SIZE - 1) std::cerr << ",";
+            std::cerr << "\n";
+        }
+        std::cerr << "};\n\n";
+    }
+#endif
+
     // Build FRI PCS configuration from stark structure
     const FriPcsConfig friConfig {
         .n_bits_ext = setupCtx.starkInfo.starkStruct.steps[0].nBits,
