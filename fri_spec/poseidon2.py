@@ -270,3 +270,37 @@ def grinding(challenge: List[int], pow_bits: int) -> int:
             return nonce
 
     raise RuntimeError("grinding: could not find a valid nonce")
+
+
+def verify_grinding(challenge: List[int], nonce: int, pow_bits: int) -> bool:
+    """
+    Verify a proof-of-work nonce.
+
+    Checks that hash(challenge || nonce)[0] < 2^(64 - pow_bits).
+
+    Args:
+        challenge: List of (SPONGE_WIDTH - 1) field elements
+        nonce: Nonce value to verify
+        pow_bits: Number of leading zero bits required
+
+    Returns:
+        True if the nonce is valid, False otherwise
+
+    C++ Reference: Based on grinding verification logic
+    """
+    # Use width 4 for grinding (matches C++ Poseidon2GoldilocksGrinding)
+    width = 4
+
+    if len(challenge) != width - 1:
+        return False
+
+    level = 1 << (64 - pow_bits)
+
+    # Construct state: challenge + nonce
+    state = list(challenge) + [nonce]
+
+    # Hash
+    result = poseidon2_hash(state, width)
+
+    # Check if first element is below threshold
+    return result[0] < level
