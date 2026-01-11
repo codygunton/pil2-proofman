@@ -351,6 +351,19 @@ uint64_t FriPcs<MerkleTreeType>::prove(
 
 #ifdef CAPTURE_FRI_VECTORS
     std::vector<std::array<uint64_t, FIELD_EXTENSION>> captured_challenges;
+    std::vector<std::array<uint64_t, HASH_SIZE>> captured_merkle_roots;
+    std::vector<std::array<uint64_t, HASH_SIZE>> captured_poly_hashes;
+
+    // Capture transcript state before FRI starts
+    // This allows Python to initialize transcript and verify challenge generation
+    std::array<uint64_t, 16> captured_transcript_state;
+    std::array<uint64_t, 16> captured_transcript_out;
+    uint32_t captured_out_cursor = transcript.out_cursor;
+    uint32_t captured_pending_cursor = transcript.pending_cursor;
+    for (int i = 0; i < 16; i++) {
+        captured_transcript_state[i] = Goldilocks::toU64(transcript.state[i]);
+        captured_transcript_out[i] = Goldilocks::toU64(transcript.out[i]);
+    }
 #endif
 
     // FRI Folding loop - matches gen_proof.hpp lines 216-238
@@ -366,6 +379,26 @@ uint64_t FriPcs<MerkleTreeType>::prove(
             // Merkelize - matches lines 223-224
             uint64_t nextBits = config_.fri_steps[step + 1];
             FRI<Goldilocks::Element>::merkelize(step, proof, friPol, trees_fri_raw_[step], currentBits, nextBits);
+
+#ifdef CAPTURE_FRI_VECTORS
+            // Capture Merkle root
+            captured_merkle_roots.push_back({
+                Goldilocks::toU64(proof.proof.fri.treesFRI[step].root[0]),
+                Goldilocks::toU64(proof.proof.fri.treesFRI[step].root[1]),
+                Goldilocks::toU64(proof.proof.fri.treesFRI[step].root[2]),
+                Goldilocks::toU64(proof.proof.fri.treesFRI[step].root[3])
+            });
+            // Capture polynomial hash after fold
+            uint64_t polySize = (1ULL << currentBits) * FIELD_EXTENSION;
+            Goldilocks::Element polyHash[HASH_SIZE];
+            calculateHash(polyHash, friPol, polySize, config_.transcript_arity, config_.merkle_tree_custom);
+            captured_poly_hashes.push_back({
+                Goldilocks::toU64(polyHash[0]),
+                Goldilocks::toU64(polyHash[1]),
+                Goldilocks::toU64(polyHash[2]),
+                Goldilocks::toU64(polyHash[3])
+            });
+#endif
 
             // Add root to transcript - matches line 224: starks.addTranscript(transcript, &proof.proof.fri.treesFRI[step].root[0], HASH_SIZE)
             transcript.put(&proof.proof.fri.treesFRI[step].root[0], HASH_SIZE);
@@ -396,6 +429,30 @@ uint64_t FriPcs<MerkleTreeType>::prove(
     }
 
 #ifdef CAPTURE_FRI_VECTORS
+    // Output captured Merkle roots
+    std::cerr << "constexpr std::array<std::array<uint64_t, 4>, " << captured_merkle_roots.size() << "> FRI_MERKLE_ROOTS = {{\n";
+    for (size_t i = 0; i < captured_merkle_roots.size(); i++) {
+        std::cerr << "    {" << captured_merkle_roots[i][0] << "ULL, "
+                  << captured_merkle_roots[i][1] << "ULL, "
+                  << captured_merkle_roots[i][2] << "ULL, "
+                  << captured_merkle_roots[i][3] << "ULL}";
+        if (i < captured_merkle_roots.size() - 1) std::cerr << ",";
+        std::cerr << "  // Step " << i << " Merkle root\n";
+    }
+    std::cerr << "}};\n\n";
+
+    // Output captured polynomial hashes after each fold
+    std::cerr << "constexpr std::array<std::array<uint64_t, 4>, " << captured_poly_hashes.size() << "> FRI_POLY_HASHES = {{\n";
+    for (size_t i = 0; i < captured_poly_hashes.size(); i++) {
+        std::cerr << "    {" << captured_poly_hashes[i][0] << "ULL, "
+                  << captured_poly_hashes[i][1] << "ULL, "
+                  << captured_poly_hashes[i][2] << "ULL, "
+                  << captured_poly_hashes[i][3] << "ULL}";
+        if (i < captured_poly_hashes.size() - 1) std::cerr << ",";
+        std::cerr << "  // Step " << i << " polynomial hash\n";
+    }
+    std::cerr << "}};\n\n";
+
     // Output captured challenges
     std::cerr << "constexpr std::array<std::array<uint64_t, 3>, " << captured_challenges.size() << "> FRI_CHALLENGES = {{\n";
     for (size_t i = 0; i < captured_challenges.size(); i++) {
@@ -413,6 +470,26 @@ uint64_t FriPcs<MerkleTreeType>::prove(
     std::cerr << "    " << Goldilocks::toU64(challenge[1]) << "ULL,\n";
     std::cerr << "    " << Goldilocks::toU64(challenge[2]) << "ULL\n";
     std::cerr << "};\n\n";
+
+    // Output transcript state at FRI start (for Python challenge generation verification)
+    std::cerr << "// Transcript state before FRI (allows Python to verify challenge generation)\n";
+    std::cerr << "constexpr std::array<uint64_t, 16> TRANSCRIPT_STATE = {\n    ";
+    for (int i = 0; i < 16; i++) {
+        std::cerr << captured_transcript_state[i] << "ULL";
+        if (i < 15) std::cerr << ", ";
+        if (i == 7) std::cerr << "\n    ";
+    }
+    std::cerr << "\n};\n";
+    std::cerr << "constexpr std::array<uint64_t, 16> TRANSCRIPT_OUT = {\n    ";
+    for (int i = 0; i < 16; i++) {
+        std::cerr << captured_transcript_out[i] << "ULL";
+        if (i < 15) std::cerr << ", ";
+        if (i == 7) std::cerr << "\n    ";
+    }
+    std::cerr << "\n};\n";
+    std::cerr << "constexpr uint32_t TRANSCRIPT_OUT_CURSOR = " << captured_out_cursor << ";\n";
+    std::cerr << "constexpr uint32_t TRANSCRIPT_PENDING_CURSOR = " << captured_pending_cursor << ";\n\n";
+
     std::cerr << "// === END FRI INPUT VECTORS ===\n\n";
 #endif
 

@@ -167,6 +167,35 @@ class Transcript:
 
         return self.state[:n_outputs]
 
+    def set_state(
+        self,
+        state: List[int],
+        out: List[int],
+        out_cursor: int,
+        pending_cursor: int = 0
+    ) -> None:
+        """
+        Set transcript internal state (for testing with captured C++ state).
+
+        Args:
+            state: Sponge state (16 elements for arity=4)
+            out: Output buffer (16 elements for arity=4)
+            out_cursor: Current output cursor position
+            pending_cursor: Current pending cursor position (usually 0)
+
+        This allows initializing the transcript to match C++ state at FRI start.
+        """
+        if len(state) != self.transcript_out_size:
+            raise ValueError(f"state must have {self.transcript_out_size} elements")
+        if len(out) != self.transcript_out_size:
+            raise ValueError(f"out must have {self.transcript_out_size} elements")
+
+        self.state = list(state)
+        self.out = list(out)
+        self.out_cursor = out_cursor
+        self.pending_cursor = pending_cursor
+        self.pending = [0] * self.transcript_out_size
+
     def get_permutations(self, n: int, n_bits: int) -> List[int]:
         """
         Generate n permutation values, each using n_bits bits.
