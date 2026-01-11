@@ -5,7 +5,31 @@ These are the expected golden values from the C++ implementation.
 DO NOT MODIFY - these values must match the C++ headers exactly.
 
 Source: pil2-stark/src/goldilocks/tests/fri_pinning_vectors.hpp
+
+Large vectors (Lookup2_12) are stored in JSON files in fri_spec/vectors/
+to keep this file manageable.
 """
+
+import json
+from pathlib import Path
+
+# Cache for loaded JSON vectors
+_lookup2_12_vectors = None
+
+
+def _load_lookup2_12_vectors():
+    """Load Lookup2_12 input vectors from JSON file."""
+    global _lookup2_12_vectors
+    if _lookup2_12_vectors is None:
+        vectors_path = Path(__file__).parent / 'vectors' / 'lookup2_12_2.json'
+        if not vectors_path.exists():
+            raise FileNotFoundError(
+                f"Lookup2_12 vectors not found at {vectors_path}. "
+                "Run generate-fri-vectors.sh lookup to generate them."
+            )
+        with open(vectors_path, 'r') as f:
+            _lookup2_12_vectors = json.load(f)
+    return _lookup2_12_vectors
 
 
 # ============================================================================
@@ -196,6 +220,9 @@ def get_fri_input_polynomial(air_name: str) -> list:
     """Get FRI input polynomial for given AIR."""
     if air_name.lower() in ['simple', 'simpleleft', 'simple_left']:
         return SIMPLE_LEFT_FRI_INPUT_POLYNOMIAL
+    elif air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        return vectors['inputs']['fri_input_polynomial']
     else:
         raise ValueError(f"FRI input polynomial not available for AIR: {air_name}")
 
@@ -204,6 +231,9 @@ def get_fri_input_hash(air_name: str) -> list:
     """Get FRI input polynomial hash for given AIR."""
     if air_name.lower() in ['simple', 'simpleleft', 'simple_left']:
         return SIMPLE_LEFT_FRI_INPUT_POL_HASH
+    elif air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        return vectors['inputs']['fri_input_pol_hash']
     else:
         raise ValueError(f"FRI input hash not available for AIR: {air_name}")
 
@@ -212,6 +242,9 @@ def get_fri_challenges(air_name: str) -> list:
     """Get FRI folding challenges for given AIR."""
     if air_name.lower() in ['simple', 'simpleleft', 'simple_left']:
         return SIMPLE_LEFT_FRI_CHALLENGES
+    elif air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        return vectors['inputs']['fri_challenges']
     else:
         raise ValueError(f"FRI challenges not available for AIR: {air_name}")
 
@@ -220,5 +253,71 @@ def get_grinding_challenge(air_name: str) -> list:
     """Get grinding challenge for given AIR."""
     if air_name.lower() in ['simple', 'simpleleft', 'simple_left']:
         return SIMPLE_LEFT_GRINDING_CHALLENGE
+    elif air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        return vectors['inputs']['grinding_challenge']
     else:
         raise ValueError(f"Grinding challenge not available for AIR: {air_name}")
+
+
+def get_fri_steps(air_name: str) -> list:
+    """Get FRI steps configuration for given AIR."""
+    if air_name.lower() in ['simple', 'simpleleft', 'simple_left']:
+        return SIMPLE_LEFT_CONFIG['fri_steps']
+    elif air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        return vectors['metadata']['fri_steps']
+    else:
+        raise ValueError(f"FRI steps not available for AIR: {air_name}")
+
+
+def get_n_bits_ext(air_name: str) -> int:
+    """Get extended domain bits for given AIR."""
+    if air_name.lower() in ['simple', 'simpleleft', 'simple_left']:
+        return SIMPLE_LEFT_CONFIG['n_bits_ext']
+    elif air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        return vectors['metadata']['n_bits_ext']
+    else:
+        raise ValueError(f"n_bits_ext not available for AIR: {air_name}")
+
+
+def get_merkle_roots(air_name: str) -> list:
+    """Get expected Merkle roots at each FRI step."""
+    if air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        return vectors.get('intermediates', {}).get('merkle_roots', [])
+    else:
+        raise ValueError(f"Merkle roots not available for AIR: {air_name}")
+
+
+def get_poly_hashes_after_fold(air_name: str) -> list:
+    """Get expected polynomial hashes after each FRI fold step."""
+    if air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        return vectors.get('intermediates', {}).get('poly_hashes_after_fold', [])
+    else:
+        raise ValueError(f"Polynomial hashes not available for AIR: {air_name}")
+
+
+def get_transcript_state(air_name: str) -> dict:
+    """
+    Get transcript state at FRI start for given AIR.
+
+    Returns dict with:
+        - state: 16-element array (sponge state)
+        - out: 16-element array (output buffer)
+        - out_cursor: current output cursor position
+        - pending_cursor: current pending cursor position
+    """
+    if air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        inputs = vectors.get('inputs', {})
+        return {
+            'state': inputs.get('transcript_state', []),
+            'out': inputs.get('transcript_out', []),
+            'out_cursor': inputs.get('transcript_out_cursor', 0),
+            'pending_cursor': inputs.get('transcript_pending_cursor', 0),
+        }
+    else:
+        raise ValueError(f"Transcript state not available for AIR: {air_name}")

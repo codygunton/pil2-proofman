@@ -75,6 +75,8 @@ from .test_vectors import (
     get_fri_input_hash,
     get_fri_challenges,
     get_grinding_challenge,
+    get_fri_steps,
+    get_n_bits_ext,
 )
 
 # Proof loading (Phase 2)
@@ -121,6 +123,8 @@ __all__ = [
     "get_fri_input_hash",
     "get_fri_challenges",
     "get_grinding_challenge",
+    "get_fri_steps",
+    "get_n_bits_ext",
     # Proof loading
     "FriProofData",
     "load_proof",
