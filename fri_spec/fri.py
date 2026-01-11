@@ -45,16 +45,56 @@ def _get_shift() -> int:
     return 7
 
 
+# Precomputed roots of unity from C++ goldilocks_base_field.cpp
+# W[i] is the primitive 2^i-th root of unity
+_W = [
+    1,                        # W[0]  = 1
+    18446744069414584320,     # W[1]  = -1
+    281474976710656,          # W[2]
+    16777216,                 # W[3]
+    4096,                     # W[4]
+    64,                       # W[5]
+    8,                        # W[6]
+    2198989700608,            # W[7]
+    4404853092538523347,      # W[8]
+    6434636298004421797,      # W[9]
+    4255134452441852017,      # W[10]
+    9113133275150391358,      # W[11]
+    4355325209153869931,      # W[12]
+    4308460244895131701,      # W[13]
+    7126024226993609386,      # W[14]
+    1873558160482552414,      # W[15]
+    8167150655112846419,      # W[16]
+    5718075921287398682,      # W[17]
+    3411401055030829696,      # W[18]
+    8982441859486529725,      # W[19]
+    1971462654193939361,      # W[20]
+    6553637399136210105,      # W[21]
+    8124823329697072476,      # W[22]
+    5936499541590631774,      # W[23]
+    2709866199236980323,      # W[24]
+    8877499657461974390,      # W[25]
+    3757607247483852735,      # W[26]
+    4969973714567017225,      # W[27]
+    2147253751702802259,      # W[28]
+    2530564950562219707,      # W[29]
+    1905180297017055339,      # W[30]
+    3524815499551269279,      # W[31]
+    7277203076849721926,      # W[32]
+]
+
+
 def _get_omega(n_bits: int) -> int:
     """
     Get primitive 2^n_bits-th root of unity.
 
     C++ Reference: Goldilocks::w(n_bits)
+
+    Uses precomputed values matching the C++ implementation exactly.
     """
-    # For Goldilocks, the multiplicative group has order p-1 = 2^64 - 2^32
-    # with 2-adicity of 32
-    omega = _pow_mod(7, (GOLDILOCKS_PRIME - 1) >> n_bits, GOLDILOCKS_PRIME)
-    return omega
+    if n_bits < 0 or n_bits >= len(_W):
+        raise ValueError(f"n_bits must be in [0, {len(_W)-1}], got {n_bits}")
+    return _W[n_bits]
 
 
 def _mul_cubic(a: List[int], b: List[int]) -> List[int]:
@@ -166,7 +206,10 @@ class FRI:
             # Apply INTT to convert to coefficients
             # For simplicity, we do a direct INTT implementation for small n_x
             if n_x > 1:
-                coeffs = FRI._intt_small(coeffs, n_x, w_inv)
+                # The small INTT needs omega for its own size, not the main domain
+                n_x_bits = int(math.log2(n_x))
+                w_inv_small = _inv_mod(_get_omega(n_x_bits))
+                coeffs = FRI._intt_small(coeffs, n_x, w_inv_small)
 
             # Apply polMulAxi: multiply coefficient i by (shift_inv * w_inv^g)^i
             sinv = (pol_shift_inv * _pow_mod(w_inv, g, p)) % p
@@ -255,12 +298,14 @@ class FRI:
         C++ Reference: FRI::merkelize
         """
         # Transpose polynomial for Merkle tree
-        transpose_bits = current_bits - next_bits
-        transposed = FRI.get_transposed(pol, 1 << current_bits, transpose_bits)
+        # C++ passes nextBits directly to getTransposed (not currentBits - nextBits)
+        transposed = FRI.get_transposed(pol, 1 << current_bits, next_bits)
 
         # Build tree
-        height = 1 << next_bits
-        width = (1 << transpose_bits) * FIELD_EXTENSION
+        # After transpose: w = 1 << next_bits groups, h = (1 << current_bits) / w elements per group
+        # Tree has w leaves (height), each with h * FIELD_EXTENSION values (width)
+        height = 1 << next_bits  # number of leaves
+        width = (1 << (current_bits - next_bits)) * FIELD_EXTENSION  # values per leaf
         tree.merkelize(transposed, height, width)
 
         return tree.get_root()
