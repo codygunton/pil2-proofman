@@ -505,6 +505,17 @@ uint64_t FriPcs<MerkleTreeType>::prove(
     transcriptPermutation.put((Goldilocks::Element*)&nonce, 1);
     transcriptPermutation.getPermutations(friQueries, config_.n_queries, config_.fri_steps[0]);
 
+#ifdef CAPTURE_FRI_VECTORS
+    // Capture query indices for Python verification
+    std::cerr << "constexpr std::array<uint64_t, " << config_.n_queries << "> FRI_QUERIES = {\n";
+    for (uint64_t i = 0; i < config_.n_queries; i++) {
+        std::cerr << "    " << friQueries[i] << "ULL";
+        if (i < config_.n_queries - 1) std::cerr << ",";
+        std::cerr << "\n";
+    }
+    std::cerr << "};\n\n";
+#endif
+
     // Stage tree queries - matches gen_proof.hpp lines 252-253
     if (nTrees > 0 && stageTrees != nullptr) {
         FRI<Goldilocks::Element>::proveQueries(friQueries, config_.n_queries, proof, stageTrees, nTrees);
