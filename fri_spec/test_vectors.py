@@ -110,6 +110,35 @@ SIMPLE_LEFT_GRINDING_CHALLENGE = [
     10531370013360693355,
 ]
 
+# FRI query indices (derived from grinding_challenge + nonce via transcript.getPermutations)
+# These are the indices into the extended polynomial domain for FRI queries.
+# Computed using Python transcript (verified to match C++ exactly).
+SIMPLE_LEFT_FRI_QUERIES = [
+    15, 3, 0, 11, 3, 6, 8, 1, 8, 9,
+    11, 1, 6, 9, 14, 12, 14, 12, 0, 15,
+    13, 4, 2, 3, 6, 12, 11, 10, 5, 15,
+    2, 11, 9, 11, 11, 15, 13, 7, 14, 3,
+    3, 14, 6, 11, 4, 7, 10, 2, 12, 9,
+    11, 14, 5, 12, 2, 10, 4, 0, 7, 15,
+    2, 3, 10, 5, 4, 1, 12, 3, 6, 2,
+    11, 5, 7, 13, 1, 4, 5, 15, 10, 9,
+    10, 13, 3, 10, 3, 10, 5, 9, 3, 3,
+    5, 6, 14, 9, 2, 5, 5, 5, 3, 4,
+    10, 1, 12, 12, 13, 13, 12, 6, 9, 2,
+    5, 13, 11, 8, 0, 7, 7, 4, 4, 1,
+    8, 12, 13, 1, 3, 3, 5, 7, 10, 8,
+    8, 11, 4, 4, 14, 8, 1, 4, 13, 2,
+    9, 1, 12, 3, 7, 15, 6, 11, 14, 4,
+    9, 15, 13, 15, 9, 6, 14, 13, 5, 4,
+    1, 11, 0, 11, 13, 6, 11, 5, 14, 6,
+    10, 12, 12, 6, 3, 13, 6, 7, 13, 7,
+    2, 0, 14, 11, 14, 13, 14, 0, 3, 2,
+    2, 13, 1, 7, 12, 5, 4, 13, 11, 4,
+    15, 1, 5, 0, 14, 15, 4, 14, 9, 2,
+    13, 1, 12, 14, 9, 6, 11, 13, 3, 1,
+    1, 9, 10, 8, 6, 2, 11, 1,
+]
+
 
 # ============================================================================
 # Lookup2_12 Configuration
@@ -258,6 +287,33 @@ def get_grinding_challenge(air_name: str) -> list:
         return vectors['inputs']['grinding_challenge']
     else:
         raise ValueError(f"Grinding challenge not available for AIR: {air_name}")
+
+
+def get_fri_queries(air_name: str) -> list:
+    """
+    Get FRI query indices for given AIR.
+
+    These are the indices derived from grinding_challenge + nonce
+    via transcript.getPermutations(n_queries, domain_bits).
+    """
+    if air_name.lower() in ['simple', 'simpleleft', 'simple_left']:
+        if SIMPLE_LEFT_FRI_QUERIES is None:
+            raise ValueError(
+                "SimpleLeft FRI queries not available. "
+                "Regenerate vectors with ./generate-fri-vectors.sh simple"
+            )
+        return SIMPLE_LEFT_FRI_QUERIES
+    elif air_name.lower() in ['lookup', 'lookup2_12', 'lookup2']:
+        vectors = _load_lookup2_12_vectors()
+        fri_queries = vectors['inputs'].get('fri_queries', [])
+        if not fri_queries:
+            raise ValueError(
+                "Lookup2_12 FRI queries not available. "
+                "Regenerate vectors with ./generate-fri-vectors.sh lookup"
+            )
+        return fri_queries
+    else:
+        raise ValueError(f"FRI queries not available for AIR: {air_name}")
 
 
 def get_fri_steps(air_name: str) -> list:
