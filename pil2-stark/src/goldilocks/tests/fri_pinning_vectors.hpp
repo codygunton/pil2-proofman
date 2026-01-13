@@ -232,6 +232,16 @@ namespace Lookup2_12 {
     /// Transcript (Fiat-Shamir) arity
     constexpr uint64_t TRANSCRIPT_ARITY = 4;
 
+    /// FRI step configuration: 3 steps for larger polynomial reduction
+    constexpr uint64_t NUM_FRI_STEPS = 3;
+
+    /// FRI challenges at each folding step (captured from C++)
+    constexpr std::array<std::array<uint64_t, 3>, 3> FRI_CHALLENGES = {{
+        {17372316241482201106ULL, 4573882784057680491ULL, 7695471256808767655ULL},   // Challenge 0
+        {12021750080465063677ULL, 6684995858571836146ULL, 10210747538308341014ULL},  // Challenge 1
+        {3248307857335837549ULL, 18262011665847589529ULL, 15352170406680365981ULL}   // Challenge 2
+    }};
+
     //=========================================================================
     // Expected FRI Output (from Lookup2_12_2.json)
     //=========================================================================
@@ -371,6 +381,15 @@ namespace Lookup2_12 {
 
     /// Expected grinding nonce (proof-of-work result).
     constexpr uint64_t EXPECTED_NONCE = 33180;
+
+    /// Hash of FRI input polynomial (before folding).
+    /// Full polynomial is 6144 values - only hash stored for validation.
+    constexpr std::array<uint64_t, 4> FRI_INPUT_POL_HASH = {
+        17943519307791263320ULL,
+        8481871866231913591ULL,
+        16776450438768947771ULL,
+        3492680947335154131ULL
+    };
 
     /// Expected Poseidon2 hash of EXPECTED_FINAL_POL (4 Goldilocks elements).
     constexpr std::array<uint64_t, 4> EXPECTED_FINAL_POL_HASH = {
