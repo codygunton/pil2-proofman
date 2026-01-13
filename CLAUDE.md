@@ -1,5 +1,8 @@
 pil2-proofman is a SNARK library used by the zisk zkvm.
 
+## Convevntions
+Filenames use - (hyphen) for seperators, not _ (underscore) whenever possible.
+
 ## Tests
 
 ### Setup
