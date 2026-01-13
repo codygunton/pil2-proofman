@@ -12,6 +12,9 @@ byte-identical outputs to the C++ implementation.
 
 NOTE: This file contains NEW Python tests. We do NOT modify any C++ tests.
 The C++ tests (test-fri.sh) remain unchanged and continue to work.
+
+C++ Reference: NO CORRESPONDING FUNCTION
+               (All test classes/methods are Python test utilities)
 """
 
 import unittest
@@ -1331,13 +1334,13 @@ class TestTranscriptChallengeGeneration(unittest.TestCase):
             self.skipTest("Transcript state not captured - regenerate vectors")
 
         # Initialize transcript with captured C++ state
+        # (directly setting internal attributes for test purposes)
         transcript = Transcript(arity=4)
-        transcript.set_state(
-            state=transcript_state['state'],
-            out=transcript_state['out'],
-            out_cursor=transcript_state['out_cursor'],
-            pending_cursor=transcript_state['pending_cursor']
-        )
+        transcript.state = list(transcript_state['state'])
+        transcript.out = list(transcript_state['out'])
+        transcript.out_cursor = transcript_state['out_cursor']
+        transcript.pending_cursor = transcript_state['pending_cursor']
+        transcript.pending = [0] * transcript.transcript_out_size
 
         # Generate challenges by adding Merkle roots (matching C++ flow)
         # C++ flow: for each step except last, add merkle root then get challenge

@@ -22,6 +22,8 @@ class Transcript:
     The transcript absorbs field elements and produces random challenges
     in a deterministic, pseudorandom manner.
 
+    C++ Reference: TranscriptGL class in transcriptGL.hpp
+
     Attributes:
         arity: Determines sponge width (2, 3, or 4 → 8, 12, 16)
         state: Current sponge state (HASH_SIZE elements)
@@ -37,7 +39,7 @@ class Transcript:
             arity: Sponge arity (2, 3, or 4)
             custom: Custom flag (unused, for API compatibility)
 
-        C++ Reference: TranscriptGL constructor
+        C++ Reference: TranscriptGL::TranscriptGL() constructor in transcriptGL.hpp:36
         """
         # QUESTION: do we really care about this check? Why? ANS: Yes - arity determines sponge width (8, 12, or 16), which must match Poseidon2 round constants. The C++ only has constants for these widths. Using an unsupported arity would produce incorrect hashes or crash. The C++ doesn't explicitly check (it's implicit in template instantiation), but we add it here for clearer error messages. Can simplify at cost of C++ divergence? N - constraint is from Poseidon2 spec, not C++ design.
         if arity not in [2, 3, 4]:
@@ -69,7 +71,7 @@ class Transcript:
         Args:
             input_data: List of field elements to absorb
 
-        C++ Reference: TranscriptGL::put
+        C++ Reference: TranscriptGL::put() in transcriptGL.cpp:4
         """
         for elem in input_data:
             self._add1(elem)
@@ -78,7 +80,7 @@ class Transcript:
         """
         Add a single field element to pending buffer.
 
-        C++ Reference: TranscriptGL::_add1
+        C++ Reference: TranscriptGL::_add1() in transcriptGL.cpp:41 (private)
         """
         # QUESTION: does this function exist in the C++? ANS: Yes, TranscriptGL::_add1 in transcriptGL.hpp. It's a private helper that adds one element to pending and triggers _updateState when the buffer fills. Our implementation matches it exactly. Can simplify at cost of C++ divergence? Y - could inline into put() or use a simpler append-to-list pattern, but would diverge from C++ structure.
         self.pending[self.pending_cursor] = input_elem % GOLDILOCKS_PRIME
@@ -93,7 +95,7 @@ class Transcript:
         """
         Execute Poseidon2 sponge absorption.
 
-        C++ Reference: TranscriptGL::_updateState
+        C++ Reference: TranscriptGL::_updateState() in transcriptGL.cpp:12 (private)
         """
         # Pad remaining pending slots with zeros
         while self.pending_cursor < self.transcript_pending_size:
@@ -122,7 +124,7 @@ class Transcript:
         """
         Squeeze one field element from sponge.
 
-        C++ Reference: TranscriptGL::getFields1
+        C++ Reference: TranscriptGL::getFields1() in transcriptGL.cpp:75 (private)
         """
         if self.out_cursor == 0:
             self._update_state()
@@ -141,7 +143,7 @@ class Transcript:
         Returns:
             List of 3 field elements
 
-        C++ Reference: TranscriptGL::getField
+        C++ Reference: TranscriptGL::getField() in transcriptGL.cpp:52
         """
         result = []
         for _ in range(3):
@@ -158,7 +160,7 @@ class Transcript:
         Returns:
             List of state elements
 
-        C++ Reference: TranscriptGL::getState
+        C++ Reference: TranscriptGL::getState() in transcriptGL.cpp:61-68 (overloaded)
         """
         # Flush pending if needed
         if self.pending_cursor > 0:
@@ -168,35 +170,6 @@ class Transcript:
             n_outputs = self.transcript_state_size
 
         return self.state[:n_outputs]
-
-    def set_state(
-        self,
-        state: List[int],
-        out: List[int],
-        out_cursor: int,
-        pending_cursor: int = 0
-    ) -> None:
-        """
-        Set transcript internal state (for testing with captured C++ state).
-
-        Args:
-            state: Sponge state (16 elements for arity=4)
-            out: Output buffer (16 elements for arity=4)
-            out_cursor: Current output cursor position
-            pending_cursor: Current pending cursor position (usually 0)
-
-        This allows initializing the transcript to match C++ state at FRI start.
-        """
-        if len(state) != self.transcript_out_size:
-            raise ValueError(f"state must have {self.transcript_out_size} elements")
-        if len(out) != self.transcript_out_size:
-            raise ValueError(f"out must have {self.transcript_out_size} elements")
-
-        self.state = list(state)
-        self.out = list(out)
-        self.out_cursor = out_cursor
-        self.pending_cursor = pending_cursor
-        self.pending = [0] * self.transcript_out_size
 
     def get_permutations(self, n: int, n_bits: int) -> List[int]:
         """
@@ -211,7 +184,7 @@ class Transcript:
         Returns:
             List of n values, each in range [0, 2^n_bits)
 
-        C++ Reference: TranscriptGL::getPermutations
+        C++ Reference: TranscriptGL::getPermutations() in transcriptGL.cpp:86
         """
         # Calculate number of field elements needed
         # Use 63 bits per field (leaving 1 bit margin for safety)
