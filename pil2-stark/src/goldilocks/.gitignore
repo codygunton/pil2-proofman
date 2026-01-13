@@ -9,5 +9,4 @@ benchcpu
 benchgpu
 benchscpu
 deviceQuery
-fri_pinning_test
 *.o

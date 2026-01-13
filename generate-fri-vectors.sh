@@ -23,7 +23,7 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GOLDILOCKS_DIR="$ROOT_DIR/pil2-stark/src/goldilocks"
+TESTS_DIR="$ROOT_DIR/pil2-stark/tests"
 
 # Use GCC 13 for C++ compilation
 export CC=gcc-13
@@ -149,13 +149,12 @@ print("")
 EOF
 
     # Build and run C++ test to get Poseidon2 hash
-    echo "Building fri_pinning_test to compute Poseidon2 hash..."
-    cd "$GOLDILOCKS_DIR"
-    make fri_pinning_test > /dev/null 2>&1
+    echo "Building fri-pinning-test to compute Poseidon2 hash..."
+    make -C "$TESTS_DIR" fri-pinning-test > /dev/null 2>&1
 
     echo "Computing Poseidon2 hash..."
     # Run the test and extract the hash from output
-    HASH_OUTPUT=$(./fri_pinning_test --proof-path="$PROOF_FILE" --gtest_filter="*OutputSummary" 2>&1 | grep "Poseidon2 hash:")
+    HASH_OUTPUT=$("$TESTS_DIR/build/fri-pinning-test" --proof-path="$PROOF_FILE" --gtest_filter="*OutputSummary" 2>&1 | grep "Poseidon2 hash:")
 
     if [ -z "$HASH_OUTPUT" ]; then
         echo "WARNING: Could not extract Poseidon2 hash from test output"
@@ -178,8 +177,6 @@ EOF
 
     echo ""
     echo "Proof files preserved in: $TEST_DIR"
-
-    cd "$ROOT_DIR"
 }
 
 # ===========================================================================
@@ -233,4 +230,4 @@ echo ""
 echo "=== Done ==="
 echo ""
 echo "Copy the above values into:"
-echo "  pil2-stark/src/goldilocks/tests/fri_pinning_vectors.hpp"
+echo "  pil2-stark/tests/fri-pinning/fri_pinning_vectors.hpp"

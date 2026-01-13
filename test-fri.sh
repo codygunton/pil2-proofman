@@ -15,7 +15,7 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GOLDILOCKS_DIR="$ROOT_DIR/pil2-stark/src/goldilocks"
+TESTS_DIR="$ROOT_DIR/pil2-stark/tests"
 
 # Proof locations for each test
 SIMPLE_BUILD_DIR="$ROOT_DIR/pil2-components/test/simple/build"
@@ -30,7 +30,7 @@ for arg in "$@"; do
         --proof-path=*)
             PROOF_PATH="${arg#*=}"
             ;;
-        simple|lookup|all)
+        simple | lookup | all)
             TEST_TARGET="$arg"
             ;;
     esac
@@ -83,7 +83,7 @@ run_fri_test() {
     fi
 
     echo "Using proof: $PROOF_FILE"
-    ./fri_pinning_test --proof-path="$PROOF_FILE" --gtest_filter="*" || return 1
+    "$TESTS_DIR/build/fri-pinning-test" --proof-path="$PROOF_FILE" --gtest_filter="*" || return 1
 }
 
 # ===========================================================================
@@ -94,13 +94,13 @@ echo "=== FRI Pinning Test ==="
 echo ""
 
 # Build the test binary
-echo "Building fri_pinning_test..."
-cd "$GOLDILOCKS_DIR"
-make fri_pinning_test 2>&1 | grep -v "^mkdir\|^g++" || true
+echo "Building fri-pinning-test..."
+make -C "$TESTS_DIR" fri-pinning-test 2>&1 | grep -v "^mkdir\|^g++" || true
 echo ""
 
 OVERALL_FAILED=0
 
+# TODO: just simplify this and run them all
 case "$TEST_TARGET" in
     simple)
         if [ -n "$PROOF_PATH" ]; then

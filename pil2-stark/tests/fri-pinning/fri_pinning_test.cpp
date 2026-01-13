@@ -14,10 +14,10 @@
  *   run generate-fri-vectors.sh to generate vectors for new AIRs.
  *
  * Build:
- *   cd pil2-stark/src/goldilocks && make fri_pinning_test
+ *   cd pil2-stark/tests && make fri-pinning-test
  *
  * Run:
- *   ./fri_pinning_test [--proof-path=<path>]
+ *   ./build/fri-pinning-test [--proof-path=<path>]
  */
 
 #include <gtest/gtest.h>
@@ -28,8 +28,8 @@
 #include <memory>
 #include <regex>
 
-#include "../src/goldilocks_base_field.hpp"
-#include "../src/poseidon2_goldilocks.hpp"
+#include "goldilocks_base_field.hpp"
+#include "poseidon2_goldilocks.hpp"
 #include <nlohmann/json.hpp>
 #include "fri_pinning_vectors.hpp"
 
