@@ -8,10 +8,10 @@ C++ Reference: pil2-stark/src/starkpil/fri/fri_pcs.hpp
 
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
-from .fri import FRI, FIELD_EXTENSION
-from .merkle_tree import MerkleTree, HASH_SIZE
-from .transcript import Transcript
-from .poseidon2 import poseidon2_hash, linear_hash, grinding, verify_grinding
+from fri import FRI, FIELD_EXTENSION
+from merkle_tree import MerkleTree, HASH_SIZE
+from transcript import Transcript
+from poseidon2_ffi import poseidon2_hash, linear_hash, grinding, verify_grinding
 
 
 @dataclass

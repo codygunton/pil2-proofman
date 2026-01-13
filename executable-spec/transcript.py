@@ -7,8 +7,8 @@ C++ Reference: pil2-stark/src/starkpil/transcript/transcriptGL.hpp
 """
 # QUESTION: this class is a bit more complex than I'd expect. Is that in reflection of complexity in the transcript class in the C++? Is it all in use? ANS: Yes, this mirrors TranscriptGL in transcriptGL.hpp almost exactly. The complexity comes from the sponge construction: separate state/pending/out buffers, cursors for tracking position, and the specific absorption/squeeze pattern. All of it is in use - the pending buffer accumulates inputs until full, then _update_state absorbs into the sponge. The out buffer caches squeezed challenges. This matches how C++ manages memory for the sponge. Can simplify at cost of C++ divergence? N - sponge construction is cryptographically required, not a C++ design choice.
 from typing import List
-from .poseidon2 import poseidon2_hash, CAPACITY
-from .field import GOLDILOCKS_PRIME
+from poseidon2_ffi import poseidon2_hash, CAPACITY
+from field import GOLDILOCKS_PRIME
 
 
 # Hash size (capacity of sponge)

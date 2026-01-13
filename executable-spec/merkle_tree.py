@@ -9,7 +9,7 @@ C++ Reference: pil2-stark/src/starkpil/merkleTree/merkleTreeGL.hpp
 
 from typing import List, Tuple, Optional
 import math
-from .poseidon2 import poseidon2_hash, linear_hash, hash_seq, CAPACITY
+from poseidon2_ffi import poseidon2_hash, linear_hash, hash_seq, CAPACITY
 
 
 # Hash size (capacity of sponge)
