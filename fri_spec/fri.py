@@ -8,6 +8,7 @@ C++ Reference: pil2-stark/src/starkpil/fri/fri.hpp
 
 from typing import List, Tuple, Optional
 import math
+import galois
 from .field import GF, GF3, GOLDILOCKS_PRIME, ntt, intt, get_root_of_unity
 from .merkle_tree import MerkleTree, HASH_SIZE
 
@@ -209,7 +210,7 @@ class FRI:
                 # The small INTT needs omega for its own size, not the main domain
                 n_x_bits = int(math.log2(n_x))
                 w_inv_small = _inv_mod(_get_omega(n_x_bits))
-                coeffs = FRI._intt_small(coeffs, n_x, w_inv_small)
+                coeffs = FRI._intt_cubic(coeffs, n_x, w_inv_small)
 
             # Apply polMulAxi: multiply coefficient i by (shift_inv * w_inv^g)^i
             sinv = (pol_shift_inv * _pow_mod(w_inv, g, p)) % p
@@ -232,47 +233,33 @@ class FRI:
         return result
 
     @staticmethod
-    def _intt_small(values: List[List[int]], n: int, w_inv: int) -> List[List[int]]:
+    def _intt_cubic(values: List[List[int]], n: int, w_inv: int) -> List[List[int]]:
         """
-        Small INTT for folding (works on cubic extension elements).
+        INTT on cubic extension elements using galois with custom root.
 
-        This is a simplified INTT for small sizes used during folding.
+        Applies INTT component-wise to each coordinate of the cubic extension.
+        Uses C++-compatible root of unity for byte-exact output matching.
+
+        Args:
+            values: List of cubic extension elements [c0, c1, c2]
+            n: Transform size (must be power of 2)
+            w_inv: Inverse of primitive n-th root of unity (C++ compatible)
+
+        Returns:
+            INTT result as list of cubic extension elements
         """
-        p = GOLDILOCKS_PRIME
+        # Decompose cubic elements into 3 component arrays
+        comp0 = GF([v[0] for v in values])
+        comp1 = GF([v[1] for v in values])
+        comp2 = GF([v[2] for v in values])
 
-        # Bit-reversal permutation
-        result = list(values)
-        log_n = int(math.log2(n))
+        # INTT each component with C++-compatible root
+        r0 = galois.intt(comp0, omega=w_inv)
+        r1 = galois.intt(comp1, omega=w_inv)
+        r2 = galois.intt(comp2, omega=w_inv)
 
-        for i in range(n):
-            j = int('{:0{width}b}'.format(i, width=log_n)[::-1], 2)
-            if i < j:
-                result[i], result[j] = result[j], result[i]
-
-        # Cooley-Tukey INTT
-        m = 2
-        while m <= n:
-            wm = _pow_mod(w_inv, n // m, p)
-            for k in range(0, n, m):
-                w = 1
-                for j in range(m // 2):
-                    t = _scalar_mul_cubic(result[k + j + m // 2], w)
-                    u = result[k + j]
-                    result[k + j] = _add_cubic(u, t)
-                    result[k + j + m // 2] = [
-                        (u[0] - t[0]) % p,
-                        (u[1] - t[1]) % p,
-                        (u[2] - t[2]) % p
-                    ]
-                    w = (w * wm) % p
-            m *= 2
-
-        # Scale by 1/n
-        n_inv = _inv_mod(n)
-        for i in range(n):
-            result[i] = _scalar_mul_cubic(result[i], n_inv)
-
-        return result
+        # Reassemble into cubic extension elements
+        return [[int(r0[i]), int(r1[i]), int(r2[i])] for i in range(n)]
 
     @staticmethod
     def merkelize(
@@ -436,7 +423,7 @@ class FRI:
         # Apply INTT
         w_inv = _inv_mod(w)
         if n_x > 1:
-            coeffs = FRI._intt_small(coeffs, n_x, w_inv)
+            coeffs = FRI._intt_cubic(coeffs, n_x, w_inv)
 
         # Calculate shift inverse and omega power
         sinv = _inv_mod((shift * _pow_mod(w, idx, p)) % p)

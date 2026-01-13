@@ -8,6 +8,14 @@ C++ Reference: pil2-stark/src/goldilocks/src/goldilocks_base_field.hpp
                pil2-stark/src/goldilocks/src/goldilocks_cubic_extension.hpp
 """
 
+import sys
+import os
+
+# Use local galois fork with custom omega support
+_galois_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lib/galois/src')
+if _galois_path not in sys.path:
+    sys.path.insert(0, _galois_path)
+
 import galois
 import numpy as np
 from typing import Union
