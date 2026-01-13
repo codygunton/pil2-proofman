@@ -1,0 +1,20 @@
+[package]
+name = "poseidon2_ffi"
+version = "0.1.0"
+edition = "2021"
+description = "Python FFI bindings for Poseidon2 hash function over Goldilocks field"
+
+# Keep this crate independent from the main workspace
+[workspace]
+
+[lib]
+name = "poseidon2_ffi"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+lazy_static = "1.4"
+
+[profile.release]
+opt-level = 3
+lto = true

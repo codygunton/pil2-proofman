@@ -1,0 +1,4 @@
+[submodule "lib/galois"]
+	path = lib/galois
+	url = git@github.com:codygunton/galois
+	branch = custom-omega
