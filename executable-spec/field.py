@@ -1,5 +1,8 @@
 """
-Goldilocks field and cubic extension using galois library. TODO: mention fork and link to github 
+Goldilocks field and cubic extension using galois library.
+
+Uses a forked galois library with custom omega support for INTT:
+https://github.com/codygunton/galois (branch: custom-omega)
 
 This module provides a thin wrapper around galois for the Goldilocks prime field
 and its cubic extension used in the FRI protocol.
@@ -7,14 +10,6 @@ and its cubic extension used in the FRI protocol.
 C++ Reference: pil2-stark/src/goldilocks/src/goldilocks_base_field.hpp
                pil2-stark/src/goldilocks/src/goldilocks_cubic_extension.hpp
 """
-
-import sys
-import os
-
-# Use local galois fork with custom omega support
-_galois_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lib/galois/src')
-if _galois_path not in sys.path:
-    sys.path.insert(0, _galois_path)
 
 import galois
 import numpy as np
@@ -35,6 +30,86 @@ GF3 = galois.GF(GOLDILOCKS_PRIME**3, irreducible_poly=_irr_poly)
 # NTT functions (direct from galois)
 ntt = galois.ntt
 intt = galois.intt
+
+
+# Precomputed roots of unity from C++ goldilocks_base_field.cpp
+# W[i] is the primitive 2^i-th root of unity
+W = [
+    1,                        # W[0]  = 1
+    18446744069414584320,     # W[1]  = -1
+    281474976710656,          # W[2]
+    16777216,                 # W[3]
+    4096,                     # W[4]
+    64,                       # W[5]
+    8,                        # W[6]
+    2198989700608,            # W[7]
+    4404853092538523347,      # W[8]
+    6434636298004421797,      # W[9]
+    4255134452441852017,      # W[10]
+    9113133275150391358,      # W[11]
+    4355325209153869931,      # W[12]
+    4308460244895131701,      # W[13]
+    7126024226993609386,      # W[14]
+    1873558160482552414,      # W[15]
+    8167150655112846419,      # W[16]
+    5718075921287398682,      # W[17]
+    3411401055030829696,      # W[18]
+    8982441859486529725,      # W[19]
+    1971462654193939361,      # W[20]
+    6553637399136210105,      # W[21]
+    8124823329697072476,      # W[22]
+    5936499541590631774,      # W[23]
+    2709866199236980323,      # W[24]
+    8877499657461974390,      # W[25]
+    3757607247483852735,      # W[26]
+    4969973714567017225,      # W[27]
+    2147253751702802259,      # W[28]
+    2530564950562219707,      # W[29]
+    1905180297017055339,      # W[30]
+    3524815499551269279,      # W[31]
+    7277203076849721926,      # W[32]
+]
+
+
+def pow_mod(base: int, exp: int, mod: int = GOLDILOCKS_PRIME) -> int:
+    """Modular exponentiation."""
+    result = 1
+    base = base % mod
+    while exp > 0:
+        if exp & 1:
+            result = (result * base) % mod
+        exp >>= 1
+        base = (base * base) % mod
+    return result
+
+
+def inv_mod(x: int, mod: int = GOLDILOCKS_PRIME) -> int:
+    """Modular inverse using Fermat's little theorem."""
+    return pow_mod(x, mod - 2, mod)
+
+
+def get_shift() -> int:
+    """
+    Get the shift constant (generator) for the Goldilocks field.
+
+    This is the multiplicative generator used to shift the evaluation domain.
+
+    C++ Reference: Goldilocks::shift()
+    """
+    return 7
+
+
+def get_omega(n_bits: int) -> int:
+    """
+    Get primitive 2^n_bits-th root of unity.
+
+    C++ Reference: Goldilocks::w(n_bits)
+
+    Uses precomputed values matching the C++ implementation exactly.
+    """
+    if n_bits < 0 or n_bits >= len(W):
+        raise ValueError(f"n_bits must be in [0, {len(W)-1}], got {n_bits}")
+    return W[n_bits]
 
 
 def get_root_of_unity(n_bits: int) -> GF:
@@ -76,41 +151,3 @@ def get_roots_of_unity(n_bits: int) -> np.ndarray:
     return roots
 
 
-# QUESTION: This is not actually in use right? Should it be? If so, where? ANS: Correct, not currently in use. It exists because C++ has Goldilocks::batchInverse and we aimed for API parity. It would be useful in polynomial evaluation/interpolation if we needed many inversions. Currently the FRI code avoids bulk inversions by design. Keep it for completeness - may be needed if we add polynomial division or Lagrange interpolation later. Can simplify at cost of C++ divergence? Y - could delete entirely since unused, but loses API parity.
-# TODO: remove this until it is needed (will be later after FRI spec)
-def batch_inverse(elements: np.ndarray) -> np.ndarray:
-    """
-    Compute batch inverse using Montgomery's trick.
-
-    This is more efficient than inverting each element individually
-    when many inversions are needed.
-
-    Args:
-        elements: Array of field elements to invert
-
-    Returns:
-        Array of inverses
-
-    C++ Reference: Goldilocks::batchInverse
-    """
-    n = len(elements)
-    if n == 0:
-        return GF([])
-
-    # Compute prefix products
-    products = GF([1] * n)
-    products[0] = elements[0]
-    for i in range(1, n):
-        products[i] = products[i-1] * elements[i]
-
-    # Invert the final product
-    inv_all = products[n-1] ** (-1)
-
-    # Compute individual inverses
-    result = GF([0] * n)
-    for i in range(n-1, 0, -1):
-        result[i] = inv_all * products[i-1]
-        inv_all = inv_all * elements[i]
-    result[0] = inv_all
-
-    return result

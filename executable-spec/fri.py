@@ -9,95 +9,12 @@ C++ Reference: pil2-stark/src/starkpil/fri/fri.hpp
 from typing import List, Tuple, Optional
 import math
 import galois
-from .field import GF, GF3, GOLDILOCKS_PRIME, ntt, intt, get_root_of_unity
-from .merkle_tree import MerkleTree, HASH_SIZE
+from field import GF, GF3, GOLDILOCKS_PRIME, ntt, intt, get_root_of_unity, W, pow_mod, inv_mod, get_shift, get_omega
+from merkle_tree import MerkleTree, HASH_SIZE
 
 
 # Field extension degree (cubic)
 FIELD_EXTENSION = 3
-
-
-# QUESTION: is this needed? Should it be located here? Same for each of the other small helpers in here? ANS: Yes, these helpers (_pow_mod, _inv_mod, _get_shift, _W) are needed and mirror the C++ goldilocks_base_field.hpp. They're here rather than field.py because: (1) they operate on raw ints, not galois arrays, matching C++ semantics, (2) fri.py needs them for the folding loop where we work with int values directly for performance. The C++ has these as inline functions in the Goldilocks class. Could move to field.py but current placement reflects that FRI is the primary consumer. Can simplify at cost of C++ divergence? N - these are fundamental field operations, not structural choices.
-# TODO: move to field.py
-def _pow_mod(base: int, exp: int, mod: int = GOLDILOCKS_PRIME) -> int:
-    """Modular exponentiation."""
-    result = 1
-    base = base % mod
-    while exp > 0:
-        if exp & 1:
-            result = (result * base) % mod
-        exp >>= 1
-        base = (base * base) % mod
-    return result
-
-
-def _inv_mod(x: int, mod: int = GOLDILOCKS_PRIME) -> int:
-    """Modular inverse using Fermat's little theorem."""
-    return _pow_mod(x, mod - 2, mod)
-
-
-def _get_shift() -> int:
-    """
-    Get the shift constant (generator) for the Goldilocks field.
-
-    This is the multiplicative generator used to shift the evaluation domain.
-
-    C++ Reference: Goldilocks::shift()
-    """
-    # The shift is typically a small generator, using 7 as in many implementations
-    return 7
-
-
-# Precomputed roots of unity from C++ goldilocks_base_field.cpp
-# W[i] is the primitive 2^i-th root of unity
-_W = [
-    1,                        # W[0]  = 1
-    18446744069414584320,     # W[1]  = -1
-    281474976710656,          # W[2]
-    16777216,                 # W[3]
-    4096,                     # W[4]
-    64,                       # W[5]
-    8,                        # W[6]
-    2198989700608,            # W[7]
-    4404853092538523347,      # W[8]
-    6434636298004421797,      # W[9]
-    4255134452441852017,      # W[10]
-    9113133275150391358,      # W[11]
-    4355325209153869931,      # W[12]
-    4308460244895131701,      # W[13]
-    7126024226993609386,      # W[14]
-    1873558160482552414,      # W[15]
-    8167150655112846419,      # W[16]
-    5718075921287398682,      # W[17]
-    3411401055030829696,      # W[18]
-    8982441859486529725,      # W[19]
-    1971462654193939361,      # W[20]
-    6553637399136210105,      # W[21]
-    8124823329697072476,      # W[22]
-    5936499541590631774,      # W[23]
-    2709866199236980323,      # W[24]
-    8877499657461974390,      # W[25]
-    3757607247483852735,      # W[26]
-    4969973714567017225,      # W[27]
-    2147253751702802259,      # W[28]
-    2530564950562219707,      # W[29]
-    1905180297017055339,      # W[30]
-    3524815499551269279,      # W[31]
-    7277203076849721926,      # W[32]
-]
-
-
-def _get_omega(n_bits: int) -> int:
-    """
-    Get primitive 2^n_bits-th root of unity.
-
-    C++ Reference: Goldilocks::w(n_bits)
-
-    Uses precomputed values matching the C++ implementation exactly.
-    """
-    if n_bits < 0 or n_bits >= len(_W):
-        raise ValueError(f"n_bits must be in [0, {len(_W)-1}], got {n_bits}")
-    return _W[n_bits]
 
 
 def _mul_cubic(a: List[int], b: List[int]) -> List[int]:
@@ -179,8 +96,8 @@ class FRI:
         p = GOLDILOCKS_PRIME
 
         # Calculate shift inverse
-        shift = _get_shift()
-        shift_inv = _inv_mod(shift)
+        shift = get_shift()
+        shift_inv = inv_mod(shift)
 
         # For step > 0, square shift_inv (n_bits_ext - prev_bits) times
         pol_shift_inv = shift_inv
@@ -193,7 +110,7 @@ class FRI:
         n_x = (1 << prev_bits) // pol_2n  # Folding ratio
 
         # Root of unity inverse
-        w_inv = _inv_mod(_get_omega(prev_bits))
+        w_inv = inv_mod(get_omega(prev_bits))
 
         # Prepare output
         result = [0] * (pol_2n * FIELD_EXTENSION)
@@ -211,11 +128,11 @@ class FRI:
             if n_x > 1:
                 # The small INTT needs omega for its own size, not the main domain
                 n_x_bits = int(math.log2(n_x))
-                w_inv_small = _inv_mod(_get_omega(n_x_bits))
+                w_inv_small = inv_mod(get_omega(n_x_bits))
                 coeffs = FRI._intt_cubic(coeffs, n_x, w_inv_small)
 
             # Apply polMulAxi: multiply coefficient i by (shift_inv * w_inv^g)^i
-            sinv = (pol_shift_inv * _pow_mod(w_inv, g, p)) % p
+            sinv = (pol_shift_inv * pow_mod(w_inv, g, p)) % p
             acc = 1
             for i in range(n_x):
                 coeffs[i] = _scalar_mul_cubic(coeffs[i], acc)
@@ -410,25 +327,25 @@ class FRI:
         p = GOLDILOCKS_PRIME
 
         # Calculate shift
-        shift = _get_shift()
+        shift = get_shift()
         if step > 0:
             for _ in range(n_bits_ext - prev_bits):
                 shift = (shift * shift) % p
 
         # Get omega for previous level
-        w = _get_omega(prev_bits)
+        w = get_omega(prev_bits)
 
         # Reconstruct coefficients from siblings
         n_x = 1 << (prev_bits - current_bits)
         coeffs = list(siblings)
 
         # Apply INTT
-        w_inv = _inv_mod(w)
+        w_inv = inv_mod(w)
         if n_x > 1:
             coeffs = FRI._intt_cubic(coeffs, n_x, w_inv)
 
         # Calculate shift inverse and omega power
-        sinv = _inv_mod((shift * _pow_mod(w, idx, p)) % p)
+        sinv = inv_mod((shift * pow_mod(w, idx, p)) % p)
 
         # Compute evaluation point
         aux = _mul_cubic(challenge, [sinv, 0, 0])
