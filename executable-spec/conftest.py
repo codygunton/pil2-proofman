@@ -1,4 +1,9 @@
-"""Pytest configuration for executable-spec tests."""
+"""
+Pytest configuration for executable-spec tests.
+
+C++ Reference: NO CORRESPONDING FUNCTION
+               (Python test infrastructure)
+"""
 
 import sys
 from pathlib import Path

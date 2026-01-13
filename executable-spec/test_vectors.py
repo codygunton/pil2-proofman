@@ -17,7 +17,12 @@ _vectors_cache = {}
 
 
 def _load_vectors(air_name: str) -> dict:
-    """Load vectors for given AIR from JSON file."""
+    """
+    Load vectors for given AIR from JSON file.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test data loader)
+    """
     # Normalize air name to file name
     if air_name.lower() in ['simple', 'simpleleft', 'simple_left']:
         file_name = 'simple-left.json'
@@ -43,7 +48,12 @@ def _load_vectors(air_name: str) -> dict:
 # ============================================================================
 
 def get_config(air_name: str) -> dict:
-    """Get configuration for given AIR."""
+    """
+    Get configuration for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     metadata = vectors['metadata']
     return {
@@ -62,43 +72,78 @@ def get_config(air_name: str) -> dict:
 
 
 def get_expected_final_pol(air_name: str) -> list:
-    """Get expected final polynomial for given AIR."""
+    """
+    Get expected final polynomial for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors['expected']['final_pol']
 
 
 def get_expected_nonce(air_name: str) -> int:
-    """Get expected nonce for given AIR."""
+    """
+    Get expected nonce for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors['expected']['nonce']
 
 
 def get_expected_hash(air_name: str) -> list:
-    """Get expected Poseidon2 hash of final polynomial for given AIR."""
+    """
+    Get expected Poseidon2 hash of final polynomial for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors['expected']['final_pol_hash']
 
 
 def get_fri_input_polynomial(air_name: str) -> list:
-    """Get FRI input polynomial for given AIR."""
+    """
+    Get FRI input polynomial for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors['inputs']['fri_input_polynomial']
 
 
 def get_fri_input_hash(air_name: str) -> list:
-    """Get FRI input polynomial hash for given AIR."""
+    """
+    Get FRI input polynomial hash for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors['inputs'].get('fri_input_pol_hash', [])
 
 
 def get_fri_challenges(air_name: str) -> list:
-    """Get FRI folding challenges for given AIR."""
+    """
+    Get FRI folding challenges for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors['inputs']['fri_challenges']
 
 
 def get_grinding_challenge(air_name: str) -> list:
-    """Get grinding challenge for given AIR."""
+    """
+    Get grinding challenge for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors['inputs']['grinding_challenge']
 
@@ -109,6 +154,9 @@ def get_fri_queries(air_name: str) -> list:
 
     These are the indices derived from grinding_challenge + nonce
     via transcript.getPermutations(n_queries, domain_bits).
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
     """
     vectors = _load_vectors(air_name)
     fri_queries = vectors['inputs'].get('fri_queries', [])
@@ -121,25 +169,45 @@ def get_fri_queries(air_name: str) -> list:
 
 
 def get_fri_steps(air_name: str) -> list:
-    """Get FRI steps configuration for given AIR."""
+    """
+    Get FRI steps configuration for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors['metadata']['fri_steps']
 
 
 def get_n_bits_ext(air_name: str) -> int:
-    """Get extended domain bits for given AIR."""
+    """
+    Get extended domain bits for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors['metadata']['n_bits_ext']
 
 
 def get_merkle_roots(air_name: str) -> list:
-    """Get expected Merkle roots at each FRI step."""
+    """
+    Get expected Merkle roots at each FRI step.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors.get('intermediates', {}).get('merkle_roots', [])
 
 
 def get_poly_hashes_after_fold(air_name: str) -> list:
-    """Get expected polynomial hashes after each FRI fold step."""
+    """
+    Get expected polynomial hashes after each FRI fold step.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     vectors = _load_vectors(air_name)
     return vectors.get('intermediates', {}).get('poly_hashes_after_fold', [])
 
@@ -147,6 +215,9 @@ def get_poly_hashes_after_fold(air_name: str) -> list:
 def get_transcript_state(air_name: str) -> dict:
     """
     Get transcript state at FRI start for given AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
 
     Returns dict with:
         - state: 16-element array (sponge state)

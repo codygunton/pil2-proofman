@@ -72,7 +72,11 @@ W = [
 
 
 def pow_mod(base: int, exp: int, mod: int = GOLDILOCKS_PRIME) -> int:
-    """Modular exponentiation."""
+    """
+    Modular exponentiation.
+
+    C++ Reference: Goldilocks::pow() in goldilocks_base_field.hpp:112
+    """
     result = 1
     base = base % mod
     while exp > 0:
@@ -84,7 +88,11 @@ def pow_mod(base: int, exp: int, mod: int = GOLDILOCKS_PRIME) -> int:
 
 
 def inv_mod(x: int, mod: int = GOLDILOCKS_PRIME) -> int:
-    """Modular inverse using Fermat's little theorem."""
+    """
+    Modular inverse using Fermat's little theorem.
+
+    C++ Reference: Goldilocks::inv() in goldilocks_base_field.hpp:126
+    """
     return pow_mod(x, mod - 2, mod)
 
 
@@ -119,6 +127,8 @@ def get_root_of_unity(n_bits: int) -> GF:
     The Goldilocks field has 2-adicity of 32, meaning it supports NTT
     of size up to 2^32.
 
+    C++ Reference: Uses Goldilocks::primitive_element in goldilocks_base_field.hpp
+
     Args:
         n_bits: The log2 of the desired root order (must be <= 32)
 
@@ -136,6 +146,9 @@ def get_root_of_unity(n_bits: int) -> GF:
 def get_roots_of_unity(n_bits: int) -> np.ndarray:
     """
     Get all 2^n_bits-th roots of unity.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (C++ computes roots on-demand via Goldilocks::w(); Python pre-computes array for convenience)
 
     Args:
         n_bits: The log2 of the number of roots

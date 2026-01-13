@@ -24,6 +24,9 @@ def parse_array_values(lines: list[str], start_idx: int) -> tuple[list[int], int
     """
     Parse array values from lines starting at start_idx.
     Returns (values, end_idx).
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python extraction utility)
     """
     values = []
     idx = start_idx
@@ -54,6 +57,9 @@ def parse_nested_array(lines: list[str], start_idx: int) -> tuple[list[list[int]
     """
     Parse nested array values like FRI_CHALLENGES.
     Returns (values, end_idx).
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python parsing utility)
     """
     values = []
     idx = start_idx
@@ -84,6 +90,9 @@ def parse_air_block(lines: list[str], start_idx: int) -> tuple[Optional[dict], i
     """
     Parse a single AIR block from the capture output.
     Returns (air_data, end_idx) or (None, end_idx) if parsing fails.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python parsing utility)
     """
     air_data = {}
     idx = start_idx
@@ -163,6 +172,9 @@ def parse_air_block(lines: list[str], start_idx: int) -> tuple[Optional[dict], i
 def parse_capture_file(filepath: str) -> list[dict]:
     """
     Parse a complete capture file containing multiple AIR blocks.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python extraction utility)
     """
     with open(filepath, 'r') as f:
         content = f.read()
@@ -188,6 +200,9 @@ def parse_capture_file(filepath: str) -> list[dict]:
 def load_proof_json(proof_path: str) -> dict:
     """
     Load the proof JSON file to extract output values.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
     """
     with open(proof_path, 'r') as f:
         proof = json.load(f)
@@ -207,6 +222,9 @@ def load_proof_json(proof_path: str) -> dict:
 def create_test_vectors(capture_path: str, proof_path: str, air_id: int) -> dict:
     """
     Create complete test vectors for a specific AIR.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
 
     Args:
         capture_path: Path to fri_input_vectors.txt

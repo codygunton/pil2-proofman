@@ -10,7 +10,12 @@ GF = galois.GF(GOLDILOCKS_PRIME)
 
 
 def test_intt_component_match():
-    """Test that galois intt with custom omega matches _intt_small for each component."""
+    """
+    Test that galois intt with custom omega matches _intt_small for each component.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
 
     # Test case: 8-element INTT
     n = 8
@@ -55,7 +60,12 @@ def test_intt_component_match():
 
 
 def test_intt_full_cubic():
-    """Test full cubic extension INTT match."""
+    """
+    Test full cubic extension INTT match.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
 
     n = 8
     n_bits = 3
@@ -105,7 +115,12 @@ def test_intt_full_cubic():
 
 
 def test_intt_size_4():
-    """Test with size 4."""
+    """
+    Test with size 4.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     n = 4
     n_bits = 2
     w_inv = inv_mod(W[n_bits])
@@ -139,7 +154,12 @@ def test_intt_size_4():
 
 
 def run_tests():
-    """Run all galois omega tests."""
+    """
+    Run all galois omega tests.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+    """
     print("Testing galois custom omega vs _intt_small\n")
     print("=" * 60)
 

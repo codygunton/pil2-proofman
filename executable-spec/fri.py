@@ -24,7 +24,7 @@ def _mul_cubic(a: List[int], b: List[int]) -> List[int]:
     Elements are represented as [a0, a1, a2] where the value is a0 + a1*x + a2*x^2
     and x^3 = x + 1 (irreducible polynomial).
 
-    C++ Reference: Goldilocks3::mul
+    C++ Reference: Goldilocks3::mul() in goldilocks_cubic_extension.hpp
     """
     p = GOLDILOCKS_PRIME
 
@@ -46,13 +46,21 @@ def _mul_cubic(a: List[int], b: List[int]) -> List[int]:
 
 
 def _add_cubic(a: List[int], b: List[int]) -> List[int]:
-    """Add two cubic extension field elements."""
+    """
+    Add two cubic extension field elements.
+
+    C++ Reference: Goldilocks3::add() in goldilocks_cubic_extension.hpp
+    """
     p = GOLDILOCKS_PRIME
     return [(a[i] + b[i]) % p for i in range(3)]
 
 
 def _scalar_mul_cubic(a: List[int], s: int) -> List[int]:
-    """Multiply cubic extension element by scalar."""
+    """
+    Multiply cubic extension element by scalar.
+
+    C++ Reference: Goldilocks3::mulScalar() in goldilocks_cubic_extension.hpp
+    """
     p = GOLDILOCKS_PRIME
     return [(a[i] * s) % p for i in range(3)]
 
@@ -63,6 +71,8 @@ class FRI:
 
     This class provides static methods for FRI folding, merkleization,
     and query operations.
+
+    C++ Reference: FRI template class in fri.hpp
     """
 
     @staticmethod
@@ -91,7 +101,7 @@ class FRI:
         Returns:
             Folded polynomial (smaller by factor of 2^(prev_bits - current_bits))
 
-        C++ Reference: FRI::fold
+        C++ Reference: FRI<ElementType>::fold() in fri.hpp:33
         """
         p = GOLDILOCKS_PRIME
 
@@ -159,6 +169,9 @@ class FRI:
         Applies INTT component-wise to each coordinate of the cubic extension.
         Uses C++-compatible root of unity for byte-exact output matching.
 
+        C++ Reference: Uses galois.intt() wrapper with custom omega - NO CORRESPONDING FUNCTION
+                       (C++ uses FFT library directly; Python uses galois for convenience)
+
         Args:
             values: List of cubic extension elements [c0, c1, c2]
             n: Transform size (must be power of 2)
@@ -201,7 +214,7 @@ class FRI:
         Returns:
             Merkle root
 
-        C++ Reference: FRI::merkelize
+        C++ Reference: FRI<ElementType>::merkelize() in fri.hpp:103
         """
         # Transpose polynomial for Merkle tree
         # C++ passes nextBits directly to getTransposed (not currentBits - nextBits)
@@ -225,7 +238,7 @@ class FRI:
         """
         Transpose polynomial data for Merkle tree.
 
-        C++ Reference: FRI::getTransposed
+        C++ Reference: FRI<ElementType>::getTransposed() in fri.hpp:29 (private)
         """
         w = 1 << transpose_bits
         h = degree // w
@@ -258,7 +271,7 @@ class FRI:
         Returns:
             List of proofs for each query
 
-        C++ Reference: FRI::proveQueries
+        C++ Reference: FRI<ElementType>::proveQueries() in fri.hpp:20
         """
         proofs = []
         for query_idx in queries:
@@ -283,7 +296,7 @@ class FRI:
         Returns:
             Result (cubic extension element)
 
-        C++ Reference: FRI::evalPol
+        C++ Reference: FRI<ElementType>::evalPol() in fri.hpp:28 (private)
         """
         if degree == 0:
             return [0, 0, 0]
@@ -322,7 +335,7 @@ class FRI:
         Returns:
             Computed folded value
 
-        C++ Reference: FRI::verify_fold
+        C++ Reference: FRI<ElementType>::verify_fold() in fri.hpp:23
         """
         p = GOLDILOCKS_PRIME
 

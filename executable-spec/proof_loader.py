@@ -20,6 +20,9 @@ class FriProofData:
     Parsed FRI proof data from C++ generated JSON.
 
     This structure mirrors the JSON proof format used by the C++ implementation.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility; mirrors JSON structure from proof_serializer.hpp)
     """
     # Final polynomial after all FRI folding steps
     # Format: List of cubic extension elements, each element is [c0, c1, c2]
@@ -65,6 +68,9 @@ class FriProofData:
 def load_proof(path: str) -> FriProofData:
     """
     Load and parse a C++ generated proof JSON file.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python JSON parsing utility for test validation)
 
     Args:
         path: Path to the proof JSON file
@@ -139,6 +145,9 @@ def find_proof_file(test_name: str, base_dir: Optional[str] = None) -> Optional[
 
     Searches standard locations used by generate-fri-vectors.sh and test-pinning.sh.
 
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+
     Args:
         test_name: AIR name ('SimpleLeft_0', 'Lookup2_12_2', etc.)
         base_dir: Base directory for search (defaults to pil2-proofman root)
@@ -175,6 +184,9 @@ def find_proof_file(test_name: str, base_dir: Optional[str] = None) -> Optional[
 def detect_air_type(proof_path: str) -> str:
     """
     Detect AIR type from proof file path.
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
 
     Args:
         proof_path: Path to proof file

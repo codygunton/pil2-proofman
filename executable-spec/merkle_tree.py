@@ -20,6 +20,8 @@ class MerkleTree:
     """
     Variable-arity Merkle tree using Poseidon2 hashing.
 
+    C++ Reference: MerkleTreeGL class in merkleTreeGL.hpp
+
     Attributes:
         height: Number of leaf nodes
         width: Number of field elements per leaf
@@ -41,7 +43,7 @@ class MerkleTree:
             last_level_verification: Optimization level for verification
             custom: Custom tree flag
 
-        C++ Reference: MerkleTreeGL constructor
+        C++ Reference: MerkleTreeGL::MerkleTreeGL() constructor in merkleTreeGL.hpp:16-18
         """
         if arity not in [2, 3, 4]:
             raise ValueError(f"arity must be 2, 3, or 4, got {arity}")
@@ -64,7 +66,7 @@ class MerkleTree:
         """
         Calculate total number of nodes in tree including padding.
 
-        C++ Reference: MerkleTreeGL::getNumNodes
+        C++ Reference: MerkleTreeGL::getNumNodes() in merkleTreeGL.cpp:67
         """
         num_nodes = height
         nodes_level = height
@@ -87,7 +89,7 @@ class MerkleTree:
             height: Number of rows/leaves
             width: Number of field elements per row
 
-        C++ Reference: MerkleTreeGL::merkelize
+        C++ Reference: MerkleTreeGL::merkelize() in merkleTreeGL.hpp (public method)
         """
         self.height = height
         self.width = width
@@ -145,7 +147,7 @@ class MerkleTree:
         Returns:
             List of HASH_SIZE field elements
 
-        C++ Reference: MerkleTreeGL::getRoot
+        C++ Reference: MerkleTreeGL::getRoot() in merkleTreeGL.hpp:53
         """
         if self.num_nodes == 0:
             return [0] * HASH_SIZE
@@ -155,7 +157,7 @@ class MerkleTree:
         """
         Get number of levels in the proof.
 
-        C++ Reference: MerkleTreeGL::getMerkleProofLength
+        C++ Reference: MerkleTreeGL::getMerkleProofLength() in merkleTreeGL.cpp:56
         """
         if self.height > 1:
             return math.ceil(math.log(self.height) / math.log(self.arity)) - self.last_level_verification
@@ -165,7 +167,7 @@ class MerkleTree:
         """
         Get number of sibling elements per level.
 
-        C++ Reference: MerkleTreeGL::getNumSiblings
+        C++ Reference: MerkleTreeGL::getNumSiblings() in merkleTreeGL.cpp:46
         """
         return (self.arity - 1) * self.n_field_elements
 
@@ -173,7 +175,7 @@ class MerkleTree:
         """
         Get total size of Merkle proof.
 
-        C++ Reference: MerkleTreeGL::getMerkleProofSize
+        C++ Reference: MerkleTreeGL::getMerkleProofSize() in merkleTreeGL.cpp:63
         """
         return self.get_merkle_proof_length() * self.get_num_siblings()
 
@@ -187,7 +189,7 @@ class MerkleTree:
         Returns:
             List of proof elements
 
-        C++ Reference: MerkleTreeGL::genMerkleProof
+        C++ Reference: MerkleTreeGL::getGroupProof() in merkleTreeGL.hpp:59
         """
         proof = []
         self._gen_merkle_proof(proof, idx, 0, self.height)
@@ -203,7 +205,7 @@ class MerkleTree:
         """
         Recursive Merkle proof generation.
 
-        C++ Reference: MerkleTreeGL::genMerkleProof (recursive internal)
+        C++ Reference: MerkleTreeGL::genMerkleProof() in merkleTreeGL.hpp:41 (private, recursive)
         """
         if n <= 1:
             return
@@ -251,7 +253,7 @@ class MerkleTree:
         Returns:
             True if proof is valid
 
-        C++ Reference: MerkleTreeGL::verifyGroupProof
+        C++ Reference: MerkleTreeGL::verifyGroupProof() in merkleTreeGL.hpp:60
         """
         # Hash leaf data
         computed = linear_hash(leaf_data, self.sponge_width)
