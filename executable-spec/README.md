@@ -26,8 +26,9 @@ executable-spec/
 ├── test_pinning.py
 ├── test_vectors.py
 ├── transcript.py
-└── vectors/
-    └── lookup2_12_2.json
+└── vectors/ QUESTION: what is a better name for this? ANS: `test-data/` or `fixtures/` would be clearer. `vectors` is ambiguous (math vectors? test vectors?). `test-data/` signals "data for tests" unambiguously. Or `golden/` to indicate these are golden/expected values. Can simplify at cost of C++ divergence? Y - rename freely, Python-only choice.
+    └── lookup2_12_2.json QUESTION: why is this separated from test_vectors.py? Can we just put all of the data parts of testing in one place, any reason not to? ANS: Size - lookup2_12_2.json is ~25K lines (600KB). Inline in Python would bloat the file and slow IDE parsing. JSON allows lazy loading. No reason not to consolidate ALL test data into JSON files here - would actually be cleaner. Current split (small inline, large in JSON) was pragmatic, not principled. Can simplify at cost of C++ divergence? Y - consolidating to JSON diverges from C++ header pattern but is cleaner.
+TODO: we can diverge from teh pattern. Just use a consistent JSON pattern
 ```
 
 ## File Descriptions

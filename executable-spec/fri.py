@@ -17,6 +17,8 @@ from .merkle_tree import MerkleTree, HASH_SIZE
 FIELD_EXTENSION = 3
 
 
+# QUESTION: is this needed? Should it be located here? Same for each of the other small helpers in here? ANS: Yes, these helpers (_pow_mod, _inv_mod, _get_shift, _W) are needed and mirror the C++ goldilocks_base_field.hpp. They're here rather than field.py because: (1) they operate on raw ints, not galois arrays, matching C++ semantics, (2) fri.py needs them for the folding loop where we work with int values directly for performance. The C++ has these as inline functions in the Goldilocks class. Could move to field.py but current placement reflects that FRI is the primary consumer. Can simplify at cost of C++ divergence? N - these are fundamental field operations, not structural choices.
+# TODO: move to field.py
 def _pow_mod(base: int, exp: int, mod: int = GOLDILOCKS_PRIME) -> int:
     """Modular exponentiation."""
     result = 1

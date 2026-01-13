@@ -1,3 +1,5 @@
+# QUESTION: What is the utility of this wrapper rather than just using the library inline? ANS: Three reasons: (1) Provides Python-native types (List[int]) instead of the Rust FFI's numpy arrays, making calling code cleaner. (2) Adds docstrings documenting the C++ reference and expected behavior. (3) Creates a stable API - if we ever swap FFI implementations (e.g., pure Python fallback, different Rust binding), only this file changes. The wrapper is thin but improves ergonomics and maintainability. Can simplify at cost of C++ divergence? Y - could import FFI directly everywhere, but loses abstraction layer. Not a C++ structural choice.
+# TODO: this is not adding enough. Make it go away or move these into the ffi itself.
 """
 Poseidon2 hash implementation for Goldilocks field.
 

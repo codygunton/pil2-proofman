@@ -4,6 +4,8 @@ import sys
 import os
 
 # Add galois fork to path
+# QUESTION: How can we make library setup easier? Would using uv solve this? ANS: Yes, uv would help significantly. Current pain: manual sys.path manipulation for forked galois. With uv: (1) Add galois fork as git dependency in pyproject.toml: `galois = {git = "https://github.com/user/galois", branch = "custom-omega"}`. (2) `uv sync` installs it properly. (3) Remove all sys.path hacks. Alternative: publish fork to PyPI as `galois-goldilocks` or upstream the custom omega feature. The sys.path approach works but is fragile and non-standard. Can simplify at cost of C++ divergence? N/A - this is Python tooling, not C++ structure.
+# TODO: implement the suggested improvement
 _galois_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lib/galois/src')
 if _galois_path not in sys.path:
     sys.path.insert(0, _galois_path)

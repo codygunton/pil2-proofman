@@ -1,3 +1,5 @@
+# QUESTION: This is hard to read. Is this idiomatic? How could we improve clarity and make it more scalable (e.g., if we add ten more test cases with fixed pinning vectors)? By using other testing idioms, uv and possibly pytest or some other testing framework, or is this pretty good? ANS: The unittest approach is fine but verbose. To scale to 10+ AIRs: (1) Use pytest with @pytest.mark.parametrize - define test cases as a list of (air_name, vectors) tuples, one test function runs all. (2) Move all vectors to JSON (see test_vectors.py answer). (3) Use pytest fixtures for common setup. (4) uv helps with dependency management but doesn't change test structure. Example: `@pytest.mark.parametrize("air", ["SimpleLeft", "Lookup2_12", ...])` then `def test_fri_pinning(air, load_vectors)`. Would reduce 800 lines to ~100. Can simplify at cost of C++ divergence? Y - pytest parametrize is cleaner Python but doesn't mirror C++ gtest structure.
+# TODO: we don't care about mirroring C++ structure except in the actual protocol logic. Improve this.
 """
 FRI pinning tests.
 

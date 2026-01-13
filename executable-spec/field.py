@@ -1,5 +1,5 @@
 """
-Goldilocks field and cubic extension using galois library.
+Goldilocks field and cubic extension using galois library. TODO: mention fork and link to github 
 
 This module provides a thin wrapper around galois for the Goldilocks prime field
 and its cubic extension used in the FRI protocol.
@@ -76,6 +76,8 @@ def get_roots_of_unity(n_bits: int) -> np.ndarray:
     return roots
 
 
+# QUESTION: This is not actually in use right? Should it be? If so, where? ANS: Correct, not currently in use. It exists because C++ has Goldilocks::batchInverse and we aimed for API parity. It would be useful in polynomial evaluation/interpolation if we needed many inversions. Currently the FRI code avoids bulk inversions by design. Keep it for completeness - may be needed if we add polynomial division or Lagrange interpolation later. Can simplify at cost of C++ divergence? Y - could delete entirely since unused, but loses API parity.
+# TODO: remove this until it is needed (will be later after FRI spec)
 def batch_inverse(elements: np.ndarray) -> np.ndarray:
     """
     Compute batch inverse using Montgomery's trick.

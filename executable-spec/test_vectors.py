@@ -1,3 +1,5 @@
+# QUESTION: Can the data in here be moved to a central location with the external JSON data? What would be a robust pattern for when we expand tests, separating logic from data? ANS: Yes, all vectors could live in vectors/*.json. Current split is: small vectors (SimpleLeft ~50 values) inline here, large vectors (Lookup2_12 ~25K values) in JSON. Robust pattern: move ALL test data to vectors/<air_name>.json with consistent schema {config, input_polynomial, challenges, expected_output, etc}. Test code would just load JSON and run assertions. This mirrors how C++ separates fri_pinning_vectors.hpp (data) from fri_pinning_test.cpp (logic). We kept small vectors inline to match C++ header structure, but JSON-only would be cleaner. Can simplify at cost of C++ divergence? Y - JSON-only would be cleaner Python, but diverges from C++ header file pattern.
+# TODO: duplicate of other issue; fix
 """
 FRI pinning test vectors.
 

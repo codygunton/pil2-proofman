@@ -31,7 +31,7 @@ class FriPcsConfig:
     transcript_arity: int = 4  # Transcript hash arity
     merkle_tree_custom: bool = False  # Custom tree flag
 
-
+# QUESTION: Does the structure of this class reflect the structure of another class in C++? ANS: Yes, loosely mirrors the proof JSON structure from proof_serializer.hpp, and the fields match what FriPcs::prove() populates in fri_pcs.hpp. The C++ doesn't have a single "FriProof" class - proof data is spread across StarksProof members. We consolidated into one dataclass for clarity. Field names (fri_roots, final_pol, nonce) match the JSON keys the C++ serializer outputs. Can simplify at cost of C++ divergence? Y - could use a plain dict instead of dataclass, but loses type safety and documentation.
 @dataclass
 class FriProof:
     """
@@ -473,7 +473,7 @@ class FriPcs:
             siblings.append(sibling)
         return siblings
 
-
+# QUESTION: what is the use of this? Should this be here? ANS: Yes, mirrors FriPcs::calculateHash in fri_pcs.hpp:116. Used during FRI proving to hash polynomials at each folding step (see fri_pcs.hpp:394,414). It creates a fresh transcript and absorbs buffer elements to produce a deterministic hash. Placed here as a module-level function (vs class method) for simplicity, but matches C++ static method. Can simplify at cost of C++ divergence? N - required for proof generation, not just structural.
 def calculate_hash(
     buffer: List[int],
     n_elements: int,

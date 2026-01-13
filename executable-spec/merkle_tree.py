@@ -1,3 +1,4 @@
+# QUESTION: Is this just a generic merkle tree implementation with a Poseidon2 hash? If so, is there a standard python merkle tree library that we might be able to use instead of this? ANS: Not quite generic - it has FRI-specific features: (1) variable arity (2, 3, 4) matching C++ MerkleTreeGL, (2) specific leaf hashing using linear_hash with width parameter, (3) the lastLevelVerification optimization for proof size. Standard libraries (merkletools, pymerkle) use binary trees with SHA256/Keccak. We need Poseidon2 over Goldilocks for STARK compatibility. This implementation mirrors merkleTreeGL.hpp to ensure identical roots/proofs. Can simplify at cost of C++ divergence? N - must produce identical Merkle roots to C++ for proof compatibility.
 """
 Merkle tree implementation for FRI using Poseidon2 hashing.
 
