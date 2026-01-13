@@ -12,8 +12,9 @@ This package provides:
 - FRI folding and query algorithms
 - FRI PCS wrapper
 
-Usage:
-    from fri_spec import FriPcs, FriPcsConfig, Transcript
+Usage (from within the package):
+    from .fri_pcs import FriPcs, FriPcsConfig
+    from .transcript import Transcript
 
     config = FriPcsConfig(
         n_bits_ext=13,

@@ -146,7 +146,7 @@ class TestGoldilocksRootsOfUnity(unittest.TestCase):
 
     def test_roots_of_unity_match_cpp(self):
         """Verify Python roots of unity match C++ W[] array exactly."""
-        from fri_spec.fri import _W
+        from .fri import _W
 
         # Expected values from C++ goldilocks_base_field.cpp
         cpp_w = [
@@ -178,7 +178,7 @@ class TestGoldilocksRootsOfUnity(unittest.TestCase):
 
     def test_roots_are_primitive(self):
         """Verify each root is a primitive root of the correct order."""
-        from fri_spec.fri import _W, _pow_mod, GOLDILOCKS_PRIME
+        from .fri import _W, _pow_mod, GOLDILOCKS_PRIME
 
         for n_bits in range(1, 14):
             w = _W[n_bits]
@@ -792,7 +792,7 @@ class TestLookup2_12FRI(unittest.TestCase):
             self.skipTest(
                 "Lookup2_12 vectors not found. Run:\n"
                 "  cd pil2-components/test/lookup && make clean && make\n"
-                "Then re-run: python -m pytest fri_spec/test_pinning.py -v"
+                "Then re-run: python -m pytest executable-spec/test_pinning.py -v"
             )
 
     def test_input_polynomial_size(self):

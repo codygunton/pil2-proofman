@@ -6,7 +6,7 @@ DO NOT MODIFY - these values must match the C++ headers exactly.
 
 Source: pil2-stark/src/goldilocks/tests/fri_pinning_vectors.hpp
 
-Large vectors (Lookup2_12) are stored in JSON files in fri_spec/vectors/
+Large vectors (Lookup2_12) are stored in JSON files in executable-spec/vectors/
 to keep this file manageable.
 """
 
