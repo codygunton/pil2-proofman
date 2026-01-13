@@ -13,8 +13,8 @@ This package provides:
 - FRI PCS wrapper
 
 Usage (from within the package):
-    from .fri_pcs import FriPcs, FriPcsConfig
-    from .transcript import Transcript
+    from fri_pcs import FriPcs, FriPcsConfig
+    from transcript import Transcript
 
     config = FriPcsConfig(
         n_bits_ext=13,
@@ -27,7 +27,7 @@ Usage (from within the package):
 """
 
 # Field arithmetic (via galois)
-from .field import (
+from field import (
     GF,
     GF3,
     ntt,
@@ -35,31 +35,37 @@ from .field import (
     GOLDILOCKS_PRIME,
     get_root_of_unity,
     get_roots_of_unity,
-    batch_inverse,
+    W,
+    pow_mod,
+    inv_mod,
+    get_shift,
+    get_omega,
 )
 
 # Cryptographic hashing
-from .poseidon2 import (
+from poseidon2_ffi import (
     poseidon2_hash,
     linear_hash,
     hash_seq,
     grinding,
+    verify_grinding,
+    CAPACITY,
 )
 
 # Merkle tree
-from .merkle_tree import (
+from merkle_tree import (
     MerkleTree,
     HASH_SIZE,
 )
 
 # Fiat-Shamir transcript
-from .transcript import Transcript
+from transcript import Transcript
 
 # FRI core algorithms
-from .fri import FRI
+from fri import FRI
 
 # FRI PCS wrapper
-from .fri_pcs import (
+from fri_pcs import (
     FriPcs,
     FriPcsConfig,
     FriProof,
@@ -67,7 +73,7 @@ from .fri_pcs import (
 )
 
 # Test vectors
-from .test_vectors import (
+from test_vectors import (
     get_config,
     get_expected_final_pol,
     get_expected_nonce,
@@ -81,7 +87,7 @@ from .test_vectors import (
 )
 
 # Proof loading (Phase 2)
-from .proof_loader import (
+from proof_loader import (
     FriProofData,
     load_proof,
     find_proof_file,
@@ -98,12 +104,18 @@ __all__ = [
     "GOLDILOCKS_PRIME",
     "get_root_of_unity",
     "get_roots_of_unity",
-    "batch_inverse",
+    "W",
+    "pow_mod",
+    "inv_mod",
+    "get_shift",
+    "get_omega",
     # Hash
     "poseidon2_hash",
     "linear_hash",
     "hash_seq",
     "grinding",
+    "verify_grinding",
+    "CAPACITY",
     # Merkle
     "MerkleTree",
     "HASH_SIZE",

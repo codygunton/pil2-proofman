@@ -1,5 +1,9 @@
-# QUESTION: This is hard to read. Is this idiomatic? How could we improve clarity and make it more scalable (e.g., if we add ten more test cases with fixed pinning vectors)? By using other testing idioms, uv and possibly pytest or some other testing framework, or is this pretty good? ANS: The unittest approach is fine but verbose. To scale to 10+ AIRs: (1) Use pytest with @pytest.mark.parametrize - define test cases as a list of (air_name, vectors) tuples, one test function runs all. (2) Move all vectors to JSON (see test_vectors.py answer). (3) Use pytest fixtures for common setup. (4) uv helps with dependency management but doesn't change test structure. Example: `@pytest.mark.parametrize("air", ["SimpleLeft", "Lookup2_12", ...])` then `def test_fri_pinning(air, load_vectors)`. Would reduce 800 lines to ~100. Can simplify at cost of C++ divergence? Y - pytest parametrize is cleaner Python but doesn't mirror C++ gtest structure.
-# TODO: we don't care about mirroring C++ structure except in the actual protocol logic. Improve this.
+# FRI pinning tests using pytest-compatible unittest classes.
+# Run with: python -m pytest executable-spec/test_pinning.py -v
+#
+# Future improvements for scaling to 10+ AIRs:
+# - Use @pytest.mark.parametrize("air", ["simple", "lookup", ...])
+# - Convert test classes to standalone functions with fixtures
 """
 FRI pinning tests.
 
@@ -13,13 +17,12 @@ The C++ tests (test-fri.sh) remain unchanged and continue to work.
 import unittest
 from typing import List
 
-from .field import GF, GOLDILOCKS_PRIME
-from .poseidon2 import poseidon2_hash, linear_hash, grinding
-from .merkle_tree import MerkleTree
-from .transcript import Transcript
-from .fri import FRI
-from .fri_pcs import FriPcs, FriPcsConfig, FriProof
-from .test_vectors import (
+from field import GF, GOLDILOCKS_PRIME
+from merkle_tree import MerkleTree
+from transcript import Transcript
+from fri import FRI
+from fri_pcs import FriPcs, FriPcsConfig, FriProof
+from test_vectors import (
     SIMPLE_LEFT_CONFIG,
     SIMPLE_LEFT_EXPECTED_FINAL_POL,
     SIMPLE_LEFT_EXPECTED_NONCE,
@@ -38,7 +41,13 @@ from .test_vectors import (
     get_fri_input_polynomial,
     get_fri_challenges,
     get_grinding_challenge,
+    get_fri_steps,
+    get_n_bits_ext,
+    get_fri_queries,
+    get_config,
 )
+
+from poseidon2_ffi import poseidon2_hash, linear_hash, grinding
 
 
 class TestPoseidon2Basic(unittest.TestCase):
@@ -148,7 +157,7 @@ class TestGoldilocksRootsOfUnity(unittest.TestCase):
 
     def test_roots_of_unity_match_cpp(self):
         """Verify Python roots of unity match C++ W[] array exactly."""
-        from .fri import _W
+        from field import W
 
         # Expected values from C++ goldilocks_base_field.cpp
         cpp_w = [
@@ -173,21 +182,21 @@ class TestGoldilocksRootsOfUnity(unittest.TestCase):
 
         for i, expected in enumerate(cpp_w):
             self.assertEqual(
-                _W[i],
+                W[i],
                 expected,
-                f"Root of unity W[{i}] mismatch: Python={_W[i]}, C++={expected}"
+                f"Root of unity W[{i}] mismatch: Python={W[i]}, C++={expected}"
             )
 
     def test_roots_are_primitive(self):
         """Verify each root is a primitive root of the correct order."""
-        from .fri import _W, _pow_mod, GOLDILOCKS_PRIME
+        from field import W, pow_mod, GOLDILOCKS_PRIME
 
         for n_bits in range(1, 14):
-            w = _W[n_bits]
+            w = W[n_bits]
             order = 1 << n_bits
 
             # w^order should equal 1
-            result = _pow_mod(w, order, GOLDILOCKS_PRIME)
+            result = pow_mod(w, order, GOLDILOCKS_PRIME)
             self.assertEqual(
                 result, 1,
                 f"W[{n_bits}]^{order} = {result}, expected 1"
@@ -195,7 +204,7 @@ class TestGoldilocksRootsOfUnity(unittest.TestCase):
 
             # w^(order/2) should NOT equal 1 (primitive check)
             if n_bits > 0:
-                half_result = _pow_mod(w, order // 2, GOLDILOCKS_PRIME)
+                half_result = pow_mod(w, order // 2, GOLDILOCKS_PRIME)
                 self.assertNotEqual(
                     half_result, 1,
                     f"W[{n_bits}]^{order//2} = 1, root is not primitive"
@@ -295,7 +304,7 @@ class TestQueryIndices(unittest.TestCase):
         This test verifies that Python's derive_query_indices produces
         the same indices as C++ for the SimpleLeft AIR.
         """
-        from .test_vectors import (
+        from test_vectors import (
             get_grinding_challenge, get_expected_nonce, get_config, get_fri_queries
         )
 
@@ -344,7 +353,7 @@ class TestQueryIndices(unittest.TestCase):
         This test verifies that Python's derive_query_indices produces
         the same indices as C++ for the Lookup2_12 AIR.
         """
-        from .test_vectors import (
+        from test_vectors import (
             get_grinding_challenge, get_expected_nonce, get_fri_queries,
             get_fri_steps, get_transcript_state
         )
@@ -427,7 +436,7 @@ class TestProofValidation(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Load proof files if available."""
-        from .proof_loader import find_proof_file, load_proof
+        from proof_loader import find_proof_file, load_proof
 
         # Try to find SimpleLeft proof
         cls.simple_left_path = find_proof_file('SimpleLeft_0')
@@ -768,7 +777,7 @@ class TestLookup2_12FRI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Load Lookup2_12 vectors from JSON."""
-        from .test_vectors import (
+        from test_vectors import (
             get_fri_input_polynomial,
             get_fri_input_hash,
             get_fri_challenges,
@@ -1105,7 +1114,7 @@ class TestLookup2_12FRI(unittest.TestCase):
         if not self.vectors_loaded:
             self.skipTest("Lookup2_12 vectors not found")
 
-        from .test_vectors import get_poly_hashes_after_fold
+        from test_vectors import get_poly_hashes_after_fold
         expected_hashes = get_poly_hashes_after_fold('lookup2_12')
 
         if not expected_hashes:
@@ -1167,7 +1176,7 @@ class TestLookup2_12FRI(unittest.TestCase):
         if not self.vectors_loaded:
             self.skipTest("Lookup2_12 vectors not found")
 
-        from .test_vectors import get_merkle_roots
+        from test_vectors import get_merkle_roots
 
         try:
             expected_roots = get_merkle_roots('lookup2_12')
@@ -1305,7 +1314,7 @@ class TestTranscriptChallengeGeneration(unittest.TestCase):
 
         If this passes, Python transcript exactly matches C++ transcript.
         """
-        from .test_vectors import (
+        from test_vectors import (
             get_transcript_state,
             get_merkle_roots,
             get_fri_challenges,
@@ -1350,7 +1359,7 @@ class TestTranscriptChallengeGeneration(unittest.TestCase):
         """
         Verify transcript generates same challenges given same Merkle roots.
         """
-        from .test_vectors import get_merkle_roots
+        from test_vectors import get_merkle_roots
 
         try:
             merkle_roots = get_merkle_roots('lookup2_12')
@@ -1476,7 +1485,7 @@ class TestFriVerification(unittest.TestCase):
 
     def test_verify_grinding_accepts_valid_nonce_simple(self):
         """Test verify_grinding accepts the valid SimpleLeft nonce."""
-        from .poseidon2 import verify_grinding
+        from poseidon2_ffi import verify_grinding
 
         challenge = SIMPLE_LEFT_GRINDING_CHALLENGE
         nonce = SIMPLE_LEFT_EXPECTED_NONCE
@@ -1487,7 +1496,7 @@ class TestFriVerification(unittest.TestCase):
 
     def test_verify_grinding_accepts_valid_nonce_lookup(self):
         """Test verify_grinding accepts the valid Lookup2_12 nonce."""
-        from .poseidon2 import verify_grinding
+        from poseidon2_ffi import verify_grinding
 
         challenge = get_grinding_challenge('lookup')
         nonce = get_expected_nonce('lookup')
@@ -1498,7 +1507,7 @@ class TestFriVerification(unittest.TestCase):
 
     def test_verify_grinding_rejects_invalid_nonce(self):
         """Test verify_grinding rejects an invalid nonce."""
-        from .poseidon2 import verify_grinding
+        from poseidon2_ffi import verify_grinding
 
         challenge = SIMPLE_LEFT_GRINDING_CHALLENGE
         invalid_nonce = SIMPLE_LEFT_EXPECTED_NONCE + 1  # Off by one
@@ -1509,7 +1518,7 @@ class TestFriVerification(unittest.TestCase):
 
     def test_verify_grinding_rejects_corrupted_challenge(self):
         """Test verify_grinding rejects when challenge is corrupted."""
-        from .poseidon2 import verify_grinding
+        from poseidon2_ffi import verify_grinding
 
         # Corrupt the challenge
         corrupted_challenge = list(SIMPLE_LEFT_GRINDING_CHALLENGE)
@@ -1592,7 +1601,7 @@ class TestFriVerification(unittest.TestCase):
         """
         Test FriPcs.derive_query_indices() for Lookup2_12.
         """
-        from .test_vectors import get_fri_steps
+        from test_vectors import get_fri_steps
 
         try:
             fri_steps = get_fri_steps('lookup')
@@ -1646,7 +1655,7 @@ class TestProveVerifyRoundtrip(unittest.TestCase):
         """
         Test that FriPcs.prove() produces expected final polynomial for SimpleLeft.
         """
-        from .test_vectors import get_transcript_state
+        from test_vectors import get_transcript_state
 
         config = FriPcsConfig(
             n_bits_ext=SIMPLE_LEFT_CONFIG['n_bits_ext'],
@@ -1698,7 +1707,7 @@ class TestProveVerifyRoundtrip(unittest.TestCase):
         proof = fri_pcs.prove(input_pol, transcript)
 
         # Verify nonce satisfies PoW
-        from .poseidon2 import verify_grinding
+        from poseidon2_ffi import verify_grinding
         grinding_challenge = transcript.get_state(3)
 
         # Note: We can't compare nonce directly because transcript state differs
@@ -1709,10 +1718,4 @@ class TestProveVerifyRoundtrip(unittest.TestCase):
         )
 
 
-def run_tests():
-    """Run all pinning tests."""
-    unittest.main(module=__name__, exit=False, verbosity=2)
-
-
-if __name__ == '__main__':
-    run_tests()
+# Run with: python -m pytest executable-spec/test_pinning.py -v

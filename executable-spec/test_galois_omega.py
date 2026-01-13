@@ -1,17 +1,9 @@
 """Validate galois custom omega matches _intt_small."""
 
 import sys
-import os
-
-# Add galois fork to path
-# QUESTION: How can we make library setup easier? Would using uv solve this? ANS: Yes, uv would help significantly. Current pain: manual sys.path manipulation for forked galois. With uv: (1) Add galois fork as git dependency in pyproject.toml: `galois = {git = "https://github.com/user/galois", branch = "custom-omega"}`. (2) `uv sync` installs it properly. (3) Remove all sys.path hacks. Alternative: publish fork to PyPI as `galois-goldilocks` or upstream the custom omega feature. The sys.path approach works but is fragile and non-standard. Can simplify at cost of C++ divergence? N/A - this is Python tooling, not C++ structure.
-# TODO: implement the suggested improvement
-_galois_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lib/galois/src')
-if _galois_path not in sys.path:
-    sys.path.insert(0, _galois_path)
-
 import galois
-from .fri import FRI, _W, _inv_mod, GOLDILOCKS_PRIME
+from fri import FRI
+from field import W, inv_mod, GOLDILOCKS_PRIME
 
 # Use galois from the forked version with custom omega support
 GF = galois.GF(GOLDILOCKS_PRIME)
@@ -23,7 +15,7 @@ def test_intt_component_match():
     # Test case: 8-element INTT
     n = 8
     n_bits = 3  # log2(8) = 3
-    w_inv = _inv_mod(_W[n_bits])  # inverse of 8th root
+    w_inv = inv_mod(W[n_bits])  # inverse of 8th root
 
     # Test data - cubic extension elements [c0, c1, c2]
     # Use simple values for debugging
@@ -67,7 +59,7 @@ def test_intt_full_cubic():
 
     n = 8
     n_bits = 3
-    w_inv = _inv_mod(_W[n_bits])
+    w_inv = inv_mod(W[n_bits])
 
     # Mixed cubic data
     data_cubic = [
@@ -116,7 +108,7 @@ def test_intt_size_4():
     """Test with size 4."""
     n = 4
     n_bits = 2
-    w_inv = _inv_mod(_W[n_bits])
+    w_inv = inv_mod(W[n_bits])
 
     data_cubic = [
         [10, 20, 30],
