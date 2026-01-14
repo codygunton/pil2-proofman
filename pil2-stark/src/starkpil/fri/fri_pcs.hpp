@@ -429,68 +429,68 @@ uint64_t FriPcs<MerkleTreeType>::prove(
     }
 
 #ifdef CAPTURE_FRI_VECTORS
-    // Output captured Merkle roots
-    std::cerr << "constexpr std::array<std::array<uint64_t, 4>, " << captured_merkle_roots.size() << "> FRI_MERKLE_ROOTS = {{\n";
-    for (size_t i = 0; i < captured_merkle_roots.size(); i++) {
-        std::cerr << "    {" << captured_merkle_roots[i][0] << "ULL, "
-                  << captured_merkle_roots[i][1] << "ULL, "
-                  << captured_merkle_roots[i][2] << "ULL, "
-                  << captured_merkle_roots[i][3] << "ULL}";
-        if (i < captured_merkle_roots.size() - 1) std::cerr << ",";
-        std::cerr << "  // Step " << i << " Merkle root\n";
-    }
-    std::cerr << "}};\n\n";
+    // Output captured data in JSON format
+    std::cerr << "=== FRI_PCS_JSON_START ===" << std::endl;
+    std::cerr << "{" << std::endl;
 
-    // Output captured polynomial hashes after each fold
-    std::cerr << "constexpr std::array<std::array<uint64_t, 4>, " << captured_poly_hashes.size() << "> FRI_POLY_HASHES = {{\n";
-    for (size_t i = 0; i < captured_poly_hashes.size(); i++) {
-        std::cerr << "    {" << captured_poly_hashes[i][0] << "ULL, "
-                  << captured_poly_hashes[i][1] << "ULL, "
-                  << captured_poly_hashes[i][2] << "ULL, "
-                  << captured_poly_hashes[i][3] << "ULL}";
-        if (i < captured_poly_hashes.size() - 1) std::cerr << ",";
-        std::cerr << "  // Step " << i << " polynomial hash\n";
+    // Transcript state at FRI start
+    std::cerr << "  \"transcript_state\": [";
+    for (int i = 0; i < 16; i++) {
+        if (i > 0) std::cerr << ", ";
+        std::cerr << captured_transcript_state[i];
     }
-    std::cerr << "}};\n\n";
+    std::cerr << "]," << std::endl;
 
-    // Output captured challenges
-    std::cerr << "constexpr std::array<std::array<uint64_t, 3>, " << captured_challenges.size() << "> FRI_CHALLENGES = {{\n";
+    std::cerr << "  \"transcript_out\": [";
+    for (int i = 0; i < 16; i++) {
+        if (i > 0) std::cerr << ", ";
+        std::cerr << captured_transcript_out[i];
+    }
+    std::cerr << "]," << std::endl;
+
+    std::cerr << "  \"transcript_out_cursor\": " << captured_out_cursor << "," << std::endl;
+    std::cerr << "  \"transcript_pending_cursor\": " << captured_pending_cursor << "," << std::endl;
+
+    // FRI challenges
+    std::cerr << "  \"fri_challenges\": [";
     for (size_t i = 0; i < captured_challenges.size(); i++) {
-        std::cerr << "    {" << captured_challenges[i][0] << "ULL, "
-                  << captured_challenges[i][1] << "ULL, "
-                  << captured_challenges[i][2] << "ULL}";
-        if (i < captured_challenges.size() - 1) std::cerr << ",";
-        std::cerr << "  // Challenge " << i << "\n";
+        if (i > 0) std::cerr << ", ";
+        std::cerr << "[" << captured_challenges[i][0] << ", "
+                  << captured_challenges[i][1] << ", "
+                  << captured_challenges[i][2] << "]";
     }
-    std::cerr << "}};\n\n";
+    std::cerr << "]," << std::endl;
 
-    // Output grinding challenge (the last challenge before grinding)
-    std::cerr << "constexpr std::array<uint64_t, 3> GRINDING_CHALLENGE = {\n";
-    std::cerr << "    " << Goldilocks::toU64(challenge[0]) << "ULL,\n";
-    std::cerr << "    " << Goldilocks::toU64(challenge[1]) << "ULL,\n";
-    std::cerr << "    " << Goldilocks::toU64(challenge[2]) << "ULL\n";
-    std::cerr << "};\n\n";
+    // Grinding challenge
+    std::cerr << "  \"grinding_challenge\": ["
+              << Goldilocks::toU64(challenge[0]) << ", "
+              << Goldilocks::toU64(challenge[1]) << ", "
+              << Goldilocks::toU64(challenge[2]) << "]," << std::endl;
 
-    // Output transcript state at FRI start (for Python challenge generation verification)
-    std::cerr << "// Transcript state before FRI (allows Python to verify challenge generation)\n";
-    std::cerr << "constexpr std::array<uint64_t, 16> TRANSCRIPT_STATE = {\n    ";
-    for (int i = 0; i < 16; i++) {
-        std::cerr << captured_transcript_state[i] << "ULL";
-        if (i < 15) std::cerr << ", ";
-        if (i == 7) std::cerr << "\n    ";
+    // Merkle roots
+    std::cerr << "  \"merkle_roots\": [";
+    for (size_t i = 0; i < captured_merkle_roots.size(); i++) {
+        if (i > 0) std::cerr << ", ";
+        std::cerr << "[" << captured_merkle_roots[i][0] << ", "
+                  << captured_merkle_roots[i][1] << ", "
+                  << captured_merkle_roots[i][2] << ", "
+                  << captured_merkle_roots[i][3] << "]";
     }
-    std::cerr << "\n};\n";
-    std::cerr << "constexpr std::array<uint64_t, 16> TRANSCRIPT_OUT = {\n    ";
-    for (int i = 0; i < 16; i++) {
-        std::cerr << captured_transcript_out[i] << "ULL";
-        if (i < 15) std::cerr << ", ";
-        if (i == 7) std::cerr << "\n    ";
-    }
-    std::cerr << "\n};\n";
-    std::cerr << "constexpr uint32_t TRANSCRIPT_OUT_CURSOR = " << captured_out_cursor << ";\n";
-    std::cerr << "constexpr uint32_t TRANSCRIPT_PENDING_CURSOR = " << captured_pending_cursor << ";\n\n";
+    std::cerr << "]," << std::endl;
 
-    std::cerr << "// === END FRI INPUT VECTORS ===\n\n";
+    // Polynomial hashes after fold
+    std::cerr << "  \"poly_hashes_after_fold\": [";
+    for (size_t i = 0; i < captured_poly_hashes.size(); i++) {
+        if (i > 0) std::cerr << ", ";
+        std::cerr << "[" << captured_poly_hashes[i][0] << ", "
+                  << captured_poly_hashes[i][1] << ", "
+                  << captured_poly_hashes[i][2] << ", "
+                  << captured_poly_hashes[i][3] << "]";
+    }
+    std::cerr << "]" << std::endl;
+
+    std::cerr << "}" << std::endl;
+    std::cerr << "=== FRI_PCS_JSON_END ===" << std::endl;
 #endif
 
     // Grinding - matches gen_proof.hpp lines 244-245
@@ -506,14 +506,15 @@ uint64_t FriPcs<MerkleTreeType>::prove(
     transcriptPermutation.getPermutations(friQueries, config_.n_queries, config_.fri_steps[0]);
 
 #ifdef CAPTURE_FRI_VECTORS
-    // Capture query indices for Python verification
-    std::cerr << "constexpr std::array<uint64_t, " << config_.n_queries << "> FRI_QUERIES = {\n";
+    // Output FRI queries in JSON format
+    std::cerr << "=== FRI_QUERIES_JSON_START ===" << std::endl;
+    std::cerr << "{" << std::endl;
+    std::cerr << "  \"fri_queries\": [";
     for (uint64_t i = 0; i < config_.n_queries; i++) {
-        std::cerr << "    " << friQueries[i] << "ULL";
-        if (i < config_.n_queries - 1) std::cerr << ",";
-        std::cerr << "\n";
+        if (i > 0) std::cerr << ", ";
+        std::cerr << friQueries[i];
     }
-    std::cerr << "};\n\n";
+    std::cerr << "]";
 
     // Capture first query proof siblings for step 0 tree (for Python verification)
     if (config_.num_steps() > 1) {
@@ -523,16 +524,21 @@ uint64_t FriPcs<MerkleTreeType>::prove(
         Goldilocks::Element* buff = new Goldilocks::Element[tree_width + proof_size];
         trees_fri_raw_[0]->getGroupProof(buff, proof_idx);
 
-        std::cerr << "// QUERY_PROOF_SIBLINGS for first query (idx=" << proof_idx << ")\n";
-        std::cerr << "constexpr std::array<uint64_t, " << proof_size << "> QUERY_PROOF_SIBLINGS = {\n";
+        std::cerr << "," << std::endl;
+        std::cerr << "  \"query_proof_idx\": " << proof_idx << "," << std::endl;
+        std::cerr << "  \"query_proof_siblings\": [";
         for (uint64_t i = 0; i < proof_size; i++) {
-            std::cerr << "    " << Goldilocks::toU64(buff[tree_width + i]) << "ULL";
-            if (i < proof_size - 1) std::cerr << ",";
-            std::cerr << "\n";
+            if (i > 0) std::cerr << ", ";
+            std::cerr << Goldilocks::toU64(buff[tree_width + i]);
         }
-        std::cerr << "};\n\n";
+        std::cerr << "]" << std::endl;
         delete[] buff;
+    } else {
+        std::cerr << std::endl;
     }
+
+    std::cerr << "}" << std::endl;
+    std::cerr << "=== FRI_QUERIES_JSON_END ===" << std::endl;
 #endif
 
     // Stage tree queries - matches gen_proof.hpp lines 252-253
