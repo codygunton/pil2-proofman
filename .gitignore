@@ -12,3 +12,8 @@ MyLogFile.log
 
 # Generated test vectors (run ./generate-test-vectors.sh to create)
 executable-spec/test-data/*.json
+
+# Python
+__pycache__/
+*.pyc
+uv.lock
