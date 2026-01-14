@@ -69,7 +69,6 @@ from fri_pcs import (
     FriPcs,
     FriPcsConfig,
     FriProof,
-    calculate_hash,
 )
 
 # Test vectors
@@ -126,7 +125,6 @@ __all__ = [
     "FriPcs",
     "FriPcsConfig",
     "FriProof",
-    "calculate_hash",
     # Test vectors
     "get_config",
     "get_expected_final_pol",

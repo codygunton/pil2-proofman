@@ -228,18 +228,3 @@ class FriPcs:
         C++ Reference: FriPcs<MerkleTreeType>::get_fri_tree() in fri_pcs.hpp:156
         """
         return self.fri_trees[step]
-
-
-# WORKTODO: If this is not currently in use then remove it.
-def calculate_hash(
-    buffer: List[int],
-    n_elements: int,
-    transcript_arity: int = 4
-) -> List[int]:
-    """
-    Calculate hash of buffer elements.
-
-    C++ Reference: FriPcs<MerkleTreeType>::calculateHash() in fri_pcs.hpp:116
-    """
-    sponge_width = transcript_arity * HASH_SIZE
-    return linear_hash(buffer[:n_elements], sponge_width)
