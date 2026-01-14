@@ -263,6 +263,24 @@ def get_transcript_state(air_name: str) -> dict:
     }
 
 
+def get_query_proof_siblings(air_name: str) -> list:
+    """
+    Get expected Merkle proof siblings for the first FRI query.
+
+    This is used to validate that Python's MerkleTree.get_group_proof()
+    produces byte-identical output to C++'s MerkleTreeGL::getGroupProof().
+
+    C++ Reference: NO CORRESPONDING FUNCTION
+                   (Python test utility)
+
+    Returns:
+        List of sibling hash elements for the first query at step 0.
+        Empty list if not captured in test vectors.
+    """
+    vectors = _load_vectors(air_name)
+    return vectors.get('intermediates', {}).get('query_proof_siblings', [])
+
+
 # ============================================================================
 # Backwards compatibility - expose constants for existing test imports
 # ============================================================================

@@ -514,6 +514,25 @@ uint64_t FriPcs<MerkleTreeType>::prove(
         std::cerr << "\n";
     }
     std::cerr << "};\n\n";
+
+    // Capture first query proof siblings for step 0 tree (for Python verification)
+    if (config_.num_steps() > 1) {
+        uint64_t proof_idx = friQueries[0] % (1 << config_.fri_steps[1]);
+        uint64_t tree_width = trees_fri_raw_[0]->getMerkleTreeWidth();
+        uint64_t proof_size = trees_fri_raw_[0]->getMerkleProofSize();
+        Goldilocks::Element* buff = new Goldilocks::Element[tree_width + proof_size];
+        trees_fri_raw_[0]->getGroupProof(buff, proof_idx);
+
+        std::cerr << "// QUERY_PROOF_SIBLINGS for first query (idx=" << proof_idx << ")\n";
+        std::cerr << "constexpr std::array<uint64_t, " << proof_size << "> QUERY_PROOF_SIBLINGS = {\n";
+        for (uint64_t i = 0; i < proof_size; i++) {
+            std::cerr << "    " << Goldilocks::toU64(buff[tree_width + i]) << "ULL";
+            if (i < proof_size - 1) std::cerr << ",";
+            std::cerr << "\n";
+        }
+        std::cerr << "};\n\n";
+        delete[] buff;
+    }
 #endif
 
     // Stage tree queries - matches gen_proof.hpp lines 252-253

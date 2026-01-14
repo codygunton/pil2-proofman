@@ -164,6 +164,12 @@ def parse_air_block(lines: list[str], start_idx: int) -> tuple[Optional[dict], i
             air_data['fri_queries'] = values
             continue
 
+        # QUERY_PROOF_SIBLINGS (first query proof for step 0)
+        if 'QUERY_PROOF_SIBLINGS' in line and '=' in line:
+            values, idx = parse_array_values(lines, idx + 1)
+            air_data['query_proof_siblings'] = values
+            continue
+
         idx += 1
 
     return air_data, idx
@@ -248,7 +254,7 @@ def create_test_vectors(capture_path: str, proof_path: str, air_id: int) -> dict
     proof_data = load_proof_json(proof_path)
 
     # Combine into test vectors
-    return {
+    result = {
         'metadata': {
             'airgroup': air_data['airgroup'],
             'air': air_data['air'],
@@ -267,6 +273,13 @@ def create_test_vectors(capture_path: str, proof_path: str, air_id: int) -> dict
             'nonce': proof_data['nonce'],
         }
     }
+
+    # Add query proof siblings if captured
+    if 'query_proof_siblings' in air_data:
+        result['intermediates'] = result.get('intermediates', {})
+        result['intermediates']['query_proof_siblings'] = air_data['query_proof_siblings']
+
+    return result
 
 
 def main():
@@ -296,6 +309,8 @@ def main():
     print(f"  Query indices: {len(vectors['inputs']['fri_queries'])} queries")
     print(f"  Output polynomial size: {len(vectors['outputs']['final_pol'])} values")
     print(f"  Nonce: {vectors['outputs']['nonce']}")
+    if 'intermediates' in vectors and 'query_proof_siblings' in vectors['intermediates']:
+        print(f"  Query proof siblings: {len(vectors['intermediates']['query_proof_siblings'])} elements")
     print(f"\nSaved to {output_file}")
 
 

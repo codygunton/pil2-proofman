@@ -30,6 +30,7 @@ from test_vectors import (
     get_fri_input_hash,
     get_poly_hashes_after_fold,
     get_merkle_roots,
+    get_query_proof_siblings,
     get_transcript_state,
 )
 
@@ -167,6 +168,47 @@ class TestFRIFolding:
                 prev_bits=self.fri_steps[step_idx],
                 current_bits=self.fri_steps[step_idx + 1]
             )
+
+    def test_query_proof_siblings_match_cpp(self):
+        """Verify Python Merkle proof extraction matches C++ exactly.
+
+        This validates that MerkleTree.get_group_proof() produces
+        byte-identical sibling hashes to C++ MerkleTreeGL::getGroupProof().
+        """
+        expected_siblings = get_query_proof_siblings('lookup')
+        if not expected_siblings:
+            pytest.skip("Query proof siblings not captured in test vectors")
+
+        queries = get_fri_queries('lookup')
+        assert queries, "FRI queries not available"
+
+        config = get_config('lookup')
+
+        # Build step 0 tree with correct configuration
+        tree = MerkleTree(
+            arity=config.get('merkle_arity', 4),
+            last_level_verification=config.get('last_level_verification', 0),
+            custom=config.get('merkle_tree_custom', False)
+        )
+        current_bits = self.fri_steps[0]
+        next_bits = self.fri_steps[1]
+
+        FRI.merkelize(
+            step=0,
+            pol=self.input_pol,
+            tree=tree,
+            current_bits=current_bits,
+            next_bits=next_bits
+        )
+
+        # Get proof for first query (same index C++ uses)
+        query_idx = queries[0]
+        proof_idx = query_idx % (1 << next_bits)
+        computed_siblings = tree.get_group_proof(proof_idx)
+
+        assert computed_siblings == expected_siblings, (
+            f"Query proof siblings mismatch at idx={proof_idx}"
+        )
 
 
 # =============================================================================
