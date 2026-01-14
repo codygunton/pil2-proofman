@@ -5,7 +5,6 @@ This module implements challenge generation for non-interactive proofs.
 
 C++ Reference: pil2-stark/src/starkpil/transcript/transcriptGL.hpp
 """
-# QUESTION: this class is a bit more complex than I'd expect. Is that in reflection of complexity in the transcript class in the C++? Is it all in use? ANS: Yes, this mirrors TranscriptGL in transcriptGL.hpp almost exactly. The complexity comes from the sponge construction: separate state/pending/out buffers, cursors for tracking position, and the specific absorption/squeeze pattern. All of it is in use - the pending buffer accumulates inputs until full, then _update_state absorbs into the sponge. The out buffer caches squeezed challenges. This matches how C++ manages memory for the sponge. Can simplify at cost of C++ divergence? N - sponge construction is cryptographically required, not a C++ design choice.
 from typing import List
 from poseidon2_ffi import poseidon2_hash, CAPACITY
 from field import GOLDILOCKS_PRIME
@@ -41,7 +40,6 @@ class Transcript:
 
         C++ Reference: TranscriptGL::TranscriptGL() constructor in transcriptGL.hpp:36
         """
-        # QUESTION: do we really care about this check? Why? ANS: Yes - arity determines sponge width (8, 12, or 16), which must match Poseidon2 round constants. The C++ only has constants for these widths. Using an unsupported arity would produce incorrect hashes or crash. The C++ doesn't explicitly check (it's implicit in template instantiation), but we add it here for clearer error messages. Can simplify at cost of C++ divergence? N - constraint is from Poseidon2 spec, not C++ design.
         if arity not in [2, 3, 4]:
             raise ValueError(f"arity must be 2, 3, or 4, got {arity}")
 
@@ -82,7 +80,6 @@ class Transcript:
 
         C++ Reference: TranscriptGL::_add1() in transcriptGL.cpp:41 (private)
         """
-        # QUESTION: does this function exist in the C++? ANS: Yes, TranscriptGL::_add1 in transcriptGL.hpp. It's a private helper that adds one element to pending and triggers _updateState when the buffer fills. Our implementation matches it exactly. Can simplify at cost of C++ divergence? Y - could inline into put() or use a simpler append-to-list pattern, but would diverge from C++ structure.
         self.pending[self.pending_cursor] = input_elem % GOLDILOCKS_PRIME
         self.pending_cursor += 1
         self.out_cursor = 0  # Invalidate cached output
