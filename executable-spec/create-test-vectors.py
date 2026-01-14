@@ -23,53 +23,69 @@ import sys
 from pathlib import Path
 
 
-def parse_json_block(text: str, start_marker: str, end_marker: str) -> dict | None:
-    """Extract and parse a JSON block between markers."""
+def parse_all_json_blocks(text: str, start_marker: str, end_marker: str) -> list[dict]:
+    """Extract and parse ALL JSON blocks between markers."""
     pattern = re.escape(start_marker) + r'\s*(.*?)\s*' + re.escape(end_marker)
-    match = re.search(pattern, text, re.DOTALL)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(1))
-    except json.JSONDecodeError as e:
-        print(f"Error parsing JSON block between {start_marker} and {end_marker}: {e}", file=sys.stderr)
-        return None
+    results = []
+    for match in re.finditer(pattern, text, re.DOTALL):
+        try:
+            results.append(json.loads(match.group(1)))
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON block: {e}", file=sys.stderr)
+    return results
 
 
-def parse_capture_output(capture_text: str) -> dict:
+def parse_capture_output(capture_text: str, instance: int | None = None) -> dict:
     """
     Parse JSON blocks from C++ CAPTURE_FRI_VECTORS stderr output.
 
+    Args:
+        capture_text: Raw stderr output from C++ with CAPTURE_FRI_VECTORS
+        instance: If specified, filter to only this instance number
+
     Returns dict with all captured data merged together.
     """
-    result = {}
-
-    # Parse gen_proof.hpp output (FRI input polynomial)
-    gen_proof_data = parse_json_block(
+    # Parse all gen_proof blocks and find matching instance
+    gen_proof_blocks = parse_all_json_blocks(
         capture_text,
         '=== FRI_GEN_PROOF_JSON_START ===',
         '=== FRI_GEN_PROOF_JSON_END ==='
     )
+
+    # Find the block matching requested instance (or first if not specified)
+    gen_proof_data = None
+    block_index = 0
+    for i, block in enumerate(gen_proof_blocks):
+        if instance is None or block.get('instance') == instance:
+            gen_proof_data = block
+            block_index = i
+            break
+
+    if gen_proof_data is None and gen_proof_blocks:
+        gen_proof_data = gen_proof_blocks[0]
+        block_index = 0
+
+    result = {}
     if gen_proof_data:
         result.update(gen_proof_data)
 
-    # Parse fri_pcs.hpp output (challenges, transcript state, etc.)
-    fri_pcs_data = parse_json_block(
+    # Parse fri_pcs blocks - use same index as gen_proof
+    fri_pcs_blocks = parse_all_json_blocks(
         capture_text,
         '=== FRI_PCS_JSON_START ===',
         '=== FRI_PCS_JSON_END ==='
     )
-    if fri_pcs_data:
-        result.update(fri_pcs_data)
+    if block_index < len(fri_pcs_blocks):
+        result.update(fri_pcs_blocks[block_index])
 
-    # Parse FRI queries output
-    queries_data = parse_json_block(
+    # Parse FRI queries blocks - use same index
+    queries_blocks = parse_all_json_blocks(
         capture_text,
         '=== FRI_QUERIES_JSON_START ===',
         '=== FRI_QUERIES_JSON_END ==='
     )
-    if queries_data:
-        result.update(queries_data)
+    if block_index < len(queries_blocks):
+        result.update(queries_blocks[block_index])
 
     return result
 
@@ -105,11 +121,13 @@ def compute_final_pol_hash(final_pol: list) -> list:
     """
     Compute Poseidon2 hash of final polynomial using the Rust FFI.
 
+    Uses width=16 to match the C++ implementation's sponge width.
+
     Returns list of 4 uint64 values.
     """
     try:
         from poseidon2_ffi import linear_hash
-        return list(linear_hash(final_pol))
+        return list(linear_hash(final_pol, width=16))
     except ImportError:
         print("Warning: poseidon2 FFI not available, skipping hash computation", file=sys.stderr)
         return []
@@ -272,6 +290,12 @@ def main():
         required=True,
         help='Output path for JSON test vectors'
     )
+    parser.add_argument(
+        '--instance',
+        type=int,
+        default=None,
+        help='Instance number to extract (for multi-AIR proofs)'
+    )
 
     args = parser.parse_args()
 
@@ -290,7 +314,7 @@ def main():
     print(f"Parsing capture output from {args.capture_file}...")
     with open(args.capture_file) as f:
         capture_text = f.read()
-    capture_data = parse_capture_output(capture_text)
+    capture_data = parse_capture_output(capture_text, instance=args.instance)
 
     if not capture_data:
         print("Warning: No capture data found in stderr output", file=sys.stderr)

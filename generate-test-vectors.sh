@@ -33,12 +33,16 @@ fi
 # Generate vectors for a specific test
 # ===========================================================================
 generate_vectors() {
-    local TEST_NAME="$1"      # simple | lookup
-    local AIR_NAME="$2"       # SimpleLeft | Lookup2_12
+    local TEST_NAME="$1"      # simple | lookup | permutation
+    local AIR_NAME="$2"       # SimpleLeft | Lookup2_12 | Permutation1_6
     local BUILD_DIR="$3"      # path to build directory
-    local LIB_NAME="$4"       # libsimple.so | liblookup.so
-    local PROOF_NAME="$5"     # SimpleLeft_0 | Lookup2_12_2
-    local OUTPUT_FILE="$6"    # simple-left.json | lookup2-12.json
+    local LIB_NAME="$4"       # libsimple.so | liblookup.so | libpermutation.so
+    local PROOF_NAME="$5"     # SimpleLeft_0 | Lookup2_12_2 | Permutation1_6_0
+    local OUTPUT_FILE="$6"    # simple-left.json | lookup2-12.json | permutation1-6.json
+    local STARKINFO_PATH="$7" # relative path from provingKey to starkinfo.json
+
+    # Extract instance number from proof name (last segment after underscore)
+    local INSTANCE="${PROOF_NAME##*_}"
 
     local OUTPUT_DIR="$BUILD_DIR/test_vectors_output"
     local PROOF_FILE="$OUTPUT_DIR/proofs/${PROOF_NAME}.json"
@@ -94,12 +98,7 @@ generate_vectors() {
     fi
 
     # Find starkinfo file
-    local STARKINFO_FILE=""
-    if [ "$TEST_NAME" = "simple" ]; then
-        STARKINFO_FILE="$BUILD_DIR/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json"
-    elif [ "$TEST_NAME" = "lookup" ]; then
-        STARKINFO_FILE="$BUILD_DIR/provingKey/lookup/Lookup/airs/Lookup2_12/air/Lookup2_12.starkinfo.json"
-    fi
+    local STARKINFO_FILE="$BUILD_DIR/provingKey/$STARKINFO_PATH"
 
     if [ ! -f "$STARKINFO_FILE" ]; then
         echo "ERROR: Starkinfo file not found: $STARKINFO_FILE"
@@ -117,12 +116,18 @@ generate_vectors() {
         cd poseidon2-ffi && uv run maturin develop --release && cd ..
     fi
 
+    local INSTANCE_ARG=""
+    if [ -n "$INSTANCE" ]; then
+        INSTANCE_ARG="--instance $INSTANCE"
+    fi
+
     uv run python create-test-vectors.py \
         --capture-file "$CAPTURE_FILE" \
         --proof-file "$PROOF_FILE" \
         --starkinfo-file "$STARKINFO_FILE" \
         --air-name "$AIR_NAME" \
-        --output "test-data/$OUTPUT_FILE"
+        --output "test-data/$OUTPUT_FILE" \
+        $INSTANCE_ARG
 
     cd "$ROOT_DIR"
 
@@ -148,24 +153,39 @@ case "$TEST_TARGET" in
     simple)
         generate_vectors "simple" "SimpleLeft" \
             "$ROOT_DIR/pil2-components/test/simple/build" \
-            "libsimple.so" "SimpleLeft_0" "simple-left.json"
+            "libsimple.so" "SimpleLeft_0" "simple-left.json" \
+            "build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json"
         ;;
     lookup)
         generate_vectors "lookup" "Lookup2_12" \
             "$ROOT_DIR/pil2-components/test/lookup/build" \
-            "liblookup.so" "Lookup2_12_2" "lookup2-12.json"
+            "liblookup.so" "Lookup2_12_2" "lookup2-12.json" \
+            "lookup/Lookup/airs/Lookup2_12/air/Lookup2_12.starkinfo.json"
+        ;;
+    permutation)
+        generate_vectors "permutation" "Permutation1_6" \
+            "$ROOT_DIR/pil2-components/test/permutation/build" \
+            "libpermutation.so" "Permutation1_6_0" "permutation1-6.json" \
+            "permutation/Permutation/airs/Permutation1_6/air/Permutation1_6.starkinfo.json"
         ;;
     all)
         generate_vectors "simple" "SimpleLeft" \
             "$ROOT_DIR/pil2-components/test/simple/build" \
-            "libsimple.so" "SimpleLeft_0" "simple-left.json"
+            "libsimple.so" "SimpleLeft_0" "simple-left.json" \
+            "build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json"
 
         generate_vectors "lookup" "Lookup2_12" \
             "$ROOT_DIR/pil2-components/test/lookup/build" \
-            "liblookup.so" "Lookup2_12_2" "lookup2-12.json"
+            "liblookup.so" "Lookup2_12_2" "lookup2-12.json" \
+            "lookup/Lookup/airs/Lookup2_12/air/Lookup2_12.starkinfo.json"
+
+        generate_vectors "permutation" "Permutation1_6" \
+            "$ROOT_DIR/pil2-components/test/permutation/build" \
+            "libpermutation.so" "Permutation1_6_0" "permutation1-6.json" \
+            "permutation/Permutation/airs/Permutation1_6/air/Permutation1_6.starkinfo.json"
         ;;
     *)
-        echo "Usage: $0 [simple|lookup|all]"
+        echo "Usage: $0 [simple|lookup|permutation|all]"
         exit 1
         ;;
 esac
