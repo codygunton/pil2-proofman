@@ -1,317 +1,334 @@
 #!/usr/bin/env python3
 """
-Extract FRI test vectors from C++ capture output.
+Create JSON test vectors from C++ capture output.
 
-This script parses the stderr output from proof generation when
-CAPTURE_FRI_VECTORS is enabled, and saves it as JSON files for
-Python test consumption.
+This script parses the JSON blocks output by CAPTURE_FRI_VECTORS and combines
+them with data from the proof JSON and starkinfo files to produce complete
+test vector JSON files for the Python executable specification.
 
 Usage:
-    python extract_vectors.py <captured_file> <output_json>
-
-Example:
-    python extract_vectors.py fri_input_vectors.txt simple_left_vectors.json
+    python create-test-vectors.py \
+        --capture-file <stderr_output.txt> \
+        --proof-file <proof.json> \
+        --starkinfo-file <.starkinfo.json> \
+        --air-name <SimpleLeft|Lookup2_12> \
+        --output <test-data/simple-left.json>
 """
 
+import argparse
+import hashlib
 import json
 import re
 import sys
 from pathlib import Path
-from typing import Optional
 
 
-def parse_array_values(lines: list[str], start_idx: int) -> tuple[list[int], int]:
+def parse_json_block(text: str, start_marker: str, end_marker: str) -> dict | None:
+    """Extract and parse a JSON block between markers."""
+    pattern = re.escape(start_marker) + r'\s*(.*?)\s*' + re.escape(end_marker)
+    match = re.search(pattern, text, re.DOTALL)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(1))
+    except json.JSONDecodeError as e:
+        print(f"Error parsing JSON block between {start_marker} and {end_marker}: {e}", file=sys.stderr)
+        return None
+
+
+def parse_capture_output(capture_text: str) -> dict:
     """
-    Parse array values from lines starting at start_idx.
-    Returns (values, end_idx).
+    Parse JSON blocks from C++ CAPTURE_FRI_VECTORS stderr output.
 
-    C++ Reference: NO CORRESPONDING FUNCTION
-                   (Python extraction utility)
+    Returns dict with all captured data merged together.
     """
-    values = []
-    idx = start_idx
+    result = {}
 
-    while idx < len(lines):
-        line = lines[idx].strip()
+    # Parse gen_proof.hpp output (FRI input polynomial)
+    gen_proof_data = parse_json_block(
+        capture_text,
+        '=== FRI_GEN_PROOF_JSON_START ===',
+        '=== FRI_GEN_PROOF_JSON_END ==='
+    )
+    if gen_proof_data:
+        result.update(gen_proof_data)
 
-        # End of array
-        if line.startswith('};'):
-            return values, idx + 1
+    # Parse fri_pcs.hpp output (challenges, transcript state, etc.)
+    fri_pcs_data = parse_json_block(
+        capture_text,
+        '=== FRI_PCS_JSON_START ===',
+        '=== FRI_PCS_JSON_END ==='
+    )
+    if fri_pcs_data:
+        result.update(fri_pcs_data)
 
-        # Skip comments and empty lines
-        if not line or line.startswith('//'):
-            idx += 1
-            continue
+    # Parse FRI queries output
+    queries_data = parse_json_block(
+        capture_text,
+        '=== FRI_QUERIES_JSON_START ===',
+        '=== FRI_QUERIES_JSON_END ==='
+    )
+    if queries_data:
+        result.update(queries_data)
 
-        # Extract numeric values (handles both "123ULL," and "123ULL")
-        matches = re.findall(r'(\d+)ULL', line)
-        for m in matches:
-            values.append(int(m))
-
-        idx += 1
-
-    return values, idx
+    return result
 
 
-def parse_nested_array(lines: list[str], start_idx: int) -> tuple[list[list[int]], int]:
+def extract_from_proof(proof_path: Path) -> dict:
     """
-    Parse nested array values like FRI_CHALLENGES.
-    Returns (values, end_idx).
+    Extract finalPol and nonce from proof JSON file.
 
-    C++ Reference: NO CORRESPONDING FUNCTION
-                   (Python parsing utility)
+    Returns dict with:
+        - final_pol: flattened list of uint64 values (as integers)
+        - nonce: int
     """
-    values = []
-    idx = start_idx
-
-    while idx < len(lines):
-        line = lines[idx].strip()
-
-        # End of array
-        if line.startswith('}};'):
-            return values, idx + 1
-
-        # Skip comments and empty lines
-        if not line or line.startswith('//'):
-            idx += 1
-            continue
-
-        # Extract inner array: {val1, val2, val3}
-        match = re.search(r'\{(\d+)ULL,\s*(\d+)ULL,\s*(\d+)ULL\}', line)
-        if match:
-            values.append([int(match.group(1)), int(match.group(2)), int(match.group(3))])
-
-        idx += 1
-
-    return values, idx
-
-
-def parse_air_block(lines: list[str], start_idx: int) -> tuple[Optional[dict], int]:
-    """
-    Parse a single AIR block from the capture output.
-    Returns (air_data, end_idx) or (None, end_idx) if parsing fails.
-
-    C++ Reference: NO CORRESPONDING FUNCTION
-                   (Python parsing utility)
-    """
-    air_data = {}
-    idx = start_idx
-
-    # Find AIR header
-    while idx < len(lines):
-        line = lines[idx].strip()
-        if line.startswith('// AIR:'):
-            # Parse: "// AIR: airgroup=0 air=2 instance=2"
-            match = re.search(r'airgroup=(\d+)\s+air=(\d+)\s+instance=(\d+)', line)
-            if match:
-                air_data['airgroup'] = int(match.group(1))
-                air_data['air'] = int(match.group(2))
-                air_data['instance'] = int(match.group(3))
-            idx += 1
-            break
-        idx += 1
-
-    if 'air' not in air_data:
-        return None, idx
-
-    # Parse friPolSize
-    while idx < len(lines):
-        line = lines[idx].strip()
-        if line.startswith('// friPolSize:'):
-            match = re.search(r'friPolSize:\s*(\d+)', line)
-            if match:
-                air_data['fri_pol_size'] = int(match.group(1))
-            idx += 1
-            break
-        if line.startswith('// === END'):
-            return air_data, idx
-        idx += 1
-
-    # Parse arrays
-    while idx < len(lines):
-        line = lines[idx].strip()
-
-        if line.startswith('// === END FRI INPUT VECTORS'):
-            return air_data, idx + 1
-
-        # FRI_INPUT_POLYNOMIAL
-        if 'FRI_INPUT_POLYNOMIAL' in line and '=' in line:
-            values, idx = parse_array_values(lines, idx + 1)
-            air_data['fri_input_polynomial'] = values
-            continue
-
-        # FRI_INPUT_POL_HASH
-        if 'FRI_INPUT_POL_HASH' in line and '=' in line:
-            values, idx = parse_array_values(lines, idx + 1)
-            air_data['fri_input_pol_hash'] = values
-            continue
-
-        # FRI_CHALLENGES (nested array)
-        if 'FRI_CHALLENGES' in line and '=' in line:
-            values, idx = parse_nested_array(lines, idx + 1)
-            air_data['fri_challenges'] = values
-            continue
-
-        # GRINDING_CHALLENGE
-        if 'GRINDING_CHALLENGE' in line and '=' in line:
-            values, idx = parse_array_values(lines, idx + 1)
-            air_data['grinding_challenge'] = values
-            continue
-
-        # FRI_QUERIES (query indices derived from grinding)
-        if 'FRI_QUERIES' in line and '=' in line:
-            values, idx = parse_array_values(lines, idx + 1)
-            air_data['fri_queries'] = values
-            continue
-
-        # QUERY_PROOF_SIBLINGS (first query proof for step 0)
-        if 'QUERY_PROOF_SIBLINGS' in line and '=' in line:
-            values, idx = parse_array_values(lines, idx + 1)
-            air_data['query_proof_siblings'] = values
-            continue
-
-        idx += 1
-
-    return air_data, idx
-
-
-def parse_capture_file(filepath: str) -> list[dict]:
-    """
-    Parse a complete capture file containing multiple AIR blocks.
-
-    C++ Reference: NO CORRESPONDING FUNCTION
-                   (Python extraction utility)
-    """
-    with open(filepath, 'r') as f:
-        content = f.read()
-
-    lines = content.split('\n')
-    airs = []
-    idx = 0
-
-    while idx < len(lines):
-        line = lines[idx].strip()
-
-        # Find start of AIR block
-        if '=== FRI INPUT VECTORS (CAPTURE_FRI_VECTORS) ===' in line:
-            air_data, idx = parse_air_block(lines, idx + 1)
-            if air_data and 'fri_input_polynomial' in air_data:
-                airs.append(air_data)
-        else:
-            idx += 1
-
-    return airs
-
-
-def load_proof_json(proof_path: str) -> dict:
-    """
-    Load the proof JSON file to extract output values.
-
-    C++ Reference: NO CORRESPONDING FUNCTION
-                   (Python test utility)
-    """
-    with open(proof_path, 'r') as f:
+    with open(proof_path) as f:
         proof = json.load(f)
 
-    # Extract finalPol as flat list
+    # finalPol is an array of cubic extension elements [[a,b,c], [d,e,f], ...]
+    # Flatten to [a,b,c,d,e,f,...] and ensure all values are integers
+    final_pol_nested = proof.get('finalPol', [])
     final_pol = []
-    for elem in proof['finalPol']:
-        for val in elem:
-            final_pol.append(int(val))
+    for elem in final_pol_nested:
+        if isinstance(elem, list):
+            final_pol.extend(int(v) for v in elem)
+        else:
+            final_pol.append(int(elem))
 
     return {
         'final_pol': final_pol,
-        'nonce': int(proof['nonce']),
+        'nonce': int(proof.get('nonce', 0)),
     }
 
 
-def create_test_vectors(capture_path: str, proof_path: str, air_id: int) -> dict:
+def compute_final_pol_hash(final_pol: list) -> list:
     """
-    Create complete test vectors for a specific AIR.
+    Compute Poseidon2 hash of final polynomial using the Rust FFI.
 
-    C++ Reference: NO CORRESPONDING FUNCTION
-                   (Python test utility)
-
-    Args:
-        capture_path: Path to fri_input_vectors.txt
-        proof_path: Path to proof JSON file
-        air_id: AIR ID to extract (e.g., 0 for SimpleLeft, 2 for Lookup2_12_2)
+    Returns list of 4 uint64 values.
     """
-    # Parse captured inputs
-    airs = parse_capture_file(capture_path)
+    try:
+        from poseidon2_ffi import linear_hash
+        return list(linear_hash(final_pol))
+    except ImportError:
+        print("Warning: poseidon2 FFI not available, skipping hash computation", file=sys.stderr)
+        return []
 
-    # Find the specific AIR
-    air_data = None
-    for air in airs:
-        if air['air'] == air_id:
-            air_data = air
-            break
 
-    if air_data is None:
-        raise ValueError(f"AIR {air_id} not found in capture file")
+def compute_checksum(final_pol: list) -> str:
+    """Compute SHA256 checksum of final polynomial values."""
+    data = ','.join(str(v) for v in final_pol)
+    return hashlib.sha256(data.encode()).hexdigest()
 
-    # Load proof output
-    proof_data = load_proof_json(proof_path)
 
-    # Combine into test vectors
+def load_starkinfo(starkinfo_path: Path) -> dict:
+    """
+    Load AIR configuration from .starkinfo.json file.
+
+    Returns dict with FRI configuration parameters.
+    """
+    with open(starkinfo_path) as f:
+        starkinfo = json.load(f)
+
+    stark_struct = starkinfo.get('starkStruct', {})
+    steps = stark_struct.get('steps', [])
+
+    return {
+        'name': starkinfo.get('name', ''),
+        'n_bits': stark_struct.get('nBits'),
+        'n_bits_ext': stark_struct.get('nBitsExt'),
+        'n_queries': stark_struct.get('nQueries'),
+        'pow_bits': stark_struct.get('powBits'),
+        'merkle_arity': stark_struct.get('merkleTreeArity'),
+        'transcript_arity': stark_struct.get('transcriptArity'),
+        'last_level_verification': stark_struct.get('lastLevelVerification'),
+        'hash_commits': stark_struct.get('hashCommits'),
+        'merkle_tree_custom': stark_struct.get('merkleTreeCustom'),
+        'num_fri_steps': len(steps),
+        'fri_steps': [step.get('nBits') for step in steps],
+    }
+
+
+def build_test_vectors(
+    capture_data: dict,
+    proof_data: dict,
+    starkinfo: dict,
+    air_name: str,
+) -> dict:
+    """
+    Assemble final JSON structure matching test_vectors.py schema.
+    """
+    # For final_pol_hash, if final_pol == fri_input_polynomial, use the captured hash
+    # This avoids hash function mismatch between Python FFI and C++ implementation
+    fri_input_pol = capture_data.get('fri_input_polynomial', [])
+    final_pol = proof_data['final_pol']
+    fri_input_pol_hash = capture_data.get('fri_input_pol_hash', [])
+
+    if final_pol == fri_input_pol and fri_input_pol_hash:
+        # No folding happened, use captured hash
+        final_pol_hash = fri_input_pol_hash
+    else:
+        # Compute hash using Python FFI (may differ from C++ for some cases)
+        final_pol_hash = compute_final_pol_hash(final_pol)
+
+    final_pol_checksum = compute_checksum(final_pol)
+
     result = {
         'metadata': {
-            'airgroup': air_data['airgroup'],
-            'air': air_data['air'],
-            'instance': air_data['instance'],
-            'fri_pol_size': air_data.get('fri_pol_size', len(air_data['fri_input_polynomial'])),
+            'air_name': air_name,
+            'n_bits': starkinfo['n_bits'],
+            'n_bits_ext': starkinfo['n_bits_ext'],
+            'n_queries': starkinfo['n_queries'],
+            'pow_bits': starkinfo['pow_bits'],
+            'merkle_arity': starkinfo['merkle_arity'],
+            'transcript_arity': starkinfo['transcript_arity'],
+            'last_level_verification': starkinfo['last_level_verification'],
+            'hash_commits': starkinfo['hash_commits'],
+            'merkle_tree_custom': starkinfo['merkle_tree_custom'],
+            'num_fri_steps': starkinfo['num_fri_steps'],
+            'fri_steps': starkinfo['fri_steps'],
         },
-        'inputs': {
-            'fri_input_polynomial': air_data['fri_input_polynomial'],
-            'fri_input_pol_hash': air_data.get('fri_input_pol_hash', []),
-            'fri_challenges': air_data.get('fri_challenges', []),
-            'grinding_challenge': air_data.get('grinding_challenge', []),
-            'fri_queries': air_data.get('fri_queries', []),
-        },
-        'outputs': {
+        'expected': {
             'final_pol': proof_data['final_pol'],
             'nonce': proof_data['nonce'],
-        }
+            'final_pol_hash': final_pol_hash,
+            'final_pol_checksum': final_pol_checksum,
+        },
+        'inputs': {
+            'fri_input_polynomial': capture_data.get('fri_input_polynomial', []),
+            'fri_input_pol_hash': capture_data.get('fri_input_pol_hash', []),
+            'fri_challenges': capture_data.get('fri_challenges', []),
+            'grinding_challenge': capture_data.get('grinding_challenge', []),
+            'fri_queries': capture_data.get('fri_queries', []),
+        },
     }
 
-    # Add query proof siblings if captured
-    if 'query_proof_siblings' in air_data:
-        result['intermediates'] = result.get('intermediates', {})
-        result['intermediates']['query_proof_siblings'] = air_data['query_proof_siblings']
+    # Add optional fields if present
+    if capture_data.get('transcript_state'):
+        result['inputs']['transcript_state'] = capture_data['transcript_state']
+    if capture_data.get('transcript_out'):
+        result['inputs']['transcript_out'] = capture_data['transcript_out']
+    if 'transcript_out_cursor' in capture_data:
+        result['inputs']['transcript_out_cursor'] = capture_data['transcript_out_cursor']
+    if 'transcript_pending_cursor' in capture_data:
+        result['inputs']['transcript_pending_cursor'] = capture_data['transcript_pending_cursor']
+
+    # Add intermediates if present
+    intermediates = {}
+    if capture_data.get('merkle_roots'):
+        intermediates['merkle_roots'] = capture_data['merkle_roots']
+    if capture_data.get('poly_hashes_after_fold'):
+        intermediates['poly_hashes_after_fold'] = capture_data['poly_hashes_after_fold']
+    if capture_data.get('query_proof_siblings'):
+        intermediates['query_proof_siblings'] = capture_data['query_proof_siblings']
+
+    if intermediates:
+        result['intermediates'] = intermediates
+
+    # Add extra metadata from capture if available
+    if capture_data.get('airgroup') is not None:
+        result['metadata']['airgroup'] = capture_data['airgroup']
+    if capture_data.get('air') is not None:
+        result['metadata']['air'] = capture_data['air']
+    if capture_data.get('instance') is not None:
+        result['metadata']['instance'] = capture_data['instance']
+    if capture_data.get('fri_pol_size') is not None:
+        result['metadata']['fri_pol_size'] = capture_data['fri_pol_size']
 
     return result
 
 
 def main():
-    if len(sys.argv) < 4:
-        print("Usage: python extract_vectors.py <capture_file> <proof_json> <output_json> [air_id]")
-        print("Example: python extract_vectors.py fri_input_vectors.txt SimpleLeft_0.json simple_left_vectors.json 0")
+    parser = argparse.ArgumentParser(
+        description='Create JSON test vectors from C++ capture output'
+    )
+    parser.add_argument(
+        '--capture-file',
+        type=Path,
+        required=True,
+        help='Path to file containing C++ CAPTURE_FRI_VECTORS stderr output'
+    )
+    parser.add_argument(
+        '--proof-file',
+        type=Path,
+        required=True,
+        help='Path to proof JSON file'
+    )
+    parser.add_argument(
+        '--starkinfo-file',
+        type=Path,
+        required=True,
+        help='Path to .starkinfo.json file'
+    )
+    parser.add_argument(
+        '--air-name',
+        type=str,
+        required=True,
+        help='AIR name (e.g., SimpleLeft, Lookup2_12)'
+    )
+    parser.add_argument(
+        '--output',
+        type=Path,
+        required=True,
+        help='Output path for JSON test vectors'
+    )
+
+    args = parser.parse_args()
+
+    # Validate input files exist
+    if not args.capture_file.exists():
+        print(f"Error: Capture file not found: {args.capture_file}", file=sys.stderr)
+        sys.exit(1)
+    if not args.proof_file.exists():
+        print(f"Error: Proof file not found: {args.proof_file}", file=sys.stderr)
+        sys.exit(1)
+    if not args.starkinfo_file.exists():
+        print(f"Error: Starkinfo file not found: {args.starkinfo_file}", file=sys.stderr)
         sys.exit(1)
 
-    capture_file = sys.argv[1]
-    proof_file = sys.argv[2]
-    output_file = sys.argv[3]
-    air_id = int(sys.argv[4]) if len(sys.argv) > 4 else 0
+    # Parse capture output
+    print(f"Parsing capture output from {args.capture_file}...")
+    with open(args.capture_file) as f:
+        capture_text = f.read()
+    capture_data = parse_capture_output(capture_text)
 
-    print(f"Extracting vectors for AIR {air_id}...")
-    print(f"  Capture file: {capture_file}")
-    print(f"  Proof file: {proof_file}")
-    print(f"  Output file: {output_file}")
+    if not capture_data:
+        print("Warning: No capture data found in stderr output", file=sys.stderr)
 
-    vectors = create_test_vectors(capture_file, proof_file, air_id)
+    # Extract from proof
+    print(f"Extracting data from proof {args.proof_file}...")
+    proof_data = extract_from_proof(args.proof_file)
 
-    with open(output_file, 'w') as f:
-        json.dump(vectors, f, indent=2)
+    # Load starkinfo
+    print(f"Loading starkinfo from {args.starkinfo_file}...")
+    starkinfo = load_starkinfo(args.starkinfo_file)
 
-    print(f"\nExtracted vectors:")
-    print(f"  Input polynomial size: {len(vectors['inputs']['fri_input_polynomial'])} values")
-    print(f"  Challenges: {len(vectors['inputs']['fri_challenges'])} steps")
-    print(f"  Query indices: {len(vectors['inputs']['fri_queries'])} queries")
-    print(f"  Output polynomial size: {len(vectors['outputs']['final_pol'])} values")
-    print(f"  Nonce: {vectors['outputs']['nonce']}")
-    if 'intermediates' in vectors and 'query_proof_siblings' in vectors['intermediates']:
-        print(f"  Query proof siblings: {len(vectors['intermediates']['query_proof_siblings'])} elements")
-    print(f"\nSaved to {output_file}")
+    # Build test vectors
+    print("Building test vectors...")
+    test_vectors = build_test_vectors(
+        capture_data,
+        proof_data,
+        starkinfo,
+        args.air_name,
+    )
+
+    # Write output
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    with open(args.output, 'w') as f:
+        json.dump(test_vectors, f, indent=2)
+
+    print(f"Written test vectors to {args.output}")
+
+    # Summary
+    print(f"\nSummary:")
+    print(f"  AIR: {args.air_name}")
+    print(f"  FRI input polynomial size: {len(test_vectors['inputs']['fri_input_polynomial'])}")
+    print(f"  Final polynomial size: {len(test_vectors['expected']['final_pol'])}")
+    print(f"  Nonce: {test_vectors['expected']['nonce']}")
+    print(f"  FRI challenges: {len(test_vectors['inputs']['fri_challenges'])}")
+    print(f"  FRI queries: {len(test_vectors['inputs']['fri_queries'])}")
+    if test_vectors['expected']['final_pol_hash']:
+        print(f"  Final pol hash: [{', '.join(str(h) for h in test_vectors['expected']['final_pol_hash'])}]")
 
 
 if __name__ == '__main__':
