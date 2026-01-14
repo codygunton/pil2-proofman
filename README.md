@@ -18,9 +18,13 @@ The Proof Manager is an adaptable Proof Manager designed to assist in the creati
 
 An executable specification of the FRI PCS in `executable-spec/`.
 
-# Pinning Tests
+## Tests
 
-Golden file tests that validate the Rust/C++ prover produces deterministic output.
+Three test suites establish a Python executable spec testing framework:
+
+- **pinning** - Validates C++ prover output is deterministic (SHA256 checksums). Establishes that test vectors extracted from C++ are stable.
+- **fri** - Validates C++ FRI values (challenges, polynomials, Merkle roots) match golden vectors. Establishes that test vectors are correct reference values.
+- **spec** - Validates Python FRI produces identical output to C++ given the same inputs. Establishes that the Python spec correctly implements FRI.
 
 ```bash
 cargo test -p pinning              # all pinning tests
