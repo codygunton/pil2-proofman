@@ -155,6 +155,57 @@ setup_lookup() {
 }
 
 # ===========================================================================
+# Setup permutation test
+# ===========================================================================
+setup_permutation() {
+    echo ""
+    echo "=== Setting up permutation test ==="
+
+    local BUILD_DIR="$ROOT_DIR/pil2-components/test/permutation/build"
+    local PERMUTATION_DIR="$ROOT_DIR/pil2-components/test/permutation"
+
+    # Create build directory if it doesn't exist
+    if [ ! -d "$BUILD_DIR" ]; then
+        echo "Creating build directory..."
+        mkdir -p "$BUILD_DIR"
+    fi
+
+    # Compile PIL (skip if pilout already exists)
+    if [ ! -f "$BUILD_DIR/permutation.pilout" ]; then
+        echo "Compiling PIL..."
+        node "$PIL2_COMPILER/src/pil.js" \
+            "$PERMUTATION_DIR/permutation.pil" \
+            -I "$ROOT_DIR/pil2-components/lib/std/pil" \
+            -u "$BUILD_DIR/fixed" -O fixed-to-file \
+            -o "$BUILD_DIR/permutation.pilout"
+    else
+        echo "PIL already compiled, skipping..."
+    fi
+
+    # Generate setup (skip if provingKey already exists)
+    if [ ! -d "$BUILD_DIR/provingKey" ]; then
+        echo "Generating setup..."
+        node "$PIL2_PROOFMAN_JS/src/main_setup.js" \
+            -a "$BUILD_DIR/permutation.pilout" \
+            -u "$BUILD_DIR/fixed" \
+            -b "$BUILD_DIR"
+    else
+        echo "Setup already generated, skipping..."
+    fi
+
+    # Run check-setup to generate constant trees (skip if already done)
+    if [ ! -f "$BUILD_DIR/provingKey/build/Permutation/airs/Permutation1_6/air/Permutation1_6.consttree" ]; then
+        echo "Running check-setup..."
+        cargo run --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli check-setup \
+            --proving-key "$BUILD_DIR/provingKey"
+    else
+        echo "Check-setup already done, skipping..."
+    fi
+
+    echo "Permutation test setup complete!"
+}
+
+# ===========================================================================
 # Main setup
 # ===========================================================================
 
@@ -174,12 +225,16 @@ case "${1:-all}" in
     lookup)
         setup_lookup
         ;;
+    permutation)
+        setup_permutation
+        ;;
     all)
         setup_simple
         setup_lookup
+        setup_permutation
         ;;
     *)
-        echo "Usage: $0 [simple|lookup|all]"
+        echo "Usage: $0 [simple|lookup|permutation|all]"
         exit 1
         ;;
 esac

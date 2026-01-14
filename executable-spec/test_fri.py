@@ -151,7 +151,7 @@ class TestProveEndToEnd:
 # Parameterized unit tests (simple + lookup)
 # =============================================================================
 
-@pytest.mark.parametrize("air_name", ["simple", "lookup"])
+@pytest.mark.parametrize("air_name", ["simple", "lookup", "permutation"])
 def test_final_polynomial_hash(air_name):
     """Test that linear_hash(final_pol) matches C++ captured hash."""
     expected_pol = get_expected_final_pol(air_name)
@@ -160,7 +160,7 @@ def test_final_polynomial_hash(air_name):
     assert computed_hash == expected_hash
 
 
-@pytest.mark.parametrize("air_name", ["simple", "lookup"])
+@pytest.mark.parametrize("air_name", ["simple", "lookup", "permutation"])
 def test_query_indices_derivation(air_name):
     """Test query index derivation matches C++ exactly."""
     expected_queries = get_fri_queries(air_name)

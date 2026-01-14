@@ -56,6 +56,8 @@ def _load_vectors(air_name: str) -> dict:
         file_name = 'simple-left.json'
     elif air_name.lower() in ['lookup', 'lookup2_12', 'lookup2', 'lookup2_12_2']:
         file_name = 'lookup2-12.json'
+    elif air_name.lower() in ['permutation', 'permutation1_6', 'permutation1-6']:
+        file_name = 'permutation1-6.json'
     else:
         raise ValueError(f"Unknown AIR: {air_name}")
 
