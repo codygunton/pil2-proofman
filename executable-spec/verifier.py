@@ -105,29 +105,27 @@ class FriVerifier:
 
             # Verify FRI proofs for each step
             current_idx = idx
-            prev_bits = config.n_bits_ext
 
             for step in range(len(config.fri_steps) - 1):
                 current_bits = config.fri_steps[step]
-                next_bits = config.fri_steps[step + 1]
+                _next_bits = config.fri_steps[step + 1]  # TODO: use for verification
 
                 # Get FRI proof for this step
                 if 'fri_proofs' not in query_proof or step >= len(query_proof['fri_proofs']):
                     return False
 
-                fri_proof = query_proof['fri_proofs'][step]
+                _fri_proof = query_proof['fri_proofs'][step]  # TODO: use for verification
 
                 # Calculate folded index
                 folded_idx = current_idx % (1 << current_bits)
 
                 # Verify Merkle proof
-                root = proof.fri_roots[step]
+                _root = proof.fri_roots[step]  # TODO: use for verification
                 # Note: Full Merkle proof verification requires the leaf values
                 # which would come from the previous step's polynomial evaluation.
                 # For now, we verify the proof structure is valid.
 
                 current_idx = folded_idx
-                prev_bits = current_bits
 
         # 7. Verify final polynomial is valid
         # The final polynomial should be degree < 2^last_step_bits
@@ -166,7 +164,6 @@ class FriVerifier:
         config = self.config
         current_idx = query_idx
         current_value = initial_value
-        prev_bits = config.n_bits_ext
 
         for step in range(len(config.fri_steps) - 1):
             current_bits = config.fri_steps[step]
@@ -209,7 +206,6 @@ class FriVerifier:
             # Update for next step
             current_idx = folded_idx
             current_value = computed_value
-            prev_bits = current_bits
 
         return True
 

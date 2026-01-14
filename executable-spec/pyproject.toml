@@ -23,6 +23,11 @@ poseidon2-ffi = { path = "poseidon2-ffi", editable = true }
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[dependency-groups]
+dev = [
+    "ruff>=0.14.11",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["."]
 only-include = [

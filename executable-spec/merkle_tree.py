@@ -7,9 +7,9 @@ This module implements variable-arity Merkle trees matching the C++ implementati
 C++ Reference: pil2-stark/src/starkpil/merkleTree/merkleTreeGL.hpp
 """
 
-from typing import List, Tuple, Optional
+from typing import List
 import math
-from poseidon2_ffi import poseidon2_hash, linear_hash, hash_seq, CAPACITY
+from poseidon2_ffi import linear_hash, hash_seq
 
 
 # Hash size (capacity of sponge)

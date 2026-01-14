@@ -6,9 +6,9 @@ This module provides the high-level FRI proving interface.
 C++ Reference: pil2-stark/src/starkpil/fri/fri_pcs.hpp
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Any, Optional
 from dataclasses import dataclass, field
-from fri import FRI, FIELD_EXTENSION
+from fri import FRI
 from merkle_tree import MerkleTree, HASH_SIZE
 from transcript import Transcript
 from poseidon2_ffi import linear_hash, grinding
@@ -115,9 +115,6 @@ class FriPcs:
 
         # Current polynomial (will be folded)
         current_pol = list(polynomial)
-
-        # Previous domain bits
-        prev_bits = config.n_bits_ext
 
         # Folding loop - C++ flow: merkelize, put, get challenge, fold
         # Uses fri_steps[i] as current poly size, fri_steps[i+1] as target

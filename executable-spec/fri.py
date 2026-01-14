@@ -6,11 +6,11 @@ This module implements the core FRI folding and query algorithms.
 C++ Reference: pil2-stark/src/starkpil/fri/fri.hpp
 """
 
-from typing import List, Tuple, Optional
+from typing import List
 import math
 import galois
-from field import GF, GF3, GOLDILOCKS_PRIME, ntt, intt, get_root_of_unity, W, pow_mod, inv_mod, get_shift, get_omega
-from merkle_tree import MerkleTree, HASH_SIZE
+from field import GF, GOLDILOCKS_PRIME, pow_mod, inv_mod, get_shift, get_omega
+from merkle_tree import MerkleTree
 
 
 # Field extension degree (cubic)

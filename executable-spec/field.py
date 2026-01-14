@@ -13,7 +13,6 @@ C++ Reference: pil2-stark/src/goldilocks/src/goldilocks_base_field.hpp
 
 import galois
 import numpy as np
-from typing import Union
 
 # Goldilocks prime: p = 2^64 - 2^32 + 1
 GOLDILOCKS_PRIME = 0xFFFFFFFF00000001

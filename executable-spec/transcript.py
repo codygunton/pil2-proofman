@@ -6,7 +6,7 @@ This module implements challenge generation for non-interactive proofs.
 C++ Reference: pil2-stark/src/starkpil/transcript/transcriptGL.hpp
 """
 from typing import List
-from poseidon2_ffi import poseidon2_hash, CAPACITY
+from poseidon2_ffi import poseidon2_hash
 from field import GOLDILOCKS_PRIME
 
 

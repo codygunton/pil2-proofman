@@ -344,7 +344,7 @@ def main():
     print(f"Written test vectors to {args.output}")
 
     # Summary
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  AIR: {args.air_name}")
     print(f"  FRI input polynomial size: {len(test_vectors['inputs']['fri_input_polynomial'])}")
     print(f"  Final polynomial size: {len(test_vectors['expected']['final_pol'])}")
