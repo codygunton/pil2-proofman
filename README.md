@@ -14,6 +14,26 @@ If you encounter any errors or unexpected behavior, please report them. Your fee
 
 The Proof Manager is an adaptable Proof Manager designed to assist in the creation of proofs from a PIL2 pilout-formatted file. It is designed to be used in conjunction with the [PIL2](https://github.com/0xPolygonHermez/pilcom) compiler and proofman-js [pil2-proofman-js](https://github.com/0xPolygonHermez/pil2-proofman-js) to generate the setup.
 
+# Python Spec
+
+An executable specification of the FRI PCS in `executable-spec/`.
+
+# Pinning Tests
+
+Golden file tests that validate the Rust/C++ prover produces deterministic output.
+
+```bash
+cargo test -p pinning              # all pinning tests
+cargo test -p pinning pinning      # proof file checksums
+cargo test -p pinning fri          # FRI output values
+cargo test -p pinning simple       # simple AIR only
+cargo test -p pinning lookup       # lookup AIR only
+```
+
+Prerequisites: `./setup.sh`
+
+Regenerate FRI golden values: `./generate-fri-vectors.sh`
+
 ## License
 
 All crates in this monorepo are licensed under one of the following options:
