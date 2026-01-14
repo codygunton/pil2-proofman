@@ -26,6 +26,7 @@ Golden file tests that validate the Rust/C++ prover produces deterministic outpu
 cargo test -p pinning              # all pinning tests
 cargo test -p pinning pinning      # proof file checksums
 cargo test -p pinning fri          # FRI output values
+cargo test -p pinning spec         # Python executable spec
 cargo test -p pinning simple       # simple AIR only
 cargo test -p pinning lookup       # lookup AIR only
 ```
