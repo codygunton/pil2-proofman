@@ -164,10 +164,31 @@ class FriPcs:
         # Compute grinding nonce (proof of work)
         proof.nonce = self.compute_grinding_nonce(grinding_challenge, config.pow_bits)
 
-        # Query proofs are not generated here - they require properly
-        # populated stage trees which aren't available in this simplified flow.
-        # The core FRI outputs (final_pol, nonce, fri_roots) are sufficient
-        # for validating the FRI folding algorithm matches C++.
+        # Generate query proofs
+        # Derive query indices from grinding challenge + nonce
+        query_transcript = Transcript(arity=config.transcript_arity)
+        query_transcript.put(grinding_challenge)
+        query_transcript.put([proof.nonce])
+        query_indices = query_transcript.get_permutations(
+            config.n_queries, config.fri_steps[0]
+        )
+
+        # For each query, extract Merkle proofs from each FRI step tree
+        for query_idx in query_indices:
+            query_proof = {'fri_proofs': []}
+            current_idx = query_idx
+
+            for step in range(len(config.fri_steps) - 1):
+                next_bits = config.fri_steps[step + 1]
+                proof_idx = current_idx % (1 << next_bits)
+
+                # Get Merkle proof siblings from this step's tree
+                siblings = self.fri_trees[step].get_group_proof(proof_idx)
+                query_proof['fri_proofs'].append(siblings)
+
+                current_idx = proof_idx
+
+            proof.query_proofs.append(query_proof)
 
         return proof
 
