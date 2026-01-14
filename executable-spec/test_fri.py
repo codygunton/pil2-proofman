@@ -34,6 +34,118 @@ from test_vectors import (
     get_transcript_state,
 )
 
+# =============================================================================
+# End-to-end prove tests (lookup only - simple has no folding)
+# =============================================================================
+
+# DOTHIS: get rid of this, there is no need for a default value, either we get the real value or we should fail
+def _get_config_value(config: dict, key: str, default):
+    """Get config value, using default if value is None or missing."""
+    val = config.get(key)
+    return val if val is not None else default
+
+
+class TestProveEndToEnd:
+    """
+    End-to-end prove test for Lookup2_12.
+
+    This test validates that calling FriPcs.prove() with captured
+    transcript state and input polynomial produces byte-identical
+    output to C++.
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Load all Lookup2_12 test vectors."""
+        self.config = get_config('lookup')
+        self.input_pol = get_fri_input_polynomial('lookup')
+        self.fri_challenges = get_fri_challenges('lookup')
+        self.expected_final_pol = get_expected_final_pol('lookup')
+        self.expected_nonce = get_expected_nonce('lookup')
+        self.merkle_roots = get_merkle_roots('lookup')
+        self.transcript_state = get_transcript_state('lookup')
+        self.fri_steps = get_fri_steps('lookup')
+        self.n_bits_ext = get_n_bits_ext('lookup')
+
+    def _create_fri_pcs(self):
+        """Create FriPcs with config."""
+        return FriPcs(FriPcsConfig(
+            n_bits_ext=self.n_bits_ext,
+            fri_steps=self.fri_steps,
+            n_queries=_get_config_value(self.config, 'n_queries', 228),
+            merkle_arity=_get_config_value(self.config, 'merkle_arity', 4),
+            pow_bits=_get_config_value(self.config, 'pow_bits', 16),
+            transcript_arity=_get_config_value(self.config, 'transcript_arity', 4),
+            hash_commits=_get_config_value(self.config, 'hash_commits', True),
+        ))
+
+    def _create_primed_transcript(self):
+        """Create transcript primed with captured state."""
+        transcript = Transcript(arity=self.config['transcript_arity'])
+        transcript.state = list(self.transcript_state['state'])
+        transcript.out = list(self.transcript_state['out'])
+        transcript.out_cursor = self.transcript_state['out_cursor']
+        transcript.pending_cursor = self.transcript_state['pending_cursor']
+        transcript.pending = [0] * transcript.transcript_out_size
+        return transcript
+
+    def test_prove_complete_match(self):
+        """
+        COMPLETE END-TO-END TEST.
+
+        Validates ALL outputs from prove() match C++ exactly:
+        - fri_roots (weakest - just hashes)
+        - nonce (medium - depends on grinding challenge)
+        - final_pol (strongest - depends on all prior steps)
+
+        If this test passes, Python FRI is byte-identical to C++ FRI.
+        """
+        fri_pcs = self._create_fri_pcs()
+        transcript = self._create_primed_transcript()
+        proof = fri_pcs.prove(self.input_pol, transcript)
+
+        # Assert from weakest to strongest
+        assert len(proof.fri_roots) == len(self.merkle_roots)
+        for i in range(len(proof.fri_roots)):
+            assert proof.fri_roots[i] == self.merkle_roots[i], f"FRI root {i} mismatch"
+
+        assert proof.nonce == self.expected_nonce
+
+        assert proof.final_pol == self.expected_final_pol
+
+    def test_prove_challenges_match(self):
+        """
+        Test that transcript generates the same challenges as C++.
+
+        C++ FRI flow:
+        1. put(root[0]), get_field() -> c0, fold, merkelize -> root1
+        2. put(root[1]), get_field() -> c1, fold, merkelize -> root2
+        3. put(root[2]), get_field() -> c2, fold (final)
+        4. put(hash(final_pol)), get_state(3) -> grinding_challenge
+        """
+        transcript = self._create_primed_transcript()
+
+        generated_challenges = []
+
+        # Steps 0, 1, 2: put root, get challenge
+        for i in range(len(self.merkle_roots)):
+            transcript.put(self.merkle_roots[i])
+            challenge = transcript.get_field()
+            generated_challenges.append(challenge)
+
+        # Step 3 (final): put final_pol hash, then get_state for grinding
+        sponge_width = self.config['transcript_arity'] * 4  # HASH_SIZE = 4
+        final_hash = linear_hash(self.expected_final_pol, sponge_width)
+        transcript.put(final_hash)
+        grinding_challenge = transcript.get_state(3)
+        generated_challenges.append(grinding_challenge)
+
+        # Compare to expected challenges
+        for i, (generated, expected) in enumerate(zip(generated_challenges, self.fri_challenges)):
+            assert generated == expected, f"Challenge {i} mismatch"
+
+
+# Run with: python -m pytest executable-spec/test_fri.py -v
 
 # =============================================================================
 # Parameterized unit tests (simple + lookup)
@@ -209,116 +321,3 @@ class TestFRIFolding:
         assert computed_siblings == expected_siblings, (
             f"Query proof siblings mismatch at idx={proof_idx}"
         )
-
-
-# =============================================================================
-# End-to-end prove tests (lookup only - simple has no folding)
-# =============================================================================
-
-def _get_config_value(config: dict, key: str, default):
-    """Get config value, using default if value is None or missing."""
-    val = config.get(key)
-    return val if val is not None else default
-
-
-class TestProveEndToEnd:
-    """
-    End-to-end prove test for Lookup2_12.
-
-    This test validates that calling FriPcs.prove() with captured
-    transcript state and input polynomial produces byte-identical
-    output to C++.
-    """
-
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Load all Lookup2_12 test vectors."""
-        self.config = get_config('lookup')
-        self.input_pol = get_fri_input_polynomial('lookup')
-        self.fri_challenges = get_fri_challenges('lookup')
-        self.expected_final_pol = get_expected_final_pol('lookup')
-        self.expected_nonce = get_expected_nonce('lookup')
-        self.merkle_roots = get_merkle_roots('lookup')
-        self.transcript_state = get_transcript_state('lookup')
-        self.fri_steps = get_fri_steps('lookup')
-        self.n_bits_ext = get_n_bits_ext('lookup')
-
-    def _create_fri_pcs(self):
-        """Create FriPcs with config."""
-        return FriPcs(FriPcsConfig(
-            n_bits_ext=self.n_bits_ext,
-            fri_steps=self.fri_steps,
-            n_queries=_get_config_value(self.config, 'n_queries', 228),
-            merkle_arity=_get_config_value(self.config, 'merkle_arity', 4),
-            pow_bits=_get_config_value(self.config, 'pow_bits', 16),
-            transcript_arity=_get_config_value(self.config, 'transcript_arity', 4),
-            hash_commits=_get_config_value(self.config, 'hash_commits', True),
-        ))
-
-    def _create_primed_transcript(self):
-        """Create transcript primed with captured state."""
-        transcript = Transcript(arity=self.config['transcript_arity'])
-        transcript.state = list(self.transcript_state['state'])
-        transcript.out = list(self.transcript_state['out'])
-        transcript.out_cursor = self.transcript_state['out_cursor']
-        transcript.pending_cursor = self.transcript_state['pending_cursor']
-        transcript.pending = [0] * transcript.transcript_out_size
-        return transcript
-
-    def test_prove_complete_match(self):
-        """
-        COMPLETE END-TO-END TEST.
-
-        Validates ALL outputs from prove() match C++ exactly:
-        - fri_roots (weakest - just hashes)
-        - nonce (medium - depends on grinding challenge)
-        - final_pol (strongest - depends on all prior steps)
-
-        If this test passes, Python FRI is byte-identical to C++ FRI.
-        """
-        fri_pcs = self._create_fri_pcs()
-        transcript = self._create_primed_transcript()
-        proof = fri_pcs.prove(self.input_pol, transcript)
-
-        # Assert from weakest to strongest
-        assert len(proof.fri_roots) == len(self.merkle_roots)
-        for i in range(len(proof.fri_roots)):
-            assert proof.fri_roots[i] == self.merkle_roots[i], f"FRI root {i} mismatch"
-
-        assert proof.nonce == self.expected_nonce
-
-        assert proof.final_pol == self.expected_final_pol
-
-    def test_prove_challenges_match(self):
-        """
-        Test that transcript generates the same challenges as C++.
-
-        C++ FRI flow:
-        1. put(root[0]), get_field() -> c0, fold, merkelize -> root1
-        2. put(root[1]), get_field() -> c1, fold, merkelize -> root2
-        3. put(root[2]), get_field() -> c2, fold (final)
-        4. put(hash(final_pol)), get_state(3) -> grinding_challenge
-        """
-        transcript = self._create_primed_transcript()
-
-        generated_challenges = []
-
-        # Steps 0, 1, 2: put root, get challenge
-        for i in range(len(self.merkle_roots)):
-            transcript.put(self.merkle_roots[i])
-            challenge = transcript.get_field()
-            generated_challenges.append(challenge)
-
-        # Step 3 (final): put final_pol hash, then get_state for grinding
-        sponge_width = self.config['transcript_arity'] * 4  # HASH_SIZE = 4
-        final_hash = linear_hash(self.expected_final_pol, sponge_width)
-        transcript.put(final_hash)
-        grinding_challenge = transcript.get_state(3)
-        generated_challenges.append(grinding_challenge)
-
-        # Compare to expected challenges
-        for i, (generated, expected) in enumerate(zip(generated_challenges, self.fri_challenges)):
-            assert generated == expected, f"Challenge {i} mismatch"
-
-
-# Run with: python -m pytest executable-spec/test_fri.py -v
