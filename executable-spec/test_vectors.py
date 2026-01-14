@@ -1,12 +1,40 @@
 """
 FRI pinning test vectors.
 
-These are the expected golden values from the C++ implementation.
-DO NOT MODIFY - these values must match the C++ headers exactly.
+Test vectors are stored in JSON files in executable-spec/test-data/.
+DO NOT MODIFY the JSON files - values must match the C++ implementation exactly.
+
+JSON Schema:
+    {
+        "metadata": {
+            "air_name": str,           # AIR identifier (e.g., "SimpleLeft", "Lookup2_12")
+            "n_bits": int,             # Original polynomial size (log2)
+            "n_bits_ext": int,         # Extended domain size (log2)
+            "fri_steps": List[int],    # Domain bits at each FRI step
+            "n_queries": int,          # Number of FRI queries
+            "pow_bits": int,           # Proof-of-work difficulty
+            "merkle_arity": int,       # Merkle tree branching factor
+            "transcript_arity": int,   # Fiat-Shamir sponge arity
+        },
+        "inputs": {
+            "fri_input_polynomial": List[int],  # Input to FRI (evaluations)
+            "fri_challenges": List[List[int]],  # Folding challenges (cubic ext)
+            "grinding_challenge": List[int],    # PoW challenge (4 elements)
+            "fri_queries": List[int],           # Query indices
+            "transcript_state": List[int],      # Transcript state at FRI start
+        },
+        "expected": {
+            "final_pol": List[int],       # Final polynomial after all folds
+            "nonce": int,                 # Grinding nonce
+            "final_pol_hash": List[int],  # Hash of final polynomial
+        },
+        "intermediates": {                # Optional step-by-step values
+            "merkle_roots": List[List[int]],
+            "poly_hashes_after_fold": List[List[int]],
+        }
+    }
 
 Source: pil2-stark/src/goldilocks/tests/fri_pinning_vectors.hpp
-
-All vectors are stored in JSON files in executable-spec/test-data/
 """
 
 import json
