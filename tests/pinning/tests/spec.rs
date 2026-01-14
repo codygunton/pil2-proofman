@@ -1,3 +1,4 @@
+//! DOTHIS: move all of these tests  into executable-spec
 //! Python executable spec tests.
 //!
 //! These tests validate that the Python FRI implementation produces
@@ -34,7 +35,7 @@ fn spec() {
 
     // Run pytest on all test files, inheriting stdout/stderr for live output
     let status = Command::new("python")
-        .args(["-m", "pytest", "test_pinning.py", "test_prove_e2e.py", "-v"])
+        .args(["-m", "pytest", "test_fri.py", "-v"])
         .current_dir(&spec_dir)
         .status()
         .expect("Failed to run pytest");
