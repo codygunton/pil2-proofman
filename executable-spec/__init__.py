@@ -1,47 +1,33 @@
-"""
-FRI PCS Python Specification
+"""FRI Polynomial Commitment Scheme - Python Executable Specification."""
 
-A faithful Python implementation of the FRI (Fast Reed-Solomon Interactive
-Oracle Proof of Proximity) Polynomial Commitment Scheme from pil2-proofman.
+# --- Field Arithmetic ---
 
-This package provides:
-- Goldilocks field arithmetic (via galois)
-- Poseidon2 cryptographic hash
-- Merkle tree construction
-- Fiat-Shamir transcript
-- FRI folding and query algorithms
-- FRI PCS wrapper
-
-Usage (from within the package):
-    from fri_pcs import FriPcs, FriPcsConfig
-    from transcript import Transcript
-
-    config = FriPcsConfig(
-        n_bits_ext=13,
-        fri_steps=[12, 8, 4],
-        n_queries=228,
-    )
-    fri = FriPcs(config)
-    transcript = Transcript(arity=4)
-    proof = fri.prove(polynomial, transcript)
-"""
-
-# Field arithmetic (via galois)
 from field import (
+    Fe,
+    Fe3,
     GF,
     GF3,
+    GOLDILOCKS_PRIME,
+    W,
+    SHIFT,
     ntt,
     intt,
-    GOLDILOCKS_PRIME,
-    get_root_of_unity,
-    W,
     pow_mod,
     inv_mod,
     get_shift,
     get_omega,
+    get_root_of_unity,
+    fe3_mul,
+    fe3_add,
+    fe3_sub,
+    fe3_scalar_mul,
+    fe3_from_base,
+    fe3_zero,
+    fe3_one,
 )
 
-# Cryptographic hashing
+# --- Poseidon2 Hashing ---
+
 from poseidon2_ffi import (
     poseidon2_hash,
     linear_hash,
@@ -51,26 +37,53 @@ from poseidon2_ffi import (
     CAPACITY,
 )
 
-# Merkle tree
+# --- Merkle Tree ---
+
 from merkle_tree import (
     MerkleTree,
+    MerkleRoot,
+    MerkleProof,
+    LeafData,
     HASH_SIZE,
 )
 
-# Fiat-Shamir transcript
-from transcript import Transcript
+# --- Fiat-Shamir Transcript ---
 
-# FRI core algorithms
-from fri import FRI
+from transcript import (
+    Transcript,
+    SpongeState,
+    Hash,
+    Challenge,
+)
 
-# FRI PCS wrapper
+# --- FRI Core ---
+
+from fri import (
+    FRI,
+    EvalPoly,
+    FriLayer,
+    FIELD_EXTENSION,
+)
+
+# --- FRI PCS ---
+
 from fri_pcs import (
     FriPcs,
     FriPcsConfig,
     FriProof,
+    Nonce,
+    QueryIndex,
 )
 
-# Test vectors
+# --- Verifier ---
+
+from verifier import (
+    FriVerifier,
+    VerificationResult,
+)
+
+# --- Test Vectors ---
+
 from test_vectors import (
     get_config,
     get_expected_final_pol,
@@ -84,7 +97,8 @@ from test_vectors import (
     get_n_bits_ext,
 )
 
-# Proof loading (Phase 2)
+# --- Proof Loading ---
+
 from proof_loader import (
     FriProofData,
     load_proof,
@@ -92,38 +106,58 @@ from proof_loader import (
     detect_air_type,
 )
 
+# --- Package Metadata ---
+
 __version__ = "0.1.0"
+
 __all__ = [
-    # Field
+    "Fe",
     "GF",
-    "GF3",
+    "GOLDILOCKS_PRIME",
+    "W",
+    "SHIFT",
     "ntt",
     "intt",
-    "GOLDILOCKS_PRIME",
-    "get_root_of_unity",
-    "W",
     "pow_mod",
     "inv_mod",
     "get_shift",
     "get_omega",
-    # Hash
+    "get_root_of_unity",
+    "Fe3",
+    "GF3",
+    "fe3_mul",
+    "fe3_add",
+    "fe3_sub",
+    "fe3_scalar_mul",
+    "fe3_from_base",
+    "fe3_zero",
+    "fe3_one",
     "poseidon2_hash",
     "linear_hash",
     "hash_seq",
     "grinding",
     "verify_grinding",
     "CAPACITY",
-    # Merkle
     "MerkleTree",
+    "MerkleRoot",
+    "MerkleProof",
+    "LeafData",
     "HASH_SIZE",
-    # Transcript
     "Transcript",
-    # FRI
+    "SpongeState",
+    "Hash",
+    "Challenge",
     "FRI",
+    "EvalPoly",
+    "FriLayer",
+    "FIELD_EXTENSION",
     "FriPcs",
     "FriPcsConfig",
     "FriProof",
-    # Test vectors
+    "Nonce",
+    "QueryIndex",
+    "FriVerifier",
+    "VerificationResult",
     "get_config",
     "get_expected_final_pol",
     "get_expected_nonce",
@@ -134,7 +168,6 @@ __all__ = [
     "get_grinding_challenge",
     "get_fri_steps",
     "get_n_bits_ext",
-    # Proof loading
     "FriProofData",
     "load_proof",
     "find_proof_file",

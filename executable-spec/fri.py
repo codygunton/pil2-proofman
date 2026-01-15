@@ -1,160 +1,80 @@
-"""
-FRI (Fast Reed-Solomon Interactive Oracle Proof of Proximity) core algorithms.
-
-This module implements the core FRI folding and query algorithms.
-
-C++ Reference: pil2-stark/src/starkpil/fri/fri.hpp
-"""
+"""FRI folding protocol core operations."""
 
 from typing import List
 import math
 import galois
-from field import GF, GOLDILOCKS_PRIME, pow_mod, inv_mod, get_shift, get_omega
-from merkle_tree import MerkleTree
+from field import (
+    GF, GOLDILOCKS_PRIME, Fe, Fe3,
+    pow_mod, inv_mod, get_shift, get_shift_inv, get_omega, get_omega_inv,
+    fe3_mul, fe3_add, fe3_scalar_mul,
+)
+from merkle_tree import MerkleTree, MerkleRoot
 
+# --- Type Aliases ---
 
-# Field extension degree (cubic)
+EvalPoly = List[Fe]
+FriLayer = EvalPoly
+
+# --- Constants ---
+
 FIELD_EXTENSION = 3
 
 
-def _mul_cubic(a: List[int], b: List[int]) -> List[int]:
-    """
-    Multiply two cubic extension field elements.
-
-    Elements are represented as [a0, a1, a2] where the value is a0 + a1*x + a2*x^2
-    and x^3 = x + 1 (irreducible polynomial).
-
-    C++ Reference: Goldilocks3::mul() in goldilocks_cubic_extension.hpp
-    """
-    p = GOLDILOCKS_PRIME
-
-    # Standard polynomial multiplication
-    c0 = (a[0] * b[0]) % p
-    c1 = (a[0] * b[1] + a[1] * b[0]) % p
-    c2 = (a[0] * b[2] + a[1] * b[1] + a[2] * b[0]) % p
-    c3 = (a[1] * b[2] + a[2] * b[1]) % p
-    c4 = (a[2] * b[2]) % p
-
-    # Reduce by x^3 = x + 1
-    # c3*x^3 = c3*x + c3
-    # c4*x^4 = c4*x^2 + c4*x
-    r0 = (c0 + c3) % p
-    r1 = (c1 + c3 + c4) % p
-    r2 = (c2 + c4) % p
-
-    return [r0, r1, r2]
-
-
-def _add_cubic(a: List[int], b: List[int]) -> List[int]:
-    """
-    Add two cubic extension field elements.
-
-    C++ Reference: Goldilocks3::add() in goldilocks_cubic_extension.hpp
-    """
-    p = GOLDILOCKS_PRIME
-    return [(a[i] + b[i]) % p for i in range(3)]
-
-
-def _scalar_mul_cubic(a: List[int], s: int) -> List[int]:
-    """
-    Multiply cubic extension element by scalar.
-
-    C++ Reference: Goldilocks3::mulScalar() in goldilocks_cubic_extension.hpp
-    """
-    p = GOLDILOCKS_PRIME
-    return [(a[i] * s) % p for i in range(3)]
-
+# --- FRI Protocol ---
 
 class FRI:
-    """
-    FRI protocol implementation.
-
-    This class provides static methods for FRI folding, merkleization,
-    and query operations.
-
-    C++ Reference: FRI template class in fri.hpp
-    """
+    """FRI protocol: folding, commitment, and verification."""
 
     @staticmethod
     def fold(
         step: int,
-        pol: List[int],
-        challenge: List[int],
+        pol: EvalPoly,
+        challenge: Fe3,
         n_bits_ext: int,
         prev_bits: int,
         current_bits: int
-    ) -> List[int]:
-        """
-        Fold polynomial using random challenge.
-
-        This reduces the polynomial size by combining evaluation points
-        using the random challenge.
-
-        Args:
-            step: FRI step index (0 for first fold)
-            pol: Polynomial in evaluation form (FIELD_EXTENSION elements per point)
-            challenge: 3-element cubic extension challenge
-            n_bits_ext: Original extended domain bits
-            prev_bits: Previous step domain bits
-            current_bits: Current step domain bits
-
-        Returns:
-            Folded polynomial (smaller by factor of 2^(prev_bits - current_bits))
-
-        C++ Reference: FRI<ElementType>::fold() in fri.hpp:33
-        """
+    ) -> EvalPoly:
+        """Fold polynomial using random challenge."""
         p = GOLDILOCKS_PRIME
 
-        # Calculate shift inverse
-        shift = get_shift()
-        shift_inv = inv_mod(shift)
-
-        # For step > 0, square shift_inv (n_bits_ext - prev_bits) times
-        pol_shift_inv = shift_inv
+        # Compute shift^(-1) raised to appropriate power
+        pol_shift_inv = get_shift_inv()
         if step > 0:
             for _ in range(n_bits_ext - prev_bits):
                 pol_shift_inv = (pol_shift_inv * pol_shift_inv) % p
 
-        # Folding parameters
-        pol_2n = 1 << current_bits  # Target domain size
-        n_x = (1 << prev_bits) // pol_2n  # Folding ratio
+        pol_2n = 1 << current_bits
+        n_x = (1 << prev_bits) // pol_2n
+        w_inv = get_omega_inv(prev_bits)
 
-        # Root of unity inverse
-        w_inv = inv_mod(get_omega(prev_bits))
-
-        # Prepare output
         result = [0] * (pol_2n * FIELD_EXTENSION)
 
-        # Fold each group
         for g in range(pol_2n):
-            # Extract n_x consecutive values (each is FIELD_EXTENSION elements)
+            # Extract n_x consecutive cubic extension values
             coeffs = []
             for i in range(n_x):
                 idx = (g + i * pol_2n) * FIELD_EXTENSION
                 coeffs.append([pol[idx], pol[idx + 1], pol[idx + 2]])
 
-            # Apply INTT to convert to coefficients
-            # For simplicity, we do a direct INTT implementation for small n_x
+            # INTT to convert from evaluations to coefficients
             if n_x > 1:
-                # The small INTT needs omega for its own size, not the main domain
                 n_x_bits = int(math.log2(n_x))
-                w_inv_small = inv_mod(get_omega(n_x_bits))
+                w_inv_small = get_omega_inv(n_x_bits)
                 coeffs = FRI._intt_cubic(coeffs, n_x, w_inv_small)
 
-            # Apply polMulAxi: multiply coefficient i by (shift_inv * w_inv^g)^i
+            # polMulAxi: scale by (shift_inv * w_inv^g)^i
             sinv = (pol_shift_inv * pow_mod(w_inv, g, p)) % p
             acc = 1
             for i in range(n_x):
-                coeffs[i] = _scalar_mul_cubic(coeffs[i], acc)
+                coeffs[i] = fe3_scalar_mul(coeffs[i], acc)
                 acc = (acc * sinv) % p
 
-            # Evaluate at challenge point using Horner's method
+            # Horner evaluation at challenge
             res = coeffs[n_x - 1] if n_x > 0 else [0, 0, 0]
             for i in range(n_x - 2, -1, -1):
-                res = _mul_cubic(res, challenge)
-                res = _add_cubic(res, coeffs[i])
+                res = fe3_mul(res, challenge)
+                res = fe3_add(res, coeffs[i])
 
-            # Store result
             result[g * FIELD_EXTENSION] = res[0]
             result[g * FIELD_EXTENSION + 1] = res[1]
             result[g * FIELD_EXTENSION + 2] = res[2]
@@ -162,89 +82,88 @@ class FRI:
         return result
 
     @staticmethod
-    def _intt_cubic(values: List[List[int]], n: int, w_inv: int) -> List[List[int]]:
-        """
-        INTT on cubic extension elements using galois with custom root.
+    def merkelize(
+        step: int,
+        pol: EvalPoly,
+        tree: MerkleTree,
+        current_bits: int,
+        next_bits: int
+    ) -> MerkleRoot:
+        """Commit to FRI layer via Merkle tree."""
+        transposed = FRI._transpose(pol, 1 << current_bits, next_bits)
+        height = 1 << next_bits
+        width = (1 << (current_bits - next_bits)) * FIELD_EXTENSION
+        tree.merkelize(transposed, height, width)
+        return tree.get_root()
 
-        Applies INTT component-wise to each coordinate of the cubic extension.
-        Uses C++-compatible root of unity for byte-exact output matching.
+    @staticmethod
+    def verify_fold(
+        value: Fe3,
+        step: int,
+        n_bits_ext: int,
+        current_bits: int,
+        prev_bits: int,
+        challenge: Fe3,
+        idx: int,
+        siblings: List[Fe3]
+    ) -> Fe3:
+        """Verify fold step (verifier algorithm)."""
+        p = GOLDILOCKS_PRIME
 
-        C++ Reference: Uses galois.intt() wrapper with custom omega - NO CORRESPONDING FUNCTION
-                       (C++ uses FFT library directly; Python uses galois for convenience)
+        shift = get_shift()
+        if step > 0:
+            for _ in range(n_bits_ext - prev_bits):
+                shift = (shift * shift) % p
 
-        Args:
-            values: List of cubic extension elements [c0, c1, c2]
-            n: Transform size (must be power of 2)
-            w_inv: Inverse of primitive n-th root of unity (C++ compatible)
+        w = get_omega(prev_bits)
+        w_inv = get_omega_inv(prev_bits)
+        n_x = 1 << (prev_bits - current_bits)
 
-        Returns:
-            INTT result as list of cubic extension elements
-        """
-        # Decompose cubic elements into 3 component arrays
+        coeffs = list(siblings)
+        if n_x > 1:
+            coeffs = FRI._intt_cubic(coeffs, n_x, w_inv)
+
+        sinv = inv_mod((shift * pow_mod(w, idx, p)) % p)
+        aux = fe3_mul(challenge, [sinv, 0, 0])
+
+        return FRI._eval_poly(coeffs, n_x, aux)
+
+    @staticmethod
+    def prove_queries(
+        queries: List[int],
+        trees: List[MerkleTree],
+        current_bits: int
+    ) -> List[List[int]]:
+        """Generate Merkle proofs for query indices."""
+        proofs = []
+        for query_idx in queries:
+            idx = query_idx % (1 << current_bits)
+            tree_proofs = [tree.get_group_proof(idx) for tree in trees]
+            proofs.append(tree_proofs)
+        return proofs
+
+    # --- Internal Utilities ---
+
+    @staticmethod
+    def _intt_cubic(values: List[Fe3], n: int, w_inv: Fe) -> List[Fe3]:
+        """INTT on cubic extension elements (component-wise)."""
         comp0 = GF([v[0] for v in values])
         comp1 = GF([v[1] for v in values])
         comp2 = GF([v[2] for v in values])
 
-        # INTT each component with C++-compatible root
         r0 = galois.intt(comp0, omega=w_inv)
         r1 = galois.intt(comp1, omega=w_inv)
         r2 = galois.intt(comp2, omega=w_inv)
 
-        # Reassemble into cubic extension elements
         return [[int(r0[i]), int(r1[i]), int(r2[i])] for i in range(n)]
 
     @staticmethod
-    def merkelize(
-        step: int,
-        pol: List[int],
-        tree: MerkleTree,
-        current_bits: int,
-        next_bits: int
-    ) -> List[int]:
-        """
-        Build Merkle tree for FRI step polynomial.
-
-        Args:
-            step: FRI step index
-            pol: Polynomial data
-            tree: Merkle tree to populate
-            current_bits: Current domain bits
-            next_bits: Next domain bits (for transpose)
-
-        Returns:
-            Merkle root
-
-        C++ Reference: FRI<ElementType>::merkelize() in fri.hpp:103
-        """
-        # Transpose polynomial for Merkle tree
-        # C++ passes nextBits directly to getTransposed (not currentBits - nextBits)
-        transposed = FRI.get_transposed(pol, 1 << current_bits, next_bits)
-
-        # Build tree
-        # After transpose: w = 1 << next_bits groups, h = (1 << current_bits) / w elements per group
-        # Tree has w leaves (height), each with h * FIELD_EXTENSION values (width)
-        height = 1 << next_bits  # number of leaves
-        width = (1 << (current_bits - next_bits)) * FIELD_EXTENSION  # values per leaf
-        tree.merkelize(transposed, height, width)
-
-        return tree.get_root()
-
-    @staticmethod
-    def get_transposed(
-        pol: List[int],
-        degree: int,
-        transpose_bits: int
-    ) -> List[int]:
-        """
-        Transpose polynomial data for Merkle tree.
-
-        C++ Reference: FRI<ElementType>::getTransposed() in fri.hpp:29 (private)
-        """
+    def _transpose(pol: EvalPoly, degree: int, transpose_bits: int) -> EvalPoly:
+        """Transpose polynomial for Merkle commitment."""
         w = 1 << transpose_bits
         h = degree // w
 
         result = [0] * len(pol)
-
         for i in range(w):
             for j in range(h):
                 for k in range(FIELD_EXTENSION):
@@ -255,115 +174,14 @@ class FRI:
         return result
 
     @staticmethod
-    def prove_queries(
-        queries: List[int],
-        trees: List[MerkleTree],
-        current_bits: int
-    ) -> List[List[int]]:
-        """
-        Generate Merkle proofs for query indices.
-
-        Args:
-            queries: List of query indices
-            trees: List of Merkle trees
-            current_bits: Current domain bits
-
-        Returns:
-            List of proofs for each query
-
-        C++ Reference: FRI<ElementType>::proveQueries() in fri.hpp:20
-        """
-        proofs = []
-        for query_idx in queries:
-            idx = query_idx % (1 << current_bits)
-            tree_proofs = []
-            for tree in trees:
-                proof = tree.get_group_proof(idx)
-                tree_proofs.append(proof)
-            proofs.append(tree_proofs)
-        return proofs
-
-    @staticmethod
-    def eval_pol(pol: List[List[int]], degree: int, x: List[int]) -> List[int]:
-        """
-        Evaluate polynomial at point using Horner's method.
-
-        Args:
-            pol: Polynomial coefficients (cubic extension elements)
-            degree: Polynomial degree
-            x: Evaluation point (cubic extension element)
-
-        Returns:
-            Result (cubic extension element)
-
-        C++ Reference: FRI<ElementType>::evalPol() in fri.hpp:28 (private)
-        """
+    def _eval_poly(pol: List[Fe3], degree: int, x: Fe3) -> Fe3:
+        """Evaluate polynomial at point using Horner's method."""
         if degree == 0:
             return [0, 0, 0]
 
         result = list(pol[degree - 1])
         for i in range(degree - 2, -1, -1):
-            result = _mul_cubic(result, x)
-            result = _add_cubic(result, pol[i])
-
-        return result
-
-    @staticmethod
-    def verify_fold(
-        value: List[int],
-        step: int,
-        n_bits_ext: int,
-        current_bits: int,
-        prev_bits: int,
-        challenge: List[int],
-        idx: int,
-        siblings: List[List[int]]
-    ) -> List[int]:
-        """
-        Verify a fold step (used by verifier).
-
-        Args:
-            value: Expected folded value
-            step: FRI step index
-            n_bits_ext: Extended domain bits
-            current_bits: Current domain bits
-            prev_bits: Previous domain bits
-            challenge: Fold challenge
-            idx: Query index
-            siblings: Sibling values from proof
-
-        Returns:
-            Computed folded value
-
-        C++ Reference: FRI<ElementType>::verify_fold() in fri.hpp:23
-        """
-        p = GOLDILOCKS_PRIME
-
-        # Calculate shift
-        shift = get_shift()
-        if step > 0:
-            for _ in range(n_bits_ext - prev_bits):
-                shift = (shift * shift) % p
-
-        # Get omega for previous level
-        w = get_omega(prev_bits)
-
-        # Reconstruct coefficients from siblings
-        n_x = 1 << (prev_bits - current_bits)
-        coeffs = list(siblings)
-
-        # Apply INTT
-        w_inv = inv_mod(w)
-        if n_x > 1:
-            coeffs = FRI._intt_cubic(coeffs, n_x, w_inv)
-
-        # Calculate shift inverse and omega power
-        sinv = inv_mod((shift * pow_mod(w, idx, p)) % p)
-
-        # Compute evaluation point
-        aux = _mul_cubic(challenge, [sinv, 0, 0])
-
-        # Evaluate polynomial at aux
-        result = FRI.eval_pol(coeffs, n_x, aux)
+            result = fe3_mul(result, x)
+            result = fe3_add(result, pol[i])
 
         return result
