@@ -1,4 +1,3 @@
-//! DOTHIS: move all of these tests  into executable-spec
 //! Python executable spec tests.
 //!
 //! These tests validate that the Python FRI implementation produces
