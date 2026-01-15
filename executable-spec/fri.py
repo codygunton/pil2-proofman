@@ -4,8 +4,8 @@ from typing import List
 import math
 import galois
 from field import (
-    GF, GOLDILOCKS_PRIME, Fe, Fe3,
-    pow_mod, inv_mod, get_shift, get_shift_inv, get_omega, get_omega_inv,
+    GF, GOLDILOCKS_PRIME, Fe, Fe3, SHIFT, SHIFT_INV,
+    pow_mod, inv_mod, get_omega, get_omega_inv,
     fe3_mul, fe3_add, fe3_scalar_mul,
 )
 from merkle_tree import MerkleTree, MerkleRoot
@@ -37,11 +37,9 @@ class FRI:
         """Fold polynomial using random challenge."""
         p = GOLDILOCKS_PRIME
 
-        # Compute shift^(-1) raised to appropriate power
-        pol_shift_inv = get_shift_inv()
-        if step > 0:
-            for _ in range(n_bits_ext - prev_bits):
-                pol_shift_inv = (pol_shift_inv * pol_shift_inv) % p
+        # Compute SHIFT^(-2^k) where k = n_bits_ext - prev_bits
+        k = n_bits_ext - prev_bits if step > 0 else 0
+        pol_shift_inv = pow_mod(SHIFT_INV, 1 << k)
 
         pol_2n = 1 << current_bits
         n_x = (1 << prev_bits) // pol_2n
@@ -110,10 +108,9 @@ class FRI:
         """Verify fold step (verifier algorithm)."""
         p = GOLDILOCKS_PRIME
 
-        shift = get_shift()
-        if step > 0:
-            for _ in range(n_bits_ext - prev_bits):
-                shift = (shift * shift) % p
+        # Compute SHIFT^(2^k) where k = n_bits_ext - prev_bits
+        k = n_bits_ext - prev_bits if step > 0 else 0
+        shift = pow_mod(SHIFT, 1 << k)
 
         w = get_omega(prev_bits)
         w_inv = get_omega_inv(prev_bits)
