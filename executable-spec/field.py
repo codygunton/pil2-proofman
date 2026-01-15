@@ -12,7 +12,6 @@ C++ Reference: pil2-stark/src/goldilocks/src/goldilocks_base_field.hpp
 """
 
 import galois
-import numpy as np
 
 # Goldilocks prime: p = 2^64 - 2^32 + 1
 GOLDILOCKS_PRIME = 0xFFFFFFFF00000001
@@ -140,26 +139,5 @@ def get_root_of_unity(n_bits: int) -> GF:
     # The multiplicative group has order p-1 = 2^64 - 2^32
     # primitive_element^((p-1)/N) gives an N-th root of unity
     return GF.primitive_element ** ((GOLDILOCKS_PRIME - 1) // N)
-
-
-def get_roots_of_unity(n_bits: int) -> np.ndarray:
-    """
-    Get all 2^n_bits-th roots of unity.
-
-    C++ Reference: NO CORRESPONDING FUNCTION
-                   (C++ computes roots on-demand via Goldilocks::w(); Python pre-computes array for convenience)
-
-    Args:
-        n_bits: The log2 of the number of roots
-
-    Returns:
-        Array of all N-th roots of unity where N = 2^n_bits
-    """
-    N = 1 << n_bits
-    omega = get_root_of_unity(n_bits)
-    roots = GF([1] * N)
-    for i in range(1, N):
-        roots[i] = roots[i-1] * omega
-    return roots
 
 

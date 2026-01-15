@@ -38,13 +38,6 @@ from test_vectors import (
 # End-to-end prove tests (lookup only - simple has no folding)
 # =============================================================================
 
-# DOTHIS: get rid of this, there is no need for a default value, either we get the real value or we should fail
-def _get_config_value(config: dict, key: str, default):
-    """Get config value, using default if value is None or missing."""
-    val = config.get(key)
-    return val if val is not None else default
-
-
 class TestProveEndToEnd:
     """
     End-to-end prove test for Lookup2_12.
@@ -72,11 +65,11 @@ class TestProveEndToEnd:
         return FriPcs(FriPcsConfig(
             n_bits_ext=self.n_bits_ext,
             fri_steps=self.fri_steps,
-            n_queries=_get_config_value(self.config, 'n_queries', 228),
-            merkle_arity=_get_config_value(self.config, 'merkle_arity', 4),
-            pow_bits=_get_config_value(self.config, 'pow_bits', 16),
-            transcript_arity=_get_config_value(self.config, 'transcript_arity', 4),
-            hash_commits=_get_config_value(self.config, 'hash_commits', True),
+            n_queries=self.config['n_queries'],
+            merkle_arity=self.config['merkle_arity'],
+            pow_bits=self.config['pow_bits'],
+            transcript_arity=self.config['transcript_arity'],
+            hash_commits=self.config['hash_commits'],
         ))
 
     def _create_primed_transcript(self):

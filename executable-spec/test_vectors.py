@@ -108,7 +108,6 @@ def get_expected_final_pol(air_name: str) -> list:
     C++ Reference: NO CORRESPONDING FUNCTION
                    (Python test utility)
     """
-    # DOTHIS: isn't this pattern of repeatedly loading the vectors at runtime kind of crazy?  Fix it so that vectors load once ever (per top-level test)
     vectors = _load_vectors(air_name)
     return vectors['expected']['final_pol']
 
