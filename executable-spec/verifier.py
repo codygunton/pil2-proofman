@@ -2,11 +2,10 @@
 
 from typing import List, Dict, Optional
 
-from fri import FRI, FIELD_EXTENSION, Fe3
+from fri import FRI, FIELD_EXTENSION
 from fri_pcs import FriPcsConfig, FriProof
 from transcript import Transcript
 from poseidon2_ffi import verify_grinding
-from field import Fe
 
 # --- Type Aliases ---
 
@@ -26,7 +25,7 @@ class FriVerifier:
         self,
         proof: FriProof,
         transcript: Transcript,
-        challenges: Optional[List[Fe3]] = None
+        challenges: Optional[List[List[int]]] = None
     ) -> VerificationResult:
         """Verify FRI proof."""
         config = self.config
@@ -85,9 +84,9 @@ class FriVerifier:
         self,
         query_idx: QueryIndex,
         query_proof: Dict,
-        fri_roots: List[List[Fe]],
-        challenges: List[Fe3],
-        initial_value: Fe3
+        fri_roots: List[List[int]],
+        challenges: List[List[int]],
+        initial_value: List[int]
     ) -> VerificationResult:
         """Verify a single query's FRI proofs."""
         config = self.config
@@ -102,7 +101,7 @@ class FriVerifier:
             n_x = (1 << current_bits) // (1 << next_bits)
             folded_idx = current_idx % (1 << current_bits)
 
-            siblings: List[Fe3] = []
+            siblings: List[List[int]] = []
             for i in range(n_x):
                 offset = i * FIELD_EXTENSION
                 sibling = [
@@ -132,7 +131,7 @@ class FriVerifier:
 
     def _derive_query_indices(
         self,
-        challenge: List[Fe],
+        challenge: List[int],
         nonce: int,
         n_queries: int,
         domain_bits: int

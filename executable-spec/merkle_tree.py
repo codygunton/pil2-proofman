@@ -2,18 +2,31 @@
 
 from typing import List
 import math
+import numpy as np
 from poseidon2_ffi import linear_hash, hash_seq
-from field import Fe
 
 # --- Type Aliases ---
 
-MerkleRoot = List[Fe]
-MerkleProof = List[Fe]
-LeafData = List[Fe]
+MerkleRoot = List[int]
+MerkleProof = List[int]
+LeafData = List[int]
 
 # --- Constants ---
 
 HASH_SIZE = 4
+
+
+# --- Data Layout ---
+
+def transpose_for_merkle(data: List[int], height: int, width: int, elem_size: int) -> List[int]:
+    """Transpose data layout for Merkle tree construction.
+
+    Reorders elements so that those belonging to the same Merkle leaf are contiguous.
+    This matches the pil2-stark C++ memory layout convention.
+    """
+    h = height // width
+    result = np.array(data, dtype=object).reshape(h, width, elem_size).transpose(1, 0, 2).flatten()
+    return list(result)
 
 
 # --- Merkle Tree ---
@@ -38,7 +51,7 @@ class MerkleTree:
 
         self.height = 0
         self.width = 0
-        self.nodes: List[Fe] = []
+        self.nodes: List[int] = []
         self.num_nodes = 0
 
     # --- Core Operations ---
@@ -104,7 +117,7 @@ class MerkleTree:
     def verify_group_proof(
         self,
         root: MerkleRoot,
-        proof: List[List[Fe]],
+        proof: List[List[int]],
         idx: int,
         leaf_data: LeafData
     ) -> bool:

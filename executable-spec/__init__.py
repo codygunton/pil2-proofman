@@ -3,27 +3,18 @@
 # --- Field Arithmetic ---
 
 from field import (
-    Fe,
-    Fe3,
-    GF,
-    GF3,
+    FF,
+    FF3,
+    ff3,
+    ff3_coeffs,
     GOLDILOCKS_PRIME,
     W,
     SHIFT,
+    SHIFT_INV,
     ntt,
     intt,
-    pow_mod,
-    inv_mod,
-    get_shift,
     get_omega,
-    get_root_of_unity,
-    fe3_mul,
-    fe3_add,
-    fe3_sub,
-    fe3_scalar_mul,
-    fe3_from_base,
-    fe3_zero,
-    fe3_one,
+    get_omega_inv,
 )
 
 # --- Poseidon2 Hashing ---
@@ -45,6 +36,7 @@ from merkle_tree import (
     MerkleProof,
     LeafData,
     HASH_SIZE,
+    transpose_for_merkle,
 )
 
 # --- Fiat-Shamir Transcript ---
@@ -111,53 +103,53 @@ from proof_loader import (
 __version__ = "0.1.0"
 
 __all__ = [
-    "Fe",
-    "GF",
+    # Field
+    "FF",
+    "FF3",
+    "ff3",
+    "ff3_coeffs",
     "GOLDILOCKS_PRIME",
     "W",
     "SHIFT",
+    "SHIFT_INV",
     "ntt",
     "intt",
-    "pow_mod",
-    "inv_mod",
-    "get_shift",
     "get_omega",
-    "get_root_of_unity",
-    "Fe3",
-    "GF3",
-    "fe3_mul",
-    "fe3_add",
-    "fe3_sub",
-    "fe3_scalar_mul",
-    "fe3_from_base",
-    "fe3_zero",
-    "fe3_one",
+    "get_omega_inv",
+    # Poseidon2
     "poseidon2_hash",
     "linear_hash",
     "hash_seq",
     "grinding",
     "verify_grinding",
     "CAPACITY",
+    # Merkle Tree
     "MerkleTree",
     "MerkleRoot",
     "MerkleProof",
     "LeafData",
     "HASH_SIZE",
+    "transpose_for_merkle",
+    # Transcript
     "Transcript",
     "SpongeState",
     "Hash",
     "Challenge",
+    # FRI
     "FRI",
     "EvalPoly",
     "FriLayer",
     "FIELD_EXTENSION",
+    # FRI PCS
     "FriPcs",
     "FriPcsConfig",
     "FriProof",
     "Nonce",
     "QueryIndex",
+    # Verifier
     "FriVerifier",
     "VerificationResult",
+    # Test Vectors
     "get_config",
     "get_expected_final_pol",
     "get_expected_nonce",
@@ -168,6 +160,7 @@ __all__ = [
     "get_grinding_challenge",
     "get_fri_steps",
     "get_n_bits_ext",
+    # Proof Loading
     "FriProofData",
     "load_proof",
     "find_proof_file",

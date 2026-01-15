@@ -7,7 +7,6 @@ from fri import FRI, EvalPoly
 from merkle_tree import MerkleTree, MerkleRoot, HASH_SIZE
 from transcript import Transcript
 from poseidon2_ffi import linear_hash, grinding
-from field import Fe
 
 # --- Type Aliases ---
 
@@ -133,13 +132,13 @@ class FriPcs:
 
     # --- Grinding ---
 
-    def _compute_grinding_nonce(self, challenge: List[Fe], pow_bits: int) -> Nonce:
+    def _compute_grinding_nonce(self, challenge: List[int], pow_bits: int) -> Nonce:
         """Find nonce satisfying proof-of-work requirement."""
         return grinding(challenge, pow_bits)
 
     def _derive_query_indices(
         self,
-        challenge: List[Fe],
+        challenge: List[int],
         nonce: Nonce,
         n_queries: int,
         domain_bits: int

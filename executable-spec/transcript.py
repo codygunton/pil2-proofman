@@ -2,13 +2,13 @@
 
 from typing import List
 from poseidon2_ffi import poseidon2_hash
-from field import GOLDILOCKS_PRIME, Fe
+from field import GOLDILOCKS_PRIME
 
 # --- Type Aliases ---
 
-SpongeState = List[Fe]
-Hash = List[Fe]
-Challenge = List[Fe]
+SpongeState = List[int]
+Hash = List[int]
+Challenge = List[int]
 
 # --- Constants ---
 
@@ -31,15 +31,15 @@ class Transcript:
         self.sponge_width = HASH_SIZE * arity
 
         self.state: SpongeState = [0] * self.transcript_out_size
-        self.pending: List[Fe] = [0] * self.transcript_out_size
-        self.out: List[Fe] = [0] * self.transcript_out_size
+        self.pending: List[int] = [0] * self.transcript_out_size
+        self.out: List[int] = [0] * self.transcript_out_size
 
         self.pending_cursor = 0
         self.out_cursor = 0
 
     # --- Core Operations ---
 
-    def put(self, elements: List[Fe]) -> None:
+    def put(self, elements: List[int]) -> None:
         """Absorb field elements into the sponge."""
         for elem in elements:
             self._absorb_one(elem)
@@ -82,7 +82,7 @@ class Transcript:
 
     # --- Internal ---
 
-    def _absorb_one(self, element: Fe) -> None:
+    def _absorb_one(self, element: int) -> None:
         """Absorb a single field element."""
         self.pending[self.pending_cursor] = element % GOLDILOCKS_PRIME
         self.pending_cursor += 1
@@ -91,7 +91,7 @@ class Transcript:
         if self.pending_cursor == self.transcript_pending_size:
             self._apply_permutation()
 
-    def _squeeze_one(self) -> Fe:
+    def _squeeze_one(self) -> int:
         """Squeeze one field element from the sponge."""
         if self.out_cursor == 0:
             self._apply_permutation()

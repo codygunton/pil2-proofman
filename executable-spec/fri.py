@@ -4,15 +4,14 @@ from typing import List
 import math
 import galois
 from field import (
-    GF, GOLDILOCKS_PRIME, Fe, Fe3, SHIFT, SHIFT_INV,
-    pow_mod, inv_mod, get_omega, get_omega_inv,
-    fe3_mul, fe3_add, fe3_scalar_mul,
+    FF, FF3, ff3, ff3_coeffs,
+    SHIFT, SHIFT_INV, get_omega_inv,
 )
-from merkle_tree import MerkleTree, MerkleRoot
+from merkle_tree import MerkleTree, MerkleRoot, transpose_for_merkle
 
 # --- Type Aliases ---
 
-EvalPoly = List[Fe]
+EvalPoly = List[int]
 FriLayer = EvalPoly
 
 # --- Constants ---
@@ -29,30 +28,30 @@ class FRI:
     def fold(
         step: int,
         pol: EvalPoly,
-        challenge: Fe3,
+        challenge: List[int],
         n_bits_ext: int,
         prev_bits: int,
         current_bits: int
     ) -> EvalPoly:
         """Fold polynomial using random challenge."""
-        p = GOLDILOCKS_PRIME
+        challenge_ff3 = ff3(challenge)
 
         # Compute SHIFT^(-2^k) where k = n_bits_ext - prev_bits
         k = n_bits_ext - prev_bits if step > 0 else 0
-        pol_shift_inv = pow_mod(SHIFT_INV, 1 << k)
+        pol_shift_inv = SHIFT_INV ** (1 << k)
 
         pol_2n = 1 << current_bits
         n_x = (1 << prev_bits) // pol_2n
-        w_inv = get_omega_inv(prev_bits)
+        w_inv = FF(get_omega_inv(prev_bits))
 
         result = [0] * (pol_2n * FIELD_EXTENSION)
 
         for g in range(pol_2n):
             # Extract n_x consecutive cubic extension values
-            coeffs = []
+            coeffs: List[FF3] = []
             for i in range(n_x):
                 idx = (g + i * pol_2n) * FIELD_EXTENSION
-                coeffs.append([pol[idx], pol[idx + 1], pol[idx + 2]])
+                coeffs.append(ff3([pol[idx], pol[idx + 1], pol[idx + 2]]))
 
             # INTT to convert from evaluations to coefficients
             if n_x > 1:
@@ -61,21 +60,19 @@ class FRI:
                 coeffs = FRI._intt_cubic(coeffs, n_x, w_inv_small)
 
             # polMulAxi: scale by (shift_inv * w_inv^g)^i
-            sinv = (pol_shift_inv * pow_mod(w_inv, g, p)) % p
-            acc = 1
+            sinv = pol_shift_inv * (w_inv ** g)
+            acc = FF(1)
             for i in range(n_x):
-                coeffs[i] = fe3_scalar_mul(coeffs[i], acc)
-                acc = (acc * sinv) % p
+                coeffs[i] = coeffs[i] * int(acc)
+                acc = acc * sinv
 
             # Horner evaluation at challenge
-            res = coeffs[n_x - 1] if n_x > 0 else [0, 0, 0]
-            for i in range(n_x - 2, -1, -1):
-                res = fe3_mul(res, challenge)
-                res = fe3_add(res, coeffs[i])
+            res = galois.Poly(coeffs[::-1], field=FF3)(challenge_ff3) if coeffs else FF3(0)
 
-            result[g * FIELD_EXTENSION] = res[0]
-            result[g * FIELD_EXTENSION + 1] = res[1]
-            result[g * FIELD_EXTENSION + 2] = res[2]
+            res_coeffs = ff3_coeffs(res)
+            result[g * FIELD_EXTENSION] = res_coeffs[0]
+            result[g * FIELD_EXTENSION + 1] = res_coeffs[1]
+            result[g * FIELD_EXTENSION + 2] = res_coeffs[2]
 
         return result
 
@@ -88,42 +85,42 @@ class FRI:
         next_bits: int
     ) -> MerkleRoot:
         """Commit to FRI layer via Merkle tree."""
-        transposed = FRI._transpose(pol, 1 << current_bits, next_bits)
         height = 1 << next_bits
         width = (1 << (current_bits - next_bits)) * FIELD_EXTENSION
+        transposed = transpose_for_merkle(pol, 1 << current_bits, height, FIELD_EXTENSION)
         tree.merkelize(transposed, height, width)
         return tree.get_root()
 
     @staticmethod
     def verify_fold(
-        value: Fe3,
+        value: List[int],
         step: int,
         n_bits_ext: int,
         current_bits: int,
         prev_bits: int,
-        challenge: Fe3,
+        challenge: List[int],
         idx: int,
-        siblings: List[Fe3]
-    ) -> Fe3:
+        siblings: List[List[int]]
+    ) -> List[int]:
         """Verify fold step (verifier algorithm)."""
-        p = GOLDILOCKS_PRIME
+        challenge_ff3 = ff3(challenge)
 
         # Compute SHIFT^(2^k) where k = n_bits_ext - prev_bits
         k = n_bits_ext - prev_bits if step > 0 else 0
-        shift = pow_mod(SHIFT, 1 << k)
+        shift = SHIFT ** (1 << k)
 
-        w = get_omega(prev_bits)
-        w_inv = get_omega_inv(prev_bits)
+        w_inv = FF(get_omega_inv(prev_bits))
         n_x = 1 << (prev_bits - current_bits)
 
-        coeffs = list(siblings)
+        coeffs = [ff3(s) for s in siblings]
         if n_x > 1:
-            coeffs = FRI._intt_cubic(coeffs, n_x, w_inv)
+            coeffs = FRI._intt_cubic(coeffs, n_x, get_omega_inv(prev_bits - current_bits + 1))
 
-        sinv = inv_mod((shift * pow_mod(w, idx, p)) % p)
-        aux = fe3_mul(challenge, [sinv, 0, 0])
+        sinv = (shift * (w_inv ** (-idx))) ** -1
+        aux = challenge_ff3 * int(sinv)
 
-        return FRI._eval_poly(coeffs, n_x, aux)
+        result = galois.Poly(coeffs[::-1], field=FF3)(aux) if coeffs else FF3(0)
+        return ff3_coeffs(result)
 
     @staticmethod
     def prove_queries(
@@ -142,43 +139,15 @@ class FRI:
     # --- Internal Utilities ---
 
     @staticmethod
-    def _intt_cubic(values: List[Fe3], n: int, w_inv: Fe) -> List[Fe3]:
+    def _intt_cubic(values: List[FF3], n: int, w_inv: int) -> List[FF3]:
         """INTT on cubic extension elements (component-wise)."""
-        comp0 = GF([v[0] for v in values])
-        comp1 = GF([v[1] for v in values])
-        comp2 = GF([v[2] for v in values])
+        coeffs = [ff3_coeffs(v) for v in values]
+        comp0 = FF([c[0] for c in coeffs])
+        comp1 = FF([c[1] for c in coeffs])
+        comp2 = FF([c[2] for c in coeffs])
 
         r0 = galois.intt(comp0, omega=w_inv)
         r1 = galois.intt(comp1, omega=w_inv)
         r2 = galois.intt(comp2, omega=w_inv)
 
-        return [[int(r0[i]), int(r1[i]), int(r2[i])] for i in range(n)]
-
-    @staticmethod
-    def _transpose(pol: EvalPoly, degree: int, transpose_bits: int) -> EvalPoly:
-        """Transpose polynomial for Merkle commitment."""
-        w = 1 << transpose_bits
-        h = degree // w
-
-        result = [0] * len(pol)
-        for i in range(w):
-            for j in range(h):
-                for k in range(FIELD_EXTENSION):
-                    fi = (j * w + i) * FIELD_EXTENSION + k
-                    di = (i * h + j) * FIELD_EXTENSION + k
-                    result[di] = pol[fi]
-
-        return result
-
-    @staticmethod
-    def _eval_poly(pol: List[Fe3], degree: int, x: Fe3) -> Fe3:
-        """Evaluate polynomial at point using Horner's method."""
-        if degree == 0:
-            return [0, 0, 0]
-
-        result = list(pol[degree - 1])
-        for i in range(degree - 2, -1, -1):
-            result = fe3_mul(result, x)
-            result = fe3_add(result, pol[i])
-
-        return result
+        return [ff3([int(r0[i]), int(r1[i]), int(r2[i])]) for i in range(n)]
