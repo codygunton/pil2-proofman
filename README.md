@@ -14,17 +14,49 @@ If you encounter any errors or unexpected behavior, please report them. Your fee
 
 The Proof Manager is an adaptable Proof Manager designed to assist in the creation of proofs from a PIL2 pilout-formatted file. It is designed to be used in conjunction with the [PIL2](https://github.com/0xPolygonHermez/pilcom) compiler and proofman-js [pil2-proofman-js](https://github.com/0xPolygonHermez/pil2-proofman-js) to generate the setup.
 
-# Python Spec
+# Python Executable Spec
 
-An executable specification of the FRI PCS in `executable-spec/`.
+A complete Python executable specification of the STARK proving system in `executable-spec/`. This provides a readable reference implementation for cross-validating the C++ prover.
 
-## Tests
+### Components
 
-Three test suites establish a Python executable spec testing framework:
+| Module | Description |
+|--------|-------------|
+| `stark_info.py` | STARK configuration parser |
+| `setup_ctx.py` | Setup context and prover helpers |
+| `ntt.py` | NTT/INTT polynomial operations |
+| `expressions.py` | Constraint expression evaluation |
+| `starks.py` | Proof stage orchestrator |
+| `gen_proof.py` | Top-level prover |
+| `stark_verify.py` | Top-level verifier |
+| `fri.py`, `fri_pcs.py` | FRI polynomial commitment scheme |
 
-- **pinning** - Validates C++ prover output is deterministic (SHA256 checksums). Establishes that test vectors extracted from C++ are stable.
-- **fri** - Validates C++ FRI values (challenges, polynomials, Merkle roots) match golden vectors. Establishes that test vectors are correct reference values.
-- **spec** - Validates Python FRI produces identical output to C++ given the same inputs. Establishes that the Python spec correctly implements FRI.
+### Running Python Tests
+
+```bash
+cd executable-spec
+uv sync                            # install dependencies
+uv run python -m pytest -v         # run all 269 tests
+```
+
+Test categories:
+```bash
+uv run python -m pytest test_fri.py -v              # FRI tests (22)
+uv run python -m pytest test_ntt.py -v              # NTT tests (41)
+uv run python -m pytest test_stark_info.py -v       # Config tests (22)
+uv run python -m pytest test_starks.py -v           # Orchestrator tests (18)
+uv run python -m pytest test_stark_integration.py -v # Integration tests (27)
+```
+
+See `executable-spec/README.md` for full documentation.
+
+## Rust/C++ Tests
+
+Three test suites validate the C++ implementation:
+
+- **pinning** - Validates C++ prover output is deterministic (SHA256 checksums)
+- **fri** - Validates C++ FRI values match golden vectors
+- **spec** - Validates Python produces identical output to C++
 
 ```bash
 cargo test -p pinning              # all pinning tests

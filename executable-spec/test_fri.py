@@ -16,7 +16,7 @@ from fri import FRI
 from fri_pcs import FriPcs, FriPcsConfig
 from poseidon2_ffi import linear_hash
 
-from test_vectors import (
+from fri_vectors import (
     get_config,
     get_expected_final_pol,
     get_expected_hash,

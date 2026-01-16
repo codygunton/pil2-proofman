@@ -67,16 +67,9 @@ from fri_pcs import (
     QueryIndex,
 )
 
-# --- Verifier ---
+# --- FRI Test Vectors ---
 
-from verifier import (
-    FriVerifier,
-    VerificationResult,
-)
-
-# --- Test Vectors ---
-
-from test_vectors import (
+from fri_vectors import (
     get_config,
     get_expected_final_pol,
     get_expected_nonce,
@@ -87,15 +80,6 @@ from test_vectors import (
     get_grinding_challenge,
     get_fri_steps,
     get_n_bits_ext,
-)
-
-# --- Proof Loading ---
-
-from proof_loader import (
-    FriProofData,
-    load_proof,
-    find_proof_file,
-    detect_air_type,
 )
 
 # --- Package Metadata ---
@@ -146,10 +130,7 @@ __all__ = [
     "FriProof",
     "Nonce",
     "QueryIndex",
-    # Verifier
-    "FriVerifier",
-    "VerificationResult",
-    # Test Vectors
+    # FRI Test Vectors
     "get_config",
     "get_expected_final_pol",
     "get_expected_nonce",
@@ -160,9 +141,4 @@ __all__ = [
     "get_grinding_challenge",
     "get_fri_steps",
     "get_n_bits_ext",
-    # Proof Loading
-    "FriProofData",
-    "load_proof",
-    "find_proof_file",
-    "detect_air_type",
 ]

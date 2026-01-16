@@ -69,6 +69,15 @@ def parse_capture_output(capture_text: str, instance: int | None = None) -> dict
     if gen_proof_data:
         result.update(gen_proof_data)
 
+    # Parse prover inputs blocks (witness trace, public inputs, etc.)
+    prover_inputs_blocks = parse_all_json_blocks(
+        capture_text,
+        '=== STARK_PROVER_INPUTS_JSON_START ===',
+        '=== STARK_PROVER_INPUTS_JSON_END ==='
+    )
+    if block_index < len(prover_inputs_blocks):
+        result.update(prover_inputs_blocks[block_index])
+
     # Parse fri_pcs blocks - use same index as gen_proof
     fri_pcs_blocks = parse_all_json_blocks(
         capture_text,
@@ -86,6 +95,39 @@ def parse_capture_output(capture_text: str, instance: int | None = None) -> dict
     )
     if block_index < len(queries_blocks):
         result.update(queries_blocks[block_index])
+
+    # Parse STARK stage blocks - use same index
+    stage1_blocks = parse_all_json_blocks(
+        capture_text,
+        '=== STARK_STAGE1_JSON_START ===',
+        '=== STARK_STAGE1_JSON_END ==='
+    )
+    if block_index < len(stage1_blocks):
+        result.update(stage1_blocks[block_index])
+
+    stage2_blocks = parse_all_json_blocks(
+        capture_text,
+        '=== STARK_STAGE2_JSON_START ===',
+        '=== STARK_STAGE2_JSON_END ==='
+    )
+    if block_index < len(stage2_blocks):
+        result.update(stage2_blocks[block_index])
+
+    stageq_blocks = parse_all_json_blocks(
+        capture_text,
+        '=== STARK_STAGEQ_JSON_START ===',
+        '=== STARK_STAGEQ_JSON_END ==='
+    )
+    if block_index < len(stageq_blocks):
+        result.update(stageq_blocks[block_index])
+
+    evals_blocks = parse_all_json_blocks(
+        capture_text,
+        '=== STARK_EVALS_JSON_START ===',
+        '=== STARK_EVALS_JSON_END ==='
+    )
+    if block_index < len(evals_blocks):
+        result.update(evals_blocks[block_index])
 
     return result
 
@@ -231,6 +273,22 @@ def build_test_vectors(
     if 'transcript_pending_cursor' in capture_data:
         result['inputs']['transcript_pending_cursor'] = capture_data['transcript_pending_cursor']
 
+    # Add prover inputs (for full e2e testing)
+    if capture_data.get('witness_trace'):
+        result['inputs']['witness_trace'] = capture_data['witness_trace']
+    if capture_data.get('public_inputs'):
+        result['inputs']['public_inputs'] = capture_data['public_inputs']
+    if capture_data.get('global_challenge'):
+        result['inputs']['global_challenge'] = capture_data['global_challenge']
+    if capture_data.get('const_pols'):
+        result['inputs']['const_pols'] = capture_data['const_pols']
+    if capture_data.get('transcript_state_step0'):
+        result['inputs']['transcript_state_step0'] = capture_data['transcript_state_step0']
+    if capture_data.get('n_cols_stage1'):
+        result['inputs']['n_cols_stage1'] = capture_data['n_cols_stage1']
+    if capture_data.get('n_constants'):
+        result['inputs']['n_constants'] = capture_data['n_constants']
+
     # Add intermediates if present
     intermediates = {}
     if capture_data.get('merkle_roots'):
@@ -239,6 +297,32 @@ def build_test_vectors(
         intermediates['poly_hashes_after_fold'] = capture_data['poly_hashes_after_fold']
     if capture_data.get('query_proof_siblings'):
         intermediates['query_proof_siblings'] = capture_data['query_proof_siblings']
+
+    # Add STARK stage intermediates
+    if capture_data.get('root1'):
+        intermediates['root1'] = capture_data['root1']
+    if capture_data.get('trace_extended_hash'):
+        intermediates['trace_extended_hash'] = capture_data['trace_extended_hash']
+    if capture_data.get('root2'):
+        intermediates['root2'] = capture_data['root2']
+    if capture_data.get('challenges_stage2'):
+        intermediates['challenges_stage2'] = capture_data['challenges_stage2']
+    if capture_data.get('air_values_stage2'):
+        intermediates['air_values_stage2'] = capture_data['air_values_stage2']
+    if capture_data.get('rootQ'):
+        intermediates['rootQ'] = capture_data['rootQ']
+    if capture_data.get('quotient_poly_hash'):
+        intermediates['quotient_poly_hash'] = capture_data['quotient_poly_hash']
+    if capture_data.get('challenges_stageQ'):
+        intermediates['challenges_stageQ'] = capture_data['challenges_stageQ']
+    if capture_data.get('evals'):
+        intermediates['evals'] = capture_data['evals']
+    if capture_data.get('LEv_hash'):
+        intermediates['LEv_hash'] = capture_data['LEv_hash']
+    if capture_data.get('xi_challenge'):
+        intermediates['xi_challenge'] = capture_data['xi_challenge']
+    if capture_data.get('challenges_fri'):
+        intermediates['challenges_fri'] = capture_data['challenges_fri']
 
     if intermediates:
         result['intermediates'] = intermediates
@@ -353,6 +437,16 @@ def main():
     print(f"  FRI queries: {len(test_vectors['inputs']['fri_queries'])}")
     if test_vectors['expected']['final_pol_hash']:
         print(f"  Final pol hash: [{', '.join(str(h) for h in test_vectors['expected']['final_pol_hash'])}]")
+
+    # Prover inputs summary
+    if test_vectors['inputs'].get('witness_trace'):
+        print(f"  Witness trace size: {len(test_vectors['inputs']['witness_trace'])}")
+    if test_vectors['inputs'].get('const_pols'):
+        print(f"  Constant polynomials size: {len(test_vectors['inputs']['const_pols'])}")
+    if test_vectors['inputs'].get('public_inputs'):
+        print(f"  Public inputs: {len(test_vectors['inputs']['public_inputs'])}")
+    if test_vectors['inputs'].get('transcript_state_step0'):
+        print(f"  Transcript state captured: Yes")
 
 
 if __name__ == '__main__':
