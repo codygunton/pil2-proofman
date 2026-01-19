@@ -784,3 +784,22 @@ class ExpressionsBin:
             Number of hints with matching name
         """
         return len(self.get_hint_ids_by_name(name))
+
+    def get_hint_field(self, hint_id: int, field_name: str) -> HintField:
+        """Get a specific field from a hint by name.
+
+        Args:
+            hint_id: Index into self.hints
+            field_name: Name of field (e.g., "numerator", "denominator", "reference")
+
+        Returns:
+            HintField containing the field values
+
+        Raises:
+            ValueError: If field not found in hint
+        """
+        hint = self.hints[hint_id]
+        for hf in hint.fields:
+            if hf.name == field_name:
+                return hf
+        raise ValueError(f"Field '{field_name}' not found in hint '{hint.name}'")
