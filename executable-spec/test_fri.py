@@ -1,11 +1,32 @@
-# FRI tests - validates Python FRI matches C++ exactly.
-# Run with: python -m pytest executable-spec/test_fri.py -v
 """
-FRI pinning and end-to-end tests.
+FRI Polynomial Commitment Tests
+===============================
 
-These tests validate that the Python FRI implementation produces
-byte-identical outputs to the C++ implementation by comparing
-Python-computed values against C++ captured golden values.
+Run: uv run python -m pytest test_fri.py -v
+
+Tests the FRI (Fast Reed-Solomon IOP) layer of the STARK prover.
+Validates Python FRI produces byte-identical outputs to C++.
+
+What these tests cover:
+    - FriPcs.prove(): Merkle commitment, folding, grinding, query generation
+    - FRI.fold(): Polynomial folding with random challenges
+    - MerkleTree: Tree construction and proof generation
+    - Transcript: Fiat-Shamir challenge derivation
+
+What these tests do NOT cover:
+    - Witness polynomial extension (stage 1)
+    - Intermediate polynomial computation (stage 2)
+    - Quotient polynomial computation (stage Q)
+    - Full gen_proof() flow from witness to proof
+
+The tests use fri_input_polynomial captured from C++ as input. This polynomial
+is the OUTPUT of the earlier STARK stages. To test the full STARK prover,
+a separate test starting from raw witness_trace would be needed.
+
+AIRs Tested:
+    - simple (SimpleLeft): 8 rows, no FRI folding
+    - lookup (Lookup2_12): 4096 rows, 4 FRI folding steps
+    - permutation (Permutation1_6): 64 rows, 2 FRI folding steps
 """
 
 import pytest
@@ -36,19 +57,24 @@ from fri_vectors import (
 
 
 # =============================================================================
-# End-to-end prove tests (AIRs with folding: lookup, permutation)
+# FRI End-to-End Tests - Runs FriPcs.prove(), compares against C++ golden values
 # =============================================================================
 
-@pytest.mark.parametrize("air_name", ["lookup", "permutation"])
+@pytest.mark.parametrize("air_name", ["simple", "lookup", "permutation"])
 class TestProveEndToEnd:
     """
-    End-to-end prove tests.
+    FRI prover end-to-end test.
 
-    Validates that calling FriPcs.prove() with captured transcript state
-    and input polynomial produces byte-identical output to C++.
+    For each AIR:
+        1. Loads fri_input_polynomial captured from C++ (output of earlier STARK stages)
+        2. Primes transcript with C++ captured state
+        3. Runs FriPcs.prove() - the Python FRI prover
+        4. Compares ALL FRI outputs against C++ golden values:
+           - fri_roots (Merkle commitments at each fold step)
+           - final_pol (polynomial after all FRI folds)
+           - nonce (proof-of-work grinding result)
 
-    Only runs on AIRs with FRI folding (lookup, permutation).
-    Simple has only 1 FRI step so no folding/merkelize occurs.
+    If this test passes, Python FRI is byte-identical to C++ FRI.
     """
 
     @pytest.fixture(autouse=True)
@@ -92,7 +118,7 @@ class TestProveEndToEnd:
         COMPLETE END-TO-END TEST.
 
         Validates ALL outputs from prove() match C++ exactly:
-        - fri_roots (weakest - just hashes)
+        - fri_roots (weakest - just hashes, empty for simple AIR)
         - nonce (medium - depends on grinding challenge)
         - final_pol (strongest - depends on all prior steps)
 
@@ -103,13 +129,17 @@ class TestProveEndToEnd:
         proof = fri_pcs.prove(self.input_pol, transcript)
 
         # Assert from weakest to strongest
-        assert len(proof.fri_roots) == len(self.merkle_roots)
+        # For simple AIR, merkle_roots is empty (no folding steps)
+        assert len(proof.fri_roots) == len(self.merkle_roots), \
+            f"Expected {len(self.merkle_roots)} FRI roots, got {len(proof.fri_roots)}"
         for i in range(len(proof.fri_roots)):
             assert proof.fri_roots[i] == self.merkle_roots[i], f"FRI root {i} mismatch"
 
-        assert proof.nonce == self.expected_nonce
+        assert proof.nonce == self.expected_nonce, \
+            f"Nonce mismatch: expected {self.expected_nonce}, got {proof.nonce}"
 
-        assert proof.final_pol == self.expected_final_pol
+        assert proof.final_pol == self.expected_final_pol, \
+            f"Final polynomial mismatch (length: expected {len(self.expected_final_pol)}, got {len(proof.final_pol)})"
 
     def test_prove_challenges_match(self, air_name):
         """
@@ -143,7 +173,7 @@ class TestProveEndToEnd:
 
 
 # =============================================================================
-# Parameterized unit tests (all AIRs)
+# Component validation tests - Hash and transcript functions
 # =============================================================================
 
 @pytest.mark.parametrize("air_name", ["simple", "lookup", "permutation"])
@@ -175,16 +205,22 @@ def test_query_indices_derivation(air_name):
 
 
 # =============================================================================
-# FRI folding tests (AIRs with folding: lookup, permutation)
+# Detailed FRI folding tests - Validates intermediate steps (lookup, permutation only)
 # =============================================================================
 
 @pytest.mark.parametrize("air_name", ["lookup", "permutation"])
 class TestFRIFolding:
     """
-    FRI folding validation tests.
+    Detailed FRI folding validation - tests individual operations.
 
-    Validates Python FRI.fold() produces identical output to C++.
+    These tests validate intermediate steps of the FRI protocol:
+    - Input polynomial hashing
+    - Step-by-step folding
+    - Merkle tree construction at each step
+    - Query proof generation
+
     Only runs on AIRs with FRI folding (lookup, permutation).
+    Simple AIR has no folding so is covered by TestProveEndToEnd only.
     """
 
     @pytest.fixture(autouse=True)
