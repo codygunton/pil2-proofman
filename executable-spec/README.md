@@ -6,48 +6,74 @@ A Python implementation of the STARK proving system from pil2-proofman. This ser
 
 ```
 executable-spec/
-├── Core Implementation
-│   ├── field.py              # Goldilocks field arithmetic
-│   ├── ntt.py                # NTT/INTT polynomial operations
-│   ├── transcript.py         # Fiat-Shamir transcript
-│   ├── merkle_tree.py        # Poseidon2 Merkle trees
-│   ├── fri.py                # FRI folding and queries
-│   ├── fri_pcs.py            # FRI polynomial commitment scheme
-│   │
-│   ├── stark_info.py         # STARK configuration parser
-│   ├── pol_map.py            # Polynomial mapping structures
-│   ├── setup_ctx.py          # Setup context and ProverHelpers
-│   ├── steps_params.py       # Parameter container
-│   ├── expressions_bin.py    # Expression binary parser
-│   ├── expressions.py        # Expression evaluation engine
-│   ├── starks.py             # Starks orchestrator class
-│   ├── gen_proof.py          # Top-level prover
-│   ├── stark_verify.py       # Top-level verifier
-│   └── proof.py              # Proof data structures
+├── protocol/                    # Core STARK protocol implementation
+│   ├── prover.py               # Top-level proof generation (gen_proof)
+│   ├── verifier.py             # Top-level verification (stark_verify)
+│   ├── stages.py               # Stage computations (Starks class)
+│   ├── fri.py                  # FRI folding and query generation
+│   ├── pcs.py                  # FRI polynomial commitment scheme
+│   ├── expression_evaluator.py # Constraint/expression evaluation engine
+│   ├── witness_generation.py   # Witness polynomial computation
+│   ├── stark_info.py           # STARK configuration parser
+│   ├── setup_ctx.py            # Setup context and ProverHelpers
+│   ├── steps_params.py         # Runtime parameter container
+│   ├── expressions_bin.py      # Expression bytecode parser
+│   └── proof.py                # Proof data structures
 │
-├── Poseidon2 FFI
-│   └── poseidon2-ffi/        # Rust FFI for Poseidon2
+├── primitives/                  # Low-level cryptographic primitives
+│   ├── field.py                # Goldilocks field (p = 2^64 - 2^32 + 1)
+│   ├── ntt.py                  # NTT/INTT polynomial operations
+│   ├── transcript.py           # Fiat-Shamir transcript (Poseidon2)
+│   ├── merkle_tree.py          # Poseidon2 Merkle trees
+│   ├── pol_map.py              # Polynomial mapping structures
+│   └── poseidon2-ffi/          # Rust FFI for Poseidon2 hash
 │
-├── Tests (164 total)
-│   ├── test_fri.py           # FRI golden value validation (vs C++)
-│   ├── test_stark_e2e.py     # STARK golden value validation (vs C++)
-│   ├── test_ntt.py           # NTT mathematical properties
-│   ├── test_stark_info.py    # Config parsing validation
-│   ├── test_expressions_bin.py   # Binary format parsing
-│   └── test_proof.py         # JSON serialization/loading
+├── tests/                       # Test suite (121 tests)
+│   ├── test_stark_e2e.py       # Full STARK proof vs C++ golden values
+│   ├── test_fri.py             # FRI folding vs C++ golden values
+│   ├── test_ntt.py             # NTT mathematical properties
+│   ├── test_stark_info.py      # Config parsing validation
+│   ├── test_proof.py           # Proof JSON serialization
+│   └── test-data/              # Golden test vectors (gitignored)
 │
-└── test-data/                # Golden test vectors (gitignored)
-    ├── simple-left.json
-    ├── lookup2-12.json
-    └── permutation1-6.json
+└── pyproject.toml
 ```
+
+## Reading Guide
+
+### Start Here: The Prover Flow
+
+1. **`protocol/prover.py`** - Entry point. `gen_proof()` orchestrates the full proving flow
+2. **`protocol/stages.py`** - `Starks` class implements each proving stage:
+   - `commitStage()` - Commit witness polynomials
+   - `calculateQuotientPolynomial()` - Compute Q polynomial
+   - `calculateFRIPolynomial()` - Compute FRI polynomial
+   - `computeFRIFolding()` / `computeFRIQueries()` - FRI protocol
+
+### Key Abstractions
+
+| File | Purpose |
+|------|---------|
+| `protocol/expression_evaluator.py` | Evaluates constraint expressions from bytecode |
+| `protocol/pcs.py` | FRI polynomial commitment scheme |
+| `protocol/setup_ctx.py` | `SetupCtx` bundles config, `ProverHelpers` manages buffers |
+| `protocol/steps_params.py` | `StepsParams` holds runtime state (trace, challenges, evals) |
+
+### Primitives
+
+| File | Purpose |
+|------|---------|
+| `primitives/field.py` | `FF` class - Goldilocks field with cubic extension |
+| `primitives/ntt.py` | `NTT` class - Forward/inverse NTT, coset operations |
+| `primitives/transcript.py` | `Transcript` class - Fiat-Shamir with Poseidon2 |
+| `primitives/merkle_tree.py` | `MerkleTree` class - Poseidon2 Merkle commitments |
 
 ## Setup
 
 ```bash
 cd executable-spec
 uv sync
-cd poseidon2-ffi && maturin develop && cd ..
+cd primitives/poseidon2-ffi && maturin develop && cd ../..
 ```
 
 Generate test vectors (from repo root):
@@ -57,16 +83,23 @@ Generate test vectors (from repo root):
 
 ## Running Tests
 
+From repo root:
 ```bash
-uv run python -m pytest -v              # All tests
-uv run python -m pytest test_fri.py -v  # FRI validation
-uv run python -m pytest test_stark_e2e.py -v  # STARK e2e validation
+./run-all-tests.sh              # Full test suite (121 tests)
+./run-e2e-tests.sh              # E2E tests only (vs C++ golden values)
+```
+
+From executable-spec/:
+```bash
+uv run python -m pytest tests/ -v                    # All tests
+uv run python -m pytest tests/test_fri.py -v         # FRI validation
+uv run python -m pytest tests/test_stark_e2e.py -v   # STARK e2e validation
 ```
 
 ## Supported AIRs
 
-| AIR | Rows | Description |
-|-----|------|-------------|
-| SimpleLeft | 8 | Basic constraints, no FRI folding |
-| Lookup2_12 | 4096 | Complex lookups, full FRI folding |
-| Permutation1_6 | 64 | Permutation constraints, FRI folding |
+| AIR | Rows | FRI Folding | Description |
+|-----|------|-------------|-------------|
+| SimpleLeft | 8 | No | Basic constraints only |
+| Lookup2_12 | 4096 | Yes | Complex lookup operations |
+| Permutation1_6 | 64 | Yes | Permutation constraints |
