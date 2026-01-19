@@ -230,7 +230,7 @@ class Starks:
             params: Working parameters
             expressionsCtx: Expression evaluation context
         """
-        from expressions import Dest
+        from protocol.expression_evaluator import Dest
 
         domainSize = 1 << self.setupCtx.stark_info.starkStruct.nBits
 
@@ -261,7 +261,7 @@ class Starks:
                 )
 
                 # Add expression parameter
-                from expressions import Params
+                from protocol.expression_evaluator import Params
                 param = Params(
                     exp_id=polMap.expId,
                     dim=polMap.dim,

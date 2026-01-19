@@ -219,7 +219,7 @@ def evaluate_hint_field_with_expressions(
     Returns:
         Result column (N * dim elements)
     """
-    from expressions import Dest, Params
+    from protocol.expression_evaluator import Dest, Params
 
     N = 1 << stark_info.starkStruct.nBits
 
@@ -273,7 +273,7 @@ def _build_param_from_hint_field(
     Returns:
         Params object for expression evaluation
     """
-    from expressions import Params
+    from protocol.expression_evaluator import Params
 
     if hfv.operand == OpType.tmp:
         # Expression reference
@@ -827,7 +827,7 @@ def update_airgroup_value(
     else:
         # Use expression evaluator for complex operands
         # Evaluate at row 0 only (direct components are scalars)
-        from expressions import Dest, Params
+        from protocol.expression_evaluator import Dest, Params
         param1 = _build_param_from_hint_field(stark_info, hfv1)
         param2 = _build_param_from_hint_field(stark_info, hfv2)
         param2.inverse = True

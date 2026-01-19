@@ -362,8 +362,8 @@ class SetupCtx:
             Initialized SetupCtx
         """
         # Import here to avoid circular dependency
-        from stark_info import StarkInfo
-        from expressions_bin import ExpressionsBin
+        from protocol.stark_info import StarkInfo
+        from protocol.expressions_bin import ExpressionsBin
 
         stark_info = StarkInfo.from_json(starkinfo_path)
         expressions_bin = ExpressionsBin.from_file(expressions_bin_path)

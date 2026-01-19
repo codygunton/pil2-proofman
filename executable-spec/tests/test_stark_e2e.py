@@ -25,18 +25,18 @@ TEST_DATA_DIR = Path(__file__).parent / "test-data"
 AIR_CONFIGS = {
     'simple': {
         'test_vector': 'simple-left.json',
-        'starkinfo': '../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json',
-        'expressions_bin': '../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.bin',
+        'starkinfo': '../../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json',
+        'expressions_bin': '../../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.bin',
     },
     'lookup': {
         'test_vector': 'lookup2-12.json',
-        'starkinfo': '../pil2-components/test/lookup/build/provingKey/lookup/Lookup/airs/Lookup2_12/air/Lookup2_12.starkinfo.json',
-        'expressions_bin': '../pil2-components/test/lookup/build/provingKey/lookup/Lookup/airs/Lookup2_12/air/Lookup2_12.bin',
+        'starkinfo': '../../pil2-components/test/lookup/build/provingKey/lookup/Lookup/airs/Lookup2_12/air/Lookup2_12.starkinfo.json',
+        'expressions_bin': '../../pil2-components/test/lookup/build/provingKey/lookup/Lookup/airs/Lookup2_12/air/Lookup2_12.bin',
     },
     'permutation': {
         'test_vector': 'permutation1-6.json',
-        'starkinfo': '../pil2-components/test/permutation/build/provingKey/permutation/Permutation/airs/Permutation1_6/air/Permutation1_6.starkinfo.json',
-        'expressions_bin': '../pil2-components/test/permutation/build/provingKey/permutation/Permutation/airs/Permutation1_6/air/Permutation1_6.bin',
+        'starkinfo': '../../pil2-components/test/permutation/build/provingKey/permutation/Permutation/airs/Permutation1_6/air/Permutation1_6.starkinfo.json',
+        'expressions_bin': '../../pil2-components/test/permutation/build/provingKey/permutation/Permutation/airs/Permutation1_6/air/Permutation1_6.bin',
     },
 }
 
@@ -130,7 +130,7 @@ def create_params_from_vectors(stark_info, vectors: dict,
         vectors: Test vectors dict
         inject_challenges: If True, pre-populate challenges from test vectors
     """
-    from ntt import NTT
+    from primitives.ntt import NTT
 
     inputs = vectors['inputs']
     intermediates = vectors.get('intermediates', {})
