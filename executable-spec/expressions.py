@@ -372,10 +372,8 @@ class ExpressionsPack(ExpressionsCtx):
             if parser_params.n_temp3 * nrows_pack * FIELD_EXTENSION > max_temp3_size:
                 max_temp3_size = parser_params.n_temp3 * nrows_pack * FIELD_EXTENSION
 
-        # Get temporary buffers from aux_trace (lines 348-350)
-        tmp1_offset = self.setup_ctx.stark_info.mapOffsets[("tmp1", False)]
-        tmp3_offset = self.setup_ctx.stark_info.mapOffsets[("tmp3", False)]
-        values_offset = self.setup_ctx.stark_info.mapOffsets[("values", False)]
+        # Note: C++ reads offsets from mapOffsets for tmp1, tmp3, values buffers.
+        # In Python, we allocate these fresh each row batch (lines 402-408 below).
 
         # Main evaluation loop over rows (line 352)
         # In C++, this is parallelized with OpenMP. In Python, we run sequentially.
@@ -418,9 +416,11 @@ class ExpressionsPack(ExpressionsCtx):
                     if dest.params[k].op == "const":
                         # Load from constant polynomials (lines 372-376)
                         n_cols = int(self.map_sections_n[0])
+                        # Use extended constants for extended domain
+                        const_buffer = params.constPolsExtended if domain_extended else params.constPols
                         for r in range(nrows_pack):
                             l = (i + r + o) % domain_size
-                            values[k * FIELD_EXTENSION * nrows_pack + r] = params.const_pols[l * n_cols + stage_pos]
+                            values[k * FIELD_EXTENSION * nrows_pack + r] = const_buffer[l * n_cols + stage_pos]
                     else:
                         # Load from committed polynomials (lines 377-395)
                         offset = int(map_offsets_exps[dest.params[k].stage])
@@ -429,11 +429,11 @@ class ExpressionsPack(ExpressionsCtx):
                         for r in range(nrows_pack):
                             l = (i + r + o) % domain_size
 
-                            if dest.params[k].stage == 1:
-                                # Stage 1 uses trace buffer
+                            if dest.params[k].stage == 1 and not domain_extended:
+                                # Stage 1 uses trace buffer (non-extended domain only)
                                 values[k * FIELD_EXTENSION * nrows_pack + r] = params.trace[l * n_cols + stage_pos]
                             else:
-                                # Other stages use aux_trace
+                                # Other stages (and stage 1 in extended domain) use aux_trace
                                 for d in range(dest.params[k].dim):
                                     values[k * FIELD_EXTENSION * nrows_pack + r + d * nrows_pack] = \
                                         params.aux_trace[offset + l * n_cols + stage_pos + d]
@@ -712,13 +712,13 @@ class ExpressionsPack(ExpressionsCtx):
                 # This uses x from prover_helpers and xi from self.xis
                 xdivxsub = params.auxTrace[self.map_offset_fri_pol + row * FIELD_EXTENSION:]
 
-                # Compute xi - x (in place)
+                # Compute x - xi (in place) using SUB_SWAP: result = b - a = x - xi
                 xi_vals = self.xis[o * FIELD_EXTENSION:(o + 1) * FIELD_EXTENSION]
                 x_val = self.prover_helpers.x[row]
-                self._goldilocks3_op_31_pack(nrows_pack, Operation.SUB.value, xdivxsub,
+                self._goldilocks3_op_31_pack(nrows_pack, Operation.SUB_SWAP.value, xdivxsub,
                                             xi_vals, True, np.array([x_val], dtype=np.uint64), False)
 
-                # Invert to get 1/(xi - x)
+                # Invert to get 1/(x - xi)
                 self._get_inverse_polynomial(nrows_pack, xdivxsub, value_buffer, True, 3)
 
                 return xdivxsub[:FIELD_EXTENSION * nrows_pack]
@@ -771,8 +771,9 @@ class ExpressionsPack(ExpressionsCtx):
         """
         if dim == 1:
             # Scalar inversion
+            # Note: Must convert numpy uint64 to Python int before creating FF
             for i in range(nrows_pack):
-                dest_vals[i] = int(FF(dest_vals[i]) ** -1)
+                dest_vals[i] = int(FF(int(dest_vals[i])) ** -1)
         elif dim == FIELD_EXTENSION:
             # Field extension inversion
             # Copy to helper buffer in AoS layout
@@ -885,9 +886,10 @@ class ExpressionsPack(ExpressionsCtx):
             b: Second operand
             is_constant_b: Second operand is constant
         """
+        # Note: Must convert numpy uint64 to Python int before creating FF
         for i in range(nrows_pack):
-            a_val = FF(a[0] if is_constant_a else a[i])
-            b_val = FF(b[0] if is_constant_b else b[i])
+            a_val = FF(int(a[0]) if is_constant_a else int(a[i]))
+            b_val = FF(int(b[0]) if is_constant_b else int(b[i]))
 
             if op == 0:  # ADD
                 dest[i] = int(a_val + b_val)
@@ -963,7 +965,7 @@ class ExpressionsPack(ExpressionsCtx):
             else:
                 a_val = ff3([int(a[i]), int(a[i + nrows_pack]), int(a[i + 2 * nrows_pack])])
 
-            b_val = FF(b[0] if is_constant_b else b[i])
+            b_val = FF(int(b[0]) if is_constant_b else int(b[i]))
             b_ff3 = ff3([int(b_val), 0, 0])
 
             if op == 0:  # ADD
