@@ -22,14 +22,14 @@ Translation notes:
 from typing import Dict, List, Optional
 import numpy as np
 
-from setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
-from steps_params import StepsParams
-from expressions import ExpressionsPack, Dest
-from transcript import Transcript
-from fri import FRI
-from ntt import NTT
-from merkle_tree import HASH_SIZE
-from field import FF, FF3, ff3, ff3_coeffs, get_omega, SHIFT
+from tests.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
+from tests.steps_params import StepsParams
+from protocol.expressions import ExpressionsPack, Dest
+from primitives.transcript import Transcript
+from protocol.fri import FRI
+from primitives.ntt import NTT
+from primitives.merkle_tree import HASH_SIZE
+from primitives.field import FF, FF3, ff3, ff3_coeffs, get_omega, SHIFT
 from poseidon2_ffi import verify_grinding
 
 

@@ -3,11 +3,11 @@
 from typing import List
 import math
 import galois
-from field import (
+from primitives.field import (
     FF, FF3, ff3, ff3_coeffs,
     SHIFT, SHIFT_INV, get_omega_inv,
 )
-from merkle_tree import MerkleTree, MerkleRoot, transpose_for_merkle
+from primitives.merkle_tree import MerkleTree, MerkleRoot, transpose_for_merkle
 
 # --- Type Aliases ---
 

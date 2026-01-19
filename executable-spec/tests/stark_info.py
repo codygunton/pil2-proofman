@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from pol_map import PolMap, EvMap, ChallengeMap, CustomCommits, Boundary
+from primitives.pol_map import PolMap, EvMap, ChallengeMap, CustomCommits, Boundary
 
 
 # Field extension size (Goldilocks3)

@@ -31,13 +31,13 @@ AIRs Tested:
 
 import pytest
 
-from merkle_tree import MerkleTree
-from transcript import Transcript
-from fri import FRI
-from fri_pcs import FriPcs, FriPcsConfig
+from primitives.merkle_tree import MerkleTree
+from primitives.transcript import Transcript
+from protocol.fri import FRI
+from protocol.fri_pcs import FriPcs, FriPcsConfig
 from poseidon2_ffi import linear_hash
 
-from fri_vectors import (
+from tests.fri_vectors import (
     get_config,
     get_expected_final_pol,
     get_expected_hash,

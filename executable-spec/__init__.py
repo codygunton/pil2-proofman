@@ -1,8 +1,14 @@
-"""FRI Polynomial Commitment Scheme - Python Executable Specification."""
+"""FRI Polynomial Commitment Scheme - Python Executable Specification.
 
-# --- Field Arithmetic ---
+Package structure:
+    primitives/ - Low-level cryptographic and mathematical building blocks
+    protocol/   - Core STARK protocol algorithms
+    tests/      - Test suite and test infrastructure
+"""
 
-from field import (
+# Re-export from subpackages for convenience
+from primitives import (
+    # Field
     FF,
     FF3,
     ff3,
@@ -15,10 +21,48 @@ from field import (
     intt,
     get_omega,
     get_omega_inv,
+    # NTT
+    NTT,
+    # Merkle Tree
+    MerkleTree,
+    MerkleRoot,
+    MerkleProof,
+    LeafData,
+    HASH_SIZE,
+    transpose_for_merkle,
+    # Transcript
+    Transcript,
+    SpongeState,
+    Hash,
+    Challenge,
+    # Polynomial mappings
+    PolMap,
+    EvMap,
+    ChallengeMap,
+    CustomCommits,
+    Boundary,
 )
 
-# --- Poseidon2 Hashing ---
+from protocol import (
+    # FRI
+    FRI,
+    EvalPoly,
+    FriLayer,
+    FIELD_EXTENSION,
+    # FRI PCS
+    FriPcs,
+    FriPcsConfig,
+    FriProof,
+    Nonce,
+    QueryIndex,
+    # STARK
+    Starks,
+    ExpressionsPack,
+    stark_verify,
+    calculate_witness_std,
+)
 
+# Poseidon2 is in a separate FFI package
 from poseidon2_ffi import (
     poseidon2_hash,
     linear_hash,
@@ -27,62 +71,6 @@ from poseidon2_ffi import (
     verify_grinding,
     CAPACITY,
 )
-
-# --- Merkle Tree ---
-
-from merkle_tree import (
-    MerkleTree,
-    MerkleRoot,
-    MerkleProof,
-    LeafData,
-    HASH_SIZE,
-    transpose_for_merkle,
-)
-
-# --- Fiat-Shamir Transcript ---
-
-from transcript import (
-    Transcript,
-    SpongeState,
-    Hash,
-    Challenge,
-)
-
-# --- FRI Core ---
-
-from fri import (
-    FRI,
-    EvalPoly,
-    FriLayer,
-    FIELD_EXTENSION,
-)
-
-# --- FRI PCS ---
-
-from fri_pcs import (
-    FriPcs,
-    FriPcsConfig,
-    FriProof,
-    Nonce,
-    QueryIndex,
-)
-
-# --- FRI Test Vectors ---
-
-from fri_vectors import (
-    get_config,
-    get_expected_final_pol,
-    get_expected_nonce,
-    get_expected_hash,
-    get_fri_input_polynomial,
-    get_fri_input_hash,
-    get_fri_challenges,
-    get_grinding_challenge,
-    get_fri_steps,
-    get_n_bits_ext,
-)
-
-# --- Package Metadata ---
 
 __version__ = "0.1.0"
 
@@ -100,6 +88,8 @@ __all__ = [
     "intt",
     "get_omega",
     "get_omega_inv",
+    # NTT
+    "NTT",
     # Poseidon2
     "poseidon2_hash",
     "linear_hash",
@@ -119,6 +109,12 @@ __all__ = [
     "SpongeState",
     "Hash",
     "Challenge",
+    # Polynomial mappings
+    "PolMap",
+    "EvMap",
+    "ChallengeMap",
+    "CustomCommits",
+    "Boundary",
     # FRI
     "FRI",
     "EvalPoly",
@@ -130,15 +126,9 @@ __all__ = [
     "FriProof",
     "Nonce",
     "QueryIndex",
-    # FRI Test Vectors
-    "get_config",
-    "get_expected_final_pol",
-    "get_expected_nonce",
-    "get_expected_hash",
-    "get_fri_input_polynomial",
-    "get_fri_input_hash",
-    "get_fri_challenges",
-    "get_grinding_challenge",
-    "get_fri_steps",
-    "get_n_bits_ext",
+    # STARK
+    "Starks",
+    "ExpressionsPack",
+    "stark_verify",
+    "calculate_witness_std",
 ]

@@ -5,8 +5,8 @@ Verifies NTT/INTT operations and polynomial extension against mathematical prope
 
 import pytest
 import numpy as np
-from field import FF, SHIFT, get_omega
-from ntt import NTT
+from primitives.field import FF, SHIFT, get_omega
+from primitives.ntt import NTT
 
 
 class TestNTT:

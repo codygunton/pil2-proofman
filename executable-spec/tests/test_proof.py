@@ -9,13 +9,13 @@ import json
 import pytest
 from pathlib import Path
 
-from proof import (
+from tests.proof import (
     STARKProof,
     proof_to_json,
     load_proof_from_json,
     validate_proof_structure,
 )
-from stark_info import StarkInfo
+from tests.stark_info import StarkInfo
 
 
 class TestProofSerialization:

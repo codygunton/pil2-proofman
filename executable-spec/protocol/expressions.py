@@ -13,10 +13,10 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 
-from setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
-from steps_params import StepsParams
-from expressions_bin import ParserParams, ParserArgs
-from field import FF, FF3, ff3, ff3_coeffs
+from tests.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
+from tests.steps_params import StepsParams
+from tests.expressions_bin import ParserParams, ParserArgs
+from primitives.field import FF, FF3, ff3, ff3_coeffs
 
 
 # Number of rows to process in batch (C++ uses 128 for SIMD)

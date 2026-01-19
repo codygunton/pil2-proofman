@@ -13,10 +13,10 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from setup_ctx import SetupCtx
-from steps_params import StepsParams
-from transcript import Transcript
-from gen_proof import gen_proof
+from tests.setup_ctx import SetupCtx
+from tests.steps_params import StepsParams
+from primitives.transcript import Transcript
+from tests.gen_proof import gen_proof
 
 
 TEST_DATA_DIR = Path(__file__).parent / "test-data"

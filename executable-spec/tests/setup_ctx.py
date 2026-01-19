@@ -13,11 +13,11 @@ The stark_info module (Task #1) should also use snake_case for consistency.
 from typing import TYPE_CHECKING, Optional, List
 import numpy as np
 
-from field import FF, FF3, ff3, ff3_coeffs, get_omega, SHIFT, SHIFT_INV
+from primitives.field import FF, FF3, ff3, ff3_coeffs, get_omega, SHIFT, SHIFT_INV
 
 if TYPE_CHECKING:
-    from stark_info import StarkInfo, Boundary
-    from expressions_bin import ExpressionsBin
+    from tests.stark_info import StarkInfo, Boundary
+    from tests.expressions_bin import ExpressionsBin
 
 
 FIELD_EXTENSION = 3  # Goldilocks3 has 3 components

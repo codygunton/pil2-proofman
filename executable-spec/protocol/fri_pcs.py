@@ -3,9 +3,9 @@
 from typing import List, Any, Optional
 from dataclasses import dataclass, field
 
-from fri import FRI, EvalPoly
-from merkle_tree import MerkleTree, MerkleRoot, HASH_SIZE
-from transcript import Transcript
+from protocol.fri import FRI, EvalPoly
+from primitives.merkle_tree import MerkleTree, MerkleRoot, HASH_SIZE
+from primitives.transcript import Transcript
 from poseidon2_ffi import linear_hash, grinding
 
 # --- Type Aliases ---

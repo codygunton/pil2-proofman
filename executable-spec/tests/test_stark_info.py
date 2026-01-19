@@ -7,12 +7,12 @@ from the test AIRs and produces the expected data structures.
 
 import pytest
 from pathlib import Path
-from stark_info import StarkInfo, FIELD_EXTENSION
-from pol_map import EvMap
+from tests.stark_info import StarkInfo, FIELD_EXTENSION
+from primitives.pol_map import EvMap
 
 
 # Test data paths
-SIMPLE_STARKINFO = Path(__file__).parent.parent / \
+SIMPLE_STARKINFO = Path(__file__).parent.parent.parent / \
     "pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json"
 
 
@@ -183,7 +183,7 @@ class TestStarkInfoLookup:
     @pytest.fixture
     def lookup_starkinfo_path(self):
         """Get path to Lookup2_12 starkinfo."""
-        path = Path(__file__).parent.parent / \
+        path = Path(__file__).parent.parent.parent / \
             "pil2-components/test/lookup/build/provingKey/lookup/Lookup/airs/Lookup2_12/air/Lookup2_12.starkinfo.json"
         if not path.exists():
             pytest.skip(f"Lookup starkinfo not found at {path}")
@@ -202,7 +202,7 @@ class TestStarkInfoPermutation:
     @pytest.fixture
     def permutation_starkinfo_path(self):
         """Get path to Permutation1_6 starkinfo."""
-        path = Path(__file__).parent.parent / \
+        path = Path(__file__).parent.parent.parent / \
             "pil2-components/test/permutation/build/provingKey/permutation/Permutation/airs/Permutation1_6/air/Permutation1_6.starkinfo.json"
         if not path.exists():
             pytest.skip(f"Permutation starkinfo not found at {path}")

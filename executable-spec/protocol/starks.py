@@ -13,11 +13,11 @@ This is the core orchestrator that manages STARK proof stages, coordinating:
 from typing import Optional
 import numpy as np
 
-from setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
-from ntt import NTT
-from expressions import ExpressionsPack
-from steps_params import StepsParams
-from pol_map import EvMap
+from tests.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
+from primitives.ntt import NTT
+from protocol.expressions import ExpressionsPack
+from tests.steps_params import StepsParams
+from primitives.pol_map import EvMap
 
 
 class Starks:
@@ -170,7 +170,7 @@ class Starks:
         # Step 2: Compute shift factors (lines 203-208)
         # S[p] = (shift^-1)^(N*p) for p in [0, qDeg)
         # These account for the coset shifting in polynomial division
-        from field import FF, SHIFT_INV
+        from primitives.field import FF, SHIFT_INV
 
         S = np.zeros(self.setupCtx.stark_info.qDeg, dtype=np.uint64)
         shiftIn = FF(SHIFT_INV) ** N
@@ -182,7 +182,7 @@ class Starks:
         # Step 3: Apply shift factors and reorganize (lines 210-217)
         # cmQ[(i * qDeg + p) * FIELD_EXTENSION] = qPol[(p * N + i) * FIELD_EXTENSION] * S[p]
         # This rearranges from degree-major to evaluation-major layout
-        from field import FF3, ff3, ff3_coeffs
+        from primitives.field import FF3, ff3, ff3_coeffs
 
         for p in range(self.setupCtx.stark_info.qDeg):
             for i in range(N):
@@ -315,7 +315,7 @@ class Starks:
             params: Working parameters with challenges
             expressionsCtx: Expression evaluation context
         """
-        from field import FF, FF3, ff3, ff3_coeffs, get_omega
+        from primitives.field import FF, FF3, ff3, ff3_coeffs, get_omega
 
         # Step 1: Find xi challenge index (lines 422-428)
         # Xi is the challenge from stage nStages + 2, stageId 0
@@ -393,7 +393,7 @@ class Starks:
         Returns:
             LEv array (N × len(openingPoints) × FIELD_EXTENSION)
         """
-        from field import FF, FF3, ff3, ff3_coeffs, get_omega, SHIFT_INV
+        from primitives.field import FF, FF3, ff3, ff3_coeffs, get_omega, SHIFT_INV
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         nOpeningPoints = len(openingPoints)
@@ -510,7 +510,7 @@ class Starks:
             LEv: Lagrange evaluation coefficients (N × nOpeningPoints × FIELD_EXTENSION)
             openingPoints: Opening point offsets
         """
-        from field import FF3, ff3, ff3_coeffs
+        from primitives.field import FF3, ff3, ff3_coeffs
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         extendBits = self.setupCtx.stark_info.starkStruct.nBitsExt - self.setupCtx.stark_info.starkStruct.nBits

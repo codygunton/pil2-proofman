@@ -9,7 +9,7 @@ over the Goldilocks field, including forward/inverse transforms and polynomial e
 import numpy as np
 from typing import Optional
 import galois
-from field import FF, SHIFT, SHIFT_INV, get_omega, get_omega_inv, GOLDILOCKS_PRIME
+from primitives.field import FF, SHIFT, SHIFT_INV, get_omega, get_omega_inv, GOLDILOCKS_PRIME
 
 
 class NTT:

@@ -29,8 +29,14 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["."]
+packages = ["primitives", "protocol", "tests"]
 only-include = [
-    "*.py",
-    "test-data/*.json",
+    "primitives/*.py",
+    "protocol/*.py",
+    "tests/*.py",
+    "tests/test-data/*.json",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

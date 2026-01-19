@@ -11,7 +11,7 @@ MyLogFile.log
 .vscode/c_cpp_properties.json
 
 # Generated test vectors (run ./generate-test-vectors.sh to create)
-executable-spec/test-data/*.json
+executable-spec/tests/test-data/*.json
 
 # Python
 __pycache__/

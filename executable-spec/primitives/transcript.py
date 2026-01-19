@@ -2,7 +2,7 @@
 
 from typing import List
 from poseidon2_ffi import poseidon2_hash
-from field import GOLDILOCKS_PRIME
+from primitives.field import GOLDILOCKS_PRIME
 
 # --- Type Aliases ---
 
