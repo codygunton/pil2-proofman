@@ -121,3 +121,27 @@ class Transcript:
         self.pending = [0] * self.transcript_out_size
         self.pending_cursor = 0
         self.state = list(self.out)
+
+    def set_state(self, state: List[int], out: List[int],
+                  out_cursor: int, pending_cursor: int,
+                  pending: List[int] = None) -> None:
+        """Restore transcript state from captured values.
+
+        Used to replay Fiat-Shamir transcript from a known state,
+        enabling deterministic proof generation matching C++ output.
+
+        Args:
+            state: Sponge state (16 elements)
+            out: Output buffer (16 elements)
+            out_cursor: Position in output buffer
+            pending_cursor: Position in pending buffer
+            pending: Pending buffer contents (optional, defaults to zeros)
+        """
+        self.state = list(state)
+        self.out = list(out)
+        self.out_cursor = out_cursor
+        self.pending_cursor = pending_cursor
+        if pending is not None:
+            self.pending = list(pending)
+        else:
+            self.pending = [0] * self.transcript_out_size
