@@ -525,16 +525,28 @@ class StarkInfo:
 
         self.mapTotalN = 0
 
-        # For simplicity, set basic offsets for trace stages
-        # The full implementation has complex logic for different modes
+        # Set non-extended offsets for trace stages
+        # These are used during initial witness computation
         for stage in range(1, self.nStages + 2):
             section_name = f"cm{stage}"
             if section_name in self.mapSectionsN:
                 self.mapOffsets[(section_name, False)] = self.mapTotalN
                 self.mapTotalN += N * self.mapSectionsN[section_name]
 
-        # Quotient polynomial offset
+        # Set extended offsets for trace stages
+        # These are used after polynomial extension (N -> N_ext)
+        for stage in range(1, self.nStages + 2):
+            section_name = f"cm{stage}"
+            if section_name in self.mapSectionsN:
+                self.mapOffsets[(section_name, True)] = self.mapTotalN
+                self.mapTotalN += NExtended * self.mapSectionsN[section_name]
+
+        # Quotient polynomial offset (extended domain only)
         self.mapOffsets[("q", True)] = self.mapTotalN
+        self.mapTotalN += NExtended * self.qDim
+
+        # FRI polynomial offset (extended domain only)
+        self.mapOffsets[("f", True)] = self.mapTotalN
         self.mapTotalN += NExtended * FIELD_EXTENSION
 
     def _get_num_nodes_mt(self, height: int) -> int:
