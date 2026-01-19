@@ -95,21 +95,24 @@ class NTT:
         """Compute coset shift arrays r and r_.
 
         r[i] = SHIFT^i
-        r_[i] = r[i] * powTwoInv[log2(N)]
+        r_[i] = SHIFT^i (same as r, galois.intt already normalizes by 1/N)
+
+        Note: C++ NTT computes r_[i] = SHIFT^i * powTwoInv but its INTT
+        does NOT normalize. Python galois.intt DOES normalize, so we don't
+        need the powTwoInv factor in r_.
 
         Source: NTT_Goldilocks::computeR (lines 48-60)
         """
-        domain_pow = self._log2(N)
         self.r = FF.Zeros(N)
         self.r_ = FF.Zeros(N)
 
         self.r[0] = FF(1)
-        self.r_[0] = self.pow_two_inv[domain_pow]
+        self.r_[0] = FF(1)
 
         shift_ff = FF(int(SHIFT))
         for i in range(1, N):
             self.r[i] = self.r[i - 1] * shift_ff
-            self.r_[i] = self.r[i] * self.pow_two_inv[domain_pow]
+            self.r_[i] = self.r[i]  # Same as r since galois.intt normalizes
 
     def ntt(self, coeffs: np.ndarray, n_cols: int = 1) -> np.ndarray:
         """Forward NTT: coefficients → evaluations.
@@ -139,7 +142,9 @@ class NTT:
 
         for col in range(n_cols):
             # galois.ntt expects omega to be passed
-            result[:, col] = galois.ntt(coeffs_2d[:, col], omega=omega)
+            # Must convert to FF array so galois uses correct field
+            coeffs_ff = FF(coeffs_2d[:, col])
+            result[:, col] = galois.ntt(coeffs_ff, omega=omega)
 
         # Preserve input dimensionality
         return result.flatten() if input_is_1d else result
@@ -177,7 +182,9 @@ class NTT:
 
         for col in range(n_cols):
             # galois.intt expects omega to be the inverse root
-            coeffs_col = galois.intt(evals_2d[:, col], omega=omega_inv)
+            # Must convert to FF array so galois uses correct field
+            evals_ff = FF(evals_2d[:, col])
+            coeffs_col = galois.intt(evals_ff, omega=omega_inv)
 
             if extend:
                 # Multiply by r_[i] for coset shifting (LDE optimization)

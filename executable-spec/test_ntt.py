@@ -190,11 +190,11 @@ class TestNTT:
             actual = ntt.r[i]
             assert actual == expected, f"r[{i}] mismatch: {actual} != {expected}"
 
-        # r_[i] should equal r[i] * 2^(-log2(N))
-        n_bits = NTT._log2(N)
-        scale = ntt.pow_two_inv[n_bits]
+        # r_[i] should equal r[i] (no extra scaling since galois.intt normalizes)
+        # Note: C++ NTT has r_[i] = r[i] * pow_two_inv because its INTT doesn't normalize,
+        # but Python galois.intt does normalize, so r_ = r here.
         for i in range(N):
-            expected = ntt.r[i] * scale
+            expected = ntt.r[i]
             actual = ntt.r_[i]
             assert actual == expected, f"r_[{i}] mismatch: {actual} != {expected}"
 
