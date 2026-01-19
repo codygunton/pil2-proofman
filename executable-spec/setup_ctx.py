@@ -186,11 +186,13 @@ class ProverHelpers:
             self.x[k] = int(shift * (w_ext ** k))
 
             # Compute subsequent values incrementally
+            # Note: Must convert numpy uint64 to Python int before creating FF,
+            # as galois library has issues with numpy integer types in multiplication
             end = min(k + 4096, N_extended)
             for j in range(k + 1, end):
                 if pil1 and j < N:
-                    self.x_n[j] = int(FF(self.x_n[j-1]) * w_n)
-                self.x[j] = int(FF(self.x[j-1]) * w_ext)
+                    self.x_n[j] = int(FF(int(self.x_n[j-1])) * w_n)
+                self.x[j] = int(FF(int(self.x[j-1])) * w_ext)
 
     def compute_zerofier(self, n_bits: int, n_bits_ext: int, boundaries: List['Boundary']):
         """Compute zerofier inverse values for all boundaries.
@@ -272,9 +274,10 @@ class ProverHelpers:
 
         # zi[offset*N_ext + i] = 1 / ((x[i] - root) * zi[i])
         # Note: zi[i] contains Z_H(x[i])^(-1) from build_zh_inv (everyRow)
+        # Note: Must convert numpy uint64 to Python int before creating FF
         for i in range(N_extended):
-            x_i = FF(self.x[i])
-            zh_inv = FF(self.zi[i])  # Read from offset 0 (everyRow boundary)
+            x_i = FF(int(self.x[i]))
+            zh_inv = FF(int(self.zi[i]))  # Read from offset 0 (everyRow boundary)
             self.zi[offset * N_extended + i] = int(((x_i - root) * zh_inv) ** -1)
 
     def build_frame_zerofier_inv(self, n_bits: int, n_bits_ext: int, offset: int,
@@ -316,8 +319,9 @@ class ProverHelpers:
         roots = roots_begin + roots_end
 
         # Compute product: zi[i] = prod_j (x[i] - roots[j])
+        # Note: Must convert numpy uint64 to Python int before creating FF
         for i in range(N_extended):
-            x_i = FF(self.x[i])
+            x_i = FF(int(self.x[i]))
             zi_val = FF(1)
             for root in roots:
                 zi_val = zi_val * (x_i - root)
