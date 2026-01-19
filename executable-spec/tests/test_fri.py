@@ -34,7 +34,7 @@ import pytest
 from primitives.merkle_tree import MerkleTree
 from primitives.transcript import Transcript
 from protocol.fri import FRI
-from protocol.fri_pcs import FriPcs, FriPcsConfig
+from protocol.pcs import FriPcs, FriPcsConfig
 from poseidon2_ffi import linear_hash
 
 from tests.fri_vectors import (

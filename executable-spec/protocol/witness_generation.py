@@ -18,13 +18,13 @@ The algorithm uses a hint-driven approach:
 import numpy as np
 from typing import Optional, List, TYPE_CHECKING
 
-from tests.expressions_bin import ExpressionsBin, HintFieldValue, OpType
-from tests.stark_info import StarkInfo
-from tests.steps_params import StepsParams
+from protocol.expressions_bin import ExpressionsBin, HintFieldValue, OpType
+from protocol.stark_info import StarkInfo
+from protocol.steps_params import StepsParams
 from primitives.field import FF, ff3, ff3_coeffs
 
 if TYPE_CHECKING:
-    from protocol.expressions import ExpressionsPack
+    from protocol.expression_evaluator import ExpressionsPack
 
 # Field extension size (Goldilocks3)
 FIELD_EXTENSION = 3

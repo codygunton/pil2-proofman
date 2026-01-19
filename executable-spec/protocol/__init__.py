@@ -7,7 +7,7 @@ from protocol.fri import (
     FIELD_EXTENSION,
 )
 
-from protocol.fri_pcs import (
+from protocol.pcs import (
     FriPcs,
     FriPcsConfig,
     FriProof,
@@ -15,13 +15,21 @@ from protocol.fri_pcs import (
     QueryIndex,
 )
 
-from protocol.starks import Starks
+from protocol.stages import Starks
 
-from protocol.expressions import ExpressionsPack
+from protocol.expression_evaluator import ExpressionsPack
 
-from protocol.stark_verify import stark_verify
+from protocol.verifier import stark_verify
 
-from protocol.witness_std import calculate_witness_std
+from protocol.witness_generation import calculate_witness_std
+
+from protocol.prover import gen_proof
+
+from protocol.stark_info import StarkInfo
+from protocol.setup_ctx import SetupCtx, ProverHelpers
+from protocol.steps_params import StepsParams
+from protocol.expressions_bin import ExpressionsBin
+from protocol.proof import STARKProof
 
 __all__ = [
     # FRI
@@ -40,4 +48,12 @@ __all__ = [
     "ExpressionsPack",
     "stark_verify",
     "calculate_witness_std",
+    "gen_proof",
+    # Configuration and data structures
+    "StarkInfo",
+    "SetupCtx",
+    "ProverHelpers",
+    "StepsParams",
+    "ExpressionsBin",
+    "STARKProof",
 ]

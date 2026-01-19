@@ -8,7 +8,7 @@ import pytest
 from pathlib import Path
 import numpy as np
 
-from tests.expressions_bin import (
+from protocol.expressions_bin import (
     ExpressionsBin,
     ParserParams,
     ParserArgs,

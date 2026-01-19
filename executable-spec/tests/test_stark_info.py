@@ -7,7 +7,7 @@ from the test AIRs and produces the expected data structures.
 
 import pytest
 from pathlib import Path
-from tests.stark_info import StarkInfo, FIELD_EXTENSION
+from protocol.stark_info import StarkInfo, FIELD_EXTENSION
 from primitives.pol_map import EvMap
 
 

@@ -13,10 +13,10 @@ This is the core orchestrator that manages STARK proof stages, coordinating:
 from typing import Optional
 import numpy as np
 
-from tests.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
+from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
 from primitives.ntt import NTT
-from protocol.expressions import ExpressionsPack
-from tests.steps_params import StepsParams
+from protocol.expression_evaluator import ExpressionsPack
+from protocol.steps_params import StepsParams
 from primitives.pol_map import EvMap
 
 

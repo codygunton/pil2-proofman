@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 
-from tests.stark_info import FIELD_EXTENSION, HASH_SIZE
+from protocol.stark_info import FIELD_EXTENSION, HASH_SIZE
 
 
 @dataclass

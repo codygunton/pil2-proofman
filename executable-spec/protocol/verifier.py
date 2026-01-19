@@ -22,9 +22,9 @@ Translation notes:
 from typing import Dict, List, Optional
 import numpy as np
 
-from tests.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
-from tests.steps_params import StepsParams
-from protocol.expressions import ExpressionsPack, Dest
+from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
+from protocol.steps_params import StepsParams
+from protocol.expression_evaluator import ExpressionsPack, Dest
 from primitives.transcript import Transcript
 from protocol.fri import FRI
 from primitives.ntt import NTT

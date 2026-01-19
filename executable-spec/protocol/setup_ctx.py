@@ -16,8 +16,8 @@ import numpy as np
 from primitives.field import FF, FF3, ff3, ff3_coeffs, get_omega, SHIFT, SHIFT_INV
 
 if TYPE_CHECKING:
-    from tests.stark_info import StarkInfo, Boundary
-    from tests.expressions_bin import ExpressionsBin
+    from protocol.stark_info import StarkInfo, Boundary
+    from protocol.expressions_bin import ExpressionsBin
 
 
 FIELD_EXTENSION = 3  # Goldilocks3 has 3 components

@@ -13,9 +13,9 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 
-from tests.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
-from tests.steps_params import StepsParams
-from tests.expressions_bin import ParserParams, ParserArgs
+from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
+from protocol.steps_params import StepsParams
+from protocol.expressions_bin import ParserParams, ParserArgs
 from primitives.field import FF, FF3, ff3, ff3_coeffs
 
 

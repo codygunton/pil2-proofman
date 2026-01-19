@@ -18,12 +18,12 @@ from primitives.merkle_tree import HASH_SIZE
 from primitives.ntt import NTT
 from poseidon2_ffi import linear_hash
 from primitives.transcript import Transcript
-from protocol.fri_pcs import FriPcs, FriPcsConfig
-from protocol.starks import Starks
-from protocol.expressions import ExpressionsPack
-from tests.setup_ctx import SetupCtx, ProverHelpers
-from tests.steps_params import StepsParams
-from protocol.witness_std import calculate_witness_std
+from protocol.pcs import FriPcs, FriPcsConfig
+from protocol.stages import Starks
+from protocol.expression_evaluator import ExpressionsPack
+from protocol.setup_ctx import SetupCtx, ProverHelpers
+from protocol.steps_params import StepsParams
+from protocol.witness_generation import calculate_witness_std
 
 # Field extension size (Goldilocks3)
 FIELD_EXTENSION = 3
