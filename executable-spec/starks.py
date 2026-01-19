@@ -17,6 +17,7 @@ from setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
 from ntt import NTT
 from expressions import ExpressionsPack
 from steps_params import StepsParams
+from pol_map import EvMap
 
 
 class Starks:
@@ -174,8 +175,9 @@ class Starks:
         S = np.zeros(self.setupCtx.stark_info.qDeg, dtype=np.uint64)
         shiftIn = FF(SHIFT_INV) ** N
         S[0] = 1
+        # Note: Must convert numpy uint64 to Python int before creating FF
         for i in range(1, self.setupCtx.stark_info.qDeg):
-            S[i] = int(FF(S[i - 1]) * shiftIn)
+            S[i] = int(FF(int(S[i - 1])) * shiftIn)
 
         # Step 3: Apply shift factors and reorganize (lines 210-217)
         # cmQ[(i * qDeg + p) * FIELD_EXTENSION] = qPol[(p * N + i) * FIELD_EXTENSION] * S[p]
@@ -554,7 +556,7 @@ class Starks:
                 openingPosIdx = openingPoints.index(evMap.prime)
 
                 # Get polynomial value
-                if evMap.type == "cm":
+                if evMap.type == EvMap.Type.cm:
                     polInfo = self.setupCtx.stark_info.cmPolsMap[evMap.id]
                     section = f"cm{polInfo.stage}"
                     offset = self.setupCtx.stark_info.mapOffsets[(section, True)]
@@ -569,14 +571,14 @@ class Starks:
                             int(params.auxTrace[offset + row * nCols + polInfo.stagePos + 2])
                         ])
 
-                elif evMap.type == "const":
+                elif evMap.type == EvMap.Type.const_:
                     polInfo = self.setupCtx.stark_info.constPolsMap[evMap.id]
                     offset = self.setupCtx.stark_info.mapOffsets[("const", True)]
                     nCols = self.setupCtx.stark_info.mapSectionsN["const"]
 
                     polVal = ff3([int(params.constPolsExtended[offset + row * nCols + polInfo.stagePos]), 0, 0])
 
-                elif evMap.type == "custom":
+                elif evMap.type == EvMap.Type.custom:
                     polInfo = self.setupCtx.stark_info.customCommitsMap[evMap.commitId][evMap.id]
                     commitName = self.setupCtx.stark_info.customCommits[polInfo.commitId].name
                     section = commitName + "0"
