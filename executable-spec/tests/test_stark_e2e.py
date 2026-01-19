@@ -227,18 +227,18 @@ class TestStarkE2E:
         """Test that Fiat-Shamir challenges match C++ golden values."""
         vectors = load_test_vectors(air_name)
         if vectors is None:
-            pytest.skip(f"Test vectors not found for {air_name}")
+            pytest.fail(f"Test vectors not found for {air_name}")
 
         setup_ctx = load_setup_ctx(air_name)
         if setup_ctx is None:
-            pytest.skip(f"Setup files not found for {air_name}")
+            pytest.fail(f"Setup files not found for {air_name}")
 
         stark_info = setup_ctx.stark_info
 
         # Create transcript with captured state
         transcript_state = vectors['inputs'].get('transcript_state_step0')
         if transcript_state is None:
-            pytest.skip(f"transcript_state_step0 not in test vectors for {air_name}")
+            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
 
         global_challenge = vectors['inputs'].get('global_challenge', [])
         transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
@@ -282,18 +282,18 @@ class TestStarkE2E:
         """Test that polynomial evaluations match C++ golden values."""
         vectors = load_test_vectors(air_name)
         if vectors is None:
-            pytest.skip(f"Test vectors not found for {air_name}")
+            pytest.fail(f"Test vectors not found for {air_name}")
 
         setup_ctx = load_setup_ctx(air_name)
         if setup_ctx is None:
-            pytest.skip(f"Setup files not found for {air_name}")
+            pytest.fail(f"Setup files not found for {air_name}")
 
         stark_info = setup_ctx.stark_info
 
         # Create transcript with captured state
         transcript_state = vectors['inputs'].get('transcript_state_step0')
         if transcript_state is None:
-            pytest.skip(f"transcript_state_step0 not in test vectors for {air_name}")
+            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
 
         global_challenge = vectors['inputs'].get('global_challenge', [])
         transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
@@ -324,18 +324,18 @@ class TestStarkE2E:
         """Test that FRI output matches C++ golden values."""
         vectors = load_test_vectors(air_name)
         if vectors is None:
-            pytest.skip(f"Test vectors not found for {air_name}")
+            pytest.fail(f"Test vectors not found for {air_name}")
 
         setup_ctx = load_setup_ctx(air_name)
         if setup_ctx is None:
-            pytest.skip(f"Setup files not found for {air_name}")
+            pytest.fail(f"Setup files not found for {air_name}")
 
         stark_info = setup_ctx.stark_info
 
         # Create transcript with captured state
         transcript_state = vectors['inputs'].get('transcript_state_step0')
         if transcript_state is None:
-            pytest.skip(f"transcript_state_step0 not in test vectors for {air_name}")
+            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
 
         global_challenge = vectors['inputs'].get('global_challenge', [])
         transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
@@ -374,11 +374,11 @@ class TestStarkWithInjectedChallenges:
         """Test that evals match when using injected challenges."""
         vectors = load_test_vectors(air_name)
         if vectors is None:
-            pytest.skip(f"Test vectors not found for {air_name}")
+            pytest.fail(f"Test vectors not found for {air_name}")
 
         setup_ctx = load_setup_ctx(air_name)
         if setup_ctx is None:
-            pytest.skip(f"Setup files not found for {air_name}")
+            pytest.fail(f"Setup files not found for {air_name}")
 
         stark_info = setup_ctx.stark_info
 
@@ -430,11 +430,11 @@ class TestStarkPartialEvals:
         """Test that cm1 and constant polynomial evaluations match."""
         vectors = load_test_vectors(air_name)
         if vectors is None:
-            pytest.skip(f"Test vectors not found for {air_name}")
+            pytest.fail(f"Test vectors not found for {air_name}")
 
         setup_ctx = load_setup_ctx(air_name)
         if setup_ctx is None:
-            pytest.skip(f"Setup files not found for {air_name}")
+            pytest.fail(f"Setup files not found for {air_name}")
 
         stark_info = setup_ctx.stark_info
 
@@ -491,18 +491,18 @@ class TestStarkE2EComplete:
         """Test complete proof generation matches C++ golden values."""
         vectors = load_test_vectors(air_name)
         if vectors is None:
-            pytest.skip(f"Test vectors not found for {air_name}")
+            pytest.fail(f"Test vectors not found for {air_name}")
 
         setup_ctx = load_setup_ctx(air_name)
         if setup_ctx is None:
-            pytest.skip(f"Setup files not found for {air_name}")
+            pytest.fail(f"Setup files not found for {air_name}")
 
         stark_info = setup_ctx.stark_info
 
         # Create transcript with captured state
         transcript_state = vectors['inputs'].get('transcript_state_step0')
         if transcript_state is None:
-            pytest.skip(f"transcript_state_step0 not in test vectors for {air_name}")
+            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
 
         global_challenge = vectors['inputs'].get('global_challenge', [])
         transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)

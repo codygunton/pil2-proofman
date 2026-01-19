@@ -128,7 +128,7 @@ class TestProofLoading:
         proof_path = test_data_dir / "simple-left.json"
 
         if not proof_path.exists():
-            pytest.skip("Test data file not generated yet")
+            pytest.fail("Test data file not generated yet")
 
         # Load raw JSON to check structure
         with open(proof_path) as f:
@@ -157,7 +157,7 @@ class TestProofLoading:
         proof_path = test_data_dir / "lookup2-12.json"
 
         if not proof_path.exists():
-            pytest.skip("Test data file not generated yet")
+            pytest.fail("Test data file not generated yet")
 
         # Load raw JSON to check structure
         with open(proof_path) as f:
@@ -178,7 +178,7 @@ class TestProofLoading:
         proof_path = test_data_dir / "permutation1-6.json"
 
         if not proof_path.exists():
-            pytest.skip("Test data file not generated yet")
+            pytest.fail("Test data file not generated yet")
 
         # Load raw JSON to check structure
         with open(proof_path) as f:

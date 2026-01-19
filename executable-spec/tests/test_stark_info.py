@@ -23,7 +23,7 @@ class TestStarkInfoSimple:
     def stark_info(self):
         """Load SimpleLeft starkinfo."""
         if not SIMPLE_STARKINFO.exists():
-            pytest.skip(f"SimpleLeft starkinfo not found at {SIMPLE_STARKINFO}")
+            pytest.fail(f"SimpleLeft starkinfo not found at {SIMPLE_STARKINFO}")
         return StarkInfo.from_json(str(SIMPLE_STARKINFO))
 
     def test_loads_successfully(self, stark_info):
@@ -186,7 +186,7 @@ class TestStarkInfoLookup:
         path = Path(__file__).parent.parent.parent / \
             "pil2-components/test/lookup/build/provingKey/lookup/Lookup/airs/Lookup2_12/air/Lookup2_12.starkinfo.json"
         if not path.exists():
-            pytest.skip(f"Lookup starkinfo not found at {path}")
+            pytest.fail(f"Lookup starkinfo not found at {path}")
         return str(path)
 
     def test_lookup_loads(self, lookup_starkinfo_path):
@@ -205,7 +205,7 @@ class TestStarkInfoPermutation:
         path = Path(__file__).parent.parent.parent / \
             "pil2-components/test/permutation/build/provingKey/permutation/Permutation/airs/Permutation1_6/air/Permutation1_6.starkinfo.json"
         if not path.exists():
-            pytest.skip(f"Permutation starkinfo not found at {path}")
+            pytest.fail(f"Permutation starkinfo not found at {path}")
         return str(path)
 
     def test_permutation_loads(self, permutation_starkinfo_path):

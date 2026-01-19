@@ -27,7 +27,7 @@ SIMPLE_LEFT_VERIFIER_BIN = "/home/cody/pil2-proofman/pil2-components/test/simple
 def test_bin_file_reader_magic_and_version():
     """Test BinFileReader correctly reads file header."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     reader = BinFileReader(SIMPLE_LEFT_BIN)
 
@@ -38,7 +38,7 @@ def test_bin_file_reader_magic_and_version():
 def test_expressions_bin_from_file_basic():
     """Test ExpressionsBin.from_file() loads without errors."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
@@ -52,7 +52,7 @@ def test_expressions_bin_from_file_basic():
 def test_expressions_bin_parser_params():
     """Test that ParserParams are correctly populated."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
@@ -82,7 +82,7 @@ def test_expressions_bin_parser_params():
 def test_expressions_bin_parser_args():
     """Test that ParserArgs arrays are correctly populated."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
@@ -112,7 +112,7 @@ def test_expressions_bin_parser_args():
 def test_expressions_bin_constraints():
     """Test that constraint section is correctly loaded."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
@@ -129,7 +129,7 @@ def test_expressions_bin_constraints():
 def test_expressions_bin_hints():
     """Test that hints section is correctly loaded."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
@@ -146,7 +146,7 @@ def test_expressions_bin_hints():
 def test_expressions_bin_max_values():
     """Test that maximum temporary values are correctly set."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
@@ -167,7 +167,7 @@ def test_expressions_bin_max_values():
 def test_get_expression():
     """Test get_expression() method."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
@@ -187,12 +187,12 @@ def test_get_expression():
 def test_get_hint_ids_by_name():
     """Test get_hint_ids_by_name() and get_number_hint_ids_by_name()."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
     if len(expr_bin.hints) == 0:
-        pytest.skip("No hints in this binary")
+        pytest.fail("No hints in this binary")
 
     # Get a hint name that exists
     hint_name = expr_bin.hints[0].name
@@ -219,7 +219,7 @@ def test_get_hint_ids_by_name():
 def test_verifier_bin_loading():
     """Test loading verifier binary (expressions only, no constraints/hints)."""
     if not Path(SIMPLE_LEFT_VERIFIER_BIN).exists():
-        pytest.skip("SimpleLeft.verifier.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.verifier.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_VERIFIER_BIN, verifier_bin=True)
 
@@ -236,7 +236,7 @@ def test_verifier_bin_loading():
 def test_bytecode_access():
     """Test that bytecode can be accessed via offsets."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
@@ -265,7 +265,7 @@ def test_bytecode_access():
 def test_expression_line_strings():
     """Test that expression line strings are readable."""
     if not Path(SIMPLE_LEFT_BIN).exists():
-        pytest.skip("SimpleLeft.bin not found - run ./setup.sh first")
+        pytest.fail("SimpleLeft.bin not found - run ./setup.sh first")
 
     expr_bin = ExpressionsBin.from_file(SIMPLE_LEFT_BIN)
 
@@ -291,7 +291,7 @@ def test_expressions_bin_faithfulness(air_name, bin_path):
     3. No data is lost during parsing
     """
     if not Path(bin_path).exists():
-        pytest.skip(f"{air_name}.bin not found - run ./setup.sh first")
+        pytest.fail(f"{air_name}.bin not found - run ./setup.sh first")
 
     # Load twice
     expr_bin1 = ExpressionsBin.from_file(bin_path)

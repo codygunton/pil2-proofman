@@ -269,7 +269,7 @@ class TestFRIFolding:
         """Verify polynomial hash after EACH fold step matches C++ captured values."""
         expected_hashes = get_poly_hashes_after_fold(air_name)
         if not expected_hashes:
-            pytest.skip(f"Intermediate polynomial hashes not captured for {air_name}")
+            pytest.fail(f"Intermediate polynomial hashes not captured for {air_name}")
 
         assert expected_hashes[0] == self.input_hash
 
@@ -293,7 +293,7 @@ class TestFRIFolding:
         """Verify Python Merkle tree roots match C++ captured values."""
         expected_roots = get_merkle_roots(air_name)
         if not expected_roots:
-            pytest.skip(f"Merkle roots not captured for {air_name}")
+            pytest.fail(f"Merkle roots not captured for {air_name}")
 
         current_pol = list(self.input_pol)
         for step_idx in range(len(self.fri_steps) - 1):
@@ -326,7 +326,7 @@ class TestFRIFolding:
         """
         expected_siblings = get_query_proof_siblings(air_name)
         if not expected_siblings:
-            pytest.skip(f"Query proof siblings not captured for {air_name}")
+            pytest.fail(f"Query proof siblings not captured for {air_name}")
 
         queries = get_fri_queries(air_name)
         assert queries, "FRI queries not available"
