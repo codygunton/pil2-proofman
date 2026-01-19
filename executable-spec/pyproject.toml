@@ -17,7 +17,7 @@ dev = [
 
 [tool.uv.sources]
 galois = { git = "https://github.com/codygunton/galois", branch = "custom-omega" }
-poseidon2-ffi = { path = "poseidon2-ffi", editable = true }
+poseidon2-ffi = { path = "primitives/poseidon2-ffi", editable = true }
 
 [build-system]
 requires = ["hatchling"]

@@ -16,14 +16,14 @@ echo "=== STARK E2E Tests ==="
 echo "Validates: roots, challenges, evals, FRI polynomial vs C++ golden values"
 echo ""
 
-uv run python -m pytest test_stark_e2e.py -v "$@"
+uv run python -m pytest tests/test_stark_e2e.py -v "$@"
 
 echo ""
 echo "=== FRI E2E Tests ==="
 echo "Validates: FRI folding, final polynomial, nonce vs C++ golden values"
 echo ""
 
-uv run python -m pytest test_fri.py -v "$@"
+uv run python -m pytest tests/test_fri.py -v "$@"
 
 echo ""
 echo "=== All E2E tests passed ==="
