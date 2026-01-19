@@ -16,12 +16,14 @@ import numpy as np
 
 from merkle_tree import HASH_SIZE
 from ntt import NTT
+from poseidon2_ffi import linear_hash
 from transcript import Transcript
 from fri_pcs import FriPcs, FriPcsConfig
 from starks import Starks
 from expressions import ExpressionsPack
 from setup_ctx import SetupCtx, ProverHelpers
 from steps_params import StepsParams
+from witness_std import calculate_witness_std
 
 # Field extension size (Goldilocks3)
 FIELD_EXTENSION = 3
@@ -30,7 +32,10 @@ FIELD_EXTENSION = 3
 def gen_proof(
     setup_ctx: SetupCtx,
     params: StepsParams,
-    recursive: bool = False
+    recursive: bool = False,
+    transcript: Optional[Transcript] = None,
+    captured_roots: Optional[dict] = None,
+    skip_challenge_derivation: bool = False
 ) -> dict:
     """Generate complete STARK proof.
 
@@ -52,6 +57,13 @@ def gen_proof(
         setup_ctx: Setup context containing StarkInfo and ExpressionsBin
         params: Working buffers with trace, challenges, aux_trace, etc.
         recursive: If True, use recursive mode (hash public inputs)
+        transcript: Optional pre-initialized transcript for deterministic replay.
+                   If None, a new transcript is created.
+        captured_roots: Optional dict with captured Merkle roots for deterministic testing.
+                       Keys: 'root1', 'root2', 'rootQ' (each a list of 4 field elements).
+                       If provided, these are added to transcript instead of computed roots.
+        skip_challenge_derivation: If True, skip deriving challenges from transcript.
+                                  Use this when challenges are pre-populated in params.
 
     Returns:
         Dictionary containing proof components:
@@ -85,10 +97,11 @@ def gen_proof(
     # Initialize Fiat-Shamir transcript
     # C++: Line 60
     # -------------------------------------------------------------------------
-    transcript = Transcript(
-        arity=stark_info.starkStruct.transcriptArity,
-        custom=stark_info.starkStruct.merkleTreeCustom
-    )
+    if transcript is None:
+        transcript = Transcript(
+            arity=stark_info.starkStruct.transcriptArity,
+            custom=stark_info.starkStruct.merkleTreeCustom
+        )
 
     # -------------------------------------------------------------------------
     # Stage 0: Initialize transcript
@@ -122,8 +135,10 @@ def gen_proof(
     # This extends trace from N to N_extended and merkleizes
     starks.commitStage(1, params, ntt)
 
-    # In C++, the root is added to transcript here (line 95)
-    # Python spec: root would be extracted and added to transcript
+    # Add root1 to transcript (C++ line 95)
+    # Python spec doesn't compute Merkle trees, so use captured root if available
+    if captured_roots and 'root1' in captured_roots:
+        transcript.put(captured_roots['root1'])
 
     # -------------------------------------------------------------------------
     # Stage 2: Intermediate polynomials
@@ -132,20 +147,43 @@ def gen_proof(
 
     # Derive stage 2 challenges from transcript
     # C++: Lines 130-134
-    for i, challenge_map in enumerate(stark_info.challengesMap):
-        if challenge_map.stage == 2:
-            challenge = transcript.get_field()  # Get 3-element challenge
-            params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
+    if not skip_challenge_derivation:
+        for i, challenge_map in enumerate(stark_info.challengesMap):
+            if challenge_map.stage == 2:
+                challenge = transcript.get_field()  # Get 3-element challenge
+                params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
 
-    # Calculate intermediate polynomials (witness STD for lookups/permutations)
+    # Calculate intermediate polynomials via expressions (for imPol=True polynomials)
     # C++: Lines 136-142
-    # Note: _calculate_witness_std() is a complex helper that computes
-    # running sum/product columns. For the spec, we call the Starks method:
     starks.calculateImPolsExpressions(2, params, expressions_ctx)
+
+    # Calculate witness STD columns for grand product arguments
+    # C++: Lines 136-142 in gen_proof.hpp - calculateWitnessSTD()
+    # This computes gsum (running sum) and gprod (running product) polynomials
+    # for lookup and permutation arguments. These polynomials accumulate
+    # evidence that lookups are valid or permutations are correct.
+    calculate_witness_std(
+        setup_ctx.stark_info,
+        setup_ctx.expressions_bin,
+        params,
+        expressions_ctx,
+        prod=True   # gprod first (running product)
+    )
+    calculate_witness_std(
+        setup_ctx.stark_info,
+        setup_ctx.expressions_bin,
+        params,
+        expressions_ctx,
+        prod=False  # then gsum (running sum)
+    )
 
     # Commit to stage 2
     # C++: Lines 144-151
     starks.commitStage(2, params, ntt)
+
+    # Add root2 to transcript (C++ line 147)
+    if captured_roots and 'root2' in captured_roots:
+        transcript.put(captured_roots['root2'])
 
     # Add air values to transcript
     # C++: Lines 153-161
@@ -158,10 +196,11 @@ def gen_proof(
 
     # Derive quotient stage challenges
     # C++: Lines 214-219
-    for i, challenge_map in enumerate(stark_info.challengesMap):
-        if challenge_map.stage == stark_info.nStages + 1:
-            challenge = transcript.get_field()
-            params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
+    if not skip_challenge_derivation:
+        for i, challenge_map in enumerate(stark_info.challengesMap):
+            if challenge_map.stage == stark_info.nStages + 1:
+                challenge = transcript.get_field()
+                params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
 
     # Calculate quotient polynomial Q
     # C++: Lines 221-223
@@ -170,6 +209,10 @@ def gen_proof(
     # Commit to quotient polynomial (uses extended NTT)
     # C++: Lines 225-232
     starks.commitStage(stark_info.nStages + 1, params, ntt_extended)
+
+    # Add rootQ to transcript (C++ line 229)
+    if captured_roots and 'rootQ' in captured_roots:
+        transcript.put(captured_roots['rootQ'])
 
     # -------------------------------------------------------------------------
     # Stage EVALS: Polynomial evaluations
@@ -183,8 +226,9 @@ def gen_proof(
         if challenge_map.stage == stark_info.nStages + 2:
             if challenge_map.stageId == 0:
                 xi_challenge_index = i
-            challenge = transcript.get_field()
-            params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
+            if not skip_challenge_derivation:
+                challenge = transcript.get_field()
+                params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
 
     # Get xi challenge (the point where we evaluate all polynomials)
     # C++: Line 289
@@ -209,20 +253,22 @@ def gen_proof(
         starks.computeEvals(params, LEv, opening_points)
 
     # Add evaluations to transcript (directly or hashed)
-    # C++: Lines 304-310
+    # C++: Lines 379-385
     n_evals = len(stark_info.evMap) * FIELD_EXTENSION
     if not stark_info.starkStruct.hashCommits:
         transcript.put(params.evals[:n_evals])
     else:
-        # Would hash evaluations before adding (starks.calculateHash)
-        transcript.put(params.evals[:n_evals])
+        # Hash evaluations before adding (C++: starks.calculateHash)
+        evals_hash = list(linear_hash([int(v) for v in params.evals[:n_evals]], width=16))
+        transcript.put(evals_hash)
 
     # Derive FRI polynomial challenges
     # C++: Lines 312-317
-    for i, challenge_map in enumerate(stark_info.challengesMap):
-        if challenge_map.stage == stark_info.nStages + 3:
-            challenge = transcript.get_field()
-            params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
+    if not skip_challenge_derivation:
+        for i, challenge_map in enumerate(stark_info.challengesMap):
+            if challenge_map.stage == stark_info.nStages + 3:
+                challenge = transcript.get_field()
+                params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
 
     # -------------------------------------------------------------------------
     # Stage FRI: FRI polynomial commitment
