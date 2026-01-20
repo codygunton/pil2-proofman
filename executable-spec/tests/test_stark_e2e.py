@@ -486,7 +486,7 @@ class TestStarkPartialEvals:
 class TestStarkE2EComplete:
     """Complete end-to-end test running full proof and comparing all outputs."""
 
-    @pytest.mark.parametrize("air_name", ['simple'])
+    @pytest.mark.parametrize("air_name", list(AIR_CONFIGS.keys()))
     def test_full_proof_matches(self, air_name):
         """Test complete proof generation matches C++ golden values."""
         vectors = load_test_vectors(air_name)
@@ -509,9 +509,16 @@ class TestStarkE2EComplete:
         params = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof
-        # Note: transcript_state_step0 is captured AFTER root1 was absorbed
+        # Note: transcript_state_step0 is captured AFTER root1 was absorbed,
+        # so we exclude root1 from transcript operations but include it in proof['roots']
         captured_roots = get_captured_roots(vectors, exclude_root1=True)
         proof = gen_proof(setup_ctx, params, transcript=transcript, captured_roots=captured_roots)
+
+        # Add root1 to proof['roots'] for byte comparison (it was excluded from captured_roots
+        # for transcript purposes but is still part of the proof structure)
+        intermediates = vectors['intermediates']
+        if 'root1' in intermediates:
+            proof['roots'] = [intermediates['root1']] + proof['roots']
 
         # Collect all mismatches
         mismatches = []
@@ -520,13 +527,12 @@ class TestStarkE2EComplete:
         intermediates = vectors['intermediates']
 
         expected_stage2 = flatten_evals(intermediates.get('challenges_stage2', []))
-        if expected_stage2:
-            actual = []
-            for i, cm in enumerate(stark_info.challengesMap):
-                if cm.stage == 2:
-                    actual.extend([int(v) for v in params.challenges[i*3:(i+1)*3]])
-            if actual != expected_stage2:
-                mismatches.append(f"challenges_stage2: expected {expected_stage2[:6]}..., got {actual[:6]}...")
+        actual_stage2 = []
+        for i, cm in enumerate(stark_info.challengesMap):
+            if cm.stage == 2:
+                actual_stage2.extend([int(v) for v in params.challenges[i*3:(i+1)*3]])
+        if actual_stage2 != expected_stage2:
+            mismatches.append(f"challenges_stage2: expected {expected_stage2[:6]}..., got {actual_stage2[:6]}...")
 
         # Check evals
         expected_evals = flatten_evals(intermediates.get('evals', []))
@@ -547,4 +553,147 @@ class TestStarkE2EComplete:
             n_match = sum(1 for i in range(len(expected_final_pol)) if expected_final_pol[i] == actual_final_pol[i])
             mismatches.append(f"final_pol: {n_match}/{len(expected_final_pol)} matching")
 
+        # Full byte-level comparison of proof
+        # This compares the complete serialized proof byte-for-byte with C++
+        config = AIR_CONFIGS.get(air_name)
+        bin_filename = config['test_vector'].replace('.json', '.proof.bin')
+        bin_path = TEST_DATA_DIR / bin_filename
+
+        if not bin_path.exists():
+            pytest.fail(f"Binary proof file not found: {bin_path}")
+
+        from protocol.proof import to_bytes_full_from_dict
+        import struct
+
+        with open(bin_path, 'rb') as f:
+            cpp_proof_bytes = f.read()
+
+        # Serialize complete Python proof
+        python_proof_bytes = to_bytes_full_from_dict(proof, stark_info)
+
+        # Write Python proof to file for manual diff
+        py_bin_path = TEST_DATA_DIR / bin_filename.replace('.proof.bin', '.proof.py.bin')
+        with open(py_bin_path, 'wb') as f:
+            f.write(python_proof_bytes)
+
+        # Paranoid checks
+        assert len(cpp_proof_bytes) > 0, "C++ proof bytes is empty"
+        assert len(python_proof_bytes) > 0, "Python proof bytes is empty"
+        assert len(cpp_proof_bytes) % 8 == 0, f"C++ proof size {len(cpp_proof_bytes)} not multiple of 8"
+        assert len(python_proof_bytes) % 8 == 0, f"Python proof size {len(python_proof_bytes)} not multiple of 8"
+
+        # Compare sizes
+        cpp_n_vals = len(cpp_proof_bytes) // 8
+        py_n_vals = len(python_proof_bytes) // 8
+
+        assert cpp_n_vals > 0, "C++ proof has zero uint64s"
+        assert py_n_vals > 0, "Python proof has zero uint64s"
+
+        if cpp_n_vals != py_n_vals:
+            mismatches.append(
+                f"proof_bytes: size mismatch - C++ has {cpp_n_vals} uint64s, "
+                f"Python has {py_n_vals} uint64s"
+            )
+        else:
+            # Compare byte-for-byte
+            cpp_vals = struct.unpack(f'<{cpp_n_vals}Q', cpp_proof_bytes)
+            py_vals = struct.unpack(f'<{py_n_vals}Q', python_proof_bytes)
+
+            assert len(cpp_vals) == len(py_vals), "Unpacked lengths differ"
+            assert cpp_proof_bytes == python_proof_bytes, (
+                f"Binary proofs differ. Written Python proof to {py_bin_path}. "
+                f"Diff with: cmp -l {bin_path} {py_bin_path}"
+            )
+
         assert not mismatches, f"Proof mismatches:\n" + "\n".join(f"  - {m}" for m in mismatches)
+
+
+class TestFullBinaryComparison:
+    """Full binary proof comparison test.
+
+    This test uses to_bytes_full_from_dict to serialize the complete proof
+    and compares it byte-for-byte against the C++ binary proof.
+    """
+
+    @pytest.mark.parametrize("air_name", list(AIR_CONFIGS.keys()))
+    def test_full_binary_proof_match(self, air_name):
+        """Test full binary proof equivalence with C++.
+
+        This test serializes the complete Python proof (including query proofs)
+        and compares it byte-for-byte with the C++ binary proof.
+        """
+        import struct
+
+        setup_ctx = load_setup_ctx(air_name)
+        if setup_ctx is None:
+            pytest.fail(f"Setup not found for {air_name}")
+
+        stark_info = setup_ctx.stark_info
+        vectors = load_test_vectors(air_name)
+        if vectors is None:
+            pytest.fail(f"Test vectors not found for {air_name}")
+
+        # Create transcript with captured state
+        transcript_state = vectors['inputs'].get('transcript_state_step0')
+        if transcript_state is None:
+            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
+
+        global_challenge = vectors['inputs'].get('global_challenge', [])
+        transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
+        params = create_params_from_vectors(stark_info, vectors)
+
+        # Run gen_proof with full query proof collection
+        captured_roots = get_captured_roots(vectors, exclude_root1=True)
+        proof = gen_proof(setup_ctx, params, transcript=transcript, captured_roots=captured_roots)
+
+        # Add root1 to proof['roots']
+        intermediates = vectors['intermediates']
+        if 'root1' in intermediates:
+            proof['roots'] = [intermediates['root1']] + proof['roots']
+
+        # Load C++ binary proof
+        config = AIR_CONFIGS.get(air_name)
+        bin_filename = config['test_vector'].replace('.json', '.proof.bin')
+        bin_path = TEST_DATA_DIR / bin_filename
+
+        if not bin_path.exists():
+            pytest.fail(f"Binary proof file not found: {bin_path}")
+
+        with open(bin_path, 'rb') as f:
+            cpp_proof_bytes = f.read()
+
+        # Serialize Python proof using full serialization
+        from protocol.proof import to_bytes_full_from_dict
+
+        python_proof_bytes = to_bytes_full_from_dict(proof, stark_info)
+
+        # Write Python proof to file for manual diff
+        py_bin_path = TEST_DATA_DIR / bin_filename.replace('.proof.bin', '.proof.py.bin')
+        with open(py_bin_path, 'wb') as f:
+            f.write(python_proof_bytes)
+
+        # Paranoid checks
+        assert len(cpp_proof_bytes) > 0, "C++ proof bytes is empty"
+        assert len(python_proof_bytes) > 0, "Python proof bytes is empty"
+        assert len(cpp_proof_bytes) % 8 == 0, f"C++ proof size {len(cpp_proof_bytes)} not multiple of 8"
+        assert len(python_proof_bytes) % 8 == 0, f"Python proof size {len(python_proof_bytes)} not multiple of 8"
+
+        # Compare sizes
+        cpp_n_vals = len(cpp_proof_bytes) // 8
+        py_n_vals = len(python_proof_bytes) // 8
+
+        assert cpp_n_vals > 0, "C++ proof has zero uint64s"
+        assert py_n_vals > 0, "Python proof has zero uint64s"
+
+        if cpp_n_vals != py_n_vals:
+            pytest.fail(
+                f"Proof size mismatch: C++ has {cpp_n_vals} uint64s, "
+                f"Python has {py_n_vals} uint64s (diff: {py_n_vals - cpp_n_vals})"
+            )
+
+        # Direct binary comparison
+        assert len(cpp_proof_bytes) == len(python_proof_bytes), "Byte lengths differ"
+        assert cpp_proof_bytes == python_proof_bytes, (
+            f"Binary proofs differ. Written Python proof to {py_bin_path}. "
+            f"Diff with: cmp -l {bin_path} {py_bin_path}"
+        )
