@@ -26,7 +26,7 @@ from primitives import (
     # Merkle Tree
     MerkleTree,
     MerkleRoot,
-    MerkleProof,
+    QueryProof,
     LeafData,
     HASH_SIZE,
     transpose_for_merkle,
@@ -100,7 +100,7 @@ __all__ = [
     # Merkle Tree
     "MerkleTree",
     "MerkleRoot",
-    "MerkleProof",
+    "QueryProof",
     "LeafData",
     "HASH_SIZE",
     "transpose_for_merkle",

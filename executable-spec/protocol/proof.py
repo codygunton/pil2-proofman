@@ -332,6 +332,459 @@ def proof_to_pointer_layout(proof: STARKProof, stark_info: Any) -> List[int]:
     return pointer
 
 
+def to_bytes_partial(proof_dict: Dict[str, Any], stark_info: Any) -> Tuple[bytes, bytes]:
+    """Serialize proof header and footer to bytes for partial comparison.
+
+    Since the Python spec doesn't generate query proofs (Merkle paths), we can only
+    compare the header (before query data) and footer (after query data) portions
+    of the proof.
+
+    The C++ proof2pointer layout is:
+        1. airgroupValues          <- HEADER (we have)
+        2. airValues               <- HEADER (we have)
+        3. roots                   <- HEADER (we have, may be empty)
+        4. evals                   <- HEADER (we have)
+        5-11. Query proofs         <- QUERY DATA (we don't have)
+        12. finalPol               <- FOOTER (we have)
+        13. nonce                  <- FOOTER (we have)
+
+    Args:
+        proof_dict: Proof dictionary from gen_proof()
+        stark_info: StarkInfo configuration
+
+    Returns:
+        Tuple of (header_bytes, footer_bytes)
+    """
+    import struct
+
+    header_values = []
+
+    # 1. airgroupValues (FIELD_EXTENSION per entry)
+    # Use len(airgroupValuesMap) to get actual count, not buffer size
+    airgroup_values = proof_dict.get('airgroup_values', [])
+    if hasattr(airgroup_values, 'tolist'):
+        airgroup_values = airgroup_values.tolist()
+    n_airgroup_values = len(stark_info.airgroupValuesMap)
+    for i in range(n_airgroup_values):
+        start = i * FIELD_EXTENSION
+        header_values.extend(int(v) for v in airgroup_values[start:start + FIELD_EXTENSION])
+
+    # 2. airValues (FIELD_EXTENSION per entry)
+    # Use len(airValuesMap) to get actual count, not buffer size
+    air_values = proof_dict.get('air_values', [])
+    if hasattr(air_values, 'tolist'):
+        air_values = air_values.tolist()
+    n_air_values = len(stark_info.airValuesMap)
+    for i in range(n_air_values):
+        start = i * FIELD_EXTENSION
+        header_values.extend(int(v) for v in air_values[start:start + FIELD_EXTENSION])
+
+    # 3. roots (HASH_SIZE per stage, nStages+1 stages)
+    roots = proof_dict.get('roots', [])
+    for root in roots:
+        header_values.extend(int(v) for v in root[:HASH_SIZE])
+
+    # 4. evals (FIELD_EXTENSION per eval)
+    # Use len(evMap) to get actual count
+    evals = proof_dict.get('evals', [])
+    if hasattr(evals, 'tolist'):
+        evals = evals.tolist()
+    n_evals = len(stark_info.evMap)
+    for i in range(n_evals):
+        start = i * FIELD_EXTENSION
+        header_values.extend(int(v) for v in evals[start:start + FIELD_EXTENSION])
+
+    # Convert header to bytes
+    header_bytes = struct.pack(f'<{len(header_values)}Q', *header_values)
+
+    # Footer: finalPol and nonce
+    footer_values = []
+
+    # 12. finalPol (FIELD_EXTENSION per coefficient)
+    fri_proof = proof_dict.get('fri_proof')
+    if fri_proof is not None:
+        final_pol = fri_proof.final_pol if hasattr(fri_proof, 'final_pol') else []
+        if hasattr(final_pol, 'tolist'):
+            final_pol = final_pol.tolist()
+        for i in range(0, len(final_pol), FIELD_EXTENSION):
+            footer_values.extend(int(v) for v in final_pol[i:i + FIELD_EXTENSION])
+
+    # 13. nonce
+    nonce = proof_dict.get('nonce', 0)
+    footer_values.append(int(nonce))
+
+    # Convert footer to bytes
+    footer_bytes = struct.pack(f'<{len(footer_values)}Q', *footer_values)
+
+    return header_bytes, footer_bytes
+
+
+def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
+    """Serialize STARK proof to canonical binary format matching C++ proof2pointer().
+
+    This function produces the exact byte layout that C++ proof2pointer() generates.
+    Use this for byte-level equivalence testing.
+
+    Args:
+        proof: STARKProof instance with all fields populated
+        stark_info: StarkInfo configuration
+
+    Returns:
+        bytes: Little-endian packed uint64 array
+
+    Raises:
+        ValueError: If proof is missing required fields for full serialization
+
+    Note:
+        This requires a fully-populated STARKProof including query proofs.
+        For partial comparison (without query proofs), use to_bytes_partial().
+    """
+    import struct
+    import math
+
+    values = []
+
+    # 1. airgroupValues (FIELD_EXTENSION per entry)
+    for av in proof.airgroup_values:
+        values.extend(av[:FIELD_EXTENSION])
+
+    # 2. airValues (FIELD_EXTENSION per entry)
+    for av in proof.air_values:
+        values.extend(av[:FIELD_EXTENSION])
+
+    # 3. roots (HASH_SIZE per stage, nStages+1 stages)
+    for root in proof.roots:
+        values.extend(root[:HASH_SIZE])
+
+    # 4. evals (FIELD_EXTENSION per eval)
+    for ev in proof.evals:
+        values.extend(ev[:FIELD_EXTENSION])
+
+    # 5-11. Query proofs
+    # These require MerkleProof data which Python spec doesn't yet generate
+    if not hasattr(proof.fri, 'trees') or not proof.fri.trees.pol_queries:
+        raise ValueError(
+            "Cannot serialize full proof: query proofs not populated. "
+            "Use to_bytes_partial() for partial comparison."
+        )
+
+    n_queries = stark_info.starkStruct.nQueries
+    n_constants = stark_info.nConstants
+    n_stages = stark_info.nStages
+    n_field_elements = HASH_SIZE  # 4 for Goldilocks
+    merkle_arity = stark_info.starkStruct.merkleTreeArity
+    last_level_verification = stark_info.starkStruct.lastLevelVerification
+
+    n_siblings = int(math.ceil(stark_info.starkStruct.steps[0].nBits / math.log2(merkle_arity))) - last_level_verification
+    n_siblings_per_level = (merkle_arity - 1) * n_field_elements
+
+    # 5. Constant tree query values
+    for i in range(n_queries):
+        for l in range(n_constants):
+            values.append(proof.fri.trees.pol_queries[i][n_stages + 1].v[l][0])
+
+    # 6. Constant tree merkle paths
+    for i in range(n_queries):
+        for l in range(n_siblings):
+            values.extend(proof.fri.trees.pol_queries[i][n_stages + 1].mp[l][:n_siblings_per_level])
+
+    # 7. Constant tree last_levels (if applicable)
+    if last_level_verification != 0:
+        num_nodes = int(merkle_arity ** last_level_verification) * n_field_elements
+        values.extend(proof.last_levels[n_stages + 1][:num_nodes])
+
+    # 8. Custom commits (iterate over each)
+    for c, custom_commit in enumerate(stark_info.customCommits):
+        custom_name = custom_commit.name + "0"
+        n_custom_cols = stark_info.mapSectionsN.get(custom_name, 0)
+        tree_idx = n_stages + 2 + c
+
+        # Query values
+        for i in range(n_queries):
+            for l in range(n_custom_cols):
+                values.append(proof.fri.trees.pol_queries[i][tree_idx].v[l][0])
+
+        # Merkle paths
+        for i in range(n_queries):
+            for l in range(n_siblings):
+                values.extend(proof.fri.trees.pol_queries[i][tree_idx].mp[l][:n_siblings_per_level])
+
+        # Last levels
+        if last_level_verification != 0:
+            values.extend(proof.last_levels[tree_idx][:num_nodes])
+
+    # 9. Stage trees (cm1, cm2, ..., cmQ)
+    for s in range(n_stages + 1):
+        stage = s + 1
+        stage_name = f"cm{stage}"
+        n_stage_cols = stark_info.mapSectionsN.get(stage_name, 0)
+
+        # Query values
+        for i in range(n_queries):
+            for l in range(n_stage_cols):
+                values.append(proof.fri.trees.pol_queries[i][s].v[l][0])
+
+        # Merkle paths
+        for i in range(n_queries):
+            for l in range(n_siblings):
+                values.extend(proof.fri.trees.pol_queries[i][s].mp[l][:n_siblings_per_level])
+
+        # Last levels
+        if last_level_verification != 0:
+            values.extend(proof.last_levels[s][:num_nodes])
+
+    # 10. FRI step roots
+    for step in range(1, len(stark_info.starkStruct.steps)):
+        values.extend(proof.fri.trees_fri[step - 1].root[:n_field_elements])
+
+    # 11. FRI step query proofs
+    for step in range(1, len(stark_info.starkStruct.steps)):
+        prev_bits = stark_info.starkStruct.steps[step - 1].nBits
+        curr_bits = stark_info.starkStruct.steps[step].nBits
+        n_fri_vals = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION
+
+        # Query values
+        for i in range(n_queries):
+            for l in range(n_fri_vals):
+                values.append(proof.fri.trees_fri[step - 1].pol_queries[i][0].v[l][0])
+
+        # Merkle paths
+        n_siblings_fri = int(math.ceil(curr_bits / math.log2(merkle_arity))) - last_level_verification
+        for i in range(n_queries):
+            for l in range(n_siblings_fri):
+                values.extend(proof.fri.trees_fri[step - 1].pol_queries[i][0].mp[l][:n_siblings_per_level])
+
+        # Last levels
+        if last_level_verification != 0:
+            values.extend(proof.fri.trees_fri[step - 1].last_levels[:num_nodes])
+
+    # 12. finalPol (FIELD_EXTENSION per coefficient)
+    for pol_coef in proof.fri.pol:
+        values.extend(pol_coef[:FIELD_EXTENSION])
+
+    # 13. nonce
+    values.append(proof.nonce)
+
+    return struct.pack(f'<{len(values)}Q', *values)
+
+
+def to_bytes_full_from_dict(proof_dict: Dict[str, Any], stark_info: Any) -> bytes:
+    """Serialize proof dictionary to canonical binary format matching C++ proof2pointer().
+
+    This function takes the proof dictionary from gen_proof() and produces the exact
+    byte layout that C++ proof2pointer() generates. Use this for byte-level equivalence
+    testing.
+
+    Binary layout (sections 1-13):
+        1. airgroupValues    [n_airgroup × FIELD_EXTENSION]
+        2. airValues         [n_air × FIELD_EXTENSION]
+        3. roots             [(nStages+1) × HASH_SIZE]
+        4. evals             [n_evals × FIELD_EXTENSION]
+        5. const tree values [nQueries × nConstants]
+        6. const tree siblings [nQueries × nSiblings × (arity-1) × HASH_SIZE]
+        7. const tree last_lvls [arity^lastLvl × HASH_SIZE] (if applicable)
+        8. custom commit proofs [for each custom commit...]
+        9. stage tree proofs   [for cm1, cm2, ..., cmQ...]
+        10. FRI step roots     [(nSteps-1) × HASH_SIZE]
+        11. FRI step proofs    [for each step: values + siblings + last_lvls]
+        12. finalPol          [final_degree × FIELD_EXTENSION]
+        13. nonce             [1 element]
+
+    Args:
+        proof_dict: Proof dictionary from gen_proof()
+        stark_info: StarkInfo configuration
+
+    Returns:
+        bytes: Little-endian packed uint64 array identical to C++ proof2pointer()
+
+    Raises:
+        ValueError: If proof is incomplete (missing required components)
+    """
+    import struct
+    import math
+
+    values: List[int] = []
+
+    # Helper to convert numpy arrays or lists
+    def to_list(arr):
+        if hasattr(arr, 'tolist'):
+            return arr.tolist()
+        return list(arr) if arr is not None else []
+
+    # Extract components from proof_dict
+    airgroup_values = to_list(proof_dict.get('airgroup_values', []))
+    air_values = to_list(proof_dict.get('air_values', []))
+    roots = proof_dict.get('roots', [])
+    evals = to_list(proof_dict.get('evals', []))
+    fri_proof = proof_dict.get('fri_proof')
+    stage_query_proofs = proof_dict.get('stage_query_proofs', {})
+    query_indices = proof_dict.get('query_indices', [])
+    nonce = proof_dict.get('nonce', 0)
+    last_level_nodes = proof_dict.get('last_level_nodes', {})
+
+    # Configuration
+    n_queries = stark_info.starkStruct.nQueries
+    n_stages = stark_info.nStages
+    merkle_arity = stark_info.starkStruct.merkleTreeArity
+    last_level_verification = stark_info.starkStruct.lastLevelVerification
+
+    # --- SECTION 1: airgroupValues ---
+    n_airgroup_values = len(stark_info.airgroupValuesMap)
+    for i in range(n_airgroup_values):
+        start = i * FIELD_EXTENSION
+        values.extend(int(v) for v in airgroup_values[start:start + FIELD_EXTENSION])
+
+    # --- SECTION 2: airValues ---
+    n_air_values = len(stark_info.airValuesMap)
+    for i in range(n_air_values):
+        start = i * FIELD_EXTENSION
+        values.extend(int(v) for v in air_values[start:start + FIELD_EXTENSION])
+
+    # --- SECTION 3: roots ---
+    for root in roots:
+        values.extend(int(v) for v in root[:HASH_SIZE])
+
+    # --- SECTION 4: evals ---
+    n_evals = len(stark_info.evMap)
+    for i in range(n_evals):
+        start = i * FIELD_EXTENSION
+        values.extend(int(v) for v in evals[start:start + FIELD_EXTENSION])
+
+    # --- SECTIONS 5-7: const tree query proofs ---
+    const_query_proofs = proof_dict.get('const_query_proofs', [])
+    n_constants = len(stark_info.constPolsMap)
+
+    if const_query_proofs and n_constants > 0:
+        # Calculate Merkle proof dimensions for const tree
+        n_bits_ext = stark_info.starkStruct.nBitsExt
+        n_siblings_const = int(math.ceil(n_bits_ext / math.log2(merkle_arity))) - last_level_verification
+        n_siblings_per_level = (merkle_arity - 1) * HASH_SIZE
+
+        # 5. Const tree values (for all queries)
+        for query_proof in const_query_proofs:
+            for col in range(n_constants):
+                if col < len(query_proof.v):
+                    values.append(int(query_proof.v[col][0]))
+                else:
+                    values.append(0)
+
+        # 6. Const tree Merkle paths (for all queries)
+        for query_proof in const_query_proofs:
+            for level_idx in range(n_siblings_const):
+                if level_idx < len(query_proof.mp):
+                    values.extend(int(v) for v in query_proof.mp[level_idx][:n_siblings_per_level])
+                else:
+                    values.extend([0] * n_siblings_per_level)
+
+        # 7. Const tree last levels (if applicable)
+        if last_level_verification != 0:
+            num_nodes = int(merkle_arity ** last_level_verification) * HASH_SIZE
+            const_last_lvl = last_level_nodes.get('const', [])
+            if const_last_lvl:
+                values.extend(int(v) for v in const_last_lvl[:num_nodes])
+            else:
+                values.extend([0] * num_nodes)
+
+    # --- SECTION 8: custom commits ---
+    # NOTE: Custom commits not yet implemented in Python spec
+    # Skip for now (customCommits = 0 for all test AIRs)
+
+    # --- SECTION 9: stage tree proofs (cm1, cm2, ..., cmQ) ---
+    # Calculate Merkle proof dimensions
+    n_bits_ext = stark_info.starkStruct.nBitsExt
+    n_siblings = int(math.ceil(n_bits_ext / math.log2(merkle_arity))) - last_level_verification
+    n_siblings_per_level = (merkle_arity - 1) * HASH_SIZE
+
+    for stage_num in range(1, n_stages + 2):  # stages 1, 2, ..., nStages+1(Q)
+        stage_name = f"cm{stage_num}"
+        n_stage_cols = stark_info.mapSectionsN.get(stage_name, 0)
+
+        if stage_num not in stage_query_proofs:
+            raise ValueError(f"Missing stage {stage_num} query proofs for full serialization")
+
+        proofs = stage_query_proofs[stage_num]
+
+        # 9a. Stage tree values (for all queries)
+        for query_proof in proofs:
+            # Each query_proof.v is List[List[int]] where v[col] = [val]
+            for col in range(n_stage_cols):
+                if col < len(query_proof.v):
+                    values.append(int(query_proof.v[col][0]))
+                else:
+                    values.append(0)  # Padding if needed
+
+        # 9b. Stage tree Merkle paths (for all queries)
+        for query_proof in proofs:
+            for level_idx in range(n_siblings):
+                if level_idx < len(query_proof.mp):
+                    values.extend(int(v) for v in query_proof.mp[level_idx][:n_siblings_per_level])
+                else:
+                    values.extend([0] * n_siblings_per_level)  # Padding if needed
+
+        # 9c. Stage tree last levels (if applicable)
+        if last_level_verification != 0:
+            num_nodes = int(merkle_arity ** last_level_verification) * HASH_SIZE
+            stage_last_lvl = last_level_nodes.get(stage_name, [])
+            if stage_last_lvl:
+                values.extend(int(v) for v in stage_last_lvl[:num_nodes])
+            else:
+                values.extend([0] * num_nodes)
+
+    # --- SECTION 10: FRI step roots ---
+    if fri_proof is not None:
+        for fri_root in fri_proof.fri_roots:
+            values.extend(int(v) for v in fri_root[:HASH_SIZE])
+
+    # --- SECTION 11: FRI step query proofs ---
+    if fri_proof is not None:
+        for step_idx in range(len(stark_info.starkStruct.steps) - 1):
+            prev_bits = stark_info.starkStruct.steps[step_idx].nBits
+            curr_bits = stark_info.starkStruct.steps[step_idx + 1].nBits
+            n_fri_groups = 1 << (prev_bits - curr_bits)
+
+            # 11a. FRI values (for all queries at this step)
+            if step_idx < len(fri_proof.query_proofs):
+                step_proofs = fri_proof.query_proofs[step_idx]
+                for qp in step_proofs:
+                    # qp.v is List[List[int]] where v[group] = [val0, val1, val2]
+                    for group_idx in range(n_fri_groups):
+                        if group_idx < len(qp.v):
+                            values.extend(int(v) for v in qp.v[group_idx][:FIELD_EXTENSION])
+                        else:
+                            values.extend([0] * FIELD_EXTENSION)
+
+            # 11b. FRI Merkle paths (for all queries at this step)
+            n_siblings_fri = int(math.ceil(curr_bits / math.log2(merkle_arity))) - last_level_verification
+            if step_idx < len(fri_proof.query_proofs):
+                step_proofs = fri_proof.query_proofs[step_idx]
+                for qp in step_proofs:
+                    for level_idx in range(n_siblings_fri):
+                        if level_idx < len(qp.mp):
+                            values.extend(int(v) for v in qp.mp[level_idx][:n_siblings_per_level])
+                        else:
+                            values.extend([0] * n_siblings_per_level)
+
+            # 11c. FRI last levels (if applicable)
+            if last_level_verification != 0:
+                num_nodes = int(merkle_arity ** last_level_verification) * HASH_SIZE
+                fri_last_lvl = last_level_nodes.get(f'fri{step_idx}', [])
+                if fri_last_lvl:
+                    values.extend(int(v) for v in fri_last_lvl[:num_nodes])
+                else:
+                    values.extend([0] * num_nodes)
+
+    # --- SECTION 12: finalPol ---
+    if fri_proof is not None:
+        final_pol = to_list(fri_proof.final_pol)
+        for i in range(0, len(final_pol), FIELD_EXTENSION):
+            values.extend(int(v) for v in final_pol[i:i + FIELD_EXTENSION])
+
+    # --- SECTION 13: nonce ---
+    values.append(int(nonce))
+
+    return struct.pack(f'<{len(values)}Q', *values)
+
+
 def validate_proof_structure(proof: STARKProof, stark_info: Any) -> List[str]:
     """Validate that proof structure matches STARK configuration.
 
