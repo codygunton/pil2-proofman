@@ -10,7 +10,7 @@ This is the core orchestrator that manages STARK proof stages, coordinating:
 - FRI polynomial computation
 """
 
-from typing import Optional
+from typing import Optional, Dict, List
 import numpy as np
 
 from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
@@ -18,6 +18,7 @@ from primitives.ntt import NTT
 from protocol.expression_evaluator import ExpressionsPack
 from protocol.steps_params import StepsParams
 from primitives.pol_map import EvMap
+from primitives.merkle_tree import MerkleTree, MerkleRoot
 
 
 class Starks:
@@ -42,24 +43,80 @@ class Starks:
 
         Corresponds to C++ constructor (lines 36-73).
 
-        Note: The C++ version initializes Merkle trees here. The Python spec
-        focuses on the polynomial operations, not tree construction.
-
         Args:
             setupCtx: Setup context with configuration
         """
         self.setupCtx = setupCtx
 
+        # Storage for Merkle trees built during stage commitment.
+        # Key: stage number (1, 2, ..., nStages + 1)
+        # Value: MerkleTree instance with tree nodes and source data
+        self.stage_trees: Dict[int, MerkleTree] = {}
+
+        # Constant polynomial tree (built from constPolsExtended)
+        self.const_tree: Optional[MerkleTree] = None
+
+    def build_const_tree(self, constPolsExtended: np.ndarray) -> MerkleRoot:
+        """Build Merkle tree for constant polynomials.
+
+        This method should be called once at the start of proving to construct
+        the constant polynomial tree. The tree is needed for query proof extraction.
+
+        Args:
+            constPolsExtended: Extended constant polynomials (N_ext × n_const columns)
+
+        Returns:
+            Merkle root for the constant tree
+        """
+        NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
+        nCols = self.setupCtx.stark_info.mapSectionsN.get("const", 0)
+
+        if nCols == 0:
+            # No constant polynomials
+            return [0] * 4
+
+        # Convert to list of ints for Merkle tree
+        constData = [int(x) for x in constPolsExtended[:NExtended * nCols]]
+
+        # Build tree with last_level_verification from STARK config
+        last_lvl = self.setupCtx.stark_info.starkStruct.lastLevelVerification
+        self.const_tree = MerkleTree(arity=4, last_level_verification=last_lvl)
+        self.const_tree.merkelize(constData, NExtended, nCols, n_cols=nCols)
+
+        return self.const_tree.get_root()
+
+    def get_const_query_proof(self, idx: int, elem_size: int = 1):
+        """Extract query proof from constant polynomial tree.
+
+        Args:
+            idx: Query index
+            elem_size: Elements per column (1 for base field)
+
+        Returns:
+            QueryProof with values and Merkle path
+
+        Raises:
+            ValueError: If const tree not built
+        """
+        from primitives.merkle_tree import QueryProof
+
+        if self.const_tree is None:
+            raise ValueError("Constant tree not built. Call build_const_tree() first.")
+
+        return self.const_tree.get_query_proof(idx, elem_size)
+
     def extendAndMerkelize(self, step: int, trace: np.ndarray, auxTrace: np.ndarray,
-                          ntt: NTT, pBuffHelper: Optional[np.ndarray] = None) -> np.ndarray:
-        """Extend polynomial from domain N to N_ext and prepare for commitment.
+                          ntt: NTT, pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
+        """Extend polynomial from domain N to N_ext and build Merkle tree commitment.
 
         Corresponds to C++ Starks::extendAndMerkelize() (lines 143-171).
 
         This method:
         1. Identifies the polynomial buffer for this stage (cm1, cm2, etc.)
         2. Performs NTT extension from N to N_extended using the provided NTT engine
-        3. Returns the extended polynomial (merkleization happens elsewhere)
+        3. Transposes data for Merkle tree layout
+        4. Builds and stores Merkle tree for later query proof extraction
+        5. Returns the Merkle root commitment
 
         Args:
             step: Stage number (1 = first witness stage, 2+ = subsequent stages)
@@ -69,7 +126,7 @@ class Starks:
             pBuffHelper: Optional helper buffer for NTT operations
 
         Returns:
-            Extended polynomial evaluations (N_extended × n_cols)
+            Merkle root commitment (HASH_SIZE field elements)
         """
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
@@ -99,30 +156,102 @@ class Starks:
         # Flatten and store in auxTrace
         pBuffExtended[:NExtended * nCols] = pBuffExtended_result.flatten()
 
-        return pBuffExtended[:NExtended * nCols]
+        # Build Merkle tree for this stage
+        # Data is already in row-major format: NExtended rows, nCols columns per row
+        extendedData = [int(x) for x in pBuffExtended[:NExtended * nCols]]
+
+        # Create and build tree with last_level_verification from STARK config
+        last_lvl = self.setupCtx.stark_info.starkStruct.lastLevelVerification
+        tree = MerkleTree(arity=4, last_level_verification=last_lvl)
+        tree.merkelize(extendedData, NExtended, nCols, n_cols=nCols)
+
+        # Store tree for later query proof extraction
+        self.stage_trees[step] = tree
+
+        return tree.get_root()
+
+    def get_stage_query_proof(self, step: int, idx: int, elem_size: int = 1):
+        """Extract query proof from a stored stage tree.
+
+        Args:
+            step: Stage number (1, 2, ..., nStages + 1)
+            idx: Query index (leaf index in the tree)
+            elem_size: Elements per column (1 for base field, 3 for extension)
+
+        Returns:
+            QueryProof with leaf values and Merkle path
+
+        Raises:
+            KeyError: If stage tree not found (not yet committed)
+        """
+        from primitives.merkle_tree import QueryProof
+
+        if step not in self.stage_trees:
+            raise KeyError(f"Stage {step} tree not found. Has commitStage been called?")
+
+        return self.stage_trees[step].get_query_proof(idx, elem_size)
+
+    def get_stage_tree(self, step: int) -> MerkleTree:
+        """Get the Merkle tree for a specific stage.
+
+        Args:
+            step: Stage number
+
+        Returns:
+            MerkleTree instance
+
+        Raises:
+            KeyError: If stage tree not found
+        """
+        if step not in self.stage_trees:
+            raise KeyError(f"Stage {step} tree not found. Has commitStage been called?")
+        return self.stage_trees[step]
 
     def commitStage(self, step: int, params: StepsParams, ntt: NTT,
-                   pBuffHelper: Optional[np.ndarray] = None):
+                   pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
         """Execute a commitment stage.
 
         Corresponds to C++ Starks::commitStage() (lines 173-185).
 
         This delegates to either:
         - extendAndMerkelize for witness stages (step <= nStages)
-        - computeQ for quotient polynomial stage (step = nStages + 1)
+        - computeFriPol + merkelize for quotient polynomial stage (step = nStages + 1)
 
         Args:
             step: Stage number
             params: Working parameters with all polynomial data
             ntt: NTT engine for polynomial operations
             pBuffHelper: Optional helper buffer for NTT operations
+
+        Returns:
+            Merkle root for the committed stage
         """
         if step <= self.setupCtx.stark_info.nStages:
             # Witness commitment stage
-            self.extendAndMerkelize(step, params.trace, params.auxTrace, ntt, pBuffHelper)
+            return self.extendAndMerkelize(step, params.trace, params.auxTrace, ntt, pBuffHelper)
         else:
             # Quotient polynomial stage
             self.computeFriPol(params, ntt, pBuffHelper)
+
+            # Build Merkle tree for Q polynomial
+            NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
+            section = f"cm{step}"
+            nCols = self.setupCtx.stark_info.mapSectionsN.get(section, 0)
+
+            if nCols > 0:
+                cmQOffset = self.setupCtx.stark_info.mapOffsets[(section, True)]
+                cmQ = params.auxTrace[cmQOffset:]
+                extendedData = [int(x) for x in cmQ[:NExtended * nCols]]
+
+                # Create and build tree with last_level_verification from STARK config
+                last_lvl = self.setupCtx.stark_info.starkStruct.lastLevelVerification
+                tree = MerkleTree(arity=4, last_level_verification=last_lvl)
+                tree.merkelize(extendedData, NExtended, nCols, n_cols=nCols)
+                self.stage_trees[step] = tree
+
+                return tree.get_root()
+
+            return [0] * 4
 
     def computeFriPol(self, params: StepsParams, nttExtended: NTT,
                      pBuffHelper: Optional[np.ndarray] = None):
