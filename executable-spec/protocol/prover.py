@@ -11,10 +11,10 @@ The C++ version manages Merkle trees and transcripts within the Starks class,
 while the Python spec handles these concerns separately for clarity.
 """
 
-from typing import Optional
+from typing import Optional, Dict, List
 import numpy as np
 
-from primitives.merkle_tree import HASH_SIZE
+from primitives.merkle_tree import HASH_SIZE, QueryProof
 from primitives.ntt import NTT
 from poseidon2_ffi import linear_hash
 from primitives.transcript import Transcript
@@ -126,6 +126,12 @@ def gen_proof(
         # C++: Line 87
         # In practice, this would be a global challenge passed in
         pass
+
+    # -------------------------------------------------------------------------
+    # Build constant polynomial tree (for query proof extraction later)
+    # -------------------------------------------------------------------------
+    if params.constPolsExtended is not None and len(params.constPolsExtended) > 0:
+        starks.build_const_tree(params.constPolsExtended)
 
     # -------------------------------------------------------------------------
     # Stage 1: Witness commitment
@@ -306,17 +312,90 @@ def gen_proof(
     fri_proof = fri_pcs.prove(fri_pol, transcript)
 
     # -------------------------------------------------------------------------
+    # Collect query proofs from all trees
+    # -------------------------------------------------------------------------
+    # Query indices were derived during FRI proving
+    query_indices = fri_proof.query_indices
+
+    # Collect constant tree query proofs
+    const_query_proofs: List[QueryProof] = []
+    if starks.const_tree is not None:
+        for q_idx in query_indices:
+            proof_qp = starks.get_const_query_proof(q_idx, elem_size=1)
+            const_query_proofs.append(proof_qp)
+
+    # Collect stage tree query proofs (cm1, cm2, ..., cmQ)
+    # Structure: stage_query_proofs[stage_num] = List[QueryProof]
+    stage_query_proofs: Dict[int, List[QueryProof]] = {}
+    for stage_num in range(1, stark_info.nStages + 2):  # stages 1, 2, ..., nStages+1(Q)
+        if stage_num in starks.stage_trees:
+            tree = starks.stage_trees[stage_num]
+            stage_proofs: List[QueryProof] = []
+            for q_idx in query_indices:
+                # Stage trees are built from extended domain, so use q_idx directly
+                proof_qp = tree.get_query_proof(q_idx, elem_size=1)  # Base field columns
+                stage_proofs.append(proof_qp)
+            stage_query_proofs[stage_num] = stage_proofs
+
+    # -------------------------------------------------------------------------
+    # Collect last level nodes from all trees (for lastLevelVerification > 0)
+    # -------------------------------------------------------------------------
+    # Structure: last_level_nodes[tree_key] = List[int]
+    # tree_key: 'const', 'cm1', 'cm2', ..., 'cmQ'
+    last_level_nodes: Dict[str, List[int]] = {}
+
+    # Const tree last levels
+    if starks.const_tree is not None:
+        const_last_levels = starks.const_tree.get_last_level_nodes()
+        if const_last_levels:
+            last_level_nodes['const'] = const_last_levels
+
+    # Stage tree last levels
+    for stage_num in range(1, stark_info.nStages + 2):
+        if stage_num in starks.stage_trees:
+            tree = starks.stage_trees[stage_num]
+            stage_last_levels = tree.get_last_level_nodes()
+            if stage_last_levels:
+                last_level_nodes[f'cm{stage_num}'] = stage_last_levels
+
+    # FRI tree last levels
+    for step_idx in range(len(stark_info.starkStruct.steps) - 1):
+        if step_idx < len(fri_pcs.fri_trees):
+            tree = fri_pcs.fri_trees[step_idx]
+            fri_last_levels = tree.get_last_level_nodes()
+            if fri_last_levels:
+                last_level_nodes[f'fri{step_idx}'] = fri_last_levels
+
+    # -------------------------------------------------------------------------
     # Assemble final proof
     # C++: Lines 453-462
     # -------------------------------------------------------------------------
+    # Build roots list from captured_roots (nStages + 1 roots total)
+    # Order: root1, root2, ..., rootQ (one per stage plus Q stage)
+    roots = []
+    if captured_roots:
+        # root1 is stage 1
+        if 'root1' in captured_roots:
+            roots.append(captured_roots['root1'])
+        # For multi-stage AIRs, there may be more intermediate roots
+        # root2 is stage 2 (if exists)
+        if 'root2' in captured_roots:
+            roots.append(captured_roots['root2'])
+        # rootQ is the final stage (stage nStages + 1)
+        if 'rootQ' in captured_roots:
+            roots.append(captured_roots['rootQ'])
+
     proof = {
         'evals': params.evals[:n_evals],
         'airgroup_values': params.airgroupValues,
         'air_values': params.airValues,
         'nonce': fri_proof.nonce,
         'fri_proof': fri_proof,
-        # Roots would be extracted from Merkle trees in full implementation
-        'roots': [],
+        'roots': roots,
+        'stage_query_proofs': stage_query_proofs,
+        'const_query_proofs': const_query_proofs,
+        'query_indices': query_indices,
+        'last_level_nodes': last_level_nodes,
     }
 
     return proof
