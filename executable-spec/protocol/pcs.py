@@ -4,9 +4,13 @@ from typing import List, Any, Optional
 from dataclasses import dataclass, field
 
 from protocol.fri import FRI, EvalPoly
-from primitives.merkle_tree import MerkleTree, MerkleRoot, HASH_SIZE
+from primitives.merkle_tree import MerkleTree, MerkleRoot, HASH_SIZE, QueryProof
 from primitives.transcript import Transcript
 from poseidon2_ffi import linear_hash, grinding
+
+# --- Constants ---
+
+FIELD_EXTENSION = 3
 
 # --- Type Aliases ---
 
@@ -32,11 +36,21 @@ class FriPcsConfig:
 
 @dataclass
 class FriProof:
-    """Complete FRI proof structure."""
+    """Complete FRI proof structure.
+
+    Attributes:
+        fri_roots: Merkle roots for each FRI folding step (nSteps-1 roots)
+        final_pol: Final polynomial coefficients after all folding
+        nonce: Grinding nonce for proof-of-work
+        query_proofs: List of query proofs per FRI step, each containing
+                      values and Merkle siblings for each query
+        query_indices: Query indices derived from grinding (needed for stage tree queries)
+    """
     fri_roots: List[MerkleRoot] = field(default_factory=list)
     final_pol: EvalPoly = field(default_factory=list)
     nonce: Nonce = 0
-    query_proofs: List[Any] = field(default_factory=list)
+    query_proofs: List[List[QueryProof]] = field(default_factory=list)
+    query_indices: List[QueryIndex] = field(default_factory=list)
 
 
 # --- FRI PCS ---
@@ -112,23 +126,49 @@ class FriPcs:
             config.n_queries,
             config.fri_steps[0]
         )
+        proof.query_indices = query_indices
 
-        for query_idx in query_indices:
-            query_proof = {'fri_proofs': []}
-            current_idx = query_idx
+        # Generate query proofs for each FRI step
+        # Structure: proof.query_proofs[step][query] = QueryProof
+        for step in range(len(config.fri_steps) - 1):
+            step_proofs: List[QueryProof] = []
+            next_bits = config.fri_steps[step + 1]
 
-            for step in range(len(config.fri_steps) - 1):
-                next_bits = config.fri_steps[step + 1]
-                proof_idx = current_idx % (1 << next_bits)
+            for query_idx in query_indices:
+                # Compute adjusted index for this step's domain
+                adjusted_idx = self._get_fri_query_index(query_idx, step)
+                proof_idx = adjusted_idx % (1 << next_bits)
 
-                siblings = self.fri_trees[step].get_group_proof(proof_idx)
-                query_proof['fri_proofs'].append(siblings)
+                # Extract query proof with values and Merkle siblings
+                qp = self.fri_trees[step].get_query_proof(proof_idx, elem_size=FIELD_EXTENSION)
+                step_proofs.append(qp)
 
-                current_idx = proof_idx
-
-            proof.query_proofs.append(query_proof)
+            proof.query_proofs.append(step_proofs)
 
         return proof
+
+    def _get_fri_query_index(self, query_idx: int, step: int) -> int:
+        """Compute adjusted query index for a FRI step.
+
+        Args:
+            query_idx: Original query index in extended domain
+            step: FRI step number (0-indexed)
+
+        Returns:
+            Adjusted index for this step's domain size
+        """
+        # Each step reduces domain by folding. The query index
+        # shifts right by the bits difference from previous step.
+        if step == 0:
+            return query_idx
+
+        current_idx = query_idx
+        for s in range(step):
+            prev_bits = self.config.fri_steps[s]
+            next_bits = self.config.fri_steps[s + 1]
+            current_idx = current_idx % (1 << next_bits)
+
+        return current_idx
 
     # --- Grinding ---
 

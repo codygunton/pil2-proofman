@@ -84,11 +84,18 @@ class FRI:
         current_bits: int,
         next_bits: int
     ) -> MerkleRoot:
-        """Commit to FRI layer via Merkle tree."""
+        """Commit to FRI layer via Merkle tree.
+
+        The tree stores FRI polynomial evaluations grouped for folding:
+        - height = 2^next_bits leaves
+        - width = 2^(current_bits - next_bits) × FIELD_EXTENSION elements per leaf
+        - n_cols = 2^(current_bits - next_bits) columns (each is FIELD_EXTENSION elements)
+        """
         height = 1 << next_bits
-        width = (1 << (current_bits - next_bits)) * FIELD_EXTENSION
+        n_groups = 1 << (current_bits - next_bits)
+        width = n_groups * FIELD_EXTENSION
         transposed = transpose_for_merkle(pol, 1 << current_bits, height, FIELD_EXTENSION)
-        tree.merkelize(transposed, height, width)
+        tree.merkelize(transposed, height, width, n_cols=n_groups)
         return tree.get_root()
 
     @staticmethod
