@@ -754,7 +754,7 @@ uint64_t set_hint_field_global_constraints(char* globalInfoFile, void* p_globali
 #ifndef __USE_CUDA__
 // Gen proof
 // =================================================================================
-uint64_t gen_proof(void *pSetupCtx, uint64_t airgroupId, uint64_t airId, uint64_t instanceId, void *params_, void *globalChallenge, uint64_t* proofBuffer, char *proofFile, void *d_buffers_, bool skipRecalculation, uint64_t streamId, char *constPolsPath,  char *constTreePath)  {
+uint64_t gen_proof(void *pSetupCtx, uint64_t airgroupId, uint64_t airId, uint64_t instanceId, void *params_, void *globalChallenge, uint64_t* proofBuffer, char *proofFile, char *proofBinFile, void *d_buffers_, bool skipRecalculation, uint64_t streamId, char *constPolsPath,  char *constTreePath)  {
     DeviceCommitBuffersCPU *d_buffers = (DeviceCommitBuffersCPU *)d_buffers_;
     SetupCtx *setupCtx = (SetupCtx *)pSetupCtx;
     StepsParams *params = (StepsParams *)params_;
@@ -777,7 +777,7 @@ uint64_t gen_proof(void *pSetupCtx, uint64_t airgroupId, uint64_t airId, uint64_
         d_buffers->unpack_cpu((uint64_t *)params->trace, (uint64_t*)&params->aux_trace[offsetCm1], N, nCols, packed_info->num_packed_words, packed_info->unpack_info);
         memcpy(params->trace, &params->aux_trace[offsetCm1], N * nCols * sizeof(Goldilocks::Element));
     }
-    genProof(*(SetupCtx *)pSetupCtx, airgroupId, airId, instanceId, *(StepsParams *)params, (Goldilocks::Element *)globalChallenge, proofBuffer, string(proofFile));
+    genProof(*(SetupCtx *)pSetupCtx, airgroupId, airId, instanceId, *(StepsParams *)params, (Goldilocks::Element *)globalChallenge, proofBuffer, string(proofFile), string(proofBinFile));
     
     return 0;
 }
@@ -859,7 +859,7 @@ uint64_t gen_recursive_proof(void *pSetupCtx, char* globalInfoFile, uint64_t air
         .pCustomCommitsFixed = nullptr,
     };
 
-    genProof(*setupCtx, airgroupId, airId, instanceId, params, nullptr, proofBuffer, string(proof_file), true);
+    genProof(*setupCtx, airgroupId, airId, instanceId, params, nullptr, proofBuffer, string(proof_file), "", true);
     
     return 0;
 }

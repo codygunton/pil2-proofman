@@ -1,5 +1,6 @@
 #include "starks.hpp"
 #include "fri/fri_pcs.hpp"  // Must come after starks.hpp for proper include ordering
+#include <fstream>
 
 void calculateWitnessSTD(SetupCtx& setupCtx, StepsParams& params, ExpressionsCtx &expressionsCtx, bool prod) {
     std::string name = prod ? "gprod_col" : "gsum_col";
@@ -44,7 +45,7 @@ void calculateWitnessSTD(SetupCtx& setupCtx, StepsParams& params, ExpressionsCtx
     updateAirgroupValue(setupCtx, params, hint[0], hintFieldNameAirgroupVal, "numerator_direct", "denominator_direct", options1, options2, !prod);
 }
 
-void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t instanceId, StepsParams& params, Goldilocks::Element *globalChallenge, uint64_t *proofBuffer, std::string proofFile, bool recursive = false) {
+void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t instanceId, StepsParams& params, Goldilocks::Element *globalChallenge, uint64_t *proofBuffer, std::string proofFile, std::string proofBinFile = "", bool recursive = false) {
     TimerStart(STARK_PROOF);
     NTT_Goldilocks ntt(1 << setupCtx.starkInfo.starkStruct.nBits);
     NTT_Goldilocks nttExtended(1 << setupCtx.starkInfo.starkStruct.nBitsExt);
@@ -534,6 +535,26 @@ void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t 
 
     if(!proofFile.empty()) {
         json2file(pointer2json(proofBuffer, setupCtx.starkInfo), proofFile);
+
+#ifdef CAPTURE_FRI_VECTORS
+        // When capturing test vectors, also save raw binary proof
+        std::string binFile = proofFile;
+        size_t dotPos = binFile.rfind(".json");
+        if (dotPos != std::string::npos) {
+            binFile = binFile.substr(0, dotPos) + ".proof.bin";
+        } else {
+            binFile += ".proof.bin";
+        }
+        std::ofstream binOut(binFile, std::ios::binary);
+        binOut.write(reinterpret_cast<const char*>(proofBuffer),
+                     setupCtx.starkInfo.proofSize * sizeof(uint64_t));
+#endif
+    }
+
+    if(!proofBinFile.empty()) {
+        std::ofstream binOut(proofBinFile, std::ios::binary);
+        binOut.write(reinterpret_cast<const char*>(proofBuffer),
+                     setupCtx.starkInfo.proofSize * sizeof(uint64_t));
     }
 
     TimerStopAndLog(STARK_PROOF);    
