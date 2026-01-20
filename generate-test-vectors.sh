@@ -113,7 +113,7 @@ generate_vectors() {
     # First ensure poseidon2-ffi is built
     if ! uv run python -c "import poseidon2" 2>/dev/null; then
         echo "Building poseidon2 FFI module..."
-        cd poseidon2-ffi && uv run maturin develop --release && cd ..
+        cd primitives/poseidon2-ffi && uv run maturin develop --release && cd ../..
     fi
 
     local INSTANCE_ARG=""
@@ -121,18 +121,26 @@ generate_vectors() {
         INSTANCE_ARG="--instance $INSTANCE"
     fi
 
-    uv run python create-test-vectors.py \
+    uv run python tests/create-test-vectors.py \
         --capture-file "$CAPTURE_FILE" \
         --proof-file "$PROOF_FILE" \
         --starkinfo-file "$STARKINFO_FILE" \
         --air-name "$AIR_NAME" \
-        --output "test-data/$OUTPUT_FILE" \
+        --output "tests/test-data/$OUTPUT_FILE" \
         $INSTANCE_ARG
+
+    # Copy binary proof file if it exists
+    local PROOF_BIN_FILE="${PROOF_FILE%.json}.proof.bin"
+    local OUTPUT_BIN_FILE="${OUTPUT_FILE%.json}.proof.bin"
+    if [ -f "$PROOF_BIN_FILE" ]; then
+        cp "$PROOF_BIN_FILE" "tests/test-data/$OUTPUT_BIN_FILE"
+        echo "Copied binary proof: tests/test-data/$OUTPUT_BIN_FILE"
+    fi
 
     cd "$ROOT_DIR"
 
     echo ""
-    echo "Generated: executable-spec/test-data/$OUTPUT_FILE"
+    echo "Generated: executable-spec/tests/test-data/$OUTPUT_FILE"
     echo "Capture file preserved: $CAPTURE_FILE"
 }
 
