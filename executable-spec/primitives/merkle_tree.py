@@ -1,19 +1,38 @@
 """Merkle tree commitment using Poseidon2."""
 
-from typing import List
+from dataclasses import dataclass, field
+from typing import List, Optional
 import math
 import numpy as np
 from poseidon2_ffi import linear_hash, hash_seq
 
-# --- Type Aliases ---
-
-MerkleRoot = List[int]
-MerkleProof = List[int]
-LeafData = List[int]
-
 # --- Constants ---
 
 HASH_SIZE = 4
+
+# --- Type Aliases ---
+
+MerkleRoot = List[int]
+LeafData = List[int]
+
+
+# --- Data Classes ---
+
+@dataclass
+class QueryProof:
+    """Query proof containing leaf values and Merkle authentication path.
+
+    Corresponds to C++ MerkleProof in proof_stark.hpp lines 39-69.
+
+    Attributes:
+        v: Leaf values at query index - list of columns, each column is a list of elements
+           For base field polynomials: [[val1], [val2], ...] (one element per column)
+           For extension field: [[v0, v1, v2], ...] (FIELD_EXTENSION elements per column)
+        mp: Merkle path - list of sibling hashes per level, from leaf to root
+           Each level has (arity - 1) * HASH_SIZE elements
+    """
+    v: List[List[int]] = field(default_factory=list)
+    mp: List[List[int]] = field(default_factory=list)
 
 
 # --- Data Layout ---
@@ -54,14 +73,29 @@ class MerkleTree:
         self.nodes: List[int] = []
         self.num_nodes = 0
 
+        # Store source data for query proof value extraction
+        self.source_data: Optional[List[int]] = None
+        self.n_cols: int = 0  # Number of columns (polynomials)
+
     # --- Core Operations ---
 
-    def merkelize(self, source: LeafData, height: int, width: int) -> None:
-        """Build Merkle tree from source data."""
+    def merkelize(self, source: LeafData, height: int, width: int, n_cols: int = 0) -> None:
+        """Build Merkle tree from source data.
+
+        Args:
+            source: Flattened leaf data (height * width elements)
+            height: Number of leaves (rows)
+            width: Elements per leaf (columns * elem_size)
+            n_cols: Number of polynomial columns (for query proof extraction)
+        """
         self.height = height
         self.width = width
+        self.n_cols = n_cols if n_cols > 0 else width
         self.num_nodes = self._compute_num_nodes(height)
         self.nodes = [0] * self.num_nodes
+
+        # Store source data for later query proof extraction
+        self.source_data = list(source)
 
         if height == 0:
             return
@@ -108,11 +142,115 @@ class MerkleTree:
             return [0] * HASH_SIZE
         return self.nodes[self.num_nodes - HASH_SIZE:self.num_nodes]
 
-    def get_group_proof(self, idx: int) -> MerkleProof:
-        """Generate Merkle proof for leaf at index."""
-        proof: MerkleProof = []
+    def get_group_proof(self, idx: int) -> List[int]:
+        """Generate Merkle proof (siblings only) for leaf at index."""
+        proof: List[int] = []
         self._collect_proof_siblings(proof, idx, 0, self.height)
         return proof
+
+    def get_query_proof(self, idx: int, elem_size: int = 1) -> QueryProof:
+        """Extract complete query proof with leaf values and Merkle path.
+
+        This is the main method for generating query proofs for STARK proofs.
+        It returns both the polynomial values at the query index and the
+        Merkle authentication path.
+
+        Args:
+            idx: Query index (leaf index in the tree)
+            elem_size: Elements per column (1 for base field, 3 for extension)
+
+        Returns:
+            QueryProof with:
+            - v: List of column values at idx, each is [elem_size] elements
+            - mp: List of sibling hashes per level, structured for C++ compatibility
+
+        Raises:
+            ValueError: If source_data not available or idx out of range
+        """
+        if self.source_data is None:
+            raise ValueError("Source data not stored - cannot extract leaf values")
+        if idx < 0 or idx >= self.height:
+            raise ValueError(f"Query index {idx} out of range [0, {self.height})")
+
+        # Extract leaf values from source data
+        # Source layout: height rows, each row has width elements
+        # width = n_cols * elem_size (for base field elem_size=1)
+        row_start = idx * self.width
+        row_data = self.source_data[row_start:row_start + self.width]
+
+        # Split row into columns
+        v = []
+        for col in range(self.n_cols):
+            col_start = col * elem_size
+            col_values = row_data[col_start:col_start + elem_size]
+            v.append(col_values)
+
+        # Get Merkle siblings
+        flat_siblings = self.get_group_proof(idx)
+
+        # Structure siblings into levels
+        # Each level has (arity - 1) * HASH_SIZE elements
+        siblings_per_level = (self.arity - 1) * HASH_SIZE
+        mp = []
+        for i in range(0, len(flat_siblings), siblings_per_level):
+            level = flat_siblings[i:i + siblings_per_level]
+            mp.append(level)
+
+        return QueryProof(v=v, mp=mp)
+
+    def get_last_level_nodes(self) -> List[int]:
+        """Extract last level verification nodes.
+
+        When lastLevelVerification > 0, the verifier needs access to
+        the internal nodes at (total_levels - lastLevelVerification) from bottom.
+        This is equivalent to lastLevelVerification levels below the root.
+
+        Returns:
+            List of arity^lastLevelVerification * HASH_SIZE elements,
+            or empty list if lastLevelVerification == 0.
+            The actual nodes are at the beginning, followed by zero padding
+            if the actual node count is less than arity^lastLevelVerification.
+        """
+        if self.last_level_verification == 0:
+            return []
+
+        # Trace through tree structure to find the target level's offset
+        # Target level is last_level_verification levels below the root
+        pending = self.height
+        next_index = 0
+        levels_info = []  # [(offset, n_nodes_at_level), ...]
+
+        while pending > 1:
+            extra_zeros = (self.arity - (pending % self.arity)) % self.arity
+            next_n = (pending + (self.arity - 1)) // self.arity
+            levels_info.append((next_index * HASH_SIZE, pending))
+            next_index += pending + extra_zeros
+            pending = next_n
+
+        # Root level
+        n_levels = len(levels_info)  # Number of levels excluding root
+
+        # Target level is last_level_verification from root (top)
+        target_level = n_levels - self.last_level_verification
+        if target_level < 0:
+            target_level = 0
+
+        # Get offset and actual node count at target level
+        target_offset, actual_nodes = levels_info[target_level]
+
+        # Expected size (for padding)
+        expected_nodes = self.arity ** self.last_level_verification
+
+        # Extract actual nodes and pad with zeros
+        actual_size = actual_nodes * HASH_SIZE
+        result = list(self.nodes[target_offset:target_offset + actual_size])
+
+        # Pad to expected size
+        padding_size = expected_nodes * HASH_SIZE - len(result)
+        if padding_size > 0:
+            result.extend([0] * padding_size)
+
+        return result
 
     def verify_group_proof(
         self,
@@ -179,7 +317,7 @@ class MerkleTree:
 
     def _collect_proof_siblings(
         self,
-        proof: MerkleProof,
+        proof: List[int],
         idx: int,
         offset: int,
         n: int

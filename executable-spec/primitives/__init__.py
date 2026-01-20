@@ -20,7 +20,7 @@ from primitives.ntt import NTT
 from primitives.merkle_tree import (
     MerkleTree,
     MerkleRoot,
-    MerkleProof,
+    QueryProof,
     LeafData,
     HASH_SIZE,
     transpose_for_merkle,
@@ -60,7 +60,7 @@ __all__ = [
     # Merkle Tree
     "MerkleTree",
     "MerkleRoot",
-    "MerkleProof",
+    "QueryProof",
     "LeafData",
     "HASH_SIZE",
     "transpose_for_merkle",
