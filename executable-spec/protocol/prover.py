@@ -142,8 +142,11 @@ def gen_proof(
     root1 = starks.commitStage(1, params, ntt)
     computed_roots.append(list(root1))
 
-    # Add root1 to transcript (C++ line 95)
-    transcript.put(root1)
+    # Add root1 to transcript ONLY in recursive mode
+    # C++: In non-recursive mode, root1 is NOT added to transcript before stage 2 challenges
+    # (see gen_proof.hpp lines 169-174 vs 171-172)
+    if recursive:
+        transcript.put(root1)
 
     # -------------------------------------------------------------------------
     # Stage 2: Intermediate polynomials
