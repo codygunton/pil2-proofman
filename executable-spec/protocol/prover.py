@@ -35,7 +35,6 @@ def gen_proof(
     params: StepsParams,
     recursive: bool = False,
     transcript: Optional[Transcript] = None,
-    captured_roots: Optional[dict] = None,
     skip_challenge_derivation: bool = False
 ) -> dict:
     """Generate complete STARK proof.
@@ -60,15 +59,12 @@ def gen_proof(
         recursive: If True, use recursive mode (hash public inputs)
         transcript: Optional pre-initialized transcript for deterministic replay.
                    If None, a new transcript is created.
-        captured_roots: Optional dict with captured Merkle roots for deterministic testing.
-                       Keys: 'root1', 'root2', 'rootQ' (each a list of 4 field elements).
-                       If provided, these are added to transcript instead of computed roots.
         skip_challenge_derivation: If True, skip deriving challenges from transcript.
                                   Use this when challenges are pre-populated in params.
 
     Returns:
         Dictionary containing proof components:
-            - 'roots': List of Merkle roots for each stage
+            - 'roots': List of Merkle roots for each stage (computed by Python)
             - 'evals': Polynomial evaluations at opening points
             - 'nonce': Proof-of-work nonce
             - 'fri_proof': FRI commitment proof
@@ -140,12 +136,14 @@ def gen_proof(
     # -------------------------------------------------------------------------
     # Commit to stage 1 trace polynomial
     # This extends trace from N to N_extended and merkleizes
-    starks.commitStage(1, params, ntt)
+    # Collect roots as we go for the final proof
+    computed_roots: List[list] = []
+
+    root1 = starks.commitStage(1, params, ntt)
+    computed_roots.append(list(root1))
 
     # Add root1 to transcript (C++ line 95)
-    # Python spec doesn't compute Merkle trees, so use captured root if available
-    if captured_roots and 'root1' in captured_roots:
-        transcript.put(captured_roots['root1'])
+    transcript.put(root1)
 
     # -------------------------------------------------------------------------
     # Stage 2: Intermediate polynomials
@@ -186,11 +184,11 @@ def gen_proof(
 
     # Commit to stage 2
     # C++: Lines 144-151
-    starks.commitStage(2, params, ntt)
+    root2 = starks.commitStage(2, params, ntt)
+    computed_roots.append(list(root2))
 
     # Add root2 to transcript (C++ line 147)
-    if captured_roots and 'root2' in captured_roots:
-        transcript.put(captured_roots['root2'])
+    transcript.put(root2)
 
     # Add air values to transcript
     # C++: Lines 153-161
@@ -215,11 +213,11 @@ def gen_proof(
 
     # Commit to quotient polynomial (uses extended NTT)
     # C++: Lines 225-232
-    starks.commitStage(stark_info.nStages + 1, params, ntt_extended)
+    rootQ = starks.commitStage(stark_info.nStages + 1, params, ntt_extended)
+    computed_roots.append(list(rootQ))
 
     # Add rootQ to transcript (C++ line 229)
-    if captured_roots and 'rootQ' in captured_roots:
-        transcript.put(captured_roots['rootQ'])
+    transcript.put(rootQ)
 
     # -------------------------------------------------------------------------
     # Stage EVALS: Polynomial evaluations
@@ -371,20 +369,8 @@ def gen_proof(
     # Assemble final proof
     # C++: Lines 453-462
     # -------------------------------------------------------------------------
-    # Build roots list from captured_roots (nStages + 1 roots total)
+    # Roots are computed by Python during commitStage calls
     # Order: root1, root2, ..., rootQ (one per stage plus Q stage)
-    roots = []
-    if captured_roots:
-        # root1 is stage 1
-        if 'root1' in captured_roots:
-            roots.append(captured_roots['root1'])
-        # For multi-stage AIRs, there may be more intermediate roots
-        # root2 is stage 2 (if exists)
-        if 'root2' in captured_roots:
-            roots.append(captured_roots['root2'])
-        # rootQ is the final stage (stage nStages + 1)
-        if 'rootQ' in captured_roots:
-            roots.append(captured_roots['rootQ'])
 
     proof = {
         'evals': params.evals[:n_evals],
@@ -392,7 +378,7 @@ def gen_proof(
         'air_values': params.airValues,
         'nonce': fri_proof.nonce,
         'fri_proof': fri_proof,
-        'roots': roots,
+        'roots': computed_roots,
         'stage_query_proofs': stage_query_proofs,
         'const_query_proofs': const_query_proofs,
         'query_indices': query_indices,

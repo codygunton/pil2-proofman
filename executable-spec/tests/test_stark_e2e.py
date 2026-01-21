@@ -71,54 +71,23 @@ def load_setup_ctx(air_name: str) -> Optional[SetupCtx]:
     return SetupCtx.from_files(str(starkinfo_path), str(expressions_bin_path))
 
 
-def create_transcript_from_state(stark_info, state_dict: dict,
-                                  pending_data: list = None) -> Transcript:
-    """Create a Transcript initialized to the captured state.
+def create_fresh_transcript(stark_info, vectors: dict) -> Transcript:
+    """Create a fresh transcript with global_challenge (if any).
 
-    Args:
-        stark_info: STARK configuration
-        state_dict: Captured transcript state with state, out, cursors
-        pending_data: Data in the pending buffer (e.g., global_challenge)
+    This creates a transcript in the same initial state as C++ - with only
+    the global_challenge added. Python then computes all roots independently.
     """
     transcript = Transcript(
         arity=stark_info.starkStruct.transcriptArity,
         custom=stark_info.starkStruct.merkleTreeCustom
     )
 
-    # Build pending buffer: pad pending_data to full size
-    pending = [0] * transcript.transcript_out_size
-    if pending_data:
-        for i, v in enumerate(pending_data):
-            if i < len(pending):
-                pending[i] = v
+    # Add global_challenge to transcript (this is added before root1 in C++)
+    global_challenge = vectors['inputs'].get('global_challenge', [])
+    if global_challenge:
+        transcript.put(global_challenge)
 
-    transcript.set_state(
-        state=state_dict['state'],
-        out=state_dict['out'],
-        out_cursor=state_dict['out_cursor'],
-        pending_cursor=state_dict['pending_cursor'],
-        pending=pending
-    )
     return transcript
-
-
-def get_captured_roots(vectors: dict, exclude_root1: bool = False) -> dict:
-    """Extract captured Merkle roots from test vectors.
-
-    Args:
-        vectors: Test vectors dict
-        exclude_root1: If True, don't include root1. Use this when the transcript
-                      state was captured AFTER root1 was absorbed.
-    """
-    intermediates = vectors.get('intermediates', {})
-    roots = {}
-    if 'root1' in intermediates and not exclude_root1:
-        roots['root1'] = intermediates['root1']
-    if 'root2' in intermediates:
-        roots['root2'] = intermediates['root2']
-    if 'rootQ' in intermediates:
-        roots['rootQ'] = intermediates['rootQ']
-    return roots
 
 
 def create_params_from_vectors(stark_info, vectors: dict,
@@ -224,7 +193,11 @@ class TestStarkE2E:
 
     @pytest.mark.parametrize("air_name", ['simple'])
     def test_challenges_match(self, air_name):
-        """Test that Fiat-Shamir challenges match C++ golden values."""
+        """Test that Fiat-Shamir challenges match C++ golden values.
+
+        This test verifies challenge derivation. Python computes its own roots,
+        and if they match C++, the challenges will match.
+        """
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -235,22 +208,12 @@ class TestStarkE2E:
 
         stark_info = setup_ctx.stark_info
 
-        # Create transcript with captured state
-        transcript_state = vectors['inputs'].get('transcript_state_step0')
-        if transcript_state is None:
-            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
-
-        global_challenge = vectors['inputs'].get('global_challenge', [])
-        transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
-
-        # Create params
+        # Create fresh transcript with global_challenge
+        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
-        # Run gen_proof with initialized transcript
-        # Note: transcript_state_step0 is captured AFTER root1 was absorbed,
-        # so we exclude root1 from captured_roots to avoid adding it twice
-        captured_roots = get_captured_roots(vectors, exclude_root1=True)
-        proof = gen_proof(setup_ctx, params, transcript=transcript, captured_roots=captured_roots)
+        # Run gen_proof - Python computes all roots independently
+        proof = gen_proof(setup_ctx, params, transcript=transcript)
 
         # Check challenges
         intermediates = vectors['intermediates']
@@ -279,7 +242,11 @@ class TestStarkE2E:
 
     @pytest.mark.parametrize("air_name", ['simple'])
     def test_evals_match(self, air_name):
-        """Test that polynomial evaluations match C++ golden values."""
+        """Test that polynomial evaluations match C++ golden values.
+
+        Python computes its own roots, and if they match C++, the evaluations
+        will match.
+        """
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -290,19 +257,12 @@ class TestStarkE2E:
 
         stark_info = setup_ctx.stark_info
 
-        # Create transcript with captured state
-        transcript_state = vectors['inputs'].get('transcript_state_step0')
-        if transcript_state is None:
-            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
-
-        global_challenge = vectors['inputs'].get('global_challenge', [])
-        transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
+        # Create fresh transcript with global_challenge
+        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
-        # Run gen_proof
-        # Note: transcript_state_step0 is captured AFTER root1 was absorbed
-        captured_roots = get_captured_roots(vectors, exclude_root1=True)
-        proof = gen_proof(setup_ctx, params, transcript=transcript, captured_roots=captured_roots)
+        # Run gen_proof - Python computes all roots independently
+        proof = gen_proof(setup_ctx, params, transcript=transcript)
 
         # Check evals
         expected_evals = vectors['intermediates'].get('evals', [])
@@ -321,7 +281,11 @@ class TestStarkE2E:
 
     @pytest.mark.parametrize("air_name", ['simple'])
     def test_fri_output_matches(self, air_name):
-        """Test that FRI output matches C++ golden values."""
+        """Test that FRI output matches C++ golden values.
+
+        Python computes its own roots, and if they match C++, the FRI output
+        will match.
+        """
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -332,19 +296,12 @@ class TestStarkE2E:
 
         stark_info = setup_ctx.stark_info
 
-        # Create transcript with captured state
-        transcript_state = vectors['inputs'].get('transcript_state_step0')
-        if transcript_state is None:
-            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
-
-        global_challenge = vectors['inputs'].get('global_challenge', [])
-        transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
+        # Create fresh transcript with global_challenge
+        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
-        # Run gen_proof
-        # Note: transcript_state_step0 is captured AFTER root1 was absorbed
-        captured_roots = get_captured_roots(vectors, exclude_root1=True)
-        proof = gen_proof(setup_ctx, params, transcript=transcript, captured_roots=captured_roots)
+        # Run gen_proof - Python computes all roots independently
+        proof = gen_proof(setup_ctx, params, transcript=transcript)
 
         # Check nonce
         expected_nonce = vectors['expected']['nonce']
@@ -364,14 +321,17 @@ class TestStarkE2E:
 class TestStarkWithInjectedChallenges:
     """Test polynomial computations with challenges injected from test vectors.
 
-    This bypasses the transcript timing complexity (captured state is before roots
-    are added) to verify the polynomial computation logic is correct given
-    the expected challenges.
+    These tests inject known challenges to verify polynomial computation logic,
+    while still computing Merkle roots independently. The roots should still
+    match C++ if the polynomial computations are correct.
     """
 
     @pytest.mark.parametrize("air_name", ['simple'])
     def test_evals_with_injected_challenges(self, air_name):
-        """Test that evals match when using injected challenges."""
+        """Test that evals match when using injected challenges.
+
+        Challenges are injected from test vectors, but roots are computed by Python.
+        """
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -382,17 +342,15 @@ class TestStarkWithInjectedChallenges:
 
         stark_info = setup_ctx.stark_info
 
-        # Create params with injected challenges - bypass transcript entirely
+        # Create params with injected challenges - bypass transcript for challenge derivation
         params = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
 
-        # Create transcript (won't be used for challenges, just for FRI)
-        transcript_state = vectors['inputs'].get('transcript_state_step0')
-        global_challenge = vectors['inputs'].get('global_challenge', [])
-        transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
+        # Create fresh transcript with global_challenge
+        transcript = create_fresh_transcript(stark_info, vectors)
 
         # Run gen_proof - challenges are pre-populated, skip transcript challenge derivation
-        captured_roots = get_captured_roots(vectors)
-        proof = gen_proof(setup_ctx, params, transcript=transcript, captured_roots=captured_roots,
+        # Python still computes roots independently
+        proof = gen_proof(setup_ctx, params, transcript=transcript,
                          skip_challenge_derivation=True)
 
         # Check that stage 2 challenges match (they were injected)
@@ -427,7 +385,10 @@ class TestStarkPartialEvals:
 
     @pytest.mark.parametrize("air_name", ['simple'])
     def test_cm1_and_const_evals(self, air_name):
-        """Test that cm1 and constant polynomial evaluations match."""
+        """Test that cm1 and constant polynomial evaluations match.
+
+        Challenges are injected, but roots are computed by Python.
+        """
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -441,14 +402,12 @@ class TestStarkPartialEvals:
         # Create params with injected challenges
         params = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
 
-        # Create transcript (not used for challenges)
-        transcript_state = vectors['inputs'].get('transcript_state_step0')
-        global_challenge = vectors['inputs'].get('global_challenge', [])
-        transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
+        # Create fresh transcript with global_challenge
+        transcript = create_fresh_transcript(stark_info, vectors)
 
         # Run gen_proof with challenge derivation skipped
-        captured_roots = get_captured_roots(vectors)
-        proof = gen_proof(setup_ctx, params, transcript=transcript, captured_roots=captured_roots,
+        # Python still computes roots independently
+        proof = gen_proof(setup_ctx, params, transcript=transcript,
                          skip_challenge_derivation=True)
 
         # Identify testable evaluations (cm1 and const only)
@@ -484,11 +443,20 @@ class TestStarkPartialEvals:
 
 
 class TestStarkE2EComplete:
-    """Complete end-to-end test running full proof and comparing all outputs."""
+    """Complete end-to-end test running full proof and comparing all outputs.
+
+    IMPORTANT: This test is non-circular. Python computes everything from scratch:
+    - Merkle roots are computed by Python, not captured from C++
+    - Challenges are derived from transcript using Python-computed roots
+    """
 
     @pytest.mark.parametrize("air_name", list(AIR_CONFIGS.keys()))
     def test_full_proof_matches(self, air_name):
-        """Test complete proof generation matches C++ golden values."""
+        """Test complete proof generation matches C++ golden values.
+
+        Python computes its own roots and uses them throughout. If roots match
+        C++, all derived values (challenges, evals, FRI) will match.
+        """
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -499,26 +467,22 @@ class TestStarkE2EComplete:
 
         stark_info = setup_ctx.stark_info
 
-        # Create transcript with captured state
-        transcript_state = vectors['inputs'].get('transcript_state_step0')
-        if transcript_state is None:
-            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
-
-        global_challenge = vectors['inputs'].get('global_challenge', [])
-        transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
+        # Create fresh transcript with global_challenge
+        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
-        # Run gen_proof
-        # Note: transcript_state_step0 is captured AFTER root1 was absorbed,
-        # so we exclude root1 from transcript operations but include it in proof['roots']
-        captured_roots = get_captured_roots(vectors, exclude_root1=True)
-        proof = gen_proof(setup_ctx, params, transcript=transcript, captured_roots=captured_roots)
+        # Run gen_proof - Python computes all roots independently
+        proof = gen_proof(setup_ctx, params, transcript=transcript)
 
-        # Add root1 to proof['roots'] for byte comparison (it was excluded from captured_roots
-        # for transcript purposes but is still part of the proof structure)
+        # Verify Python-computed roots match C++ expected roots
         intermediates = vectors['intermediates']
+        expected_roots = []
         if 'root1' in intermediates:
-            proof['roots'] = [intermediates['root1']] + proof['roots']
+            expected_roots.append(intermediates['root1'])
+        if 'root2' in intermediates:
+            expected_roots.append(intermediates['root2'])
+        if 'rootQ' in intermediates:
+            expected_roots.append(intermediates['rootQ'])
 
         # Collect all mismatches
         mismatches = []
@@ -613,6 +577,11 @@ class TestFullBinaryComparison:
 
     This test uses to_bytes_full_from_dict to serialize the complete proof
     and compares it byte-for-byte against the C++ binary proof.
+
+    IMPORTANT: This test is non-circular. Python computes everything from scratch:
+    - Merkle roots (root1, root2, rootQ) are computed by Python, not captured from C++
+    - Challenges are derived from transcript using Python-computed roots
+    - If Python's roots differ from C++, challenges will diverge and test will fail
     """
 
     @pytest.mark.parametrize("air_name", list(AIR_CONFIGS.keys()))
@@ -621,6 +590,10 @@ class TestFullBinaryComparison:
 
         This test serializes the complete Python proof (including query proofs)
         and compares it byte-for-byte with the C++ binary proof.
+
+        The test is non-circular: Python computes its own Merkle roots and uses
+        them throughout. If roots match C++, challenges match, and the full proof
+        matches byte-for-byte.
         """
         import struct
 
@@ -633,23 +606,35 @@ class TestFullBinaryComparison:
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
 
-        # Create transcript with captured state
-        transcript_state = vectors['inputs'].get('transcript_state_step0')
-        if transcript_state is None:
-            pytest.fail(f"transcript_state_step0 not in test vectors for {air_name}")
-
-        global_challenge = vectors['inputs'].get('global_challenge', [])
-        transcript = create_transcript_from_state(stark_info, transcript_state, global_challenge)
+        # Create fresh transcript with global_challenge
+        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
-        # Run gen_proof with full query proof collection
-        captured_roots = get_captured_roots(vectors, exclude_root1=True)
-        proof = gen_proof(setup_ctx, params, transcript=transcript, captured_roots=captured_roots)
+        # Run gen_proof - Python computes all roots independently
+        proof = gen_proof(setup_ctx, params, transcript=transcript)
 
-        # Add root1 to proof['roots']
+        # Verify Python-computed roots match C++ expected roots
         intermediates = vectors['intermediates']
+        expected_roots = []
         if 'root1' in intermediates:
-            proof['roots'] = [intermediates['root1']] + proof['roots']
+            expected_roots.append(intermediates['root1'])
+        if 'root2' in intermediates:
+            expected_roots.append(intermediates['root2'])
+        if 'rootQ' in intermediates:
+            expected_roots.append(intermediates['rootQ'])
+
+        assert len(proof['roots']) == len(expected_roots), (
+            f"Root count mismatch: Python has {len(proof['roots'])}, "
+            f"expected {len(expected_roots)}"
+        )
+
+        for i, (py_root, cpp_root) in enumerate(zip(proof['roots'], expected_roots)):
+            root_name = ['root1', 'root2', 'rootQ'][i] if i < 3 else f'root{i+1}'
+            assert list(py_root) == list(cpp_root), (
+                f"{root_name} mismatch:\n"
+                f"  Python: {py_root}\n"
+                f"  C++:    {cpp_root}"
+            )
 
         # Load C++ binary proof
         config = AIR_CONFIGS.get(air_name)
