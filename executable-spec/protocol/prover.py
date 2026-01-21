@@ -29,6 +29,7 @@ from protocol.witness_generation import calculate_witness_std
 FIELD_EXTENSION = 3
 
 
+# C++: pil2-stark/src/starkpil/gen_proof.hpp::genProof (lines 47-465)
 def gen_proof(
     setup_ctx: SetupCtx,
     params: StepsParams,

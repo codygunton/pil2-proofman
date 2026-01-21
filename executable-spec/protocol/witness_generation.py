@@ -34,6 +34,7 @@ FIELD_EXTENSION = 3
 # Goldilocks3 Field Arithmetic
 # =============================================================================
 
+# C++: pil2-stark/src/goldilocks/src/goldilocks_cubic_extension.hpp::add
 def _goldilocks3_add(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """Add two Goldilocks3 elements (component-wise mod p).
 
@@ -51,6 +52,7 @@ def _goldilocks3_add(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.array(ff3_coeffs(result), dtype=np.uint64)
 
 
+# C++: goldilocks_cubic_extension.hpp::mul
 def _goldilocks3_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """Multiply two Goldilocks3 elements.
 
@@ -70,6 +72,7 @@ def _goldilocks3_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.array(ff3_coeffs(result), dtype=np.uint64)
 
 
+# C++: goldilocks_cubic_extension.hpp::inv
 def _goldilocks3_inv(a: np.ndarray) -> np.ndarray:
     """Compute multiplicative inverse in Goldilocks3.
 
@@ -86,6 +89,7 @@ def _goldilocks3_inv(a: np.ndarray) -> np.ndarray:
     return np.array(ff3_coeffs(inv_elem), dtype=np.uint64)
 
 
+# C++: goldilocks_base_field.hpp::inv
 def _goldilocks_inv(a: int) -> int:
     """Compute multiplicative inverse in base Goldilocks field."""
     return int(FF(a) ** -1)
@@ -95,6 +99,7 @@ def _goldilocks_inv(a: int) -> int:
 # Field Operations on Columns
 # =============================================================================
 
+# C++: Inline Goldilocks multiplication
 def _field_mul_scalar(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """Multiply two field elements (dim 1 or 3).
 
@@ -121,6 +126,7 @@ def _field_mul_scalar(a: np.ndarray, b: np.ndarray) -> np.ndarray:
         raise ValueError(f"Dimension mismatch: {len(a)} vs {len(b)}")
 
 
+# C++: Goldilocks::inv
 def _field_inverse_scalar(a: np.ndarray) -> np.ndarray:
     """Compute multiplicative inverse of a field element."""
     if len(a) == 1:
@@ -131,6 +137,7 @@ def _field_inverse_scalar(a: np.ndarray) -> np.ndarray:
         raise ValueError(f"Invalid dimension for inverse: {len(a)}")
 
 
+# C++: No direct equivalent (Python batch operation)
 def _field_mul_columns(a: np.ndarray, b: np.ndarray, N: int, dim: int) -> np.ndarray:
     """Multiply two columns element-wise.
 
@@ -159,6 +166,7 @@ def _field_mul_columns(a: np.ndarray, b: np.ndarray, N: int, dim: int) -> np.nda
     return result
 
 
+# C++: Batch inverse computation
 def _field_inverse_column(a: np.ndarray, N: int, dim: int) -> np.ndarray:
     """Compute multiplicative inverse of each element in a column.
 
@@ -188,6 +196,7 @@ def _field_inverse_column(a: np.ndarray, N: int, dim: int) -> np.ndarray:
 # Expression Evaluation for Hint Fields
 # =============================================================================
 
+# C++: pil2-stark/src/starkpil/hints.cpp hint evaluation
 def evaluate_hint_field_with_expressions(
     stark_info: StarkInfo,
     expressions_bin: ExpressionsBin,
@@ -258,6 +267,7 @@ def evaluate_hint_field_with_expressions(
     return dest_buffer
 
 
+# C++: hints.cpp parameter building
 def _build_param_from_hint_field(
     stark_info: StarkInfo,
     hfv: HintFieldValue
@@ -347,6 +357,7 @@ def _build_param_from_hint_field(
 # Hint Field Value Fetching
 # =============================================================================
 
+# C++: hints.cpp polynomial access
 def _get_polynomial_column(
     stark_info: StarkInfo,
     params: StepsParams,
@@ -394,6 +405,7 @@ def _get_polynomial_column(
     return result
 
 
+# C++: hints.cpp constant polynomial access
 def _get_const_polynomial(
     stark_info: StarkInfo,
     params: StepsParams,
@@ -422,6 +434,7 @@ def _get_const_polynomial(
     return result
 
 
+# C++: hints.cpp operand fetching
 def _fetch_operand_value(
     stark_info: StarkInfo,
     params: StepsParams,
@@ -484,6 +497,7 @@ def _fetch_operand_value(
         raise NotImplementedError(f"Operand type {hfv.operand} not implemented")
 
 
+# C++: pil2-stark/src/starkpil/hints.cpp::getHintFieldValues
 def get_hint_field_values(
     stark_info: StarkInfo,
     expressions_bin: ExpressionsBin,
@@ -574,6 +588,7 @@ def get_hint_field_values(
 # Hint Field Storage
 # =============================================================================
 
+# C++: hints.cpp polynomial writing
 def _set_polynomial_column(
     stark_info: StarkInfo,
     params: StepsParams,
@@ -610,6 +625,7 @@ def _set_polynomial_column(
         buffer[dst_idx:dst_idx + dim] = values[j * dim:(j + 1) * dim]
 
 
+# C++: hints.cpp::setHintField
 def _set_hint_field(
     stark_info: StarkInfo,
     expressions_bin: ExpressionsBin,
@@ -647,6 +663,7 @@ def _set_hint_field(
 # Core Witness STD Functions
 # =============================================================================
 
+# C++: pil2-stark/src/starkpil/hints.cpp::multiplyHintFields
 def multiply_hint_fields(
     stark_info: StarkInfo,
     expressions_bin: ExpressionsBin,
@@ -691,6 +708,7 @@ def multiply_hint_fields(
         _set_hint_field(stark_info, expressions_bin, params, hint_id, dest_field, result)
 
 
+# C++: hints.cpp::accMulHintFields
 def acc_mul_hint_fields(
     stark_info: StarkInfo,
     expressions_bin: ExpressionsBin,
@@ -773,6 +791,7 @@ def acc_mul_hint_fields(
         _set_hint_field(stark_info, expressions_bin, params, hint_id, airgroup_val_field, final_val)
 
 
+# C++: hints.cpp::updateAirgroupValue
 def update_airgroup_value(
     stark_info: StarkInfo,
     expressions_bin: ExpressionsBin,
@@ -865,6 +884,7 @@ def update_airgroup_value(
 # Main Entry Point
 # =============================================================================
 
+# C++: pil2-stark/src/starkpil/gen_proof.hpp::calculateWitnessSTD (lines 4-45)
 def calculate_witness_std(
     stark_info: StarkInfo,
     expressions_bin: ExpressionsBin,

@@ -25,6 +25,7 @@ FIELD_EXTENSION = 3
 HASH_SIZE = 4
 
 
+# C++: pil2-stark/src/starkpil/stark_info.hpp::StepStruct (lines 68-72)
 @dataclass
 class StepStruct:
     """FRI folding step configuration.
@@ -37,6 +38,7 @@ class StepStruct:
     nBits: int
 
 
+# C++: pil2-stark/src/starkpil/stark_info.hpp::StarkStruct (lines 74-88)
 @dataclass
 class StarkStruct:
     """Core STARK protocol parameters.
@@ -69,6 +71,7 @@ class StarkStruct:
     hashCommits: bool = False
 
 
+# C++: pil2-stark/src/starkpil/stark_info.hpp::StarkInfo (lines 137-217)
 class StarkInfo:
     """STARK configuration and metadata.
 
@@ -79,6 +82,7 @@ class StarkInfo:
     evaluation points, challenge derivation, and memory layout.
     """
 
+    # C++: StarkInfo constructor
     def __init__(self):
         """Initialize empty StarkInfo.
 
@@ -156,6 +160,7 @@ class StarkInfo:
         self.preallocate: bool = False
         self.calculateFixedExtended: bool = False
 
+    # C++: StarkInfo::load (stark_info.cpp)
     @classmethod
     def from_json(cls,
                   path: str,
@@ -196,6 +201,7 @@ class StarkInfo:
         info._load(j)
         return info
 
+    # C++: StarkInfo::load internal parsing
     def _load(self, j: dict) -> None:
         """Load configuration from parsed JSON.
 
@@ -427,6 +433,7 @@ class StarkInfo:
         self._get_proof_size()
         self._set_map_offsets()
 
+    # C++: StarkInfo::getProofSize
     def _get_proof_size(self) -> None:
         """Calculate proof size.
 
@@ -495,6 +502,7 @@ class StarkInfo:
         # Nonce
         self.proofSize += 1
 
+    # C++: StarkInfo::setMapOffsets
     def _set_map_offsets(self) -> None:
         """Set memory layout offsets.
 
@@ -549,6 +557,7 @@ class StarkInfo:
         self.mapOffsets[("f", True)] = self.mapTotalN
         self.mapTotalN += NExtended * FIELD_EXTENSION
 
+    # C++: StarkInfo::getNumNodesMT
     def _get_num_nodes_mt(self, height: int) -> int:
         """Calculate number of Merkle tree nodes.
 
@@ -573,6 +582,7 @@ class StarkInfo:
 
         return numNodes * HASH_SIZE
 
+    # C++: StarkInfo::getOffset
     def get_offset(self, section: str, extended: bool) -> int:
         """Get buffer offset for a section.
 
@@ -588,6 +598,7 @@ class StarkInfo:
         """
         return self.mapOffsets[(section, extended)]
 
+    # C++: StarkInfo::getNCols
     def get_n_cols(self, section: str) -> int:
         """Get number of columns in a section.
 

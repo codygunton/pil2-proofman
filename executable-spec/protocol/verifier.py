@@ -33,6 +33,7 @@ from primitives.field import FF, FF3, ff3, ff3_coeffs, get_omega, SHIFT
 from poseidon2_ffi import verify_grinding
 
 
+# C++: pil2-stark/src/starkpil/stark_verify.hpp::starkVerify (lines 22-695)
 def stark_verify(
     jproof: Dict,
     setup_ctx: SetupCtx,
@@ -433,6 +434,7 @@ def stark_verify(
 # =============================================================================
 
 
+# C++: stark_verify.hpp root parsing (inline)
 def _parse_root(jproof: Dict, key: str, n_fields: int) -> List[int]:
     """Parse Merkle root from proof JSON.
 
@@ -450,6 +452,7 @@ def _parse_root(jproof: Dict, key: str, n_fields: int) -> List[int]:
         return [int(jproof[key][i]) for i in range(n_fields)]
 
 
+# C++: stark_verify.hpp::computeXDivXSub
 def _compute_x_div_x_sub(
     stark_info,
     xi_challenge: np.ndarray,
@@ -512,6 +515,7 @@ def _compute_x_div_x_sub(
     return x_div_x_sub
 
 
+# C++: stark_verify.hpp trace value parsing
 def _parse_trace_values(jproof: Dict, stark_info) -> tuple:
     """Parse trace query values from proof.
 
@@ -562,6 +566,7 @@ def _parse_trace_values(jproof: Dict, stark_info) -> tuple:
     return trace, aux_trace, trace_custom_commits_fixed
 
 
+# C++: stark_verify.hpp evaluation verification section
 def _verify_evaluations(
     stark_info,
     setup_ctx: SetupCtx,
@@ -641,6 +646,7 @@ def _verify_evaluations(
     return True
 
 
+# C++: stark_verify.hpp FRI consistency checks
 def _verify_fri_consistency(
     jproof: Dict,
     stark_info,
@@ -708,6 +714,7 @@ def _verify_fri_consistency(
     return is_valid
 
 
+# C++: stark_verify.hpp stage Merkle verification
 def _verify_stage_merkle_tree(
     jproof: Dict,
     stark_info,
@@ -738,6 +745,7 @@ def _verify_stage_merkle_tree(
     return True
 
 
+# C++: stark_verify.hpp constant Merkle verification
 def _verify_constant_merkle_tree(
     jproof: Dict,
     stark_info,
@@ -761,6 +769,7 @@ def _verify_constant_merkle_tree(
     return True
 
 
+# C++: stark_verify.hpp custom commit Merkle verification
 def _verify_custom_commit_merkle_tree(
     jproof: Dict,
     stark_info,
@@ -786,6 +795,7 @@ def _verify_custom_commit_merkle_tree(
     return True
 
 
+# C++: stark_verify.hpp FRI folding Merkle verification
 def _verify_fri_folding_merkle_tree(
     jproof: Dict,
     stark_info,
@@ -809,6 +819,7 @@ def _verify_fri_folding_merkle_tree(
     return True
 
 
+# C++: stark_verify.hpp FRI folding verification
 def _verify_fri_folding(
     jproof: Dict,
     stark_info,
@@ -892,6 +903,7 @@ def _verify_fri_folding(
     return is_valid
 
 
+# C++: stark_verify.hpp final polynomial degree check
 def _verify_final_polynomial(jproof: Dict, stark_info) -> bool:
     """Verify final polynomial degree bound.
 

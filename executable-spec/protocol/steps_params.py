@@ -9,6 +9,7 @@ from typing import Optional
 import numpy as np
 
 
+# C++: pil2-stark/src/starkpil/steps.hpp::StepsParams (lines 6-20)
 @dataclass
 class StepsParams:
     """Container for all prover/verifier working data.
@@ -49,6 +50,7 @@ class StepsParams:
     constPolsExtended: Optional[np.ndarray] = None
     customCommits: Optional[np.ndarray] = None
 
+    # C++: StepsParams initialization logic
     def __post_init__(self):
         """Validate that arrays have correct dtype if provided."""
         # In the C++ code, all fields are Goldilocks::Element* (uint64_t*)

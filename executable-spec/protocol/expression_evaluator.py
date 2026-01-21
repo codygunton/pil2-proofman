@@ -24,6 +24,7 @@ from primitives.field import FF, FF3, ff3, ff3_coeffs
 NROWS_PACK = 1
 
 
+# C++: pil2-stark/src/starkpil/expressions_ctx.hpp (operation constants)
 class Operation(Enum):
     """Arithmetic operations.
 
@@ -36,6 +37,7 @@ class Operation(Enum):
     SUB_SWAP = 3
 
 
+# C++: pil2-stark/src/starkpil/expressions_ctx.hpp::Params (lines 53-80)
 @dataclass
 class Params:
     """Expression evaluation parameters.
@@ -55,6 +57,7 @@ class Params:
     value: int = 0
 
 
+# C++: pil2-stark/src/starkpil/expressions_ctx.hpp::Dest (lines 82-123)
 @dataclass
 class Dest:
     """Destination specification for expression evaluation.
@@ -72,11 +75,13 @@ class Dest:
     domain_size: int = 0
     params: List[Params] = None
 
+    # C++: Dest constructor logic
     def __post_init__(self):
         if self.params is None:
             self.params = []
 
 
+# C++: pil2-stark/src/starkpil/expressions_ctx.hpp::ExpressionsCtx
 class ExpressionsCtx:
     """Base context for expression evaluation.
 
@@ -86,6 +91,7 @@ class ExpressionsCtx:
     polynomial data during constraint evaluation.
     """
 
+    # C++: ExpressionsCtx constructor
     def __init__(self, setup_ctx: SetupCtx, prover_helpers: Optional[ProverHelpers] = None):
         """Initialize expressions context.
 
@@ -188,6 +194,7 @@ class ExpressionsCtx:
         # Pack size for batching (line 141 in expressions_pack.hpp)
         self.nrows_pack_ = min(NROWS_PACK, N)
 
+    # C++: ExpressionsCtx::setXi
     def set_xi(self, xis: np.ndarray):
         """Set xi evaluation points for FRI division.
 
@@ -198,6 +205,7 @@ class ExpressionsCtx:
         """
         self.xis = xis
 
+    # C++: ExpressionsCtx::calculateExpression
     def calculate_expression(self, params: StepsParams, dest: np.ndarray,
                             expression_id: int, inverse: bool = False,
                             compilation_time: bool = False):
@@ -254,6 +262,7 @@ class ExpressionsCtx:
         # Call main evaluation
         self.calculate_expressions(params, dest_struct, domain_size, domain_extended, compilation_time)
 
+    # C++: ExpressionsCtx::calculateExpressions
     def calculate_expressions(self, params: StepsParams, dest: Dest,
                              domain_size: int, domain_extended: bool,
                              compilation_time: bool = False,
@@ -274,6 +283,7 @@ class ExpressionsCtx:
         raise NotImplementedError("Subclass must implement calculate_expressions")
 
 
+# C++: pil2-stark/src/starkpil/expressions_pack.hpp::ExpressionsPack
 class ExpressionsPack(ExpressionsCtx):
     """Expression evaluator with row batching.
 
@@ -283,6 +293,7 @@ class ExpressionsPack(ExpressionsCtx):
     processing rows in batches for efficiency (though Python version uses batch=1).
     """
 
+    # C++: ExpressionsPack constructor
     def __init__(self, setup_ctx: SetupCtx, prover_helpers: Optional[ProverHelpers] = None,
                  nrows_pack: int = NROWS_PACK):
         """Initialize expression pack evaluator.
@@ -298,6 +309,7 @@ class ExpressionsPack(ExpressionsCtx):
         N = 1 << setup_ctx.stark_info.starkStruct.nBits
         self.nrows_pack_ = min(nrows_pack, N)
 
+    # C++: ExpressionsPack::calculateExpressions
     def calculate_expressions(self, params: StepsParams, dest: Dest,
                               domain_size: int, domain_extended: bool,
                               compilation_time: bool = False,
@@ -577,6 +589,7 @@ class ExpressionsPack(ExpressionsCtx):
             # Store result to destination (line 504)
             self._store_polynomial(nrows_pack, dest, values, i, is_constant)
 
+    # C++: ExpressionsPack load operations (inline)
     def _load(self, params: StepsParams, expressions_params: Dict[int, np.ndarray],
               args: np.ndarray, map_offsets_exps: np.ndarray,
               map_offsets_custom_exps: np.ndarray, next_strides_exps: np.ndarray,
@@ -755,6 +768,7 @@ class ExpressionsPack(ExpressionsCtx):
             # Public inputs, numbers, air values, etc.
             return expressions_params[type_arg][args[i_args + 1]:args[i_args + 1] + dim]
 
+    # C++: ExpressionsPack inverse polynomial handling
     def _get_inverse_polynomial(self, nrows_pack: int, dest_vals: np.ndarray,
                                 buff_helper: np.ndarray, batch: bool, dim: int):
         """Compute inverse of polynomial values.
@@ -794,6 +808,7 @@ class ExpressionsPack(ExpressionsCtx):
                 for d in range(FIELD_EXTENSION):
                     dest_vals[i + d * nrows_pack] = buff_helper[i * FIELD_EXTENSION + d]
 
+    # C++: ExpressionsPack polynomial multiplication
     def _multiply_polynomials(self, nrows_pack: int, dest: Dest, dest_vals: np.ndarray,
                              is_constant_a: bool, is_constant_b: bool):
         """Multiply two polynomial values.
@@ -838,6 +853,7 @@ class ExpressionsPack(ExpressionsCtx):
             # Copy result back
             dest_vals[0:FIELD_EXTENSION * nrows_pack] = buff_helper[0:FIELD_EXTENSION * nrows_pack]
 
+    # C++: ExpressionsPack store operations (inline)
     def _store_polynomial(self, nrows_pack: int, dest: Dest, dest_vals: np.ndarray,
                          row: int, is_constant: int):
         """Store polynomial values to destination.
@@ -870,6 +886,7 @@ class ExpressionsPack(ExpressionsCtx):
                     else:
                         dest.dest[row * offset + j * offset + d] = dest_vals[j + d * nrows_pack]
 
+    # C++: ExpressionsPack Goldilocks operations
     def _goldilocks_op_pack(self, nrows_pack: int, op: int, dest: np.ndarray,
                             a: np.ndarray, is_constant_a: bool,
                             b: np.ndarray, is_constant_b: bool):
@@ -900,6 +917,7 @@ class ExpressionsPack(ExpressionsCtx):
             elif op == 3:  # SUB_SWAP
                 dest[i] = int(b_val - a_val)
 
+    # C++: ExpressionsPack Goldilocks3 operations
     def _goldilocks3_op_pack(self, nrows_pack: int, op: int, dest: np.ndarray,
                              a: np.ndarray, is_constant_a: bool,
                              b: np.ndarray, is_constant_b: bool):
@@ -943,6 +961,7 @@ class ExpressionsPack(ExpressionsCtx):
             dest[i + nrows_pack] = res_coeffs[1]
             dest[i + 2 * nrows_pack] = res_coeffs[2]
 
+    # C++: ExpressionsPack Goldilocks3x1 operations
     def _goldilocks3_op_31_pack(self, nrows_pack: int, op: int, dest: np.ndarray,
                                 a: np.ndarray, is_constant_a: bool,
                                 b: np.ndarray, is_constant_b: bool):

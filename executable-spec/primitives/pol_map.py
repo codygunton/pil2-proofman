@@ -13,6 +13,7 @@ from enum import Enum
 from typing import List, Optional
 
 
+# C++: pil2-stark/src/starkpil/stark_info.hpp::PolMap (lines 93-106)
 @dataclass
 class PolMap:
     """Maps a polynomial to its location in the proof system.
@@ -43,6 +44,7 @@ class PolMap:
     polsMapId: int = 0
 
 
+# C++: pil2-stark/src/starkpil/stark_info.hpp::EvMap (lines 108-135)
 @dataclass
 class EvMap:
     """Maps an evaluation point to its polynomial source.
@@ -57,6 +59,7 @@ class EvMap:
         openingPos: Position in opening points array
     """
 
+    # C++: stark_info.hpp::EvMap::eType (lines 109-114)
     class Type(Enum):
         """Evaluation source type.
 
@@ -72,6 +75,7 @@ class EvMap:
     commitId: int = 0
     openingPos: int = 0
 
+    # C++: stark_info.hpp::EvMap::setType (lines 124-134)
     @staticmethod
     def type_from_string(s: str) -> 'EvMap.Type':
         """Convert string to Type enum.
@@ -97,6 +101,7 @@ class EvMap:
             raise ValueError(f"EvMap: invalid type string: {s}")
 
 
+# C++: No direct equivalent (challenge info embedded in StarkInfo)
 @dataclass
 class ChallengeMap:
     """Maps a challenge to its derivation stage.
@@ -116,6 +121,7 @@ class ChallengeMap:
     stageId: int
 
 
+# C++: pil2-stark/src/starkpil/stark_info.hpp::CustomCommits (lines 52-58)
 @dataclass
 class CustomCommits:
     """Custom commitment configuration.
@@ -132,6 +138,7 @@ class CustomCommits:
     publicValues: List[int] = field(default_factory=list)
 
 
+# C++: pil2-stark/src/starkpil/stark_info.hpp::Boundary (lines 60-66)
 @dataclass
 class Boundary:
     """Constraint boundary specification.

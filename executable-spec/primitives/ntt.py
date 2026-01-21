@@ -12,6 +12,7 @@ import galois
 from primitives.field import FF, SHIFT, SHIFT_INV, get_omega, get_omega_inv, GOLDILOCKS_PRIME
 
 
+# C++: pil2-stark/src/goldilocks/src/ntt_goldilocks.hpp::NTT_Goldilocks
 class NTT:
     """Number Theoretic Transform for Goldilocks field.
 
@@ -20,6 +21,7 @@ class NTT:
     Source: pil2-stark/src/goldilocks/src/ntt_goldilocks.hpp
     """
 
+    # C++: NTT_Goldilocks::NTT_Goldilocks (ntt_goldilocks.cpp lines 66-162)
     def __init__(self, domain_size: int, extension: int = 1):
         """Initialize NTT engine for given domain size.
 
@@ -50,6 +52,7 @@ class NTT:
         self.r: Optional[np.ndarray] = None
         self.r_: Optional[np.ndarray] = None
 
+    # C++: No direct equivalent (inline in C++)
     @staticmethod
     def _log2(size: int) -> int:
         """Compute log2 of size (must be power of 2).
@@ -63,6 +66,7 @@ class NTT:
             res += 1
         return res
 
+    # C++: NTT_Goldilocks constructor (precomputes roots, lines 66-162)
     def _precompute_roots(self, omega: int, n_roots: int) -> np.ndarray:
         """Precompute roots of unity: roots[k] = omega^k.
 
@@ -77,6 +81,7 @@ class NTT:
                 roots[i] = roots[i - 1] * omega_ff
         return roots
 
+    # C++: NTT_Goldilocks constructor (precomputes inverses, lines 66-162)
     def _precompute_pow_two_inv(self, max_bits: int) -> np.ndarray:
         """Precompute powers of 2^(-1): pow_two_inv[i] = 2^(-i) mod p.
 
@@ -91,6 +96,7 @@ class NTT:
                 pow_two_inv[i] = pow_two_inv[i - 1] * two_inv
         return pow_two_inv
 
+    # C++: NTT_Goldilocks::computeR (ntt_goldilocks.cpp lines 48-60)
     def _compute_r(self, N: int) -> None:
         """Compute coset shift arrays r and r_.
 
@@ -114,6 +120,7 @@ class NTT:
             self.r[i] = self.r[i - 1] * shift_ff
             self.r_[i] = self.r[i]  # Same as r since galois.intt normalizes
 
+    # C++: NTT_Goldilocks::NTT (ntt_goldilocks.cpp lines 211-260)
     def ntt(self, coeffs: np.ndarray, n_cols: int = 1) -> np.ndarray:
         """Forward NTT: coefficients → evaluations.
 
@@ -149,6 +156,7 @@ class NTT:
         # Preserve input dimensionality
         return result.flatten() if input_is_1d else result
 
+    # C++: NTT_Goldilocks::INTT (ntt_goldilocks.cpp lines 188-191)
     def intt(self, evals: np.ndarray, n_cols: int = 1, extend: bool = False) -> np.ndarray:
         """Inverse NTT: evaluations → coefficients.
 
@@ -197,6 +205,7 @@ class NTT:
         # Preserve input dimensionality
         return result.flatten() if input_is_1d else result
 
+    # C++: NTT_Goldilocks::extendPol (ntt_goldilocks.cpp lines 369-404)
     def extend_pol(self,
                    src: np.ndarray,
                    n_extended: int,
@@ -261,6 +270,7 @@ class NTT:
         # Preserve input dimensionality
         return result.flatten() if input_is_1d else result
 
+    # C++: No direct equivalent (handled inline in C++)
     def _reshape_input(self, arr: np.ndarray, n_cols: int) -> np.ndarray:
         """Reshape flat or 2D input to (N, n_cols) form."""
         if arr.ndim == 1:

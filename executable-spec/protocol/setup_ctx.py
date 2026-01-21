@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 FIELD_EXTENSION = 3  # Goldilocks3 has 3 components
 
 
+# C++: pil2-stark/src/starkpil/setup_ctx.hpp::ProverHelpers (lines 8-91)
 class ProverHelpers:
     """Precomputed values for constraint evaluation.
 
@@ -36,12 +37,14 @@ class ProverHelpers:
     2. Verifier mode: Computes zi, x_n from challenge point z
     """
 
+    # C++: ProverHelpers constructor
     def __init__(self):
         """Default constructor - creates empty helpers."""
         self.zi: Optional[np.ndarray] = None
         self.x: Optional[np.ndarray] = None
         self.x_n: Optional[np.ndarray] = None
 
+    # C++: ProverHelpers initialization from StarkInfo
     @classmethod
     def from_stark_info(cls, stark_info: 'StarkInfo', pil1: bool = False) -> 'ProverHelpers':
         """Initialize prover helpers from StarkInfo.
@@ -63,6 +66,7 @@ class ProverHelpers:
 
         return helpers
 
+    # C++: ProverHelpers::setFromChallenge
     @classmethod
     def from_challenge(cls, stark_info: 'StarkInfo', z: np.ndarray) -> 'ProverHelpers':
         """Initialize verifier helpers from evaluation challenge.
@@ -157,6 +161,7 @@ class ProverHelpers:
 
         return helpers
 
+    # C++: ProverHelpers::computeX
     def compute_x(self, n_bits: int, n_bits_ext: int, pil1: bool):
         """Compute coset evaluation points x = shift * w^i.
 
@@ -194,6 +199,7 @@ class ProverHelpers:
                     self.x_n[j] = int(FF(int(self.x_n[j-1])) * w_n)
                 self.x[j] = int(FF(int(self.x[j-1])) * w_ext)
 
+    # C++: ProverHelpers::computeZerofier
     def compute_zerofier(self, n_bits: int, n_bits_ext: int, boundaries: List['Boundary']):
         """Compute zerofier inverse values for all boundaries.
 
@@ -222,6 +228,7 @@ class ProverHelpers:
                 self.build_frame_zerofier_inv(n_bits, n_bits_ext, i,
                                               boundary.offsetMin, boundary.offsetMax)
 
+    # C++: ProverHelpers::buildZHInv
     def build_zh_inv(self, n_bits: int, n_bits_ext: int):
         """Build inverse zerofier for all rows: 1/(x^N - 1).
 
@@ -251,6 +258,7 @@ class ProverHelpers:
         for i in range(extend, N_extended):
             self.zi[i] = self.zi[i % extend]
 
+    # C++: ProverHelpers::buildOneRowZerofierInv
     def build_one_row_zerofier_inv(self, n_bits: int, n_bits_ext: int,
                                    offset: int, row_index: int):
         """Build inverse zerofier for a single row: 1/((x - root) * Z_H(x)).
@@ -280,6 +288,7 @@ class ProverHelpers:
             zh_inv = FF(int(self.zi[i]))  # Read from offset 0 (everyRow boundary)
             self.zi[offset * N_extended + i] = int(((x_i - root) * zh_inv) ** -1)
 
+    # C++: ProverHelpers::buildFrameZerofierInv
     def build_frame_zerofier_inv(self, n_bits: int, n_bits_ext: int, offset: int,
                                  offset_min: int, offset_max: int):
         """Build zerofier for frame boundaries (not inverted in C++ version).
@@ -328,6 +337,7 @@ class ProverHelpers:
             self.zi[offset * N_extended + i] = int(zi_val)
 
 
+# C++: pil2-stark/src/starkpil/setup_ctx.hpp::SetupCtx (implicit container)
 class SetupCtx:
     """Setup context combining StarkInfo and helpers.
 
@@ -340,6 +350,7 @@ class SetupCtx:
     C++ variants that embed them).
     """
 
+    # C++: SetupCtx constructor
     def __init__(self, stark_info: 'StarkInfo', expressions_bin: 'ExpressionsBin'):
         """Initialize setup context.
 
@@ -350,6 +361,7 @@ class SetupCtx:
         self.stark_info = stark_info
         self.expressions_bin = expressions_bin
 
+    # C++: SetupCtx::load methods
     @classmethod
     def from_files(cls, starkinfo_path: str, expressions_bin_path: str) -> 'SetupCtx':
         """Load setup context from files.

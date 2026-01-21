@@ -30,6 +30,7 @@ GLOBAL_HINTS_SECTION = 2
 N_GLOBAL_SECTIONS = 2
 
 
+# C++: pil2-stark/src/starkpil/stark_info.hpp::opType (lines 30-49)
 class OpType(Enum):
     """Operation argument types.
 
@@ -55,6 +56,7 @@ class OpType(Enum):
     f = 16              # FRI polynomial
 
 
+# C++: No direct equivalent (C++ uses enum directly)
 def optype_from_string(s: str) -> OpType:
     """Convert string to OpType enum."""
     mapping = {
@@ -79,6 +81,7 @@ def optype_from_string(s: str) -> OpType:
     return mapping.get(s, OpType.number)
 
 
+# C++: pil2-stark/src/starkpil/expressions_bin.hpp::ParserParams (lines 53-69)
 @dataclass
 class ParserParams:
     """Parameters for a single expression.
@@ -117,6 +120,7 @@ class ParserParams:
     line: str = ""
 
 
+# C++: pil2-stark/src/starkpil/expressions_bin.hpp::ParserArgs (lines 71-77)
 @dataclass
 class ParserArgs:
     """Global bytecode and constants.
@@ -146,6 +150,7 @@ class ParserArgs:
     n_numbers: int = 0
 
 
+# C++: pil2-stark/src/starkpil/expressions_bin.hpp::HintFieldValue (lines 30-39)
 @dataclass
 class HintFieldValue:
     """Hint field value.
@@ -162,6 +167,7 @@ class HintFieldValue:
     pos: List[int] = field(default_factory=list)
 
 
+# C++: pil2-stark/src/starkpil/expressions_bin.hpp::HintField (lines 41-44)
 @dataclass
 class HintField:
     """Hint field.
@@ -172,6 +178,7 @@ class HintField:
     values: List[HintFieldValue] = field(default_factory=list)
 
 
+# C++: pil2-stark/src/starkpil/expressions_bin.hpp::Hint (lines 47-51)
 @dataclass
 class Hint:
     """Hint for witness generation.
@@ -182,6 +189,7 @@ class Hint:
     fields: List[HintField] = field(default_factory=list)
 
 
+# C++: No direct equivalent (C++ uses direct file I/O in expressions_bin.cpp)
 class BinFileReader:
     """Binary file reader with little-endian decoding.
 
@@ -190,6 +198,7 @@ class BinFileReader:
     Corresponds to C++ BinFile constructor in binfile_utils.cpp (lines 63-131).
     """
 
+    # C++: Inline file reading in ExpressionsBin::load methods
     def __init__(self, file_path: str):
         """Open binary file for reading.
 
@@ -237,36 +246,42 @@ class BinFileReader:
         # Reset position for section reading
         self.pos = 0
 
+    # C++: Inline file reading in ExpressionsBin::load methods
     def read_bytes(self, n: int) -> bytes:
         """Read n raw bytes."""
         result = self.data[self.pos:self.pos + n]
         self.pos += n
         return result
 
+    # C++: Inline file reading in ExpressionsBin::load methods
     def read_u8_le(self) -> int:
         """Read uint8 little-endian."""
         val = struct.unpack('<B', self.data[self.pos:self.pos + 1])[0]
         self.pos += 1
         return val
 
+    # C++: Inline file reading in ExpressionsBin::load methods
     def read_u16_le(self) -> int:
         """Read uint16 little-endian."""
         val = struct.unpack('<H', self.data[self.pos:self.pos + 2])[0]
         self.pos += 2
         return val
 
+    # C++: Inline file reading in ExpressionsBin::load methods
     def read_u32_le(self) -> int:
         """Read uint32 little-endian."""
         val = struct.unpack('<I', self.data[self.pos:self.pos + 4])[0]
         self.pos += 4
         return val
 
+    # C++: Inline file reading in ExpressionsBin::load methods
     def read_u64_le(self) -> int:
         """Read uint64 little-endian."""
         val = struct.unpack('<Q', self.data[self.pos:self.pos + 8])[0]
         self.pos += 8
         return val
 
+    # C++: Inline file reading in ExpressionsBin::load methods
     def read_string(self) -> str:
         """Read null-terminated string.
 
@@ -287,6 +302,7 @@ class BinFileReader:
         # Decode UTF-8
         return s_bytes.decode('utf-8')
 
+    # C++: Section reading in expressions_bin.cpp
     def start_read_section(self, section_id: int, section_pos: int = 0):
         """Start reading a section.
 
@@ -315,6 +331,7 @@ class BinFileReader:
         self.section_end = section_start + section_size
         self.reading_section = section_id
 
+    # C++: Section reading in expressions_bin.cpp
     def end_read_section(self, check: bool = True):
         """End reading a section.
 
@@ -333,6 +350,7 @@ class BinFileReader:
         self.reading_section = None
 
 
+# C++: pil2-stark/src/starkpil/expressions_bin.hpp::ExpressionsBin (lines 79-145)
 class ExpressionsBin:
     """Compiled expression database.
 
@@ -343,6 +361,7 @@ class ExpressionsBin:
     a stack-based operation sequence.
     """
 
+    # C++: ExpressionsBin constructor
     def __init__(self):
         """Initialize empty expressions database."""
         self.n_ops_total: int = 0
@@ -369,6 +388,7 @@ class ExpressionsBin:
         self.max_args: int = 0
         self.max_ops: int = 0
 
+    # C++: ExpressionsBin::load (expressions_bin.cpp)
     @classmethod
     def from_file(cls, file_path: str, global_bin: bool = False, verifier_bin: bool = False) -> 'ExpressionsBin':
         """Load ExpressionsBin from binary file.
@@ -395,6 +415,7 @@ class ExpressionsBin:
 
         return expr_bin
 
+    # C++: ExpressionsBin::loadExpressionsBin
     def _load_expressions_bin(self, reader: BinFileReader):
         """Load expressions binary file.
 
@@ -571,6 +592,7 @@ class ExpressionsBin:
 
         reader.end_read_section()
 
+    # C++: ExpressionsBin::loadVerifierBin
     def _load_verifier_bin(self, reader: BinFileReader):
         """Load verifier binary file.
 
@@ -636,6 +658,7 @@ class ExpressionsBin:
 
         reader.end_read_section()
 
+    # C++: ExpressionsBin::loadGlobalBin
     def _load_global_bin(self, reader: BinFileReader):
         """Load global binary file.
 
@@ -739,6 +762,7 @@ class ExpressionsBin:
 
         reader.end_read_section()
 
+    # C++: ExpressionsBin::getExpression
     def get_expression(self, exp_id: int) -> ParserParams:
         """Get expression parameters by ID.
 
@@ -753,6 +777,7 @@ class ExpressionsBin:
         """
         return self.expressions_info[exp_id]
 
+    # C++: ExpressionsBin::getHintIdsByName
     def get_hint_ids_by_name(self, name: str) -> List[int]:
         """Get hint indices by name.
 
@@ -771,6 +796,7 @@ class ExpressionsBin:
                 hint_ids.append(i)
         return hint_ids
 
+    # C++: ExpressionsBin::getNumberHintIdsByName
     def get_number_hint_ids_by_name(self, name: str) -> int:
         """Get count of hints by name.
 
@@ -785,6 +811,7 @@ class ExpressionsBin:
         """
         return len(self.get_hint_ids_by_name(name))
 
+    # C++: ExpressionsBin::getHintField
     def get_hint_field(self, hint_id: int, field_name: str) -> HintField:
         """Get a specific field from a hint by name.
 

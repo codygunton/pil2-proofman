@@ -21,6 +21,7 @@ from primitives.pol_map import EvMap
 from primitives.merkle_tree import MerkleTree, MerkleRoot
 
 
+# C++: pil2-stark/src/starkpil/starks.hpp::Starks<ElementType> (lines 24-112)
 class Starks:
     """STARK proof orchestrator.
 
@@ -38,6 +39,7 @@ class Starks:
         setupCtx: Setup context with StarkInfo and ExpressionsBin
     """
 
+    # C++: Starks constructor
     def __init__(self, setupCtx: SetupCtx):
         """Initialize Starks orchestrator.
 
@@ -56,6 +58,7 @@ class Starks:
         # Constant polynomial tree (built from constPolsExtended)
         self.const_tree: Optional[MerkleTree] = None
 
+    # C++: Starks::buildConstTree
     def build_const_tree(self, constPolsExtended: np.ndarray) -> MerkleRoot:
         """Build Merkle tree for constant polynomials.
 
@@ -85,6 +88,7 @@ class Starks:
 
         return self.const_tree.get_root()
 
+    # C++: Starks::getConstQueryProof
     def get_const_query_proof(self, idx: int, elem_size: int = 1):
         """Extract query proof from constant polynomial tree.
 
@@ -105,6 +109,7 @@ class Starks:
 
         return self.const_tree.get_query_proof(idx, elem_size)
 
+    # C++: Starks::extendAndMerkelize (line 90)
     def extendAndMerkelize(self, step: int, trace: np.ndarray, auxTrace: np.ndarray,
                           ntt: NTT, pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
         """Extend polynomial from domain N to N_ext and build Merkle tree commitment.
@@ -170,6 +175,7 @@ class Starks:
 
         return tree.get_root()
 
+    # C++: Starks::getStageQueryProof
     def get_stage_query_proof(self, step: int, idx: int, elem_size: int = 1):
         """Extract query proof from a stored stage tree.
 
@@ -191,6 +197,7 @@ class Starks:
 
         return self.stage_trees[step].get_query_proof(idx, elem_size)
 
+    # C++: Starks::getStageTree
     def get_stage_tree(self, step: int) -> MerkleTree:
         """Get the Merkle tree for a specific stage.
 
@@ -207,6 +214,7 @@ class Starks:
             raise KeyError(f"Stage {step} tree not found. Has commitStage been called?")
         return self.stage_trees[step]
 
+    # C++: Starks::commitStage (line 92)
     def commitStage(self, step: int, params: StepsParams, ntt: NTT,
                    pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
         """Execute a commitment stage.
@@ -253,6 +261,7 @@ class Starks:
 
             return [0] * 4
 
+    # C++: Starks::computeFriPol
     def computeFriPol(self, params: StepsParams, nttExtended: NTT,
                      pBuffHelper: Optional[np.ndarray] = None):
         """Compute Q polynomial for FRI commitment.
@@ -345,6 +354,7 @@ class Starks:
         # Store back to buffer
         cmQ[:NExtended * nCols] = cmQEvaluations.flatten()
 
+    # C++: Starks::calculateImPolsExpressions (line 95)
     def calculateImPolsExpressions(self, step: int, params: StepsParams,
                                   expressionsCtx: ExpressionsPack):
         """Calculate intermediate polynomial expressions for a stage.
@@ -402,6 +412,7 @@ class Starks:
                 # Evaluate expression
                 expressionsCtx.calculate_expressions(params, destStruct, domainSize, False, False)
 
+    # C++: Starks::calculateQuotientPolynomial (line 96)
     def calculateQuotientPolynomial(self, params: StepsParams,
                                    expressionsCtx: ExpressionsPack):
         """Calculate quotient polynomial from constraints.
@@ -425,6 +436,7 @@ class Starks:
             self.setupCtx.stark_info.cExpId
         )
 
+    # C++: Starks::calculateFRIPolynomial (line 97)
     def calculateFRIPolynomial(self, params: StepsParams,
                               expressionsCtx: ExpressionsPack):
         """Calculate FRI polynomial for commitment.
@@ -503,6 +515,7 @@ class Starks:
             self.setupCtx.stark_info.friExpId
         )
 
+    # C++: Starks::computeLEv
     def computeLEv(self, xiChallenge: np.ndarray, openingPoints: list,
                   ntt: NTT) -> np.ndarray:
         """Compute Lagrange evaluation coefficients.
@@ -610,6 +623,7 @@ class Starks:
 
         return LEvCoeffs.flatten()
 
+    # C++: Starks::computeEvals (line 100)
     def computeEvals(self, params: StepsParams, LEv: np.ndarray,
                     openingPoints: list):
         """Compute polynomial evaluations at opening points.
@@ -625,6 +639,7 @@ class Starks:
         """
         self.evmap(params, LEv, openingPoints)
 
+    # C++: Starks::evmap
     def evmap(self, params: StepsParams, LEv: np.ndarray, openingPoints: list):
         """Evaluate polynomials at opening points using evaluation map.
 

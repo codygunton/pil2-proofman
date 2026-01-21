@@ -19,6 +19,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from protocol.stark_info import FIELD_EXTENSION, HASH_SIZE
 
 
+# C++: pil2-stark/src/starkpil/proof_stark.hpp::MerkleProof<ElementType> (lines 39-69)
 @dataclass
 class MerkleProof:
     """Merkle authentication path for a query.
@@ -33,6 +34,7 @@ class MerkleProof:
     mp: List[List[int]] = field(default_factory=list)  # List of sibling hashes
 
 
+# C++: pil2-stark/src/starkpil/proof_stark.hpp::ProofTree<ElementType> (lines 71-95)
 @dataclass
 class ProofTree:
     """Merkle tree commitment for a polynomial stage.
@@ -49,6 +51,7 @@ class ProofTree:
     pol_queries: List[List[MerkleProof]] = field(default_factory=list)  # [n_queries][n_trees]
 
 
+# C++: pil2-stark/src/starkpil/proof_stark.hpp::Fri<ElementType> (lines 97-125)
 @dataclass
 class FriProof:
     """FRI polynomial commitment opening proof.
@@ -68,6 +71,7 @@ class FriProof:
     pol: List[List[int]] = field(default_factory=list)  # [degree][FIELD_EXTENSION]
 
 
+# C++: pil2-stark/src/starkpil/proof_stark.hpp::Proofs<ElementType> (lines 127-537)
 @dataclass
 class STARKProof:
     """Complete STARK proof.
@@ -112,6 +116,7 @@ class STARKProof:
     nonce: int = 0
 
 
+# C++: No direct equivalent (Python-specific wrapper with metadata)
 @dataclass
 class FRIProofFull:
     """Full FRI proof with metadata.
@@ -132,6 +137,7 @@ class FRIProofFull:
     instance_id: int = 0
 
 
+# C++: No direct equivalent (Python-specific serialization)
 def proof_to_json(proof: STARKProof, n_stages: int, n_field_elements: int = HASH_SIZE) -> Dict[str, Any]:
     """Convert STARK proof to JSON-serializable dictionary.
 
@@ -182,6 +188,7 @@ def proof_to_json(proof: STARKProof, n_stages: int, n_field_elements: int = HASH
     return j
 
 
+# C++: No direct equivalent (Python-specific deserialization)
 def load_proof_from_json(path: str) -> Tuple[STARKProof, Dict[str, Any]]:
     """Load STARK proof from JSON file.
 
@@ -257,6 +264,7 @@ def load_proof_from_json(path: str) -> Tuple[STARKProof, Dict[str, Any]]:
     return proof, metadata
 
 
+# C++: Proofs::loadProof methods in proof_stark.hpp
 def load_proof_from_binary(path: str) -> STARKProof:
     """Load STARK proof from binary file.
 
@@ -279,6 +287,7 @@ def load_proof_from_binary(path: str) -> STARKProof:
     )
 
 
+# C++: Proofs pointer/offset layout methods
 def proof_to_pointer_layout(proof: STARKProof, stark_info: Any) -> List[int]:
     """Convert STARK proof to pointer layout (array of uint64).
 
@@ -332,6 +341,7 @@ def proof_to_pointer_layout(proof: STARKProof, stark_info: Any) -> List[int]:
     return pointer
 
 
+# C++: Proofs::toBytes methods
 def to_bytes_partial(proof_dict: Dict[str, Any], stark_info: Any) -> Tuple[bytes, bytes]:
     """Serialize proof header and footer to bytes for partial comparison.
 
@@ -419,6 +429,7 @@ def to_bytes_partial(proof_dict: Dict[str, Any], stark_info: Any) -> Tuple[bytes
     return header_bytes, footer_bytes
 
 
+# C++: Proofs::toBytesFull methods
 def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
     """Serialize STARK proof to canonical binary format matching C++ proof2pointer().
 
@@ -568,6 +579,7 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
     return struct.pack(f'<{len(values)}Q', *values)
 
 
+# C++: No direct equivalent (Python-specific)
 def to_bytes_full_from_dict(proof_dict: Dict[str, Any], stark_info: Any) -> bytes:
     """Serialize proof dictionary to canonical binary format matching C++ proof2pointer().
 
@@ -785,6 +797,7 @@ def to_bytes_full_from_dict(proof_dict: Dict[str, Any], stark_info: Any) -> byte
     return struct.pack(f'<{len(values)}Q', *values)
 
 
+# C++: No direct equivalent (Python-specific validation)
 def validate_proof_structure(proof: STARKProof, stark_info: Any) -> List[str]:
     """Validate that proof structure matches STARK configuration.
 
