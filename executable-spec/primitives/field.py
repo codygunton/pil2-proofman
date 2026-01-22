@@ -32,6 +32,52 @@ def ff3_coeffs(elem: FF3) -> List[int]:
     return [int(c) for c in elem.vector()[::-1]]
 
 
+# --- SoA ↔ FF3 Array Conversion ---
+# The expression evaluator uses SoA (Structure of Arrays) layout for FF3 values.
+# These helpers convert between SoA layout and galois FF3 arrays.
+
+import numpy as np
+
+
+_P2 = GOLDILOCKS_PRIME * GOLDILOCKS_PRIME  # Precomputed p^2
+
+
+def soa_to_ff3_array(soa: np.ndarray, nrows: int) -> FF3:
+    """Convert SoA layout to FF3 array.
+
+    Args:
+        soa: Array in SoA layout [c0_0..c0_n, c1_0..c1_n, c2_0..c2_n]
+        nrows: Number of rows
+
+    Returns:
+        FF3 array of length nrows
+    """
+    p = GOLDILOCKS_PRIME
+    p2 = _P2
+    # Galois uses integer encoding: value = c0 + c1*p + c2*p^2
+    # Convert to Python lists first to avoid numpy int conversion overhead per access
+    c0 = soa[:nrows].tolist()
+    c1 = soa[nrows:2*nrows].tolist()
+    c2 = soa[2*nrows:3*nrows].tolist()
+    ints = [c0[i] + c1[i] * p + c2[i] * p2 for i in range(nrows)]
+    return FF3(ints)
+
+
+def ff3_array_to_soa(arr: FF3, dest: np.ndarray, nrows: int) -> None:
+    """Convert FF3 array back to SoA layout in dest buffer.
+
+    Args:
+        arr: FF3 array of length nrows
+        dest: Destination buffer (must have space for 3*nrows elements)
+        nrows: Number of rows
+    """
+    vecs = arr.vector()  # Shape (nrows, 3) in descending order [c2, c1, c0]
+    # Use numpy slicing for vectorized assignment
+    dest[:nrows] = vecs[:, 2].view(np.ndarray).astype(np.uint64)       # c0
+    dest[nrows:2*nrows] = vecs[:, 1].view(np.ndarray).astype(np.uint64) # c1
+    dest[2*nrows:3*nrows] = vecs[:, 0].view(np.ndarray).astype(np.uint64) # c2
+
+
 # --- NTT Support ---
 
 ntt = galois.ntt
@@ -124,3 +170,56 @@ def get_omega(n_bits: int) -> int:
 def get_omega_inv(n_bits: int) -> int:
     """Return inverse of primitive 2^n_bits-th root of unity."""
     return W_INV[n_bits]
+
+
+# --- Montgomery Batch Inversion ---
+
+def batch_inverse(values):
+    """Montgomery batch inversion for any galois array.
+
+    Converts N field inversions into 3N-3 multiplications + 1 inversion.
+    Works with any galois FieldArray type (FF, FF3, or any GF).
+
+    Algorithm:
+    1. Forward pass: Compute prefix products cumprods[i] = a[0] * a[1] * ... * a[i]
+    2. Single inversion: inv_total = cumprods[N-1]^(-1)
+    3. Backward pass: Extract individual inverses using cumprods
+
+    Args:
+        values: Galois FieldArray to invert (must all be non-zero)
+
+    Returns:
+        Galois FieldArray where result[i] = values[i]^(-1)
+
+    Raises:
+        ZeroDivisionError: If any element is zero
+
+    Reference: pil2-stark/src/goldilocks/src/goldilocks_base_field.hpp::batchInverse
+    """
+    n = len(values)
+    if n == 0:
+        return values
+    if n == 1:
+        return values ** -1
+
+    # Get the field type from the input array
+    field_type = type(values)
+
+    # Forward pass: compute prefix products
+    cumprods = field_type.Zeros(n)
+    cumprods[0] = values[0]
+    for i in range(1, n):
+        cumprods[i] = cumprods[i - 1] * values[i]
+
+    # Single inversion of the total product (only 1 expensive inversion)
+    inv_total = cumprods[n - 1] ** -1
+
+    # Backward pass: extract individual inverses
+    results = field_type.Zeros(n)
+    z = inv_total
+    for i in range(n - 1, 0, -1):
+        results[i] = z * cumprods[i - 1]
+        z = z * values[i]
+    results[0] = z
+
+    return results
