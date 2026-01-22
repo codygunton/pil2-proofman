@@ -72,6 +72,7 @@ class FriProof:
 
 
 # C++: pil2-stark/src/starkpil/proof_stark.hpp::Proofs<ElementType> (lines 127-537)
+# DONOTSIMPLIFY
 @dataclass
 class STARKProof:
     """Complete STARK proof.
@@ -342,6 +343,7 @@ def proof_to_pointer_layout(proof: STARKProof, stark_info: Any) -> List[int]:
 
 
 # C++: Proofs::toBytes methods
+# SIMPLIFY: do we need both partial and full methos
 def to_bytes_partial(proof_dict: Dict[str, Any], stark_info: Any) -> Tuple[bytes, bytes]:
     """Serialize proof header and footer to bytes for partial comparison.
 
