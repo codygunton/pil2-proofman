@@ -92,6 +92,7 @@ class FRI:
         - n_cols = 2^(current_bits - next_bits) columns (each is FIELD_EXTENSION elements)
         """
         height = 1 << next_bits
+        # SIMPLIFY: Can this be removed without significant loss of performance?
         n_groups = 1 << (current_bits - next_bits)
         width = n_groups * FIELD_EXTENSION
         transposed = transpose_for_merkle(pol, 1 << current_bits, height, FIELD_EXTENSION)
@@ -121,7 +122,8 @@ class FRI:
 
         coeffs = [ff3(s) for s in siblings]
         if n_x > 1:
-            coeffs = FRI._intt_cubic(coeffs, n_x, get_omega_inv(prev_bits - current_bits + 1))
+            n_x_bits = prev_bits - current_bits
+            coeffs = FRI._intt_cubic(coeffs, n_x, get_omega_inv(n_x_bits))
 
         sinv = (shift * (w_inv ** (-idx))) ** -1
         aux = challenge_ff3 * int(sinv)
