@@ -94,7 +94,8 @@ class ExpressionsCtx:
     """
 
     # C++: ExpressionsCtx constructor
-    def __init__(self, setup_ctx: SetupCtx, prover_helpers: Optional[ProverHelpers] = None):
+    def __init__(self, setup_ctx: SetupCtx, prover_helpers: Optional[ProverHelpers] = None,
+                 n_queries: Optional[int] = None):
         """Initialize expressions context.
 
         Corresponds to C++ constructor (lines 152-207).
@@ -102,9 +103,11 @@ class ExpressionsCtx:
         Args:
             setup_ctx: Setup context with StarkInfo and ExpressionsBin
             prover_helpers: Precomputed prover helpers (zi, x, x_n)
+            n_queries: Number of FRI queries (only used in verify mode)
         """
         self.setup_ctx = setup_ctx
         self.prover_helpers = prover_helpers
+        self.n_queries = n_queries
 
         stark_info = setup_ctx.stark_info
 
@@ -170,10 +173,21 @@ class ExpressionsCtx:
         self.map_offset_fri_pol = stark_info.mapOffsets.get(("f", True), 0)
 
         # Committed polynomials (stages 1..nStages+1)
+        # In verify mode, compute offsets that don't overlap for n_queries entries
+        verify_aux_offset = 0  # Running offset for verify mode aux_trace layout
         for i in range(stark_info.nStages + 1):
             section_name = f"cm{i + 1}"
             self.map_sections_n[i + 1] = stark_info.mapSectionsN[section_name]
-            self.map_offsets[i + 1] = stark_info.mapOffsets[(section_name, False)]
+
+            if stark_info.verify and n_queries is not None and i >= 1:
+                # Verify mode: compute non-overlapping offsets for aux_trace (stages 2+)
+                # Stage 1 (cm1) uses trace buffer directly, so offset doesn't matter
+                self.map_offsets[i + 1] = verify_aux_offset
+                verify_aux_offset += n_queries * stark_info.mapSectionsN[section_name]
+            else:
+                # Prover mode or cm1: use original offsets
+                self.map_offsets[i + 1] = stark_info.mapOffsets[(section_name, False)]
+
             # Extended offsets may not exist for all sections
             self.map_offsets_extended[i + 1] = stark_info.mapOffsets.get((section_name, True), 0)
 
@@ -297,7 +311,7 @@ class ExpressionsPack(ExpressionsCtx):
 
     # C++: ExpressionsPack constructor
     def __init__(self, setup_ctx: SetupCtx, prover_helpers: Optional[ProverHelpers] = None,
-                 nrows_pack: int = NROWS_PACK):
+                 nrows_pack: int = NROWS_PACK, n_queries: Optional[int] = None):
         """Initialize expression pack evaluator.
 
         Corresponds to C++ constructor (lines 11-13).
@@ -306,8 +320,9 @@ class ExpressionsPack(ExpressionsCtx):
             setup_ctx: Setup context
             prover_helpers: Prover helpers
             nrows_pack: Number of rows to process per batch
+            n_queries: Number of FRI queries (only used in verify mode)
         """
-        super().__init__(setup_ctx, prover_helpers)
+        super().__init__(setup_ctx, prover_helpers, n_queries)
         N = 1 << setup_ctx.stark_info.starkStruct.nBits
         self.nrows_pack_ = min(nrows_pack, N)
 
@@ -428,6 +443,7 @@ class ExpressionsPack(ExpressionsCtx):
                 args = parser_args.args[parser_params.args_offset:]
 
                 i_args = 0
+
                 for kk in range(parser_params.n_ops):
                     op_type = ops[kk]
                     is_last = (kk == parser_params.n_ops - 1)
@@ -561,13 +577,45 @@ class ExpressionsPack(ExpressionsCtx):
         p = GOLDILOCKS_PRIME
         p2 = p * p
 
+
         # Type 0: Constant polynomials
         if type_arg == 0:
-            const_pols = params.constPolsExtended if domain_extended else params.constPols
             stage_pos = args[i_args + 1]
-            o = next_strides_exps[args[i_args + 2]]
+            opening_idx = args[i_args + 2]
+            o = next_strides_exps[opening_idx]
             n_cols = int(self.map_sections_n[0])
 
+            # In verify mode with domain_size=1, load from evals
+            if self.setup_ctx.stark_info.verify and domain_size == 1:
+                # Find the polynomial id in constPolsMap by stagePos
+                pol_id = None
+                for idx, p in enumerate(self.setup_ctx.stark_info.constPolsMap):
+                    if p.stagePos == stage_pos:
+                        pol_id = idx
+                        break
+
+                if pol_id is not None:
+                    # Find evMap entry for this constant polynomial and opening
+                    opening_point = opening_idx
+                    ev_id = None
+                    from primitives.pol_map import EvMap
+                    for idx, e in enumerate(self.setup_ctx.stark_info.evMap):
+                        if e.type == EvMap.Type.const_ and e.id == pol_id and e.openingPos == opening_point:
+                            ev_id = idx
+                            break
+
+                    if ev_id is not None:
+                        # Read from evals - always return FF3
+                        # In verify mode, evaluations at xi are field extension elements
+                        # even for polynomials with dim=1.
+                        base = ev_id * FIELD_EXTENSION
+                        c0 = int(params.evals[base])
+                        c1 = int(params.evals[base + 1])
+                        c2 = int(params.evals[base + 2])
+                        return ff3([c0, c1, c2])
+
+            # Fallback: load from constPols buffer
+            const_pols = params.constPolsExtended if domain_extended else params.constPols
             if is_cyclic:
                 vals = [int(const_pols[((row + j + o) % domain_size) * self.setup_ctx.stark_info.nConstants + stage_pos])
                         for j in range(nrows_pack)]
@@ -581,7 +629,42 @@ class ExpressionsPack(ExpressionsCtx):
             stage_pos = args[i_args + 1]
             offset = int(map_offsets_exps[type_arg])
             n_cols = int(self.map_sections_n[type_arg])
-            o = next_strides_exps[args[i_args + 2]]
+            opening_idx = args[i_args + 2]
+            o = next_strides_exps[opening_idx]
+
+            # In verify mode with domain_size=1, load from evals instead of trace
+            if self.setup_ctx.stark_info.verify and domain_size == 1:
+                # Find the polynomial id in cmPolsMap by matching stage and stagePos
+                stage = type_arg
+                pol_id = None
+                for idx, p in enumerate(self.setup_ctx.stark_info.cmPolsMap):
+                    if p.stage == stage and p.stagePos == stage_pos:
+                        pol_id = idx
+                        break
+
+                if pol_id is not None:
+                    # Find evMap entry for this polynomial and opening
+                    opening_point = opening_idx  # opening index in openingPoints
+                    ev_id = None
+                    from primitives.pol_map import EvMap
+                    for idx, e in enumerate(self.setup_ctx.stark_info.evMap):
+                        if e.type == EvMap.Type.cm and e.id == pol_id and e.openingPos == opening_point:
+                            ev_id = idx
+                            break
+
+                    if ev_id is not None:
+                        # Read from evals - always return FF3
+                        # In verify mode, evaluations at xi are field extension elements
+                        # even for polynomials with dim=1. The caller (_goldilocks3_op_31)
+                        # handles FF3 inputs correctly.
+                        base = ev_id * FIELD_EXTENSION
+                        c0 = int(params.evals[base])
+                        c1 = int(params.evals[base + 1])
+                        c2 = int(params.evals[base + 2])
+                        return ff3([c0, c1, c2])
+
+                # Fallback: if not found in evMap, load from trace/auxTrace
+                # This handles polynomials that aren't part of the opening
 
             if type_arg == 1 and not domain_extended:
                 if is_cyclic:
@@ -623,18 +706,21 @@ class ExpressionsPack(ExpressionsCtx):
             boundary = args[i_args + 1]
             if self.setup_ctx.stark_info.verify:
                 if boundary == 0:
+                    # x_n: C++ only loads first component for dim=1 case
                     c0 = int(self.prover_helpers.x_n[0])
                     c1 = int(self.prover_helpers.x_n[1])
                     c2 = int(self.prover_helpers.x_n[2])
                     scalar = ff3([c0, c1, c2])
                     return FF3([int(scalar)] * nrows_pack) if dim == 3 else FF([c0] * nrows_pack)
                 else:
+                    # zi: C++ always loads all FIELD_EXTENSION components in verify mode
+                    # regardless of dim (expressions_pack.hpp lines 106-111)
                     base = (boundary - 1) * FIELD_EXTENSION
                     c0 = int(self.prover_helpers.zi[base])
                     c1 = int(self.prover_helpers.zi[base + 1])
                     c2 = int(self.prover_helpers.zi[base + 2])
                     scalar = ff3([c0, c1, c2])
-                    return FF3([int(scalar)] * nrows_pack) if dim == 3 else FF([c0] * nrows_pack)
+                    return FF3([int(scalar)] * nrows_pack)
             else:
                 if boundary == 0:
                     x_vals = self.prover_helpers.x if domain_extended else self.prover_helpers.x_n
@@ -764,17 +850,38 @@ class ExpressionsPack(ExpressionsCtx):
         return batch_inverse(vals)
 
     # C++: ExpressionsPack Goldilocks operations (native galois)
-    def _goldilocks_op(self, op: int, a: FF, b: FF) -> FF:
+    def _goldilocks_op(self, op: int, a: Union[FF, FF3], b: Union[FF, FF3]) -> Union[FF, FF3]:
         """Execute Goldilocks field operation (vectorized).
+
+        In verify mode, operands may be FF3 even when dim=1 is specified,
+        because evaluations at xi are field extension elements. We promote
+        FF operands to FF3 when needed.
 
         Args:
             op: Operation (0=add, 1=sub, 2=mul, 3=sub_swap)
-            a: First operand (FF scalar or array)
-            b: Second operand (FF scalar or array)
+            a: First operand (FF or FF3 scalar/array)
+            b: Second operand (FF or FF3 scalar/array)
 
         Returns:
-            FF result (scalar if both inputs scalar, array otherwise)
+            FF or FF3 result
         """
+        # Check if operands are in different fields (FF vs FF3)
+        a_is_ext = hasattr(a, '__class__') and '^3' in str(a.__class__)
+        b_is_ext = hasattr(b, '__class__') and '^3' in str(b.__class__)
+
+        if a_is_ext and not b_is_ext:
+            # Promote b to FF3
+            if hasattr(b, 'ndim') and b.ndim == 0:
+                b = FF3(int(b))
+            else:
+                b = FF3(np.asarray(b, dtype=np.uint64).tolist())
+        elif b_is_ext and not a_is_ext:
+            # Promote a to FF3
+            if hasattr(a, 'ndim') and a.ndim == 0:
+                a = FF3(int(a))
+            else:
+                a = FF3(np.asarray(a, dtype=np.uint64).tolist())
+
         if op == 0:   return a + b
         elif op == 1: return a - b
         elif op == 2: return a * b
