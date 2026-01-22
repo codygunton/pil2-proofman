@@ -32,52 +32,6 @@ def ff3_coeffs(elem: FF3) -> List[int]:
     return [int(c) for c in elem.vector()[::-1]]
 
 
-# --- SoA ↔ FF3 Array Conversion ---
-# The expression evaluator uses SoA (Structure of Arrays) layout for FF3 values.
-# These helpers convert between SoA layout and galois FF3 arrays.
-
-import numpy as np
-
-
-_P2 = GOLDILOCKS_PRIME * GOLDILOCKS_PRIME  # Precomputed p^2
-
-
-def soa_to_ff3_array(soa: np.ndarray, nrows: int) -> FF3:
-    """Convert SoA layout to FF3 array.
-
-    Args:
-        soa: Array in SoA layout [c0_0..c0_n, c1_0..c1_n, c2_0..c2_n]
-        nrows: Number of rows
-
-    Returns:
-        FF3 array of length nrows
-    """
-    p = GOLDILOCKS_PRIME
-    p2 = _P2
-    # Galois uses integer encoding: value = c0 + c1*p + c2*p^2
-    # Convert to Python lists first to avoid numpy int conversion overhead per access
-    c0 = soa[:nrows].tolist()
-    c1 = soa[nrows:2*nrows].tolist()
-    c2 = soa[2*nrows:3*nrows].tolist()
-    ints = [c0[i] + c1[i] * p + c2[i] * p2 for i in range(nrows)]
-    return FF3(ints)
-
-
-def ff3_array_to_soa(arr: FF3, dest: np.ndarray, nrows: int) -> None:
-    """Convert FF3 array back to SoA layout in dest buffer.
-
-    Args:
-        arr: FF3 array of length nrows
-        dest: Destination buffer (must have space for 3*nrows elements)
-        nrows: Number of rows
-    """
-    vecs = arr.vector()  # Shape (nrows, 3) in descending order [c2, c1, c0]
-    # Use numpy slicing for vectorized assignment
-    dest[:nrows] = vecs[:, 2].view(np.ndarray).astype(np.uint64)       # c0
-    dest[nrows:2*nrows] = vecs[:, 1].view(np.ndarray).astype(np.uint64) # c1
-    dest[2*nrows:3*nrows] = vecs[:, 0].view(np.ndarray).astype(np.uint64) # c2
-
-
 # --- NTT Support ---
 
 ntt = galois.ntt

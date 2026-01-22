@@ -16,8 +16,8 @@ import numpy as np
 from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
 from protocol.steps_params import StepsParams
 from protocol.expressions_bin import ParserParams, ParserArgs
-from primitives.field import FF, FF3, ff3, ff3_coeffs, GOLDILOCKS_PRIME, soa_to_ff3_array, ff3_array_to_soa
-from primitives.batch_inverse import batch_inverse_ff, batch_inverse_ff3, batch_inverse_ff3_array, batch_inverse_ff_array
+from primitives.field import FF, FF3, ff3, ff3_coeffs, GOLDILOCKS_PRIME, batch_inverse
+from typing import Union
 
 
 # Number of rows to process in batch (C++ uses 128 for SIMD)
@@ -311,24 +311,15 @@ class ExpressionsPack(ExpressionsCtx):
         N = 1 << setup_ctx.stark_info.starkStruct.nBits
         self.nrows_pack_ = min(nrows_pack, N)
 
-    # C++: ExpressionsPack::calculateExpressions
+    # C++: ExpressionsPack::calculateExpressions (refactored to use native galois types)
     def calculate_expressions(self, params: StepsParams, dest: Dest,
                               domain_size: int, domain_extended: bool,
                               compilation_time: bool = False,
                               verify_constraints: bool = False, debug: bool = False):
-        """Evaluate expressions across domain.
+        """Evaluate expressions across domain using native galois types.
 
-        Corresponds to C++ ExpressionsPack::calculateExpressions()
-        (lines 312-510 of expressions_pack.hpp).
-
-        Main evaluation algorithm:
-        1. For each batch of rows:
-           a. Determine if cyclic wrapping is needed
-           b. For each destination parameter:
-              - If it's a direct polynomial access (cm/const), load values
-              - If it's a temporary expression, execute operation chain
-           c. If two parameters, multiply them together
-           d. Store result to destination
+        Refactored version that eliminates SoA layout - uses native FF/FF3 arrays
+        throughout for cleaner code and potentially better performance.
 
         Args:
             params: Working parameters with all data
@@ -341,13 +332,13 @@ class ExpressionsPack(ExpressionsCtx):
         """
         nrows_pack = min(self.nrows_pack_, domain_size)
 
-        # Select offset mappings based on domain (lines 315-317)
+        # Select offset mappings based on domain
         map_offsets_exps = self.map_offsets_extended if domain_extended else self.map_offsets
         map_offsets_custom_exps = (self.map_offsets_custom_fixed_extended
                                    if domain_extended else self.map_offsets_custom_fixed)
         next_strides_exps = self.next_strides_extended if domain_extended else self.next_strides
 
-        # Compute valid row range for cyclic checks (lines 319-324)
+        # Compute valid row range for cyclic checks
         if domain_extended:
             k_min = ((self.min_row_extended + nrows_pack - 1) // nrows_pack) * nrows_pack
             k_max = (self.max_row_extended // nrows_pack) * nrows_pack
@@ -355,393 +346,332 @@ class ExpressionsPack(ExpressionsCtx):
             k_min = ((self.min_row + nrows_pack - 1) // nrows_pack) * nrows_pack
             k_max = (self.max_row // nrows_pack) * nrows_pack
 
-        # Select parser args (expressions vs constraints) (line 327)
+        # Select parser args
         parser_args = (self.setup_ctx.expressions_bin.expressions_bin_args_constraints
                       if verify_constraints
                       else self.setup_ctx.expressions_bin.expressions_bin_args_expressions)
 
-        # Get parser params for each destination parameter (lines 328-346)
+        # Get parser params for each destination parameter
         parser_params_list: List[Optional[ParserParams]] = []
-        max_temp1_size = 0
-        max_temp3_size = 0
-
         assert len(dest.params) in [1, 2], "dest.params must have 1 or 2 parameters"
 
         for k in range(len(dest.params)):
             if dest.params[k].op != "tmp":
                 parser_params_list.append(None)
-                continue
-
-            # Get parser params for this expression
-            if verify_constraints:
-                parser_params = self.setup_ctx.expressions_bin.constraints_info_debug[dest.params[k].exp_id]
+            elif verify_constraints:
+                parser_params_list.append(
+                    self.setup_ctx.expressions_bin.constraints_info_debug[dest.params[k].exp_id])
             else:
-                parser_params = self.setup_ctx.expressions_bin.expressions_info[dest.params[k].exp_id]
+                parser_params_list.append(
+                    self.setup_ctx.expressions_bin.expressions_info[dest.params[k].exp_id])
 
-            parser_params_list.append(parser_params)
+        # Scalar parameter arrays (for public inputs, numbers, etc.)
+        scalar_params: Dict[int, np.ndarray] = {
+            self.buffer_commits_size + 2: params.publicInputs,
+            self.buffer_commits_size + 3: parser_args.numbers,
+            self.buffer_commits_size + 4: params.airValues,
+            self.buffer_commits_size + 5: params.proofValues,
+            self.buffer_commits_size + 6: params.airgroupValues,
+            self.buffer_commits_size + 7: params.challenges,
+            self.buffer_commits_size + 8: params.evals,
+        }
 
-            # Track maximum temporary storage needed
-            if parser_params.n_temp1 * nrows_pack > max_temp1_size:
-                max_temp1_size = parser_params.n_temp1 * nrows_pack
-            if parser_params.n_temp3 * nrows_pack * FIELD_EXTENSION > max_temp3_size:
-                max_temp3_size = parser_params.n_temp3 * nrows_pack * FIELD_EXTENSION
-
-        # Note: C++ reads offsets from mapOffsets for tmp1, tmp3, values buffers.
-        # In Python, we allocate these fresh each row batch (lines 402-408 below).
-
-        # Main evaluation loop over rows (line 352)
-        # In C++, this is parallelized with OpenMP. In Python, we run sequentially.
+        # Main evaluation loop over rows
         for i in range(0, domain_size, nrows_pack):
-            # Check if we're in cyclic region (line 353)
             is_cyclic = (i < k_min) or (i >= k_max)
 
-            # Set up expression parameter pointers (lines 354-362)
-            # These map to different data sources
-            expressions_params_size = self.buffer_commits_size + 9
-            expressions_params: Dict[int, np.ndarray] = {}
-            expressions_params[self.buffer_commits_size + 2] = params.publicInputs
-            expressions_params[self.buffer_commits_size + 3] = parser_args.numbers
-            expressions_params[self.buffer_commits_size + 4] = params.airValues
-            expressions_params[self.buffer_commits_size + 5] = params.proofValues
-            expressions_params[self.buffer_commits_size + 6] = params.airgroupValues
-            expressions_params[self.buffer_commits_size + 7] = params.challenges
-            expressions_params[self.buffer_commits_size + 8] = params.evals
+            # Native galois temp storage (replaces SoA buffers)
+            tmp1_g: Dict[int, FF] = {}   # slot_id → FF array
+            tmp3_g: Dict[int, FF3] = {}  # slot_id → FF3 array
 
-            # Allocate values buffer for this row batch (line 364)
-            # values[0..FIELD_EXTENSION*nrows_pack]: first operand
-            # values[FIELD_EXTENSION*nrows_pack..2*FIELD_EXTENSION*nrows_pack]: second operand
-            # values[2*FIELD_EXTENSION*nrows_pack..3*FIELD_EXTENSION*nrows_pack]: result buffer
-            values = np.zeros(3 * FIELD_EXTENSION * nrows_pack, dtype=np.uint64)
+            # Results for each dest param (up to 2)
+            param_results: List[Union[FF, FF3, None]] = [None, None]
+            param_dims: List[int] = [1, 1]
 
-            # Allocate temporary storage for this row batch
-            tmp1 = np.zeros(max_temp1_size, dtype=np.uint64)
-            tmp3 = np.zeros(max_temp3_size, dtype=np.uint64)
-            expressions_params[self.buffer_commits_size] = tmp1
-            expressions_params[self.buffer_commits_size + 1] = tmp3
-
-            # Process each destination parameter (line 365)
+            # Process each destination parameter
             for k in range(len(dest.params)):
-                # Handle direct polynomial access (lines 367-401)
+                # Handle direct polynomial access
                 if dest.params[k].op in ["cm", "const"]:
-                    opening_point_index = dest.params[k].row_offset_index
-                    stage_pos = dest.params[k].stage_pos
-                    o = int(next_strides_exps[opening_point_index])
-
-                    if dest.params[k].op == "const":
-                        # Load from constant polynomials (lines 372-376)
-                        n_cols = int(self.map_sections_n[0])
-                        # Use extended constants for extended domain
-                        const_buffer = params.constPolsExtended if domain_extended else params.constPols
-                        for r in range(nrows_pack):
-                            l = (i + r + o) % domain_size
-                            values[k * FIELD_EXTENSION * nrows_pack + r] = const_buffer[l * n_cols + stage_pos]
-                    else:
-                        # Load from committed polynomials (lines 377-395)
-                        offset = int(map_offsets_exps[dest.params[k].stage])
-                        n_cols = int(self.map_sections_n[dest.params[k].stage])
-
-                        for r in range(nrows_pack):
-                            l = (i + r + o) % domain_size
-
-                            if dest.params[k].stage == 1 and not domain_extended:
-                                # Stage 1 uses trace buffer (non-extended domain only)
-                                values[k * FIELD_EXTENSION * nrows_pack + r] = params.trace[l * n_cols + stage_pos]
-                            else:
-                                # Other stages (and stage 1 in extended domain) use aux_trace
-                                for d in range(dest.params[k].dim):
-                                    values[k * FIELD_EXTENSION * nrows_pack + r + d * nrows_pack] = \
-                                        params.aux_trace[offset + l * n_cols + stage_pos + d]
-
-                    # Apply inverse if requested (lines 398-400)
+                    result = self._load_direct_poly(
+                        params, dest.params[k], i, nrows_pack, domain_size,
+                        domain_extended, map_offsets_exps, next_strides_exps)
                     if dest.params[k].inverse:
-                        self._get_inverse_polynomial(nrows_pack,
-                                                     values[k * FIELD_EXTENSION * nrows_pack:],
-                                                     values[2 * FIELD_EXTENSION * nrows_pack:],
-                                                     dest.params[k].batch, dest.params[k].dim)
-
+                        result = self._get_inverse(result)
+                    param_results[k] = result
+                    param_dims[k] = dest.params[k].dim
                     continue
 
-                # Handle number literals (lines 402-407)
+                # Handle number literals
                 elif dest.params[k].op == "number":
-                    values[k * FIELD_EXTENSION * nrows_pack] = dest.params[k].value
+                    param_results[k] = FF(dest.params[k].value)
+                    param_dims[k] = 1
                     continue
 
-                # Handle air values (lines 408-417)
+                # Handle air values
                 elif dest.params[k].op == "airvalue":
                     if dest.params[k].dim == 1:
-                        values[k * FIELD_EXTENSION * nrows_pack] = params.airValues[dest.params[k].pols_map_id]
+                        param_results[k] = FF(int(params.airValues[dest.params[k].pols_map_id]))
                     else:
-                        values[k * FIELD_EXTENSION * nrows_pack] = params.airValues[dest.params[k].pols_map_id]
-                        values[k * FIELD_EXTENSION * nrows_pack + nrows_pack] = params.airValues[dest.params[k].pols_map_id + 1]
-                        values[k * FIELD_EXTENSION * nrows_pack + 2 * nrows_pack] = params.airValues[dest.params[k].pols_map_id + 2]
+                        c0 = int(params.airValues[dest.params[k].pols_map_id])
+                        c1 = int(params.airValues[dest.params[k].pols_map_id + 1])
+                        c2 = int(params.airValues[dest.params[k].pols_map_id + 2])
+                        param_results[k] = ff3([c0, c1, c2])
+                    param_dims[k] = dest.params[k].dim
                     continue
 
-                # Handle expression evaluation (lines 419-491)
+                # Handle expression evaluation
                 parser_params = parser_params_list[k]
                 if parser_params is None:
                     continue
 
-                # Get operation bytecode (lines 419-420)
                 ops = parser_args.ops[parser_params.ops_offset:]
                 args = parser_args.args[parser_params.args_offset:]
-
-                # Execute operation chain (lines 427-483)
-                value_a = values[FIELD_EXTENSION * nrows_pack:2 * FIELD_EXTENSION * nrows_pack]
-                value_b = values[2 * FIELD_EXTENSION * nrows_pack:3 * FIELD_EXTENSION * nrows_pack]
 
                 i_args = 0
                 for kk in range(parser_params.n_ops):
                     op_type = ops[kk]
+                    is_last = (kk == parser_params.n_ops - 1)
 
                     if op_type == 0:
-                        # dim1 × dim1 → dim1 (lines 430-444)
-                        a = self._load(params, expressions_params, args, map_offsets_exps,
-                                      map_offsets_custom_exps, next_strides_exps,
-                                      i_args + 2, i, 1, domain_size, domain_extended, is_cyclic,
-                                      value_a, nrows_pack, debug)
-                        b = self._load(params, expressions_params, args, map_offsets_exps,
-                                      map_offsets_custom_exps, next_strides_exps,
-                                      i_args + 5, i, 1, domain_size, domain_extended, is_cyclic,
-                                      value_b, nrows_pack, debug)
-
-                        is_constant_a = args[i_args + 2] > self.buffer_commits_size + 1
-                        is_constant_b = args[i_args + 5] > self.buffer_commits_size + 1
-
-                        # Result goes to final destination or temp buffer
-                        if kk == parser_params.n_ops - 1:
-                            res = values[k * FIELD_EXTENSION * nrows_pack:(k + 1) * FIELD_EXTENSION * nrows_pack]
+                        # dim1 × dim1 → dim1
+                        a = self._load_galois(params, scalar_params, tmp1_g, tmp3_g, args,
+                                             map_offsets_exps, map_offsets_custom_exps,
+                                             next_strides_exps, i_args + 2, i, 1,
+                                             domain_size, domain_extended, is_cyclic, nrows_pack)
+                        b = self._load_galois(params, scalar_params, tmp1_g, tmp3_g, args,
+                                             map_offsets_exps, map_offsets_custom_exps,
+                                             next_strides_exps, i_args + 5, i, 1,
+                                             domain_size, domain_extended, is_cyclic, nrows_pack)
+                        result = self._goldilocks_op(args[i_args], a, b)
+                        if is_last:
+                            param_results[k] = result
+                            param_dims[k] = 1
                         else:
-                            res_idx = args[i_args + 1] * nrows_pack
-                            res = tmp1[res_idx:res_idx + nrows_pack]
-
-                        self._goldilocks_op_pack(nrows_pack, args[i_args], res, a, is_constant_a, b, is_constant_b)
+                            tmp1_g[args[i_args + 1]] = result
                         i_args += 8
 
                     elif op_type == 1:
-                        # dim3 × dim1 → dim3 (lines 446-460)
-                        a = self._load(params, expressions_params, args, map_offsets_exps,
-                                      map_offsets_custom_exps, next_strides_exps,
-                                      i_args + 2, i, 3, domain_size, domain_extended, is_cyclic,
-                                      value_a, nrows_pack, debug)
-                        b = self._load(params, expressions_params, args, map_offsets_exps,
-                                      map_offsets_custom_exps, next_strides_exps,
-                                      i_args + 5, i, 1, domain_size, domain_extended, is_cyclic,
-                                      value_b, nrows_pack, debug)
-
-                        is_constant_a = args[i_args + 2] > self.buffer_commits_size + 1
-                        is_constant_b = args[i_args + 5] > self.buffer_commits_size + 1
-
-                        if kk == parser_params.n_ops - 1:
-                            res = values[k * FIELD_EXTENSION * nrows_pack:(k + 1) * FIELD_EXTENSION * nrows_pack]
+                        # dim3 × dim1 → dim3
+                        a = self._load_galois(params, scalar_params, tmp1_g, tmp3_g, args,
+                                             map_offsets_exps, map_offsets_custom_exps,
+                                             next_strides_exps, i_args + 2, i, 3,
+                                             domain_size, domain_extended, is_cyclic, nrows_pack)
+                        b = self._load_galois(params, scalar_params, tmp1_g, tmp3_g, args,
+                                             map_offsets_exps, map_offsets_custom_exps,
+                                             next_strides_exps, i_args + 5, i, 1,
+                                             domain_size, domain_extended, is_cyclic, nrows_pack)
+                        result = self._goldilocks3_op_31(args[i_args], a, b)
+                        if is_last:
+                            param_results[k] = result
+                            param_dims[k] = 3
                         else:
-                            res_idx = args[i_args + 1] * nrows_pack
-                            res = tmp3[res_idx:res_idx + FIELD_EXTENSION * nrows_pack]
-
-                        self._goldilocks3_op_31_pack(nrows_pack, args[i_args], res, a, is_constant_a, b, is_constant_b)
+                            tmp3_g[args[i_args + 1]] = result
                         i_args += 8
 
                     elif op_type == 2:
-                        # dim3 × dim3 → dim3 (lines 462-476)
-                        a = self._load(params, expressions_params, args, map_offsets_exps,
-                                      map_offsets_custom_exps, next_strides_exps,
-                                      i_args + 2, i, 3, domain_size, domain_extended, is_cyclic,
-                                      value_a, nrows_pack, debug)
-                        b = self._load(params, expressions_params, args, map_offsets_exps,
-                                      map_offsets_custom_exps, next_strides_exps,
-                                      i_args + 5, i, 3, domain_size, domain_extended, is_cyclic,
-                                      value_b, nrows_pack, debug)
-
-                        is_constant_a = args[i_args + 2] > self.buffer_commits_size + 1
-                        is_constant_b = args[i_args + 5] > self.buffer_commits_size + 1
-
-                        if kk == parser_params.n_ops - 1:
-                            res = values[k * FIELD_EXTENSION * nrows_pack:(k + 1) * FIELD_EXTENSION * nrows_pack]
+                        # dim3 × dim3 → dim3
+                        a = self._load_galois(params, scalar_params, tmp1_g, tmp3_g, args,
+                                             map_offsets_exps, map_offsets_custom_exps,
+                                             next_strides_exps, i_args + 2, i, 3,
+                                             domain_size, domain_extended, is_cyclic, nrows_pack)
+                        b = self._load_galois(params, scalar_params, tmp1_g, tmp3_g, args,
+                                             map_offsets_exps, map_offsets_custom_exps,
+                                             next_strides_exps, i_args + 5, i, 3,
+                                             domain_size, domain_extended, is_cyclic, nrows_pack)
+                        result = self._goldilocks3_op(args[i_args], a, b)
+                        if is_last:
+                            param_results[k] = result
+                            param_dims[k] = 3
                         else:
-                            res_idx = args[i_args + 1] * nrows_pack
-                            res = tmp3[res_idx:res_idx + FIELD_EXTENSION * nrows_pack]
-
-                        self._goldilocks3_op_pack(nrows_pack, args[i_args], res, a, is_constant_a, b, is_constant_b)
+                            tmp3_g[args[i_args + 1]] = result
                         i_args += 8
 
                     else:
                         raise ValueError(f"Invalid operation type: {op_type}")
 
-                # Verify all args consumed (lines 485-486)
-                assert i_args == parser_params.n_args, \
-                    f"Args mismatch: {i_args} != {parser_params.n_args}"
+                assert i_args == parser_params.n_args, f"Args mismatch: {i_args} != {parser_params.n_args}"
 
-                # Apply inverse if needed (lines 488-490)
+                # Apply inverse if needed
                 if dest.params[k].inverse:
-                    self._get_inverse_polynomial(nrows_pack,
-                                                 values[k * FIELD_EXTENSION * nrows_pack:],
-                                                 values[2 * FIELD_EXTENSION * nrows_pack:],
-                                                 dest.params[k].batch, parser_params.dest_dim)
+                    param_results[k] = self._get_inverse(param_results[k])
 
-            # Multiply two parameters if present (lines 493-502)
-            is_constant = False
+            # Multiply two parameters if present
             if len(dest.params) == 2:
-                is_constant_a = dest.params[0].op in ["number", "airvalue"]
-                is_constant_b = dest.params[1].op in ["number", "airvalue"]
-                is_constant = is_constant_a and is_constant_b
-                self._multiply_polynomials(nrows_pack, dest, values,
-                                          is_constant_a, is_constant_b)
+                final_result = self._multiply_galois(param_results[0], param_results[1],
+                                                     param_dims[0], param_dims[1], dest.dim)
             else:
-                is_constant = dest.params[0].op in ["number", "airvalue"]
+                final_result = param_results[0]
 
-            # Store result to destination (line 504)
-            self._store_polynomial(nrows_pack, dest, values, i, is_constant)
+            # Store result to destination
+            self._store_galois(dest, final_result, i, nrows_pack)
 
-    # C++: ExpressionsPack load operations (inline)
-    def _load(self, params: StepsParams, expressions_params: Dict[int, np.ndarray],
-              args: np.ndarray, map_offsets_exps: np.ndarray,
-              map_offsets_custom_exps: np.ndarray, next_strides_exps: np.ndarray,
-              i_args: int, row: int, dim: int, domain_size: int,
-              domain_extended: bool, is_cyclic: bool, value_buffer: np.ndarray,
-              nrows_pack: int, debug: bool = False) -> np.ndarray:
-        """Load value(s) from appropriate buffer.
+    def _load_direct_poly(self, params: StepsParams, param: Params, row: int,
+                          nrows_pack: int, domain_size: int, domain_extended: bool,
+                          map_offsets_exps: np.ndarray, next_strides_exps: np.ndarray
+                          ) -> Union[FF, FF3]:
+        """Load polynomial values directly from cm/const buffers.
 
-        Corresponds to C++ ExpressionsPack::load() (lines 15-195 of expressions_pack.hpp).
+        Returns native FF or FF3 galois array.
+        """
+        o = int(next_strides_exps[param.row_offset_index])
 
-        This is the core dispatch function that loads operand values based on type.
-        Type encoding (args[i_args]):
-        - 0: constant polynomials
-        - 1..nStages+1: committed polynomials (trace/aux_trace)
-        - nStages+2: boundary values (x_n, zi)
-        - nStages+3: xi values (for FRI)
-        - nStages+4+: custom commits
-        - buffer_commits_size: tmp1 (scalar temps)
-        - buffer_commits_size+1: tmp3 (field extension temps)
-        - buffer_commits_size+2+: public inputs, numbers, air_values, etc.
+        if param.op == "const":
+            n_cols = int(self.map_sections_n[0])
+            const_buffer = params.constPolsExtended if domain_extended else params.constPols
+            vals = [int(const_buffer[(row + r + o) % domain_size * n_cols + param.stage_pos])
+                    for r in range(nrows_pack)]
+            return FF(vals)
+        else:
+            offset = int(map_offsets_exps[param.stage])
+            n_cols = int(self.map_sections_n[param.stage])
 
-        Args:
-            params: Working parameters
-            expressions_params: Parameter buffers map
-            args: Argument array
-            map_offsets_exps: Offset mappings
-            map_offsets_custom_exps: Custom commit offsets
-            next_strides_exps: Opening point strides
-            i_args: Argument index
-            row: Current row
-            dim: Dimension (1 or 3)
-            domain_size: Domain size
-            domain_extended: Extended domain flag
-            is_cyclic: Cyclic region flag
-            value_buffer: Temporary buffer for loading
-            nrows_pack: Number of rows to load in batch
-            debug: Debug flag
+            if param.stage == 1 and not domain_extended:
+                vals = [int(params.trace[((row + r + o) % domain_size) * n_cols + param.stage_pos])
+                        for r in range(nrows_pack)]
+                return FF(vals)
+            elif param.dim == 1:
+                vals = [int(params.auxTrace[offset + ((row + r + o) % domain_size) * n_cols + param.stage_pos])
+                        for r in range(nrows_pack)]
+                return FF(vals)
+            else:
+                # FF3 - load all three coefficients
+                p = GOLDILOCKS_PRIME
+                p2 = p * p
+                ints = []
+                for r in range(nrows_pack):
+                    l = (row + r + o) % domain_size
+                    c0 = int(params.auxTrace[offset + l * n_cols + param.stage_pos])
+                    c1 = int(params.auxTrace[offset + l * n_cols + param.stage_pos + 1])
+                    c2 = int(params.auxTrace[offset + l * n_cols + param.stage_pos + 2])
+                    ints.append(c0 + c1 * p + c2 * p2)
+                return FF3(ints)
 
-        Returns:
-            Pointer to loaded value(s)
+    def _load_galois(self, params: StepsParams, scalar_params: Dict[int, np.ndarray],
+                     tmp1_g: Dict[int, FF], tmp3_g: Dict[int, FF3],
+                     args: np.ndarray, map_offsets_exps: np.ndarray,
+                     map_offsets_custom_exps: np.ndarray, next_strides_exps: np.ndarray,
+                     i_args: int, row: int, dim: int, domain_size: int,
+                     domain_extended: bool, is_cyclic: bool, nrows_pack: int
+                     ) -> Union[FF, FF3]:
+        """Load operand as native galois type (FF or FF3).
+
+        Replaces _load() with native galois return types.
         """
         type_arg = args[i_args]
+        p = GOLDILOCKS_PRIME
+        p2 = p * p
 
-        # Type 0: Constant polynomials (lines 25-49)
+        # Type 0: Constant polynomials
         if type_arg == 0:
-            if dim == FIELD_EXTENSION:
-                raise ValueError("Constant polynomials cannot have dim=3")
-
             const_pols = params.constPolsExtended if domain_extended else params.constPols
             stage_pos = args[i_args + 1]
             o = next_strides_exps[args[i_args + 2]]
             n_cols = int(self.map_sections_n[0])
 
             if is_cyclic:
-                for j in range(nrows_pack):
-                    l = (row + j + o) % domain_size
-                    value_buffer[j] = const_pols[l * self.setup_ctx.stark_info.nConstants + stage_pos]
+                vals = [int(const_pols[((row + j + o) % domain_size) * self.setup_ctx.stark_info.nConstants + stage_pos])
+                        for j in range(nrows_pack)]
             else:
                 offset_col = (row + o) * n_cols + stage_pos
-                for j in range(nrows_pack):
-                    value_buffer[j] = const_pols[offset_col + j * n_cols]
+                vals = [int(const_pols[offset_col + j * n_cols]) for j in range(nrows_pack)]
+            return FF(vals)
 
-            return value_buffer[:nrows_pack]
-
-        # Types 1..nStages+1: Committed polynomials (lines 50-96)
+        # Types 1..nStages+1: Committed polynomials
         elif type_arg <= self.setup_ctx.stark_info.nStages + 1:
             stage_pos = args[i_args + 1]
             offset = int(map_offsets_exps[type_arg])
             n_cols = int(self.map_sections_n[type_arg])
             o = next_strides_exps[args[i_args + 2]]
 
-            if is_cyclic:
-                for j in range(nrows_pack):
-                    l = (row + j + o) % domain_size
-                    if type_arg == 1 and not domain_extended:
-                        value_buffer[j] = params.trace[l * n_cols + stage_pos]
-                    else:
-                        for d in range(dim):
-                            value_buffer[j + d * nrows_pack] = params.auxTrace[offset + l * n_cols + stage_pos + d]
-            else:
-                if type_arg == 1 and not domain_extended:
+            if type_arg == 1 and not domain_extended:
+                if is_cyclic:
+                    vals = [int(params.trace[((row + j + o) % domain_size) * n_cols + stage_pos])
+                            for j in range(nrows_pack)]
+                else:
                     offset_col = (row + o) * n_cols + stage_pos
+                    vals = [int(params.trace[offset_col + j * n_cols]) for j in range(nrows_pack)]
+                return FF(vals)
+            elif dim == 1:
+                if is_cyclic:
+                    vals = [int(params.auxTrace[offset + ((row + j + o) % domain_size) * n_cols + stage_pos])
+                            for j in range(nrows_pack)]
+                else:
+                    offset_col = offset + (row + o) * n_cols + stage_pos
+                    vals = [int(params.auxTrace[offset_col + j * n_cols]) for j in range(nrows_pack)]
+                return FF(vals)
+            else:
+                # FF3
+                ints = []
+                if is_cyclic:
                     for j in range(nrows_pack):
-                        value_buffer[j] = params.trace[offset_col + j * n_cols]
+                        l = (row + j + o) % domain_size
+                        c0 = int(params.auxTrace[offset + l * n_cols + stage_pos])
+                        c1 = int(params.auxTrace[offset + l * n_cols + stage_pos + 1])
+                        c2 = int(params.auxTrace[offset + l * n_cols + stage_pos + 2])
+                        ints.append(c0 + c1 * p + c2 * p2)
                 else:
                     offset_col = offset + (row + o) * n_cols + stage_pos
                     for j in range(nrows_pack):
-                        for d in range(dim):
-                            value_buffer[j + d * nrows_pack] = params.auxTrace[offset_col + d + j * n_cols]
+                        c0 = int(params.auxTrace[offset_col + j * n_cols])
+                        c1 = int(params.auxTrace[offset_col + j * n_cols + 1])
+                        c2 = int(params.auxTrace[offset_col + j * n_cols + 2])
+                        ints.append(c0 + c1 * p + c2 * p2)
+                return FF3(ints)
 
-            return value_buffer[:dim * nrows_pack]
-
-        # Type nStages+2: Boundary values (x_n, zi) (lines 97-127)
+        # Type nStages+2: Boundary values (x_n, zi)
         elif type_arg == self.setup_ctx.stark_info.nStages + 2:
             boundary = args[i_args + 1]
-
             if self.setup_ctx.stark_info.verify:
-                # Verifier mode: return constant value
                 if boundary == 0:
-                    for j in range(nrows_pack):
-                        for e in range(FIELD_EXTENSION):
-                            value_buffer[j + e * nrows_pack] = self.prover_helpers.x_n[e]
+                    c0 = int(self.prover_helpers.x_n[0])
+                    c1 = int(self.prover_helpers.x_n[1])
+                    c2 = int(self.prover_helpers.x_n[2])
+                    scalar = ff3([c0, c1, c2])
+                    return FF3([int(scalar)] * nrows_pack) if dim == 3 else FF([c0] * nrows_pack)
                 else:
-                    for j in range(nrows_pack):
-                        for e in range(FIELD_EXTENSION):
-                            value_buffer[j + e * nrows_pack] = self.prover_helpers.zi[(boundary - 1) * FIELD_EXTENSION + e]
+                    base = (boundary - 1) * FIELD_EXTENSION
+                    c0 = int(self.prover_helpers.zi[base])
+                    c1 = int(self.prover_helpers.zi[base + 1])
+                    c2 = int(self.prover_helpers.zi[base + 2])
+                    scalar = ff3([c0, c1, c2])
+                    return FF3([int(scalar)] * nrows_pack) if dim == 3 else FF([c0] * nrows_pack)
             else:
-                # Prover mode: return array slice
                 if boundary == 0:
                     x_vals = self.prover_helpers.x if domain_extended else self.prover_helpers.x_n
-                    return x_vals[row:row + nrows_pack]
+                    return FF(np.asarray(x_vals[row:row + nrows_pack], dtype=np.uint64))
                 else:
                     offset = (boundary - 1) * domain_size + row
-                    return self.prover_helpers.zi[offset:offset + nrows_pack]
+                    return FF(np.asarray(self.prover_helpers.zi[offset:offset + nrows_pack], dtype=np.uint64))
 
-            return value_buffer[:FIELD_EXTENSION * nrows_pack]
-
-        # Type nStages+3: Xi values for FRI (lines 128-146)
+        # Type nStages+3: Xi values for FRI
         elif type_arg == self.setup_ctx.stark_info.nStages + 3:
-            if dim == 1:
-                raise ValueError("Xi values must have dim=3")
-
             o = args[i_args + 1]
-
             if self.setup_ctx.stark_info.verify:
-                # Verifier mode: use precomputed x/(x-xi)
+                ints = []
                 for k in range(nrows_pack):
-                    for e in range(FIELD_EXTENSION):
-                        value_buffer[k + e * nrows_pack] = \
-                            params.xDivXSub[((row + k) * len(self.setup_ctx.stark_info.openingPoints) + o) * FIELD_EXTENSION + e]
+                    base = ((row + k) * len(self.setup_ctx.stark_info.openingPoints) + o) * FIELD_EXTENSION
+                    c0 = int(params.xDivXSub[base])
+                    c1 = int(params.xDivXSub[base + 1])
+                    c2 = int(params.xDivXSub[base + 2])
+                    ints.append(c0 + c1 * p + c2 * p2)
+                return FF3(ints)
             else:
-                # Prover mode: compute x/(x-xi) on the fly
-                # This uses x from prover_helpers and xi from self.xis
-                xdivxsub = params.auxTrace[self.map_offset_fri_pol + row * FIELD_EXTENSION:]
+                # Compute x/(x-xi) on the fly
+                xi_c0 = int(self.xis[o * FIELD_EXTENSION])
+                xi_c1 = int(self.xis[o * FIELD_EXTENSION + 1])
+                xi_c2 = int(self.xis[o * FIELD_EXTENSION + 2])
+                xi_val = ff3([xi_c0, xi_c1, xi_c2])
 
-                # Compute x - xi (in place) using SUB_SWAP: result = b - a = x - xi
-                xi_vals = self.xis[o * FIELD_EXTENSION:(o + 1) * FIELD_EXTENSION]
-                # Load all x values for the batch
-                x_vals = self.prover_helpers.x[row:row + nrows_pack]
-                self._goldilocks3_op_31_pack(nrows_pack, Operation.SUB_SWAP.value, xdivxsub,
-                                            xi_vals, True, x_vals, False)
+                x_vals = FF(np.asarray(self.prover_helpers.x[row:row + nrows_pack], dtype=np.uint64))
+                # Embed x in FF3: (x, 0, 0)
+                x_ff3 = FF3(np.asarray(x_vals, dtype=np.uint64).tolist())
 
+                # Compute x - xi
+                diff = x_ff3 - xi_val
                 # Invert to get 1/(x - xi)
-                self._get_inverse_polynomial(nrows_pack, xdivxsub, value_buffer, True, 3)
+                return self._get_inverse(diff)
 
-                return xdivxsub[:FIELD_EXTENSION * nrows_pack]
-
-            return value_buffer[:FIELD_EXTENSION * nrows_pack]
-
-        # Types nStages+4+: Custom commits (lines 147-171)
+        # Custom commits
         elif (type_arg >= self.setup_ctx.stark_info.nStages + 4 and
               type_arg < len(self.setup_ctx.stark_info.customCommits) + self.setup_ctx.stark_info.nStages + 4):
             index = type_arg - (self.n_stages + 4)
@@ -751,282 +681,156 @@ class ExpressionsPack(ExpressionsCtx):
             o = next_strides_exps[args[i_args + 2]]
 
             if is_cyclic:
-                for j in range(nrows_pack):
-                    l = (row + j + o) % domain_size
-                    value_buffer[j] = params.customCommits[offset + l * n_cols + stage_pos]
+                vals = [int(params.customCommits[offset + ((row + j + o) % domain_size) * n_cols + stage_pos])
+                        for j in range(nrows_pack)]
             else:
                 offset_col = offset + (row + o) * n_cols + stage_pos
-                for j in range(nrows_pack):
-                    value_buffer[j] = params.customCommits[offset_col + j * n_cols]
+                vals = [int(params.customCommits[offset_col + j * n_cols]) for j in range(nrows_pack)]
+            return FF(vals)
 
-            return value_buffer[:nrows_pack]
+        # tmp1 (scalar temps)
+        elif type_arg == self.buffer_commits_size:
+            return tmp1_g[args[i_args + 1]]
 
-        # Temporary buffers and scalar values (lines 172-194)
-        elif type_arg == self.buffer_commits_size or type_arg == self.buffer_commits_size + 1:
-            # tmp1 or tmp3
-            idx = args[i_args + 1] * nrows_pack
-            return expressions_params[type_arg][idx:idx + dim * nrows_pack]
+        # tmp3 (field extension temps)
+        elif type_arg == self.buffer_commits_size + 1:
+            return tmp3_g[args[i_args + 1]]
 
+        # Scalar values (public inputs, numbers, air values, etc.)
         else:
-            # Public inputs, numbers, air values, etc.
-            return expressions_params[type_arg][args[i_args + 1]:args[i_args + 1] + dim]
-
-    # C++: ExpressionsPack inverse polynomial handling
-    def _get_inverse_polynomial(self, nrows_pack: int, dest_vals: np.ndarray,
-                                buff_helper: np.ndarray, batch: bool, dim: int):
-        """Compute inverse of polynomial values.
-
-        Corresponds to C++ ExpressionsPack::getInversePolinomial()
-        (lines 197-221 of expressions_pack.hpp).
-
-        Uses Montgomery batch inversion for efficiency: N inversions become
-        3N-3 multiplications + 1 inversion.
-
-        Args:
-            nrows_pack: Number of rows in pack
-            dest_vals: Values to invert (in-place)
-            buff_helper: Helper buffer for field extension operations
-            batch: Use batch inversion (now always used when nrows_pack > 1)
-            dim: Dimension (1 or 3)
-        """
-        if dim == 1:
-            # Scalar inversion using vectorized batch Montgomery
-            ff_vals = FF(np.asarray(dest_vals[:nrows_pack], dtype=np.uint64))
-            ff_invs = batch_inverse_ff_array(ff_vals)
-            dest_vals[:nrows_pack] = np.asarray(ff_invs, dtype=np.uint64)
-        elif dim == FIELD_EXTENSION:
-            # Field extension inversion using vectorized batch Montgomery
-            # Convert from SoA layout to FF3 array
-            ff3_vals = soa_to_ff3_array(dest_vals, nrows_pack)
-            ff3_invs = batch_inverse_ff3_array(ff3_vals)
-            # Convert back to SoA layout
-            ff3_array_to_soa(ff3_invs, dest_vals, nrows_pack)
-
-    # C++: ExpressionsPack polynomial multiplication
-    def _multiply_polynomials(self, nrows_pack: int, dest: Dest, dest_vals: np.ndarray,
-                             is_constant_a: bool, is_constant_b: bool):
-        """Multiply two polynomial values.
-
-        Corresponds to C++ ExpressionsPack::multiplyPolynomials()
-        (lines 223-239 of expressions_pack.hpp).
-
-        Multiplies values[0..n] * values[n..2n], stores in values[0..n].
-
-        Args:
-            nrows_pack: Number of rows in pack
-            dest: Destination specification
-            dest_vals: Values array
-            is_constant_a: First operand is constant
-            is_constant_b: Second operand is constant
-        """
-        if dest.dim == 1:
-            # Scalar multiplication
-            self._goldilocks_op_pack(nrows_pack, Operation.MUL.value, dest_vals,
-                                    dest_vals, is_constant_a,
-                                    dest_vals[FIELD_EXTENSION * nrows_pack:], is_constant_b)
-        else:
-            # Field extension multiplication
-            buff_helper = np.zeros(FIELD_EXTENSION * nrows_pack, dtype=np.uint64)
-
-            if dest.params[0].dim == FIELD_EXTENSION and dest.params[1].dim == FIELD_EXTENSION:
-                # dim3 × dim3
-                self._goldilocks3_op_pack(nrows_pack, Operation.MUL.value, buff_helper,
-                                         dest_vals, is_constant_a,
-                                         dest_vals[FIELD_EXTENSION * nrows_pack:], is_constant_b)
-            elif dest.params[0].dim == FIELD_EXTENSION and dest.params[1].dim == 1:
-                # dim3 × dim1
-                self._goldilocks3_op_31_pack(nrows_pack, Operation.MUL.value, buff_helper,
-                                            dest_vals, is_constant_a,
-                                            dest_vals[FIELD_EXTENSION * nrows_pack:], is_constant_b)
+            arr = scalar_params[type_arg]
+            idx = args[i_args + 1]
+            if dim == 1:
+                return FF(int(arr[idx]))
             else:
-                # dim1 × dim3
-                self._goldilocks3_op_31_pack(nrows_pack, Operation.MUL.value, buff_helper,
-                                            dest_vals[FIELD_EXTENSION * nrows_pack:], is_constant_b,
-                                            dest_vals, is_constant_a)
+                c0 = int(arr[idx])
+                c1 = int(arr[idx + 1])
+                c2 = int(arr[idx + 2])
+                return ff3([c0, c1, c2])
 
-            # Copy result back
-            dest_vals[0:FIELD_EXTENSION * nrows_pack] = buff_helper[0:FIELD_EXTENSION * nrows_pack]
+    def _multiply_galois(self, a: Union[FF, FF3], b: Union[FF, FF3],
+                         dim_a: int, dim_b: int, dest_dim: int) -> Union[FF, FF3]:
+        """Multiply two galois values with proper type handling."""
+        if dest_dim == 1:
+            return a * b
+        elif dim_a == FIELD_EXTENSION and dim_b == FIELD_EXTENSION:
+            return a * b
+        elif dim_a == FIELD_EXTENSION:
+            return self._goldilocks3_op_31(Operation.MUL.value, a, b)
+        else:
+            return self._goldilocks3_op_31(Operation.MUL.value, b, a)
 
-    # C++: ExpressionsPack store operations (inline)
-    def _store_polynomial(self, nrows_pack: int, dest: Dest, dest_vals: np.ndarray,
-                         row: int, is_constant: int):
-        """Store polynomial values to destination.
+    def _store_galois(self, dest: Dest, result: Union[FF, FF3], row: int, nrows_pack: int):
+        """Store galois result to destination buffer."""
+        offset = dest.offset if dest.offset != 0 else (FIELD_EXTENSION if dest.dim == 3 else 1)
 
-        Corresponds to C++ ExpressionsPack::storePolynomial()
-        (lines 241-251 of expressions_pack.hpp).
+        if dest.dim == 1:
+            if result.ndim == 0:
+                # Scalar - broadcast to all rows
+                val = int(result)
+                for j in range(nrows_pack):
+                    dest.dest[row * offset + j * offset] = val
+            else:
+                vals = np.asarray(result, dtype=np.uint64)
+                for j in range(nrows_pack):
+                    dest.dest[row * offset + j * offset] = vals[j]
+        else:
+            if result.ndim == 0:
+                # Scalar FF3 - broadcast
+                coeffs = ff3_coeffs(result)
+                for j in range(nrows_pack):
+                    base = row * offset + j * offset
+                    dest.dest[base] = coeffs[0]
+                    dest.dest[base + 1] = coeffs[1]
+                    dest.dest[base + 2] = coeffs[2]
+            else:
+                vecs = result.vector()  # Shape (nrows_pack, 3), descending [c2, c1, c0]
+                for j in range(nrows_pack):
+                    base = row * offset + j * offset
+                    dest.dest[base] = int(vecs[j, 2])      # c0
+                    dest.dest[base + 1] = int(vecs[j, 1])  # c1
+                    dest.dest[base + 2] = int(vecs[j, 0])  # c2
+
+    # C++: ExpressionsPack inverse polynomial handling (native galois)
+    def _get_inverse(self, vals: Union[FF, FF3]) -> Union[FF, FF3]:
+        """Compute inverse of field values using Montgomery batch inversion.
 
         Args:
-            nrows_pack: Number of rows in pack
-            dest: Destination specification
-            dest_vals: Values to store
-            row: Row index
-            is_constant: Constant flag
-        """
-        if dest.dim == 1:
-            # Scalar storage
-            offset = dest.offset if dest.offset != 0 else 1
-            for j in range(nrows_pack):
-                if is_constant:
-                    dest.dest[row * offset] = dest_vals[0]
-                else:
-                    dest.dest[row * offset + j * offset] = dest_vals[j]
-        else:
-            # Field extension storage
-            offset = dest.offset if dest.offset != 0 else FIELD_EXTENSION
-            for j in range(nrows_pack):
-                for d in range(FIELD_EXTENSION):
-                    if is_constant:
-                        dest.dest[row * offset + d] = dest_vals[d * nrows_pack]
-                    else:
-                        dest.dest[row * offset + j * offset + d] = dest_vals[j + d * nrows_pack]
+            vals: FF or FF3 scalar/array to invert
 
-    # C++: ExpressionsPack Goldilocks operations
-    def _goldilocks_op_pack(self, nrows_pack: int, op: int, dest: np.ndarray,
-                            a: np.ndarray, is_constant_a: bool,
-                            b: np.ndarray, is_constant_b: bool):
+        Returns:
+            Inverted values (same type as input)
+        """
+        return batch_inverse(vals)
+
+    # C++: ExpressionsPack Goldilocks operations (native galois)
+    def _goldilocks_op(self, op: int, a: FF, b: FF) -> FF:
         """Execute Goldilocks field operation (vectorized).
 
-        Corresponds to C++ Goldilocks::op_pack().
-
         Args:
-            nrows_pack: Number of rows
             op: Operation (0=add, 1=sub, 2=mul, 3=sub_swap)
-            dest: Destination buffer
-            a: First operand
-            is_constant_a: First operand is constant (broadcast scalar)
-            b: Second operand
-            is_constant_b: Second operand is constant (broadcast scalar)
+            a: First operand (FF scalar or array)
+            b: Second operand (FF scalar or array)
+
+        Returns:
+            FF result (scalar if both inputs scalar, array otherwise)
         """
-        # Check actual array size - tmp1 results from constant operations have only 1 element
-        is_constant_a = is_constant_a or len(a) == 1
-        is_constant_b = is_constant_b or len(b) == 1
-
-        # Handle constant vs array operands - galois handles broadcasting
-        if is_constant_a:
-            ff_a = FF(int(a[0]))
-        else:
-            ff_a = FF(np.asarray(a[:nrows_pack], dtype=np.uint64))
-
-        if is_constant_b:
-            ff_b = FF(int(b[0]))
-        else:
-            ff_b = FF(np.asarray(b[:nrows_pack], dtype=np.uint64))
-
-        # Single vectorized operation
-        if op == 0:    ff_result = ff_a + ff_b
-        elif op == 1:  ff_result = ff_a - ff_b
-        elif op == 2:  ff_result = ff_a * ff_b
-        elif op == 3:  ff_result = ff_b - ff_a
-
-        # Store result
-        dest[:nrows_pack] = np.asarray(ff_result, dtype=np.uint64)
-
-    # C++: ExpressionsPack Goldilocks3 operations
-    def _goldilocks3_op_pack(self, nrows_pack: int, op: int, dest: np.ndarray,
-                             a: np.ndarray, is_constant_a: bool,
-                             b: np.ndarray, is_constant_b: bool):
-        """Execute Goldilocks3 field extension operation (dim3 × dim3, vectorized).
-
-        Corresponds to C++ Goldilocks3::op_pack().
-        Uses galois library vectorization for batch processing.
-
-        Args:
-            nrows_pack: Number of rows to process
-            op: Operation (0=add, 1=sub, 2=mul, 3=sub_swap)
-            dest: Destination buffer (SoA layout)
-            a: First operand (SoA layout for arrays, [c0,c1,c2] for constants)
-            is_constant_a: First operand is constant (broadcast scalar)
-            b: Second operand (SoA layout for arrays, [c0,c1,c2] for constants)
-            is_constant_b: Second operand is constant (broadcast scalar)
-        """
-        # Check actual array size - tmp3 results from constant operations have only 3 elements
-        # Constants: [c0, c1, c2] (3 elements)
-        # Arrays: [c0_0..c0_n, c1_0..c1_n, c2_0..c2_n] (3*nrows_pack elements)
-        is_constant_a = is_constant_a or len(a) == 3
-        is_constant_b = is_constant_b or len(b) == 3
-
-        # Convert to FF3 - constants are stored as [c0, c1, c2] directly
-        if is_constant_a:
-            ff3_a = ff3([int(a[0]), int(a[1]), int(a[2])])
-        else:
-            ff3_a = soa_to_ff3_array(a, nrows_pack)
-
-        if is_constant_b:
-            ff3_b = ff3([int(b[0]), int(b[1]), int(b[2])])
-        else:
-            ff3_b = soa_to_ff3_array(b, nrows_pack)
-
-        # Single vectorized operation - galois handles broadcasting
-        if op == 0:    ff3_result = ff3_a + ff3_b
-        elif op == 1:  ff3_result = ff3_a - ff3_b
-        elif op == 2:  ff3_result = ff3_a * ff3_b
-        elif op == 3:  ff3_result = ff3_b - ff3_a
+        if op == 0:   return a + b
+        elif op == 1: return a - b
+        elif op == 2: return a * b
+        elif op == 3: return b - a
         else:
             raise ValueError(f"Invalid operation: {op}")
 
-        # Convert back to SoA layout
-        if is_constant_a and is_constant_b:
-            # Result is scalar
-            coeffs = ff3_coeffs(ff3_result)
-            dest[0] = coeffs[0]
-            dest[1] = coeffs[1]
-            dest[2] = coeffs[2]
+    # C++: ExpressionsPack Goldilocks3 operations (native galois)
+    def _goldilocks3_op(self, op: int, a: FF3, b: FF3) -> FF3:
+        """Execute Goldilocks3 field extension operation (dim3 × dim3, vectorized).
+
+        Args:
+            op: Operation (0=add, 1=sub, 2=mul, 3=sub_swap)
+            a: First operand (FF3 scalar or array)
+            b: Second operand (FF3 scalar or array)
+
+        Returns:
+            FF3 result
+        """
+        if op == 0:   return a + b
+        elif op == 1: return a - b
+        elif op == 2: return a * b
+        elif op == 3: return b - a
         else:
-            ff3_array_to_soa(ff3_result, dest, nrows_pack)
+            raise ValueError(f"Invalid operation: {op}")
 
-    # C++: ExpressionsPack Goldilocks3x1 operations
-    def _goldilocks3_op_31_pack(self, nrows_pack: int, op: int, dest: np.ndarray,
-                                a: np.ndarray, is_constant_a: bool,
-                                b: np.ndarray, is_constant_b: bool):
-        """Execute Goldilocks3 field extension operation (dim3 × dim1, vectorized).
+    # C++: ExpressionsPack Goldilocks3x1 operations (native galois)
+    def _goldilocks3_op_31(self, op: int, a: FF3, b: Union[FF, FF3]) -> FF3:
+        """Execute Goldilocks3 operation: FF3 × FF → FF3.
 
-        Corresponds to C++ Goldilocks3::op_31_pack().
         Operand a is FF3 (dim=3), operand b is FF (dim=1, embedded as (b,0,0)).
 
         Args:
-            nrows_pack: Number of rows to process
             op: Operation (0=add, 1=sub, 2=mul, 3=sub_swap)
-            dest: Destination buffer (SoA layout)
-            a: First operand (SoA layout for arrays, [c0,c1,c2] for constants)
-            is_constant_a: First operand is constant (broadcast scalar)
-            b: Second operand (scalar FF values, single value if constant)
-            is_constant_b: Second operand is constant (broadcast scalar)
+            a: First operand (FF3 scalar or array)
+            b: Second operand (FF scalar/array, embedded in FF3 as (b,0,0))
+
+        Returns:
+            FF3 result
         """
-        # Check actual array size - tmp3 results from constant operations have only 3 elements
-        # For FF3: constants have 3 elements, arrays have 3*nrows_pack
-        # For FF (b): constants have 1 element, arrays have nrows_pack
-        is_constant_a = is_constant_a or len(a) == 3
-        is_constant_b = is_constant_b or len(b) == 1
-
-        # Convert a (FF3) - constants are stored as [c0, c1, c2] directly
-        if is_constant_a:
-            ff3_a = ff3([int(a[0]), int(a[1]), int(a[2])])
+        # Embed FF in FF3: for Goldilocks extension, FF3 integer encoding is c0 + c1*p + c2*p^2
+        # When c1=c2=0, the integer value equals c0, so FF value can be used directly
+        if isinstance(b, FF):
+            # Convert FF to FF3 by using integer values directly (c1=c2=0 means int = c0)
+            if b.ndim == 0:
+                # Scalar FF → scalar FF3
+                ff3_b = FF3(int(b))
+            else:
+                # Array FF → array FF3
+                ff3_b = FF3(np.asarray(b, dtype=np.uint64).tolist())
         else:
-            ff3_a = soa_to_ff3_array(a, nrows_pack)
+            ff3_b = b
 
-        # Convert b (FF scalar) - embed in FF3 as (b, 0, 0)
-        if is_constant_b:
-            ff3_b = ff3([int(b[0]), 0, 0])
-        else:
-            # Create FF3 array with b values in coefficient 0, zeros elsewhere
-            # FF3 integer encoding: value = c0 (when c1=c2=0)
-            b_list = b[:nrows_pack].tolist()
-            ff3_b = FF3(b_list)
-
-        # Single vectorized operation - galois handles broadcasting
-        if op == 0:    ff3_result = ff3_a + ff3_b
-        elif op == 1:  ff3_result = ff3_a - ff3_b
-        elif op == 2:  ff3_result = ff3_a * ff3_b
-        elif op == 3:  ff3_result = ff3_b - ff3_a
+        if op == 0:   return a + ff3_b
+        elif op == 1: return a - ff3_b
+        elif op == 2: return a * ff3_b
+        elif op == 3: return ff3_b - a
         else:
             raise ValueError(f"Invalid operation: {op}")
-
-        # Convert back to SoA layout
-        if is_constant_a and is_constant_b:
-            # Result is scalar
-            coeffs = ff3_coeffs(ff3_result)
-            dest[0] = coeffs[0]
-            dest[1] = coeffs[1]
-            dest[2] = coeffs[2]
-        else:
-            ff3_array_to_soa(ff3_result, dest, nrows_pack)
