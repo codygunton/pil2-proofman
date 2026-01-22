@@ -21,7 +21,8 @@ from typing import Optional, List, TYPE_CHECKING
 from protocol.expressions_bin import ExpressionsBin, HintFieldValue, OpType
 from protocol.stark_info import StarkInfo
 from protocol.steps_params import StepsParams
-from primitives.field import FF, ff3, ff3_coeffs
+from primitives.field import FF, FF3, ff3, ff3_coeffs
+from primitives.batch_inverse import batch_inverse_ff, batch_inverse_ff3, batch_inverse_ff_array, batch_inverse_ff3_array
 
 if TYPE_CHECKING:
     from protocol.expression_evaluator import ExpressionsPack
@@ -166,12 +167,14 @@ def _field_mul_columns(a: np.ndarray, b: np.ndarray, N: int, dim: int) -> np.nda
     return result
 
 
-# C++: Batch inverse computation
+# C++: Batch inverse computation (using Montgomery's trick)
 def _field_inverse_column(a: np.ndarray, N: int, dim: int) -> np.ndarray:
     """Compute multiplicative inverse of each element in a column.
 
+    Uses Montgomery batch inversion: N inversions → 3N-3 multiplications + 1 inversion.
+
     Args:
-        a: Column (N * dim elements)
+        a: Column (N * dim elements, AoS layout for dim=3)
         N: Number of rows
         dim: Dimension per element (1 or 3)
 
@@ -181,13 +184,29 @@ def _field_inverse_column(a: np.ndarray, N: int, dim: int) -> np.ndarray:
     result = np.zeros(N * dim, dtype=np.uint64)
 
     if dim == 1:
-        for i in range(N):
-            result[i] = _goldilocks_inv(int(a[i]))
+        # Convert to FF array for batch inversion
+        ff_vals = FF(np.asarray(a[:N], dtype=np.uint64))
+        ff_invs = batch_inverse_ff_array(ff_vals)
+        result[:N] = np.asarray(ff_invs, dtype=np.uint64)
     else:
-        for i in range(N):
-            result[i * dim:(i + 1) * dim] = _goldilocks3_inv(
-                a[i * dim:(i + 1) * dim]
-            )
+        # Convert from AoS layout to FF3 array for batch inversion
+        # Input is [a0_c0, a0_c1, a0_c2, a1_c0, a1_c1, a1_c2, ...]
+        # FF3 integer encoding: value = c0 + c1*p + c2*p^2
+        from primitives.field import GOLDILOCKS_PRIME
+        p = GOLDILOCKS_PRIME
+        p2 = p * p
+        # Extract coefficients via numpy slicing
+        c0 = a[0::3][:N].tolist()  # [a0_c0, a1_c0, ...]
+        c1 = a[1::3][:N].tolist()  # [a0_c1, a1_c1, ...]
+        c2 = a[2::3][:N].tolist()  # [a0_c2, a1_c2, ...]
+        ints = [c0[i] + c1[i] * p + c2[i] * p2 for i in range(N)]
+        ff3_vals = FF3(ints)
+        ff3_invs = batch_inverse_ff3_array(ff3_vals)
+        # Convert back to AoS layout
+        vecs = ff3_invs.vector()  # Shape (N, 3) in descending order [c2, c1, c0]
+        result[0::3] = vecs[:, 2].view(np.ndarray).astype(np.uint64)  # c0
+        result[1::3] = vecs[:, 1].view(np.ndarray).astype(np.uint64)  # c1
+        result[2::3] = vecs[:, 0].view(np.ndarray).astype(np.uint64)  # c2
 
     return result
 
@@ -956,3 +975,4 @@ def calculate_witness_std(
         field2="denominator_direct",
         add=not prod
     )
+
