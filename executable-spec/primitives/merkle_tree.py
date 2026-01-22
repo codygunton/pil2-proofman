@@ -252,6 +252,80 @@ class MerkleTree:
 
         return result
 
+    @staticmethod
+    def verify_merkle_root(
+        root: MerkleRoot,
+        level: List[int],
+        height: int,
+        last_level_verification: int,
+        arity: int,
+        sponge_width: int
+    ) -> bool:
+        """Verify Merkle root from last-level nodes.
+
+        C++ reference: merkleTreeGL.hpp lines 70-99
+
+        Computes the root by hashing up from the last level and compares
+        against the expected root.
+
+        Args:
+            root: Expected root (HASH_SIZE elements)
+            level: Last level nodes (num_nodes * HASH_SIZE elements)
+            height: Tree height (number of leaves)
+            last_level_verification: Number of levels to skip from bottom
+            arity: Tree arity (2, 3, or 4)
+            sponge_width: Hash sponge width
+
+        Returns:
+            True if computed root matches expected root
+        """
+        if last_level_verification == 0:
+            return True  # Nothing to verify
+
+        # Compute actual number of nodes at the target level
+        # Target level is last_level_verification levels below the root
+        # Trace down from height to find actual node count at that level
+        pending = height
+        levels_node_count = []
+        while pending > 1:
+            levels_node_count.append(pending)
+            pending = (pending + arity - 1) // arity
+
+        # Target level is (n_levels - last_level_verification)
+        n_levels = len(levels_node_count)
+        target_level = n_levels - last_level_verification
+        if target_level < 0:
+            target_level = 0
+
+        actual_nodes = levels_node_count[target_level] if target_level < n_levels else 1
+
+        # Compute root from last level by hashing upward
+        # Start with actual number of nodes (rest are zero padding)
+        current_level = list(level)
+        pending = actual_nodes
+
+        while pending > 1:
+            next_n = (pending + arity - 1) // arity
+            next_level = []
+
+            for i in range(next_n):
+                hash_input = [0] * sponge_width
+                for a in range(arity):
+                    child_idx = i * arity + a
+                    if child_idx < pending:
+                        for j in range(HASH_SIZE):
+                            if a * HASH_SIZE + j < sponge_width:
+                                hash_input[a * HASH_SIZE + j] = current_level[child_idx * HASH_SIZE + j]
+
+                parent_hash = hash_seq(hash_input, sponge_width)
+                next_level.extend(parent_hash[:HASH_SIZE])
+
+            current_level = next_level
+            pending = next_n
+
+        # Compare computed root with expected root
+        return current_level[:HASH_SIZE] == root[:HASH_SIZE]
+
     def verify_group_proof(
         self,
         root: MerkleRoot,
