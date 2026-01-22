@@ -16,12 +16,14 @@ import numpy as np
 from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
 from protocol.steps_params import StepsParams
 from protocol.expressions_bin import ParserParams, ParserArgs
-from primitives.field import FF, FF3, ff3, ff3_coeffs
+from primitives.field import FF, FF3, ff3, ff3_coeffs, GOLDILOCKS_PRIME, soa_to_ff3_array, ff3_array_to_soa
+from primitives.batch_inverse import batch_inverse_ff, batch_inverse_ff3, batch_inverse_ff3_array, batch_inverse_ff_array
 
 
 # Number of rows to process in batch (C++ uses 128 for SIMD)
-# In Python without SIMD, we process row-by-row (set to 1)
-NROWS_PACK = 1
+# Process entire domain at once for vectorization benefit
+# The min() in calculate_expressions caps this to actual domain_size
+NROWS_PACK = 1 << 16  # 65536, large enough for any test domain
 
 
 # C++: pil2-stark/src/starkpil/expressions_ctx.hpp (operation constants)
@@ -496,11 +498,11 @@ class ExpressionsPack(ExpressionsCtx):
                         a = self._load(params, expressions_params, args, map_offsets_exps,
                                       map_offsets_custom_exps, next_strides_exps,
                                       i_args + 2, i, 1, domain_size, domain_extended, is_cyclic,
-                                      value_a, debug)
+                                      value_a, nrows_pack, debug)
                         b = self._load(params, expressions_params, args, map_offsets_exps,
                                       map_offsets_custom_exps, next_strides_exps,
                                       i_args + 5, i, 1, domain_size, domain_extended, is_cyclic,
-                                      value_b, debug)
+                                      value_b, nrows_pack, debug)
 
                         is_constant_a = args[i_args + 2] > self.buffer_commits_size + 1
                         is_constant_b = args[i_args + 5] > self.buffer_commits_size + 1
@@ -520,11 +522,11 @@ class ExpressionsPack(ExpressionsCtx):
                         a = self._load(params, expressions_params, args, map_offsets_exps,
                                       map_offsets_custom_exps, next_strides_exps,
                                       i_args + 2, i, 3, domain_size, domain_extended, is_cyclic,
-                                      value_a, debug)
+                                      value_a, nrows_pack, debug)
                         b = self._load(params, expressions_params, args, map_offsets_exps,
                                       map_offsets_custom_exps, next_strides_exps,
                                       i_args + 5, i, 1, domain_size, domain_extended, is_cyclic,
-                                      value_b, debug)
+                                      value_b, nrows_pack, debug)
 
                         is_constant_a = args[i_args + 2] > self.buffer_commits_size + 1
                         is_constant_b = args[i_args + 5] > self.buffer_commits_size + 1
@@ -543,11 +545,11 @@ class ExpressionsPack(ExpressionsCtx):
                         a = self._load(params, expressions_params, args, map_offsets_exps,
                                       map_offsets_custom_exps, next_strides_exps,
                                       i_args + 2, i, 3, domain_size, domain_extended, is_cyclic,
-                                      value_a, debug)
+                                      value_a, nrows_pack, debug)
                         b = self._load(params, expressions_params, args, map_offsets_exps,
                                       map_offsets_custom_exps, next_strides_exps,
                                       i_args + 5, i, 3, domain_size, domain_extended, is_cyclic,
-                                      value_b, debug)
+                                      value_b, nrows_pack, debug)
 
                         is_constant_a = args[i_args + 2] > self.buffer_commits_size + 1
                         is_constant_b = args[i_args + 5] > self.buffer_commits_size + 1
@@ -595,7 +597,7 @@ class ExpressionsPack(ExpressionsCtx):
               map_offsets_custom_exps: np.ndarray, next_strides_exps: np.ndarray,
               i_args: int, row: int, dim: int, domain_size: int,
               domain_extended: bool, is_cyclic: bool, value_buffer: np.ndarray,
-              debug: bool = False) -> np.ndarray:
+              nrows_pack: int, debug: bool = False) -> np.ndarray:
         """Load value(s) from appropriate buffer.
 
         Corresponds to C++ ExpressionsPack::load() (lines 15-195 of expressions_pack.hpp).
@@ -625,12 +627,12 @@ class ExpressionsPack(ExpressionsCtx):
             domain_extended: Extended domain flag
             is_cyclic: Cyclic region flag
             value_buffer: Temporary buffer for loading
+            nrows_pack: Number of rows to load in batch
             debug: Debug flag
 
         Returns:
             Pointer to loaded value(s)
         """
-        nrows_pack = 1  # Python version processes one row at a time
         type_arg = args[i_args]
 
         # Type 0: Constant polynomials (lines 25-49)
@@ -727,9 +729,10 @@ class ExpressionsPack(ExpressionsCtx):
 
                 # Compute x - xi (in place) using SUB_SWAP: result = b - a = x - xi
                 xi_vals = self.xis[o * FIELD_EXTENSION:(o + 1) * FIELD_EXTENSION]
-                x_val = self.prover_helpers.x[row]
+                # Load all x values for the batch
+                x_vals = self.prover_helpers.x[row:row + nrows_pack]
                 self._goldilocks3_op_31_pack(nrows_pack, Operation.SUB_SWAP.value, xdivxsub,
-                                            xi_vals, True, np.array([x_val], dtype=np.uint64), False)
+                                            xi_vals, True, x_vals, False)
 
                 # Invert to get 1/(x - xi)
                 self._get_inverse_polynomial(nrows_pack, xdivxsub, value_buffer, True, 3)
@@ -776,37 +779,28 @@ class ExpressionsPack(ExpressionsCtx):
         Corresponds to C++ ExpressionsPack::getInversePolinomial()
         (lines 197-221 of expressions_pack.hpp).
 
+        Uses Montgomery batch inversion for efficiency: N inversions become
+        3N-3 multiplications + 1 inversion.
+
         Args:
             nrows_pack: Number of rows in pack
             dest_vals: Values to invert (in-place)
             buff_helper: Helper buffer for field extension operations
-            batch: Use batch inversion (unused in Python)
+            batch: Use batch inversion (now always used when nrows_pack > 1)
             dim: Dimension (1 or 3)
         """
         if dim == 1:
-            # Scalar inversion
-            # Note: Must convert numpy uint64 to Python int before creating FF
-            for i in range(nrows_pack):
-                dest_vals[i] = int(FF(int(dest_vals[i])) ** -1)
+            # Scalar inversion using vectorized batch Montgomery
+            ff_vals = FF(np.asarray(dest_vals[:nrows_pack], dtype=np.uint64))
+            ff_invs = batch_inverse_ff_array(ff_vals)
+            dest_vals[:nrows_pack] = np.asarray(ff_invs, dtype=np.uint64)
         elif dim == FIELD_EXTENSION:
-            # Field extension inversion
-            # Copy to helper buffer in AoS layout
-            for i in range(nrows_pack):
-                for d in range(FIELD_EXTENSION):
-                    buff_helper[i * FIELD_EXTENSION + d] = dest_vals[i + d * nrows_pack]
-
-            # Invert
-            for i in range(nrows_pack):
-                val_ff3 = ff3([int(buff_helper[i * FIELD_EXTENSION + d]) for d in range(FIELD_EXTENSION)])
-                inv_ff3 = val_ff3 ** -1
-                inv_coeffs = ff3_coeffs(inv_ff3)
-                for d in range(FIELD_EXTENSION):
-                    buff_helper[i * FIELD_EXTENSION + d] = inv_coeffs[d]
-
-            # Copy back to SoA layout
-            for i in range(nrows_pack):
-                for d in range(FIELD_EXTENSION):
-                    dest_vals[i + d * nrows_pack] = buff_helper[i * FIELD_EXTENSION + d]
+            # Field extension inversion using vectorized batch Montgomery
+            # Convert from SoA layout to FF3 array
+            ff3_vals = soa_to_ff3_array(dest_vals, nrows_pack)
+            ff3_invs = batch_inverse_ff3_array(ff3_vals)
+            # Convert back to SoA layout
+            ff3_array_to_soa(ff3_invs, dest_vals, nrows_pack)
 
     # C++: ExpressionsPack polynomial multiplication
     def _multiply_polynomials(self, nrows_pack: int, dest: Dest, dest_vals: np.ndarray,
@@ -890,7 +884,7 @@ class ExpressionsPack(ExpressionsCtx):
     def _goldilocks_op_pack(self, nrows_pack: int, op: int, dest: np.ndarray,
                             a: np.ndarray, is_constant_a: bool,
                             b: np.ndarray, is_constant_b: bool):
-        """Execute Goldilocks field operation.
+        """Execute Goldilocks field operation (vectorized).
 
         Corresponds to C++ Goldilocks::op_pack().
 
@@ -899,106 +893,140 @@ class ExpressionsPack(ExpressionsCtx):
             op: Operation (0=add, 1=sub, 2=mul, 3=sub_swap)
             dest: Destination buffer
             a: First operand
-            is_constant_a: First operand is constant
+            is_constant_a: First operand is constant (broadcast scalar)
             b: Second operand
-            is_constant_b: Second operand is constant
+            is_constant_b: Second operand is constant (broadcast scalar)
         """
-        # Note: Must convert numpy uint64 to Python int before creating FF
-        for i in range(nrows_pack):
-            a_val = FF(int(a[0]) if is_constant_a else int(a[i]))
-            b_val = FF(int(b[0]) if is_constant_b else int(b[i]))
+        # Check actual array size - tmp1 results from constant operations have only 1 element
+        is_constant_a = is_constant_a or len(a) == 1
+        is_constant_b = is_constant_b or len(b) == 1
 
-            if op == 0:  # ADD
-                dest[i] = int(a_val + b_val)
-            elif op == 1:  # SUB
-                dest[i] = int(a_val - b_val)
-            elif op == 2:  # MUL
-                dest[i] = int(a_val * b_val)
-            elif op == 3:  # SUB_SWAP
-                dest[i] = int(b_val - a_val)
+        # Handle constant vs array operands - galois handles broadcasting
+        if is_constant_a:
+            ff_a = FF(int(a[0]))
+        else:
+            ff_a = FF(np.asarray(a[:nrows_pack], dtype=np.uint64))
+
+        if is_constant_b:
+            ff_b = FF(int(b[0]))
+        else:
+            ff_b = FF(np.asarray(b[:nrows_pack], dtype=np.uint64))
+
+        # Single vectorized operation
+        if op == 0:    ff_result = ff_a + ff_b
+        elif op == 1:  ff_result = ff_a - ff_b
+        elif op == 2:  ff_result = ff_a * ff_b
+        elif op == 3:  ff_result = ff_b - ff_a
+
+        # Store result
+        dest[:nrows_pack] = np.asarray(ff_result, dtype=np.uint64)
 
     # C++: ExpressionsPack Goldilocks3 operations
     def _goldilocks3_op_pack(self, nrows_pack: int, op: int, dest: np.ndarray,
                              a: np.ndarray, is_constant_a: bool,
                              b: np.ndarray, is_constant_b: bool):
-        """Execute Goldilocks3 field extension operation (dim3 × dim3).
+        """Execute Goldilocks3 field extension operation (dim3 × dim3, vectorized).
 
         Corresponds to C++ Goldilocks3::op_pack().
+        Uses galois library vectorization for batch processing.
 
         Args:
-            nrows_pack: Number of rows
-            op: Operation
-            dest: Destination buffer (SoA layout: [e0...e0, e1...e1, e2...e2])
-            a: First operand (SoA layout)
-            is_constant_a: First operand is constant
-            b: Second operand (SoA layout)
-            is_constant_b: Second operand is constant
+            nrows_pack: Number of rows to process
+            op: Operation (0=add, 1=sub, 2=mul, 3=sub_swap)
+            dest: Destination buffer (SoA layout)
+            a: First operand (SoA layout for arrays, [c0,c1,c2] for constants)
+            is_constant_a: First operand is constant (broadcast scalar)
+            b: Second operand (SoA layout for arrays, [c0,c1,c2] for constants)
+            is_constant_b: Second operand is constant (broadcast scalar)
         """
-        for i in range(nrows_pack):
-            if is_constant_a:
-                a_val = ff3([int(a[0]), int(a[nrows_pack]), int(a[2 * nrows_pack])])
-            else:
-                a_val = ff3([int(a[i]), int(a[i + nrows_pack]), int(a[i + 2 * nrows_pack])])
+        # Check actual array size - tmp3 results from constant operations have only 3 elements
+        # Constants: [c0, c1, c2] (3 elements)
+        # Arrays: [c0_0..c0_n, c1_0..c1_n, c2_0..c2_n] (3*nrows_pack elements)
+        is_constant_a = is_constant_a or len(a) == 3
+        is_constant_b = is_constant_b or len(b) == 3
 
-            if is_constant_b:
-                b_val = ff3([int(b[0]), int(b[nrows_pack]), int(b[2 * nrows_pack])])
-            else:
-                b_val = ff3([int(b[i]), int(b[i + nrows_pack]), int(b[i + 2 * nrows_pack])])
+        # Convert to FF3 - constants are stored as [c0, c1, c2] directly
+        if is_constant_a:
+            ff3_a = ff3([int(a[0]), int(a[1]), int(a[2])])
+        else:
+            ff3_a = soa_to_ff3_array(a, nrows_pack)
 
-            if op == 0:  # ADD
-                res = a_val + b_val
-            elif op == 1:  # SUB
-                res = a_val - b_val
-            elif op == 2:  # MUL
-                res = a_val * b_val
-            elif op == 3:  # SUB_SWAP
-                res = b_val - a_val
-            else:
-                raise ValueError(f"Invalid operation: {op}")
+        if is_constant_b:
+            ff3_b = ff3([int(b[0]), int(b[1]), int(b[2])])
+        else:
+            ff3_b = soa_to_ff3_array(b, nrows_pack)
 
-            res_coeffs = ff3_coeffs(res)
-            dest[i] = res_coeffs[0]
-            dest[i + nrows_pack] = res_coeffs[1]
-            dest[i + 2 * nrows_pack] = res_coeffs[2]
+        # Single vectorized operation - galois handles broadcasting
+        if op == 0:    ff3_result = ff3_a + ff3_b
+        elif op == 1:  ff3_result = ff3_a - ff3_b
+        elif op == 2:  ff3_result = ff3_a * ff3_b
+        elif op == 3:  ff3_result = ff3_b - ff3_a
+        else:
+            raise ValueError(f"Invalid operation: {op}")
+
+        # Convert back to SoA layout
+        if is_constant_a and is_constant_b:
+            # Result is scalar
+            coeffs = ff3_coeffs(ff3_result)
+            dest[0] = coeffs[0]
+            dest[1] = coeffs[1]
+            dest[2] = coeffs[2]
+        else:
+            ff3_array_to_soa(ff3_result, dest, nrows_pack)
 
     # C++: ExpressionsPack Goldilocks3x1 operations
     def _goldilocks3_op_31_pack(self, nrows_pack: int, op: int, dest: np.ndarray,
                                 a: np.ndarray, is_constant_a: bool,
                                 b: np.ndarray, is_constant_b: bool):
-        """Execute Goldilocks3 field extension operation (dim3 × dim1).
+        """Execute Goldilocks3 field extension operation (dim3 × dim1, vectorized).
 
         Corresponds to C++ Goldilocks3::op_31_pack().
+        Operand a is FF3 (dim=3), operand b is FF (dim=1, embedded as (b,0,0)).
 
         Args:
-            nrows_pack: Number of rows
-            op: Operation
+            nrows_pack: Number of rows to process
+            op: Operation (0=add, 1=sub, 2=mul, 3=sub_swap)
             dest: Destination buffer (SoA layout)
-            a: First operand (SoA layout, dim=3)
-            is_constant_a: First operand is constant
-            b: Second operand (scalar)
-            is_constant_b: Second operand is constant
+            a: First operand (SoA layout for arrays, [c0,c1,c2] for constants)
+            is_constant_a: First operand is constant (broadcast scalar)
+            b: Second operand (scalar FF values, single value if constant)
+            is_constant_b: Second operand is constant (broadcast scalar)
         """
-        for i in range(nrows_pack):
-            if is_constant_a:
-                a_val = ff3([int(a[0]), int(a[nrows_pack]), int(a[2 * nrows_pack])])
-            else:
-                a_val = ff3([int(a[i]), int(a[i + nrows_pack]), int(a[i + 2 * nrows_pack])])
+        # Check actual array size - tmp3 results from constant operations have only 3 elements
+        # For FF3: constants have 3 elements, arrays have 3*nrows_pack
+        # For FF (b): constants have 1 element, arrays have nrows_pack
+        is_constant_a = is_constant_a or len(a) == 3
+        is_constant_b = is_constant_b or len(b) == 1
 
-            b_val = FF(int(b[0]) if is_constant_b else int(b[i]))
-            b_ff3 = ff3([int(b_val), 0, 0])
+        # Convert a (FF3) - constants are stored as [c0, c1, c2] directly
+        if is_constant_a:
+            ff3_a = ff3([int(a[0]), int(a[1]), int(a[2])])
+        else:
+            ff3_a = soa_to_ff3_array(a, nrows_pack)
 
-            if op == 0:  # ADD
-                res = a_val + b_ff3
-            elif op == 1:  # SUB
-                res = a_val - b_ff3
-            elif op == 2:  # MUL
-                res = a_val * b_ff3
-            elif op == 3:  # SUB_SWAP
-                res = b_ff3 - a_val
-            else:
-                raise ValueError(f"Invalid operation: {op}")
+        # Convert b (FF scalar) - embed in FF3 as (b, 0, 0)
+        if is_constant_b:
+            ff3_b = ff3([int(b[0]), 0, 0])
+        else:
+            # Create FF3 array with b values in coefficient 0, zeros elsewhere
+            # FF3 integer encoding: value = c0 (when c1=c2=0)
+            b_list = b[:nrows_pack].tolist()
+            ff3_b = FF3(b_list)
 
-            res_coeffs = ff3_coeffs(res)
-            dest[i] = res_coeffs[0]
-            dest[i + nrows_pack] = res_coeffs[1]
-            dest[i + 2 * nrows_pack] = res_coeffs[2]
+        # Single vectorized operation - galois handles broadcasting
+        if op == 0:    ff3_result = ff3_a + ff3_b
+        elif op == 1:  ff3_result = ff3_a - ff3_b
+        elif op == 2:  ff3_result = ff3_a * ff3_b
+        elif op == 3:  ff3_result = ff3_b - ff3_a
+        else:
+            raise ValueError(f"Invalid operation: {op}")
+
+        # Convert back to SoA layout
+        if is_constant_a and is_constant_b:
+            # Result is scalar
+            coeffs = ff3_coeffs(ff3_result)
+            dest[0] = coeffs[0]
+            dest[1] = coeffs[1]
+            dest[2] = coeffs[2]
+        else:
+            ff3_array_to_soa(ff3_result, dest, nrows_pack)
