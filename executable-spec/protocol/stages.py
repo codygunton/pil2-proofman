@@ -649,12 +649,14 @@ class Starks:
         specified in the evaluation map. Uses the precomputed LEv coefficients
         to efficiently compute evaluations via inner products.
 
+        Vectorized implementation: processes all N rows at once using galois arrays.
+
         Args:
             params: Working parameters
             LEv: Lagrange evaluation coefficients (N × nOpeningPoints × FIELD_EXTENSION)
             openingPoints: Opening point offsets
         """
-        from primitives.field import FF3, ff3, ff3_coeffs
+        from primitives.field import FF3, ff3, ff3_coeffs, GOLDILOCKS_PRIME
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         extendBits = self.setupCtx.stark_info.starkStruct.nBitsExt - self.setupCtx.stark_info.starkStruct.nBits
@@ -663,99 +665,93 @@ class Starks:
         # Build evaluation task list (lines 293-323)
         evalsToCalculate = []
         for i, evMap in enumerate(self.setupCtx.stark_info.evMap):
-            # Check if this evaluation is needed (opening point must be in list)
             if evMap.prime not in openingPoints:
                 continue
-
             evalsToCalculate.append(i)
 
         nEvals = len(evalsToCalculate)
         if nEvals == 0:
             return
 
-        # Allocate accumulator (lines 325-328)
-        # C++ uses thread-local accumulators, we use single accumulator
-        evalsAcc = np.zeros(nEvals * FIELD_EXTENSION, dtype=np.uint64)
+        # Precompute row indices in extended domain: rows[k] = k << extendBits
+        rows = np.arange(N, dtype=np.int64) << extendBits
 
-        # Main evaluation loop (lines 330-355)
-        for k in range(N):
-            # Load LEv values for this row
-            LEvRow = []
-            for o in range(nOpeningPoints):
-                idx = (k * nOpeningPoints + o) * FIELD_EXTENSION
-                LEvRow.append(ff3([
-                    int(LEv[idx]),
-                    int(LEv[idx + 1]),
-                    int(LEv[idx + 2])
-                ]))
+        # Precompute LEv arrays for each opening point
+        # LEv is stored as (N * nOpeningPoints * FIELD_EXTENSION) flat array
+        # We need LEv[k, openingPointIdx] for each k
+        p = GOLDILOCKS_PRIME
+        p2 = p * p
+        LEv_arrays = {}
+        for openingPointIdx in range(nOpeningPoints):
+            # Extract LEv values for this opening point across all N rows
+            # Index: (k * nOpeningPoints + openingPointIdx) * FIELD_EXTENSION
+            indices = (np.arange(N) * nOpeningPoints + openingPointIdx) * FIELD_EXTENSION
+            c0 = LEv[indices].tolist()
+            c1 = LEv[indices + 1].tolist()
+            c2 = LEv[indices + 2].tolist()
+            ints = [c0[k] + c1[k] * p + c2[k] * p2 for k in range(N)]
+            LEv_arrays[openingPointIdx] = FF3(ints)
 
-            # Compute row index in extended domain
-            row = k << extendBits
-
-            # Process each evaluation (lines 345-354)
-            for evalIdx, evMapIdx in enumerate(evalsToCalculate):
-                evMap = self.setupCtx.stark_info.evMap[evMapIdx]
-
-                # Find opening point index
-                openingPosIdx = openingPoints.index(evMap.prime)
-
-                # Get polynomial value
-                if evMap.type == EvMap.Type.cm:
-                    polInfo = self.setupCtx.stark_info.cmPolsMap[evMap.id]
-                    section = f"cm{polInfo.stage}"
-                    offset = self.setupCtx.stark_info.mapOffsets[(section, True)]
-                    nCols = self.setupCtx.stark_info.mapSectionsN[section]
-
-                    if polInfo.dim == 1:
-                        polVal = ff3([int(params.auxTrace[offset + row * nCols + polInfo.stagePos]), 0, 0])
-                    else:
-                        polVal = ff3([
-                            int(params.auxTrace[offset + row * nCols + polInfo.stagePos]),
-                            int(params.auxTrace[offset + row * nCols + polInfo.stagePos + 1]),
-                            int(params.auxTrace[offset + row * nCols + polInfo.stagePos + 2])
-                        ])
-
-                elif evMap.type == EvMap.Type.const_:
-                    polInfo = self.setupCtx.stark_info.constPolsMap[evMap.id]
-                    offset = self.setupCtx.stark_info.mapOffsets[("const", True)]
-                    nCols = self.setupCtx.stark_info.mapSectionsN["const"]
-
-                    polVal = ff3([int(params.constPolsExtended[offset + row * nCols + polInfo.stagePos]), 0, 0])
-
-                elif evMap.type == EvMap.Type.custom:
-                    polInfo = self.setupCtx.stark_info.customCommitsMap[evMap.commitId][evMap.id]
-                    commitName = self.setupCtx.stark_info.customCommits[polInfo.commitId].name
-                    section = commitName + "0"
-                    offset = self.setupCtx.stark_info.mapOffsets[(section, True)]
-                    nCols = self.setupCtx.stark_info.mapSectionsN[section]
-
-                    polVal = ff3([int(params.customCommits[offset + row * nCols + polInfo.stagePos]), 0, 0])
-
-                else:
-                    raise ValueError(f"Unknown evMap type: {evMap.type}")
-
-                # Multiply by LEv coefficient and accumulate (line 353)
-                res = LEvRow[openingPosIdx] * polVal
-
-                accIdx = evalIdx * FIELD_EXTENSION
-                accVal = ff3([
-                    int(evalsAcc[accIdx]),
-                    int(evalsAcc[accIdx + 1]),
-                    int(evalsAcc[accIdx + 2])
-                ])
-
-                accVal = accVal + res
-                accCoeffs = ff3_coeffs(accVal)
-
-                evalsAcc[accIdx] = accCoeffs[0]
-                evalsAcc[accIdx + 1] = accCoeffs[1]
-                evalsAcc[accIdx + 2] = accCoeffs[2]
-
-        # Store results to params.evals (lines 356-365)
+        # Process each evaluation using vectorized operations
         for evalIdx, evMapIdx in enumerate(evalsToCalculate):
-            srcIdx = evalIdx * FIELD_EXTENSION
-            dstIdx = evMapIdx * FIELD_EXTENSION
+            evMap = self.setupCtx.stark_info.evMap[evMapIdx]
+            openingPosIdx = openingPoints.index(evMap.prime)
 
-            params.evals[dstIdx] = evalsAcc[srcIdx]
-            params.evals[dstIdx + 1] = evalsAcc[srcIdx + 1]
-            params.evals[dstIdx + 2] = evalsAcc[srcIdx + 2]
+            # Get polynomial values for all N rows at once
+            if evMap.type == EvMap.Type.cm:
+                polInfo = self.setupCtx.stark_info.cmPolsMap[evMap.id]
+                section = f"cm{polInfo.stage}"
+                offset = self.setupCtx.stark_info.mapOffsets[(section, True)]
+                nCols = self.setupCtx.stark_info.mapSectionsN[section]
+
+                # Compute indices for all rows: offset + rows[k] * nCols + stagePos
+                base_indices = offset + rows * nCols + polInfo.stagePos
+
+                if polInfo.dim == 1:
+                    # Scalar polynomial - embed in FF3 as (val, 0, 0)
+                    vals = params.auxTrace[base_indices].tolist()
+                    pol_arr = FF3(vals)  # FF3 encoding: val = c0 when c1=c2=0
+                else:
+                    # Field extension polynomial
+                    c0 = params.auxTrace[base_indices].tolist()
+                    c1 = params.auxTrace[base_indices + 1].tolist()
+                    c2 = params.auxTrace[base_indices + 2].tolist()
+                    ints = [c0[k] + c1[k] * p + c2[k] * p2 for k in range(N)]
+                    pol_arr = FF3(ints)
+
+            elif evMap.type == EvMap.Type.const_:
+                polInfo = self.setupCtx.stark_info.constPolsMap[evMap.id]
+                offset = self.setupCtx.stark_info.mapOffsets[("const", True)]
+                nCols = self.setupCtx.stark_info.mapSectionsN["const"]
+
+                base_indices = offset + rows * nCols + polInfo.stagePos
+                vals = params.constPolsExtended[base_indices].tolist()
+                pol_arr = FF3(vals)
+
+            elif evMap.type == EvMap.Type.custom:
+                polInfo = self.setupCtx.stark_info.customCommitsMap[evMap.commitId][evMap.id]
+                commitName = self.setupCtx.stark_info.customCommits[polInfo.commitId].name
+                section = commitName + "0"
+                offset = self.setupCtx.stark_info.mapOffsets[(section, True)]
+                nCols = self.setupCtx.stark_info.mapSectionsN[section]
+
+                base_indices = offset + rows * nCols + polInfo.stagePos
+                vals = params.customCommits[base_indices].tolist()
+                pol_arr = FF3(vals)
+
+            else:
+                raise ValueError(f"Unknown evMap type: {evMap.type}")
+
+            # Vectorized multiply: LEv[k] * pol[k] for all k
+            products = LEv_arrays[openingPosIdx] * pol_arr
+
+            # Sum all products to get the evaluation
+            # galois arrays support np.sum
+            result = np.sum(products)
+
+            # Store result
+            dstIdx = evMapIdx * FIELD_EXTENSION
+            coeffs = ff3_coeffs(result)
+            params.evals[dstIdx] = coeffs[0]
+            params.evals[dstIdx + 1] = coeffs[1]
+            params.evals[dstIdx + 2] = coeffs[2]
