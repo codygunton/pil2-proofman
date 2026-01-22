@@ -5,7 +5,7 @@
 #   ./generate-test-vectors.sh [simple|lookup|all]
 #
 # This script:
-#   1. Builds the C++ library with CAPTURE_FRI_VECTORS flag
+#   1. Builds the C++ library with CAPTURE_TEST_VECTORS flag
 #   2. Runs proof generation which outputs JSON to stderr
 #   3. Parses captured JSON and proof files with Python
 #   4. Outputs complete test vector JSON files
@@ -62,11 +62,11 @@ generate_vectors() {
     echo "Building $LIB_NAME with debug feature..."
     cargo build --manifest-path "$ROOT_DIR/pil2-components/test/$TEST_NAME/rs/Cargo.toml" --features debug 2>/dev/null
 
-    # Build C++ library with CAPTURE_FRI_VECTORS flag
+    # Build C++ library with CAPTURE_TEST_VECTORS flag
     echo "Building C++ library with FRI capture flag..."
     cd "$ROOT_DIR/pil2-stark"
     make clean > /dev/null 2>&1 || true
-    make -j starks_lib EXTRA_CXXFLAGS="-DCAPTURE_FRI_VECTORS" 2>&1 | tail -5
+    make -j starks_lib EXTRA_CXXFLAGS="-DCAPTURE_TEST_VECTORS" 2>&1 | tail -5
     cd "$ROOT_DIR"
 
     # Force rebuild of proofman-cli to link against the new library

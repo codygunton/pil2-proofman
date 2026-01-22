@@ -124,7 +124,7 @@ else
     CXXFLAGS += -O3
 endif
 
-# Support for extra flags (e.g., EXTRA_CXXFLAGS="-DCAPTURE_FRI_VECTORS")
+# Support for extra flags (e.g., EXTRA_CXXFLAGS="-DCAPTURE_TEST_VECTORS")
 ifdef EXTRA_CXXFLAGS
     CXXFLAGS += $(EXTRA_CXXFLAGS)
 endif

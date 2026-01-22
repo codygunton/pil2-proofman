@@ -58,7 +58,7 @@ namespace SimpleLeft {
     constexpr std::array<uint64_t, 1> FRI_STEPS = {4};
 
     //=========================================================================
-    // FRI Input Vectors (captured from gen_proof.hpp with CAPTURE_FRI_VECTORS)
+    // FRI Input Vectors (captured from gen_proof.hpp with CAPTURE_TEST_VECTORS)
     //=========================================================================
     // NOTE: For SimpleLeft, the input polynomial equals the output polynomial
     // because the AIR is small enough that no FRI folding actually occurs.

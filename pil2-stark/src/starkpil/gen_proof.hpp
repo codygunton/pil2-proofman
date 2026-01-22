@@ -90,7 +90,7 @@ void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t 
 
     TimerStopAndLog(STARK_STEP_0);
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
     // Capture prover inputs for test vector generation (before any proof computation)
     {
         uint64_t N = 1 << setupCtx.starkInfo.starkStruct.nBits;
@@ -174,7 +174,7 @@ void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t 
     }
     TimerStopAndLog(STARK_STEP_1);
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
     // Capture Stage 1 commitment data for test vector generation
     {
         // Compute hash of extended trace polynomial
@@ -235,7 +235,7 @@ void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t 
         }
     }
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
     // Capture Stage 2 commitment data for test vector generation
     {
         std::cerr << "=== STARK_STAGE2_JSON_START ===" << std::endl;
@@ -307,7 +307,7 @@ void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t 
     TimerStopAndLog(STARK_COMMIT_QUOTIENT_POLYNOMIAL);
     starks.addTranscript(transcript, &proof.proof.roots[setupCtx.starkInfo.nStages][0], HASH_SIZE);
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
     // Capture Stage Q (Quotient) commitment data for test vector generation
     {
         // Compute hash of quotient polynomial
@@ -392,7 +392,7 @@ void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t 
         }
     }
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
     // Capture Stage EVALS (Evaluations) data for test vector generation
     {
         // Compute hash of Lagrange evaluation polynomial
@@ -459,7 +459,7 @@ void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t 
 
     Goldilocks::Element *friPol = &params.aux_trace[setupCtx.starkInfo.mapOffsets[std::make_pair("f", true)]];
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
     // Capture FRI input polynomial for test vector generation (JSON format)
     {
         uint64_t friPolSize = (1ULL << setupCtx.starkInfo.starkStruct.steps[0].nBits) * FIELD_EXTENSION;
@@ -536,7 +536,7 @@ void genProof(SetupCtx& setupCtx, uint64_t airgroupId, uint64_t airId, uint64_t 
     if(!proofFile.empty()) {
         json2file(pointer2json(proofBuffer, setupCtx.starkInfo), proofFile);
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
         // When capturing test vectors, also save raw binary proof
         std::string binFile = proofFile;
         size_t dotPos = binFile.rfind(".json");

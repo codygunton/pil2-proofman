@@ -2,7 +2,7 @@
 """
 Create JSON test vectors from C++ capture output.
 
-This script parses the JSON blocks output by CAPTURE_FRI_VECTORS and combines
+This script parses the JSON blocks output by CAPTURE_TEST_VECTORS and combines
 them with data from the proof JSON and starkinfo files to produce complete
 test vector JSON files for the Python executable specification.
 
@@ -37,10 +37,10 @@ def parse_all_json_blocks(text: str, start_marker: str, end_marker: str) -> list
 
 def parse_capture_output(capture_text: str, instance: int | None = None) -> dict:
     """
-    Parse JSON blocks from C++ CAPTURE_FRI_VECTORS stderr output.
+    Parse JSON blocks from C++ CAPTURE_TEST_VECTORS stderr output.
 
     Args:
-        capture_text: Raw stderr output from C++ with CAPTURE_FRI_VECTORS
+        capture_text: Raw stderr output from C++ with CAPTURE_TEST_VECTORS
         instance: If specified, filter to only this instance number
 
     Returns dict with all captured data merged together.
@@ -348,7 +348,7 @@ def main():
         '--capture-file',
         type=Path,
         required=True,
-        help='Path to file containing C++ CAPTURE_FRI_VECTORS stderr output'
+        help='Path to file containing C++ CAPTURE_TEST_VECTORS stderr output'
     )
     parser.add_argument(
         '--proof-file',

@@ -349,7 +349,7 @@ uint64_t FriPcs<MerkleTreeType>::prove(
     Goldilocks::Element challenge[FIELD_EXTENSION];
     Goldilocks::Element* friPol = polynomial;
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
     std::vector<std::array<uint64_t, FIELD_EXTENSION>> captured_challenges;
     std::vector<std::array<uint64_t, HASH_SIZE>> captured_merkle_roots;
     std::vector<std::array<uint64_t, HASH_SIZE>> captured_poly_hashes;
@@ -380,7 +380,7 @@ uint64_t FriPcs<MerkleTreeType>::prove(
             uint64_t nextBits = config_.fri_steps[step + 1];
             FRI<Goldilocks::Element>::merkelize(step, proof, friPol, trees_fri_raw_[step], currentBits, nextBits);
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
             // Capture Merkle root
             captured_merkle_roots.push_back({
                 Goldilocks::toU64(proof.proof.fri.treesFRI[step].root[0]),
@@ -419,7 +419,7 @@ uint64_t FriPcs<MerkleTreeType>::prove(
         // Get challenge for next step - matches line 237: starks.getChallenge(transcript, *challenge)
         transcript.getField((uint64_t*)challenge);
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
         captured_challenges.push_back({
             Goldilocks::toU64(challenge[0]),
             Goldilocks::toU64(challenge[1]),
@@ -428,7 +428,7 @@ uint64_t FriPcs<MerkleTreeType>::prove(
 #endif
     }
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
     // Output captured data in JSON format
     std::cerr << "=== FRI_PCS_JSON_START ===" << std::endl;
     std::cerr << "{" << std::endl;
@@ -505,7 +505,7 @@ uint64_t FriPcs<MerkleTreeType>::prove(
     transcriptPermutation.put((Goldilocks::Element*)&nonce, 1);
     transcriptPermutation.getPermutations(friQueries, config_.n_queries, config_.fri_steps[0]);
 
-#ifdef CAPTURE_FRI_VECTORS
+#ifdef CAPTURE_TEST_VECTORS
     // Output FRI queries in JSON format
     std::cerr << "=== FRI_QUERIES_JSON_START ===" << std::endl;
     std::cerr << "{" << std::endl;

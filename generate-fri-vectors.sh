@@ -5,7 +5,7 @@
 #   ./generate-fri-vectors.sh [simple|lookup|all]
 #
 # This script:
-#   1. Builds the project with CAPTURE_FRI_VECTORS flag to capture FRI inputs
+#   1. Builds the project with CAPTURE_TEST_VECTORS flag to capture FRI inputs
 #   2. Generates proof files and captures FRI input vectors from stderr
 #   3. Extracts FRI output values (finalPol, nonce) from proof JSON
 #   4. Computes Poseidon2 hash using the C++ binary
@@ -36,7 +36,7 @@ if [ -d "/opt/intel/oneapi/compiler/2025.0/lib" ]; then
 fi
 
 # Flag to enable FRI input vector capture
-CAPTURE_FLAG="-DCAPTURE_FRI_VECTORS"
+CAPTURE_FLAG="-DCAPTURE_TEST_VECTORS"
 
 # ===========================================================================
 # Generate vectors for a specific test
@@ -66,7 +66,7 @@ generate_vectors() {
     echo "Building $LIB_NAME with debug feature..."
     cargo build --manifest-path "$ROOT_DIR/pil2-components/test/$TEST_NAME/rs/Cargo.toml" --features debug 2>/dev/null
 
-    # Build C++ library with CAPTURE_FRI_VECTORS flag
+    # Build C++ library with CAPTURE_TEST_VECTORS flag
     echo "Building C++ library with FRI capture flag..."
     cd "$ROOT_DIR/pil2-stark"
     make clean > /dev/null 2>&1 || true
@@ -116,7 +116,7 @@ generate_vectors() {
         grep -A 1000 "=== FRI INPUT VECTORS" "$FRI_VECTORS_FILE" | grep -B 1000 "=== END FRI INPUT VECTORS" | head -n -1 | tail -n +2
     else
         echo "// WARNING: FRI input vectors not captured."
-        echo "// Make sure the build includes CAPTURE_FRI_VECTORS flag."
+        echo "// Make sure the build includes CAPTURE_TEST_VECTORS flag."
     fi
     echo ""
 
