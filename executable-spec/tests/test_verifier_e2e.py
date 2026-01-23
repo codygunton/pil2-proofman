@@ -13,10 +13,8 @@ from typing import Dict, Any, List, Optional
 from protocol.setup_ctx import SetupCtx, FIELD_EXTENSION
 from protocol.steps_params import StepsParams
 from primitives.transcript import Transcript
-from protocol.prover import gen_proof
 from protocol.verifier import stark_verify
 from primitives.transcript import Transcript
-from primitives.merkle_tree import HASH_SIZE
 
 
 TEST_DATA_DIR = Path(__file__).parent / "test-data"
@@ -134,173 +132,18 @@ def create_params_from_vectors(stark_info, vectors: dict) -> StepsParams:
     return params
 
 
-def proof_to_jproof(proof: Dict, stark_info, starks) -> Dict[str, Any]:
-    """Convert Python proof format to jproof format expected by verifier.
-
-    Args:
-        proof: Proof dictionary from gen_proof()
-        stark_info: STARK configuration
-        starks: Starks instance (for accessing trees)
-
-    Returns:
-        jproof dictionary in verifier format
-    """
-    jproof = {}
-
-    # Stage roots
-    for i, root in enumerate(proof['roots']):
-        jproof[f"root{i + 1}"] = [int(r) for r in root]
-
-    # Evaluations (reshape to triplets)
-    n_evals = len(stark_info.evMap)
-    evals_flat = proof['evals']
-    jproof['evals'] = []
-    for i in range(n_evals):
-        triplet = [int(evals_flat[i * 3 + j]) for j in range(3)]
-        jproof['evals'].append(triplet)
-
-    # AIR group values
-    airgroup_values = proof['airgroup_values']
-    n_airgroup = len(stark_info.airgroupValuesMap)
-    jproof['airgroupvalues'] = []
-    for i in range(n_airgroup):
-        triplet = [int(airgroup_values[i * 3 + j]) for j in range(3)]
-        jproof['airgroupvalues'].append(triplet)
-
-    # AIR values
-    air_values = proof['air_values']
-    jproof['airvalues'] = []
-    a = 0
-    for i in range(len(stark_info.airValuesMap)):
-        if stark_info.airValuesMap[i].stage == 1:
-            jproof['airvalues'].append([int(air_values[a])])
-            a += 1
-        else:
-            triplet = [int(air_values[a + j]) for j in range(3)]
-            jproof['airvalues'].append(triplet)
-            a += 3
-
-    # Nonce
-    jproof['nonce'] = proof['nonce']
-
-    # Final polynomial (flat list of FIELD_EXTENSION elements)
-    fri_proof = proof['fri_proof']
-    final_pol_flat = fri_proof.final_pol
-    n_final_pol = len(final_pol_flat) // FIELD_EXTENSION
-    jproof['finalPol'] = []
-    for i in range(n_final_pol):
-        triplet = [int(final_pol_flat[i * FIELD_EXTENSION + j]) for j in range(FIELD_EXTENSION)]
-        jproof['finalPol'].append(triplet)
-
-    # Query indices
-    query_indices = proof['query_indices']
-    n_queries = len(query_indices)
-
-    # Constant polynomial query values and siblings
-    const_query_proofs = proof['const_query_proofs']
-    jproof['s0_valsC'] = []
-    jproof['s0_siblingsC'] = []
-    for qp in const_query_proofs:
-        # Values: flatten list of columns
-        vals = []
-        for col_vals in qp.v:
-            vals.extend([int(v) for v in col_vals])
-        jproof['s0_valsC'].append(vals)
-
-        # Siblings: already structured as list of levels
-        siblings = []
-        for level in qp.mp:
-            siblings.append([int(s) for s in level])
-        jproof['s0_siblingsC'].append(siblings)
-
-    # Stage query values and siblings
-    stage_query_proofs = proof['stage_query_proofs']
-    for stage_num, stage_proofs in stage_query_proofs.items():
-        vals_key = f's0_vals{stage_num}'
-        siblings_key = f's0_siblings{stage_num}'
-        jproof[vals_key] = []
-        jproof[siblings_key] = []
-
-        for qp in stage_proofs:
-            # Values
-            vals = []
-            for col_vals in qp.v:
-                vals.extend([int(v) for v in col_vals])
-            jproof[vals_key].append(vals)
-
-            # Siblings
-            siblings = []
-            for level in qp.mp:
-                siblings.append([int(s) for s in level])
-            jproof[siblings_key].append(siblings)
-
-    # Last level nodes
-    last_level_nodes = proof.get('last_level_nodes', {})
-
-    # Constant tree last levels
-    if 'const' in last_level_nodes:
-        nodes = last_level_nodes['const']
-        # Reshape to [node_idx][hash_element]
-        n_nodes = len(nodes) // HASH_SIZE
-        jproof['s0_last_levelsC'] = []
-        for i in range(n_nodes):
-            jproof['s0_last_levelsC'].append([int(nodes[i * HASH_SIZE + j]) for j in range(HASH_SIZE)])
-
-    # Stage tree last levels
-    for stage_num in range(1, stark_info.nStages + 2):
-        key = f'cm{stage_num}'
-        if key in last_level_nodes:
-            nodes = last_level_nodes[key]
-            n_nodes = len(nodes) // HASH_SIZE
-            jproof[f's0_last_levels{stage_num}'] = []
-            for i in range(n_nodes):
-                jproof[f's0_last_levels{stage_num}'].append([int(nodes[i * HASH_SIZE + j]) for j in range(HASH_SIZE)])
-
-    # FRI step data
-    for step_idx in range(len(fri_proof.fri_roots)):
-        step = step_idx + 1  # FRI steps are 1-indexed in proof
-
-        # Root
-        jproof[f's{step}_root'] = [int(r) for r in fri_proof.fri_roots[step_idx]]
-
-        # Query values and siblings
-        jproof[f's{step}_vals'] = []
-        jproof[f's{step}_siblings'] = []
-
-        for qp in fri_proof.query_proofs[step_idx]:
-            # Values: flatten
-            vals = []
-            for col_vals in qp.v:
-                vals.extend([int(v) for v in col_vals])
-            jproof[f's{step}_vals'].append(vals)
-
-            # Siblings
-            siblings = []
-            for level in qp.mp:
-                siblings.append([int(s) for s in level])
-            jproof[f's{step}_siblings'].append(siblings)
-
-        # Last level nodes for FRI
-        fri_key = f'fri{step_idx}'
-        if fri_key in last_level_nodes:
-            nodes = last_level_nodes[fri_key]
-            n_nodes = len(nodes) // HASH_SIZE
-            jproof[f's{step}_last_levels'] = []
-            for i in range(n_nodes):
-                jproof[f's{step}_last_levels'].append([int(nodes[i * HASH_SIZE + j]) for j in range(HASH_SIZE)])
-
-    return jproof
-
-
 class TestVerifierE2E:
     """End-to-end verifier tests."""
 
     @pytest.mark.parametrize("air_name", ['simple', 'lookup', 'permutation'])
     def test_verify_valid_proof(self, air_name):
-        """Test that stark_verify returns True for valid Python-generated proofs."""
-        vectors = load_test_vectors(air_name)
-        if vectors is None:
-            pytest.skip(f"Test vectors not found for {air_name}")
+        """Test that stark_verify returns True for valid proofs.
+
+        Loads pre-generated binary proofs from test-data/*.proof.bin and verifies them.
+        This tests the verifier in isolation without running the prover.
+        """
+        from protocol.proof import from_bytes_full_to_jproof
+        from protocol.stages import Starks
 
         setup_ctx = load_setup_ctx(air_name)
         if setup_ctx is None:
@@ -308,64 +151,53 @@ class TestVerifierE2E:
 
         stark_info = setup_ctx.stark_info
 
-        # Create params first to build verkey
+        # Load binary proof file
+        config = AIR_CONFIGS.get(air_name)
+        bin_filename = config['test_vector'].replace('.json', '.proof.bin')
+        bin_path = TEST_DATA_DIR / bin_filename
+
+        if not bin_path.exists():
+            pytest.skip(f"Binary proof not found: {bin_path}")
+
+        with open(bin_path, 'rb') as f:
+            proof_bytes = f.read()
+
+        # Deserialize binary proof to jproof format
+        jproof = from_bytes_full_to_jproof(proof_bytes, stark_info)
+
+        # Load test vectors for verkey and global_challenge
+        vectors = load_test_vectors(air_name)
+        if vectors is None:
+            pytest.skip(f"Test vectors not found for {air_name}")
+
         params = create_params_from_vectors(stark_info, vectors)
-
-        # Build verkey (constant tree root) before proof generation
-        # because the prover transcript needs it added first
-        from protocol.stages import Starks
-        from primitives.ntt import NTT
-
-        N = 1 << stark_info.starkStruct.nBits
-        N_ext = 1 << stark_info.starkStruct.nBitsExt
-        ntt = NTT(N)
-
         starks = Starks(setup_ctx)
         verkey = starks.build_const_tree(params.constPolsExtended)
 
-        # Create fresh transcript matching verifier expectations
-        # The verifier in non-VADCOP mode adds: verkey, publicInputs, root1, ...
-        transcript = Transcript(
-            arity=stark_info.starkStruct.transcriptArity,
-            custom=stark_info.starkStruct.merkleTreeCustom
-        )
-        transcript.put(verkey)  # Verifier adds this first
+        # C++ proofs were generated in VADCOP mode with global_challenge
+        global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
 
-        # Generate proof in recursive mode (adds publicInputs and roots to transcript)
-        print(f"\nGenerating proof for {air_name}...")
-        proof = gen_proof(setup_ctx, params, transcript=transcript, recursive=True)
-        print(f"DEBUG: Prover evals (first 9): {proof['evals'][:9]}")
-
-        # Print prover's xi challenge for comparison
-        from protocol.setup_ctx import FIELD_EXTENSION
-        for i, ch_map in enumerate(stark_info.challengesMap):
-            if ch_map.stage == stark_info.nStages + 2 and ch_map.stageId == 0:
-                prover_xi = params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION]
-                print(f"DEBUG prover xi_challenge (idx={i}): {list(prover_xi)}")
-                break
-
-        # Convert proof to jproof format
-        # We need the Starks instance to access trees, but gen_proof creates its own
-        # For now, we'll reconstruct the jproof from the proof dict
-        jproof = proof_to_jproof(proof, stark_info, starks)
-
-        # Verify the proof (recursive mode uses verkey, not VADCOP global_challenge)
-        print(f"Verifying proof for {air_name}...")
+        # Verify the proof
+        print(f"\nVerifying {air_name} proof from {bin_filename}...")
         result = stark_verify(
             jproof=jproof,
             setup_ctx=setup_ctx,
             verkey=verkey,
             publics=params.publicInputs,
+            challenges_vadcop=True,
+            global_challenge=global_challenge,
         )
 
         assert result is True, f"Valid proof for {air_name} should verify"
 
     @pytest.mark.parametrize("air_name", ['simple'])
     def test_verify_corrupted_root_fails(self, air_name):
-        """Test that stark_verify returns False for proofs with corrupted roots."""
-        vectors = load_test_vectors(air_name)
-        if vectors is None:
-            pytest.skip(f"Test vectors not found for {air_name}")
+        """Test that stark_verify returns False for proofs with corrupted roots.
+
+        Loads a valid binary proof, corrupts root1, and verifies it fails.
+        """
+        from protocol.proof import from_bytes_full_to_jproof
+        from protocol.stages import Starks
 
         setup_ctx = load_setup_ctx(air_name)
         if setup_ctx is None:
@@ -373,24 +205,29 @@ class TestVerifierE2E:
 
         stark_info = setup_ctx.stark_info
 
-        # Create params and build verkey
+        # Load binary proof file
+        config = AIR_CONFIGS.get(air_name)
+        bin_filename = config['test_vector'].replace('.json', '.proof.bin')
+        bin_path = TEST_DATA_DIR / bin_filename
+
+        if not bin_path.exists():
+            pytest.skip(f"Binary proof not found: {bin_path}")
+
+        with open(bin_path, 'rb') as f:
+            proof_bytes = f.read()
+
+        # Deserialize binary proof to jproof format
+        jproof = from_bytes_full_to_jproof(proof_bytes, stark_info)
+
+        # Load test vectors for verkey and global_challenge
+        vectors = load_test_vectors(air_name)
+        if vectors is None:
+            pytest.skip(f"Test vectors not found for {air_name}")
+
         params = create_params_from_vectors(stark_info, vectors)
-        from protocol.stages import Starks
         starks = Starks(setup_ctx)
         verkey = starks.build_const_tree(params.constPolsExtended)
-
-        # Create transcript with verkey
-        transcript = Transcript(
-            arity=stark_info.starkStruct.transcriptArity,
-            custom=stark_info.starkStruct.merkleTreeCustom
-        )
-        transcript.put(verkey)
-
-        # Generate proof in recursive mode
-        proof = gen_proof(setup_ctx, params, transcript=transcript, recursive=True)
-
-        # Convert to jproof
-        jproof = proof_to_jproof(proof, stark_info, starks)
+        global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
 
         # Corrupt root1
         jproof_corrupted = dict(jproof)
@@ -402,6 +239,8 @@ class TestVerifierE2E:
             setup_ctx=setup_ctx,
             verkey=verkey,
             publics=params.publicInputs,
+            challenges_vadcop=True,
+            global_challenge=global_challenge,
         )
 
         assert result is False, "Proof with corrupted root1 should fail verification"

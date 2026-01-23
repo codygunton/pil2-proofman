@@ -284,8 +284,211 @@ def load_proof_from_binary(path: str) -> STARKProof:
     """
     raise NotImplementedError(
         "Binary proof loading not yet implemented. "
-        "Use load_proof_from_json() instead."
+        "Use from_bytes_full_to_jproof() instead."
     )
+
+
+def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> Dict[str, Any]:
+    """Deserialize binary proof to jproof format expected by stark_verify.
+
+    This reverses to_bytes_full_from_dict(), parsing the C++ proof2pointer binary layout.
+
+    Binary layout (sections 1-13):
+        1. airgroupValues    [n_airgroup × FIELD_EXTENSION]
+        2. airValues         [n_air × FIELD_EXTENSION]
+        3. roots             [(nStages+1) × HASH_SIZE]
+        4. evals             [n_evals × FIELD_EXTENSION]
+        5. const tree values [nQueries × nConstants]
+        6. const tree siblings [nQueries × nSiblings × (arity-1) × HASH_SIZE]
+        7. const tree last_lvls [arity^lastLvl × HASH_SIZE] (if applicable)
+        8. custom commit proofs [for each custom commit...]
+        9. stage tree proofs   [for cm1, cm2, ..., cmQ...]
+        10. FRI step roots     [(nSteps-1) × HASH_SIZE]
+        11. FRI step proofs    [for each step: values + siblings + last_lvls]
+        12. finalPol          [final_degree × FIELD_EXTENSION]
+        13. nonce             [1 element]
+
+    Args:
+        data: Little-endian packed uint64 array from C++ proof2pointer()
+        stark_info: StarkInfo configuration
+
+    Returns:
+        jproof dictionary in format expected by stark_verify()
+    """
+    import struct
+    import math
+
+    # Unpack all uint64 values
+    n_vals = len(data) // 8
+    values = list(struct.unpack(f'<{n_vals}Q', data))
+    idx = 0
+
+    jproof: Dict[str, Any] = {}
+
+    # Configuration
+    n_queries = stark_info.starkStruct.nQueries
+    n_stages = stark_info.nStages
+    n_constants = len(stark_info.constPolsMap)
+    merkle_arity = stark_info.starkStruct.merkleTreeArity
+    last_level_verification = stark_info.starkStruct.lastLevelVerification
+    n_bits_ext = stark_info.starkStruct.nBitsExt
+    n_siblings = int(math.ceil(n_bits_ext / math.log2(merkle_arity))) - last_level_verification
+    n_siblings_per_level = (merkle_arity - 1) * HASH_SIZE
+
+    # --- SECTION 1: airgroupValues ---
+    n_airgroup_values = len(stark_info.airgroupValuesMap)
+    jproof['airgroupvalues'] = []
+    for _ in range(n_airgroup_values):
+        triplet = values[idx:idx + FIELD_EXTENSION]
+        jproof['airgroupvalues'].append(triplet)
+        idx += FIELD_EXTENSION
+
+    # --- SECTION 2: airValues ---
+    jproof['airvalues'] = []
+    for i in range(len(stark_info.airValuesMap)):
+        if stark_info.airValuesMap[i].stage == 1:
+            jproof['airvalues'].append([values[idx]])
+            idx += 1
+        else:
+            triplet = values[idx:idx + FIELD_EXTENSION]
+            jproof['airvalues'].append(triplet)
+            idx += FIELD_EXTENSION
+
+    # --- SECTION 3: roots ---
+    for stage in range(1, n_stages + 2):
+        root = values[idx:idx + HASH_SIZE]
+        jproof[f'root{stage}'] = root
+        idx += HASH_SIZE
+
+    # --- SECTION 4: evals ---
+    n_evals = len(stark_info.evMap)
+    jproof['evals'] = []
+    for _ in range(n_evals):
+        triplet = values[idx:idx + FIELD_EXTENSION]
+        jproof['evals'].append(triplet)
+        idx += FIELD_EXTENSION
+
+    # --- SECTIONS 5-7: const tree query proofs ---
+    if n_constants > 0:
+        # 5. Const tree values
+        jproof['s0_valsC'] = []
+        for _ in range(n_queries):
+            vals = values[idx:idx + n_constants]
+            jproof['s0_valsC'].append(vals)
+            idx += n_constants
+
+        # 6. Const tree Merkle paths
+        jproof['s0_siblingsC'] = []
+        for _ in range(n_queries):
+            siblings = []
+            for _ in range(n_siblings):
+                level = values[idx:idx + n_siblings_per_level]
+                siblings.append(level)
+                idx += n_siblings_per_level
+            jproof['s0_siblingsC'].append(siblings)
+
+        # 7. Const tree last levels
+        if last_level_verification != 0:
+            num_nodes = int(merkle_arity ** last_level_verification)
+            jproof['s0_last_levelsC'] = []
+            for _ in range(num_nodes):
+                node = values[idx:idx + HASH_SIZE]
+                jproof['s0_last_levelsC'].append(node)
+                idx += HASH_SIZE
+
+    # --- SECTION 8: custom commits (skip for now) ---
+    # Custom commits not yet used in test AIRs
+
+    # --- SECTION 9: stage tree proofs (cm1, cm2, ..., cmQ) ---
+    for stage_num in range(1, n_stages + 2):
+        stage_name = f"cm{stage_num}"
+        n_stage_cols = stark_info.mapSectionsN.get(stage_name, 0)
+
+        # 9a. Stage tree values
+        jproof[f's0_vals{stage_num}'] = []
+        for _ in range(n_queries):
+            vals = values[idx:idx + n_stage_cols]
+            jproof[f's0_vals{stage_num}'].append(vals)
+            idx += n_stage_cols
+
+        # 9b. Stage tree Merkle paths
+        jproof[f's0_siblings{stage_num}'] = []
+        for _ in range(n_queries):
+            siblings = []
+            for _ in range(n_siblings):
+                level = values[idx:idx + n_siblings_per_level]
+                siblings.append(level)
+                idx += n_siblings_per_level
+            jproof[f's0_siblings{stage_num}'].append(siblings)
+
+        # 9c. Stage tree last levels
+        if last_level_verification != 0:
+            num_nodes = int(merkle_arity ** last_level_verification)
+            jproof[f's0_last_levels{stage_num}'] = []
+            for _ in range(num_nodes):
+                node = values[idx:idx + HASH_SIZE]
+                jproof[f's0_last_levels{stage_num}'].append(node)
+                idx += HASH_SIZE
+
+    # --- SECTION 10: FRI step roots ---
+    n_fri_steps = len(stark_info.starkStruct.steps) - 1
+    for step in range(1, n_fri_steps + 1):
+        root = values[idx:idx + HASH_SIZE]
+        jproof[f's{step}_root'] = root
+        idx += HASH_SIZE
+
+    # --- SECTION 11: FRI step query proofs ---
+    for step_idx in range(n_fri_steps):
+        step = step_idx + 1
+        prev_bits = stark_info.starkStruct.steps[step_idx].nBits
+        curr_bits = stark_info.starkStruct.steps[step_idx + 1].nBits
+        n_fri_groups = 1 << (prev_bits - curr_bits)
+        n_fri_cols = n_fri_groups * FIELD_EXTENSION
+
+        # 11a. FRI values
+        jproof[f's{step}_vals'] = []
+        for _ in range(n_queries):
+            vals = values[idx:idx + n_fri_cols]
+            jproof[f's{step}_vals'].append(vals)
+            idx += n_fri_cols
+
+        # 11b. FRI Merkle paths
+        n_siblings_fri = int(math.ceil(curr_bits / math.log2(merkle_arity))) - last_level_verification
+        jproof[f's{step}_siblings'] = []
+        for _ in range(n_queries):
+            siblings = []
+            for _ in range(n_siblings_fri):
+                level = values[idx:idx + n_siblings_per_level]
+                siblings.append(level)
+                idx += n_siblings_per_level
+            jproof[f's{step}_siblings'].append(siblings)
+
+        # 11c. FRI last levels
+        if last_level_verification != 0:
+            num_nodes = int(merkle_arity ** last_level_verification)
+            jproof[f's{step}_last_levels'] = []
+            for _ in range(num_nodes):
+                node = values[idx:idx + HASH_SIZE]
+                jproof[f's{step}_last_levels'].append(node)
+                idx += HASH_SIZE
+
+    # --- SECTION 12: finalPol ---
+    final_pol_size = 1 << stark_info.starkStruct.steps[-1].nBits
+    jproof['finalPol'] = []
+    for _ in range(final_pol_size):
+        triplet = values[idx:idx + FIELD_EXTENSION]
+        jproof['finalPol'].append(triplet)
+        idx += FIELD_EXTENSION
+
+    # --- SECTION 13: nonce ---
+    jproof['nonce'] = values[idx]
+    idx += 1
+
+    # Sanity check
+    if idx != n_vals:
+        raise ValueError(f"Binary proof parsing error: consumed {idx} values, expected {n_vals}")
+
+    return jproof
 
 
 # C++: Proofs pointer/offset layout methods
