@@ -1,9 +1,15 @@
 """Goldilocks field GF(p) and cubic extension GF(p^3).
 
 Uses galois library for all field arithmetic. FF and FF3 are the field types.
+
+FF3 is loaded from a pre-computed cache file (ff3_cache.pkl) to avoid the ~7s
+initialization cost of galois.GF() for extension fields. To regenerate the cache:
+    python -c "from primitives.field import _regenerate_ff3_cache; _regenerate_ff3_cache()"
 """
 
 import galois
+import pickle
+from pathlib import Path
 from typing import List
 
 # --- Field Construction ---
@@ -13,9 +19,21 @@ GOLDILOCKS_PRIME = 0xFFFFFFFF00000001
 FF = galois.GF(GOLDILOCKS_PRIME)
 """Base field GF(p) - Goldilocks prime field."""
 
-_irr_poly = galois.Poly([1, 0, GOLDILOCKS_PRIME - 1, GOLDILOCKS_PRIME - 1], field=FF)
-FF3 = galois.GF(GOLDILOCKS_PRIME**3, irreducible_poly=_irr_poly)
+# Load FF3 from cache to avoid ~7s galois initialization
+_FF3_CACHE_PATH = Path(__file__).parent / "ff3_cache.pkl"
+
+with open(_FF3_CACHE_PATH, "rb") as _f:
+    FF3 = pickle.load(_f)
 """Cubic extension field GF(p^3) with irreducible polynomial x^3 - x - 1."""
+
+
+def _regenerate_ff3_cache():
+    """Regenerate the FF3 cache file. Only needed if galois version changes."""
+    _irr_poly = galois.Poly([1, 0, GOLDILOCKS_PRIME - 1, GOLDILOCKS_PRIME - 1], field=FF)
+    ff3 = galois.GF(GOLDILOCKS_PRIME**3, irreducible_poly=_irr_poly)
+    with open(_FF3_CACHE_PATH, "wb") as f:
+        pickle.dump(ff3, f)
+    print(f"Regenerated {_FF3_CACHE_PATH}")
 
 
 # --- Coefficient Order Conversion ---
