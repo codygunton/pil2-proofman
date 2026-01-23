@@ -1,18 +1,14 @@
-"""FRI folding protocol core operations."""
+"""FRI folding protocol."""
 
 from typing import List
-import math
 import galois
-from primitives.field import (
-    FF, FF3, ff3, ff3_coeffs,
-    SHIFT, SHIFT_INV, get_omega_inv,
-)
+from primitives.field import FF, FF3, ff3, ff3_coeffs, SHIFT, SHIFT_INV, get_omega_inv
 from primitives.merkle_tree import MerkleTree, MerkleRoot, transpose_for_merkle
 
 # --- Type Aliases ---
 
-EvalPoly = List[int]
-FriLayer = EvalPoly
+EvalPoly = List[int]  # Polynomial in evaluation form (flattened FF3 coefficients)
+FriLayer = EvalPoly   # Alias for clarity in FRI context
 
 # --- Constants ---
 
@@ -31,68 +27,58 @@ class FRI:
         challenge: List[int],
         n_bits_ext: int,
         prev_bits: int,
-        current_bits: int
+        current_bits: int,
     ) -> EvalPoly:
-        """Fold polynomial using random challenge."""
+        """Fold polynomial by factor 2^(prev_bits - current_bits) using challenge."""
         challenge_ff3 = ff3(challenge)
 
-        # Compute SHIFT^(-2^k) where k = n_bits_ext - prev_bits
+        # Coset shift: SHIFT^(-2^k) where k depends on accumulated folding
         k = n_bits_ext - prev_bits if step > 0 else 0
-        pol_shift_inv = SHIFT_INV ** (1 << k)
+        shift_inv_pow = SHIFT_INV ** (1 << k)
 
-        pol_2n = 1 << current_bits
-        n_x = (1 << prev_bits) // pol_2n
+        n_out = 1 << current_bits  # Output size (number of groups)
+        fold_factor = (1 << prev_bits) // n_out  # Points per group
         w_inv = FF(get_omega_inv(prev_bits))
 
-        result = [0] * (pol_2n * FIELD_EXTENSION)
+        result = [0] * (n_out * FIELD_EXTENSION)
 
-        for g in range(pol_2n):
-            # Extract n_x consecutive cubic extension values
-            coeffs: List[FF3] = []
-            for i in range(n_x):
-                idx = (g + i * pol_2n) * FIELD_EXTENSION
-                coeffs.append(ff3([pol[idx], pol[idx + 1], pol[idx + 2]]))
+        for g in range(n_out):
+            # Gather fold_factor evaluations for this group
+            evals = [
+                ff3(pol[(g + i * n_out) * FIELD_EXTENSION:][:FIELD_EXTENSION])
+                for i in range(fold_factor)
+            ]
 
-            # INTT to convert from evaluations to coefficients
-            if n_x > 1:
-                n_x_bits = int(math.log2(n_x))
-                w_inv_small = get_omega_inv(n_x_bits)
-                coeffs = FRI._intt_cubic(coeffs, n_x, w_inv_small)
+            # INTT: evaluations -> coefficients
+            if fold_factor > 1:
+                fold_bits = (prev_bits - current_bits)
+                evals = FRI._intt_cubic(evals, fold_factor, get_omega_inv(fold_bits))
 
-            # polMulAxi: scale by (shift_inv * w_inv^g)^i
-            sinv = pol_shift_inv * (w_inv ** g)
+            # Scale coefficients by (shift_inv * w_inv^g)^i (coset adjustment)
+            scale = shift_inv_pow * (w_inv**g)
             acc = FF(1)
-            for i in range(n_x):
-                coeffs[i] = coeffs[i] * int(acc)
-                acc = acc * sinv
+            for i in range(fold_factor):
+                evals[i] = evals[i] * int(acc)
+                acc *= scale
 
-            # Horner evaluation at challenge
-            res = galois.Poly(coeffs[::-1], field=FF3)(challenge_ff3) if coeffs else FF3(0)
+            # Evaluate at challenge point (Horner)
+            folded = galois.Poly(evals[::-1], field=FF3)(challenge_ff3) if evals else FF3(0)
 
-            res_coeffs = ff3_coeffs(res)
-            result[g * FIELD_EXTENSION] = res_coeffs[0]
-            result[g * FIELD_EXTENSION + 1] = res_coeffs[1]
-            result[g * FIELD_EXTENSION + 2] = res_coeffs[2]
+            c = ff3_coeffs(folded)
+            result[g * FIELD_EXTENSION : (g + 1) * FIELD_EXTENSION] = c
 
         return result
 
     @staticmethod
     def merkelize(
-        step: int,
+        step: int,  # noqa: ARG004 - kept for API consistency
         pol: EvalPoly,
         tree: MerkleTree,
         current_bits: int,
-        next_bits: int
+        next_bits: int,
     ) -> MerkleRoot:
-        """Commit to FRI layer via Merkle tree.
-
-        The tree stores FRI polynomial evaluations grouped for folding:
-        - height = 2^next_bits leaves
-        - width = 2^(current_bits - next_bits) × FIELD_EXTENSION elements per leaf
-        - n_cols = 2^(current_bits - next_bits) columns (each is FIELD_EXTENSION elements)
-        """
+        """Commit to FRI layer via Merkle tree."""
         height = 1 << next_bits
-        # SIMPLIFY: Can this be removed without significant loss of performance?
         n_groups = 1 << (current_bits - next_bits)
         width = n_groups * FIELD_EXTENSION
         transposed = transpose_for_merkle(pol, 1 << current_bits, height, FIELD_EXTENSION)
@@ -101,62 +87,58 @@ class FRI:
 
     @staticmethod
     def verify_fold(
-        value: List[int],
+        value: List[int],  # noqa: ARG004 - unused but part of protocol API
         step: int,
         n_bits_ext: int,
         current_bits: int,
         prev_bits: int,
         challenge: List[int],
         idx: int,
-        siblings: List[List[int]]
+        siblings: List[List[int]],
     ) -> List[int]:
-        """Verify fold step (verifier algorithm)."""
+        """Verify fold step: recompute expected value from siblings and challenge."""
         challenge_ff3 = ff3(challenge)
 
-        # Compute SHIFT^(2^k) where k = n_bits_ext - prev_bits
+        # Coset shift for verification (forward direction)
         k = n_bits_ext - prev_bits if step > 0 else 0
-        shift = SHIFT ** (1 << k)
+        shift_pow = SHIFT ** (1 << k)
 
         w_inv = FF(get_omega_inv(prev_bits))
-        n_x = 1 << (prev_bits - current_bits)
+        fold_factor = 1 << (prev_bits - current_bits)
 
+        # Convert siblings to FF3 coefficients
         coeffs = [ff3(s) for s in siblings]
-        if n_x > 1:
-            n_x_bits = prev_bits - current_bits
-            coeffs = FRI._intt_cubic(coeffs, n_x, get_omega_inv(n_x_bits))
+        if fold_factor > 1:
+            fold_bits = prev_bits - current_bits
+            coeffs = FRI._intt_cubic(coeffs, fold_factor, get_omega_inv(fold_bits))
 
-        sinv = (shift * (w_inv ** (-idx))) ** -1
-        aux = challenge_ff3 * int(sinv)
+        # Compute evaluation point: challenge * (shift * w^(-idx))^(-1)
+        eval_point = challenge_ff3 * int((shift_pow * (w_inv ** (-idx))) ** -1)
 
-        result = galois.Poly(coeffs[::-1], field=FF3)(aux) if coeffs else FF3(0)
+        result = galois.Poly(coeffs[::-1], field=FF3)(eval_point) if coeffs else FF3(0)
         return ff3_coeffs(result)
 
     @staticmethod
     def prove_queries(
         queries: List[int],
         trees: List[MerkleTree],
-        current_bits: int
+        current_bits: int,
     ) -> List[List[int]]:
         """Generate Merkle proofs for query indices."""
-        proofs = []
-        for query_idx in queries:
-            idx = query_idx % (1 << current_bits)
-            tree_proofs = [tree.get_group_proof(idx) for tree in trees]
-            proofs.append(tree_proofs)
-        return proofs
+        return [
+            [tree.get_group_proof(q % (1 << current_bits)) for tree in trees]
+            for q in queries
+        ]
 
-    # --- Internal Utilities ---
+    # --- Internal ---
 
     @staticmethod
     def _intt_cubic(values: List[FF3], n: int, w_inv: int) -> List[FF3]:
-        """INTT on cubic extension elements (component-wise)."""
+        """INTT on cubic extension elements (component-wise over base field)."""
         coeffs = [ff3_coeffs(v) for v in values]
-        comp0 = FF([c[0] for c in coeffs])
-        comp1 = FF([c[1] for c in coeffs])
-        comp2 = FF([c[2] for c in coeffs])
 
-        r0 = galois.intt(comp0, omega=w_inv)
-        r1 = galois.intt(comp1, omega=w_inv)
-        r2 = galois.intt(comp2, omega=w_inv)
+        # Separate components and apply INTT to each
+        components = [FF([c[i] for c in coeffs]) for i in range(FIELD_EXTENSION)]
+        results = [galois.intt(comp, omega=w_inv) for comp in components]
 
-        return [ff3([int(r0[i]), int(r1[i]), int(r2[i])]) for i in range(n)]
+        return [ff3([int(r[i]) for r in results]) for i in range(n)]
