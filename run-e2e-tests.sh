@@ -6,7 +6,7 @@
 #
 # Usage:
 #   ./run-e2e-tests.sh           # Run all e2e tests
-#   ONE=1 ./run-e2e-tests.sh     # Run only lookup complete test (fastest non-trivial test)
+#   ONE=1 ./run-e2e-tests.sh     # Run only permutation complete test (fastest non-trivial test)
 #
 # Prerequisites:
 #   ./setup.sh                    # Build test AIRs
@@ -17,8 +17,8 @@ set -e
 cd "$(dirname "$0")/executable-spec"
 
 if [ -n "$ONE" ]; then
-    echo "=== Single E2E Test (lookup) ==="
-    uv run python -m pytest "tests/test_stark_e2e.py::TestStarkE2EComplete::test_full_proof_matches[lookup]" -v "$@"
+    echo "=== Single E2E Test (permutation) ==="
+    uv run python -m pytest "tests/test_stark_e2e.py::TestStarkE2EComplete::test_full_proof_matches[permutation]" -v "$@"
     echo ""
     echo "=== E2E test passed ==="
 else
