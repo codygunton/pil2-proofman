@@ -1,64 +1,74 @@
-"""StepsParams container for prover/verifier working data.
-
-Faithful translation from pil2-stark/src/starkpil/steps.hpp.
-Contains all working buffers used during proof generation and verification.
-"""
+"""StepsParams container for prover/verifier working data."""
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
+
 import numpy as np
 
+from primitives.field import FF, FF3
 
-# C++: pil2-stark/src/starkpil/steps.hpp::StepsParams (lines 6-20)
+# Type aliases for documentation
+# Note: FF and FF3 are galois FieldArray types from primitives.field
+FFArray = FF  # 1D array of base field elements
+FF3Array = FF3  # 1D array of extension field elements
+
+
 @dataclass
 class StepsParams:
     """Container for all prover/verifier working data.
 
-    This is a direct translation of the C++ StepsParams struct. In C++, these
-    are raw pointers to Goldilocks::Element arrays. In Python, we use numpy
-    arrays with dtype matching the Goldilocks field (uint64).
-
-    All arrays are views into larger buffers, allocated and managed by the
-    prover/verifier orchestrator. The shape and layout of each array depends
-    on the specific AIR being proven.
-
-    Attributes:
-        trace: Stage 1 witness trace (N × n_trace_cols). Main execution trace.
-        aux_trace: Extended working buffer for intermediate and quotient polys.
-        public_inputs: Public inputs to the computation (n_publics elements).
-        proof_values: Proof-specific values (not challenges).
-        challenges: Fiat-Shamir challenges (n_challenges × 3 for field extension).
-        airgroup_values: AIR group constraint values.
-        air_values: Individual AIR constraint values.
-        evals: Polynomial evaluations at opening points (for FRI).
-        x_div_x_sub: Precomputed x/(x-xi) denominators for verifier efficiency.
-        const_pols: Constant polynomials (preprocessed, N × n_const_cols).
-        const_pols_extended: Extended constant polynomials (N_ext × n_const_cols).
-        custom_commits: Custom commitment data (application-specific).
+    C++ reference: pil2-stark/src/starkpil/steps.hpp::StepsParams
     """
 
-    trace: Optional[np.ndarray] = None
-    auxTrace: Optional[np.ndarray] = None
-    publicInputs: Optional[np.ndarray] = None
-    proofValues: Optional[np.ndarray] = None
-    challenges: Optional[np.ndarray] = None
-    airgroupValues: Optional[np.ndarray] = None
-    airValues: Optional[np.ndarray] = None
-    evals: Optional[np.ndarray] = None
-    xDivXSub: Optional[np.ndarray] = None
-    constPols: Optional[np.ndarray] = None
-    constPolsExtended: Optional[np.ndarray] = None
-    customCommits: Optional[np.ndarray] = None
+    # --- Stage 1 witness (base field) ---
+    trace: Optional[Union[FFArray, np.ndarray]] = None
 
-    # C++: StepsParams initialization logic
-    def __post_init__(self):
-        """Validate that arrays have correct dtype if provided."""
-        # In the C++ code, all fields are Goldilocks::Element* (uint64_t*)
-        # In Python, we use uint64 arrays to maintain bit-exact compatibility
-        for field_name in ['trace', 'auxTrace', 'publicInputs', 'proofValues',
-                          'challenges', 'airgroupValues', 'airValues', 'evals',
-                          'xDivXSub', 'constPols', 'constPolsExtended',
-                          'customCommits']:
-            arr = getattr(self, field_name)
-            if arr is not None and not isinstance(arr, np.ndarray):
-                raise TypeError(f"{field_name} must be a numpy array")
+    # --- Working buffer for stages 2+ (mixed FF and FF3 sections) ---
+    # Keep as uint64 for now - complex multi-section layout with interleaved
+    # base field and extension field values. TODO: May need phased migration.
+    auxTrace: Optional[np.ndarray] = None
+
+    # --- Public inputs (base field) ---
+    publicInputs: Optional[Union[FFArray, np.ndarray]] = None
+
+    # --- Proof values (base field, application-specific) ---
+    proofValues: Optional[Union[FFArray, np.ndarray]] = None
+
+    # --- Fiat-Shamir challenges (extension field) ---
+    # Shape: (n_challenges,) as FF3 elements
+    challenges: Optional[Union[FF3Array, np.ndarray]] = None
+
+    # --- AIR group constraint values (extension field) ---
+    airgroupValues: Optional[Union[FF3Array, np.ndarray]] = None
+
+    # --- AIR constraint values (mixed: stage 1 = base field, others = extension) ---
+    # Complex layout: stage 1 values are single Fe, stage 2+ values are Fe3.
+    # Keep as np.ndarray for now - needs careful handling in expression evaluator.
+    airValues: Optional[np.ndarray] = None
+
+    # --- Polynomial evaluations at opening points (extension field) ---
+    # Shape: (n_evals,) as FF3 elements
+    evals: Optional[Union[FF3Array, np.ndarray]] = None
+
+    # --- Precomputed x/(x-xi) denominators for verifier (extension field) ---
+    xDivXSub: Optional[Union[FF3Array, np.ndarray]] = None
+
+    # --- Constant polynomials (base field) ---
+    constPols: Optional[Union[FFArray, np.ndarray]] = None
+    constPolsExtended: Optional[Union[FFArray, np.ndarray]] = None
+
+    # --- Custom commitment data (base field, application-specific) ---
+    customCommits: Optional[Union[FFArray, np.ndarray]] = None
+
+    # --- Challenge Access Helpers ---
+
+    def get_challenge(self, index: int) -> list[int]:
+        """Get challenge at index as [c0, c1, c2] coefficients."""
+        base = index * 3
+        return [int(self.challenges[base + j]) for j in range(3)]
+
+    def set_challenge(self, index: int, value: list[int]) -> None:
+        """Set challenge at index from [c0, c1, c2] coefficients."""
+        base = index * 3
+        for j in range(3):
+            self.challenges[base + j] = value[j]

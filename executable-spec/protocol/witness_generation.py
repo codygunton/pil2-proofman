@@ -6,8 +6,7 @@ from typing import List, TYPE_CHECKING
 from protocol.expressions_bin import ExpressionsBin, HintFieldValue, OpType
 from protocol.stark_info import StarkInfo
 from protocol.steps_params import StepsParams
-from primitives.field import FF, FF3, ff3, ff3_coeffs, GOLDILOCKS_PRIME
-from primitives.batch_inverse import batch_inverse_ff_array, batch_inverse_ff3_array
+from primitives.field import FF, FF3, ff3, ff3_coeffs, batch_inverse
 
 if TYPE_CHECKING:
     from protocol.expression_evaluator import ExpressionsPack
@@ -17,95 +16,36 @@ if TYPE_CHECKING:
 FIELD_EXTENSION = 3
 
 
-# --- Goldilocks3 Element Operations ---
+# --- Conversion Helpers ---
+# These convert between numpy coefficient storage and galois types.
+# Storage uses interleaved coefficients [a0, a1, a2, b0, b1, b2, ...] as uint64.
 
-def _ff3_add(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Add two FF3 elements (as numpy coefficient arrays)."""
-    result = ff3([int(a[0]), int(a[1]), int(a[2])]) + ff3([int(b[0]), int(b[1]), int(b[2])])
-    return np.array(ff3_coeffs(result), dtype=np.uint64)
-
-
-def _ff3_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Multiply two FF3 elements (as numpy coefficient arrays)."""
-    result = ff3([int(a[0]), int(a[1]), int(a[2])]) * ff3([int(b[0]), int(b[1]), int(b[2])])
-    return np.array(ff3_coeffs(result), dtype=np.uint64)
+def _np_to_ff3(arr: np.ndarray) -> FF3:
+    """Convert numpy coefficient array (len 3) to FF3 scalar."""
+    return ff3([int(arr[0]), int(arr[1]), int(arr[2])])
 
 
-def _ff3_inv(a: np.ndarray) -> np.ndarray:
-    """Invert an FF3 element."""
-    elem = ff3([int(a[0]), int(a[1]), int(a[2])])
-    return np.array(ff3_coeffs(elem ** -1), dtype=np.uint64)
+def _ff3_to_np(elem: FF3) -> np.ndarray:
+    """Convert FF3 scalar to numpy coefficient array."""
+    return np.array(ff3_coeffs(elem), dtype=np.uint64)
 
 
-def _ff_inv(a: int) -> int:
-    """Invert a base field element."""
-    return int(FF(a) ** -1)
+def _np_column_to_ff3_array(arr: np.ndarray, N: int) -> FF3:
+    """Convert interleaved numpy column [a0,a1,a2,b0,b1,b2,...] to FF3 array."""
+    from primitives.field import GOLDILOCKS_PRIME
+    p, p2 = GOLDILOCKS_PRIME, GOLDILOCKS_PRIME ** 2
+    c0, c1, c2 = arr[0::3][:N].tolist(), arr[1::3][:N].tolist(), arr[2::3][:N].tolist()
+    ints = [c0[i] + c1[i] * p + c2[i] * p2 for i in range(N)]
+    return FF3(ints)
 
 
-# --- Scalar Field Operations ---
-
-def _mul_scalar(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Multiply two field elements (dim 1 or 3)."""
-    if len(a) == 1 and len(b) == 1:
-        return np.array([int(FF(int(a[0])) * FF(int(b[0])))], dtype=np.uint64)
-    elif len(a) == 3 and len(b) == 3:
-        return _ff3_mul(a, b)
-    elif len(a) == 1 and len(b) == 3:
-        scalar = FF(int(a[0]))
-        return np.array([int(scalar * FF(int(b[i]))) for i in range(3)], dtype=np.uint64)
-    elif len(a) == 3 and len(b) == 1:
-        scalar = FF(int(b[0]))
-        return np.array([int(scalar * FF(int(a[i]))) for i in range(3)], dtype=np.uint64)
-    else:
-        raise ValueError(f"Dimension mismatch: {len(a)} vs {len(b)}")
-
-
-def _inv_scalar(a: np.ndarray) -> np.ndarray:
-    """Invert a field element."""
-    if len(a) == 1:
-        return np.array([_ff_inv(int(a[0]))], dtype=np.uint64)
-    elif len(a) == 3:
-        return _ff3_inv(a)
-    else:
-        raise ValueError(f"Invalid dimension: {len(a)}")
-
-
-# --- Column Operations (Vectorized) ---
-
-def _mul_columns(a: np.ndarray, b: np.ndarray, N: int, dim: int) -> np.ndarray:
-    """Element-wise multiply two columns."""
-    result = np.zeros(N * dim, dtype=np.uint64)
-    if dim == 1:
-        for i in range(N):
-            result[i] = int(FF(int(a[i])) * FF(int(b[i])))
-    else:
-        for i in range(N):
-            result[i * dim:(i + 1) * dim] = _ff3_mul(
-                a[i * dim:(i + 1) * dim], b[i * dim:(i + 1) * dim]
-            )
-    return result
-
-
-def _inv_column(a: np.ndarray, N: int, dim: int) -> np.ndarray:
-    """Batch invert a column using Montgomery's trick."""
-    result = np.zeros(N * dim, dtype=np.uint64)
-
-    if dim == 1:
-        ff_vals = FF(np.asarray(a[:N], dtype=np.uint64))
-        ff_invs = batch_inverse_ff_array(ff_vals)
-        result[:N] = np.asarray(ff_invs, dtype=np.uint64)
-    else:
-        # Convert AoS layout to FF3 integer encoding
-        p, p2 = GOLDILOCKS_PRIME, GOLDILOCKS_PRIME ** 2
-        c0, c1, c2 = a[0::3][:N].tolist(), a[1::3][:N].tolist(), a[2::3][:N].tolist()
-        ints = [c0[i] + c1[i] * p + c2[i] * p2 for i in range(N)]
-        ff3_invs = batch_inverse_ff3_array(FF3(ints))
-        # Convert back to AoS
-        vecs = ff3_invs.vector()  # (N, 3) in descending [c2, c1, c0]
-        result[0::3] = vecs[:, 2].view(np.ndarray).astype(np.uint64)
-        result[1::3] = vecs[:, 1].view(np.ndarray).astype(np.uint64)
-        result[2::3] = vecs[:, 0].view(np.ndarray).astype(np.uint64)
-
+def _ff3_array_to_np(arr: FF3, N: int) -> np.ndarray:
+    """Convert FF3 array to interleaved numpy column."""
+    result = np.zeros(N * 3, dtype=np.uint64)
+    vecs = arr.vector()  # (N, 3) in descending [c2, c1, c0]
+    result[0::3] = vecs[:, 2].view(np.ndarray).astype(np.uint64)
+    result[1::3] = vecs[:, 1].view(np.ndarray).astype(np.uint64)
+    result[2::3] = vecs[:, 0].view(np.ndarray).astype(np.uint64)
     return result
 
 
@@ -204,6 +144,86 @@ def _set_hint_field(
         raise NotImplementedError(f"Cannot set hint field with operand type {hfv.operand}")
 
 
+def _multiply_values(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Multiply two field values using galois. Handles scalar and column cases."""
+    len_a, len_b = len(a), len(b)
+
+    # Scalar * scalar
+    if len_a <= 3 and len_b <= 3:
+        if len_a == 1 and len_b == 1:
+            return np.array([int(FF(int(a[0])) * FF(int(b[0])))], dtype=np.uint64)
+        elif len_a == 3 and len_b == 3:
+            result = _np_to_ff3(a) * _np_to_ff3(b)
+            return _ff3_to_np(result)
+        elif len_a == 1 and len_b == 3:
+            scalar = FF(int(a[0]))
+            return np.array([int(scalar * FF(int(b[i]))) for i in range(3)], dtype=np.uint64)
+        else:  # len_a == 3 and len_b == 1
+            scalar = FF(int(b[0]))
+            return np.array([int(scalar * FF(int(a[i]))) for i in range(3)], dtype=np.uint64)
+
+    # Column * column (same size)
+    if len_a == len_b:
+        dim = 3 if len_a % 3 == 0 and len_a > 3 else 1
+        N = len_a // dim
+        if dim == 1:
+            ff_a = FF(np.asarray(a, dtype=np.uint64))
+            ff_b = FF(np.asarray(b, dtype=np.uint64))
+            return np.asarray(ff_a * ff_b, dtype=np.uint64)
+        else:
+            ff3_a = _np_column_to_ff3_array(a, N)
+            ff3_b = _np_column_to_ff3_array(b, N)
+            return _ff3_array_to_np(ff3_a * ff3_b, N)
+
+    # Scalar * column broadcast
+    if len_a <= 3 and len_b > 3:
+        dim = 3 if len_b % 3 == 0 else 1
+        N = len_b // dim
+        if dim == 1:
+            scalar = FF(int(a[0]))
+            ff_b = FF(np.asarray(b, dtype=np.uint64))
+            return np.asarray(scalar * ff_b, dtype=np.uint64)
+        else:
+            scalar = _np_to_ff3(a) if len_a == 3 else ff3([int(a[0]), 0, 0])
+            ff3_b = _np_column_to_ff3_array(b, N)
+            return _ff3_array_to_np(scalar * ff3_b, N)
+
+    # Column * scalar broadcast
+    if len_b <= 3 and len_a > 3:
+        dim = 3 if len_a % 3 == 0 else 1
+        N = len_a // dim
+        if dim == 1:
+            scalar = FF(int(b[0]))
+            ff_a = FF(np.asarray(a, dtype=np.uint64))
+            return np.asarray(ff_a * scalar, dtype=np.uint64)
+        else:
+            scalar = _np_to_ff3(b) if len_b == 3 else ff3([int(b[0]), 0, 0])
+            ff3_a = _np_column_to_ff3_array(a, N)
+            return _ff3_array_to_np(ff3_a * scalar, N)
+
+    raise ValueError(f"Cannot multiply arrays of size {len_a} and {len_b}")
+
+
+def _invert_values(a: np.ndarray) -> np.ndarray:
+    """Invert field values using galois. Handles scalar and column cases."""
+    if len(a) == 1:
+        return np.array([int(FF(int(a[0])) ** -1)], dtype=np.uint64)
+    elif len(a) == 3:
+        result = _np_to_ff3(a) ** -1
+        return _ff3_to_np(result)
+    else:
+        dim = 3 if len(a) % 3 == 0 else 1
+        N = len(a) // dim
+        if dim == 1:
+            ff_vals = FF(np.asarray(a, dtype=np.uint64))
+            ff_invs = batch_inverse(ff_vals)
+            return np.asarray(ff_invs, dtype=np.uint64)
+        else:
+            ff3_vals = _np_column_to_ff3_array(a, N)
+            ff3_invs = batch_inverse(ff3_vals)
+            return _ff3_array_to_np(ff3_invs, N)
+
+
 def get_hint_field_values(
     stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: StepsParams,
     hint_id: int, field_name: str, inverse: bool = False
@@ -220,36 +240,10 @@ def get_hint_field_values(
         if result is None:
             result = val
         else:
-            # Multiply values together
-            if len(result) == len(val):
-                if len(result) <= 3:
-                    result = _mul_scalar(result, val)
-                else:
-                    dim = 3 if len(result) % 3 == 0 and len(result) > 3 else 1
-                    result = _mul_columns(result, val, len(result) // dim, dim)
-            else:
-                # Broadcast scalar * column
-                if len(result) <= 3 and len(val) > 3:
-                    dim = 3 if len(val) % 3 == 0 else 1
-                    col_N = len(val) // dim
-                    new_result = np.zeros_like(val)
-                    for i in range(col_N):
-                        scalar = result if len(result) == dim else np.array([result[0]] * dim, dtype=np.uint64)[:dim]
-                        new_result[i * dim:(i + 1) * dim] = _mul_scalar(scalar, val[i * dim:(i + 1) * dim])
-                    result = new_result
-                elif len(val) <= 3 and len(result) > 3:
-                    dim = 3 if len(result) % 3 == 0 else 1
-                    col_N = len(result) // dim
-                    for i in range(col_N):
-                        scalar = val if len(val) == dim else np.array([val[0]] * dim, dtype=np.uint64)[:dim]
-                        result[i * dim:(i + 1) * dim] = _mul_scalar(result[i * dim:(i + 1) * dim], scalar)
+            result = _multiply_values(result, val)
 
     if inverse and result is not None:
-        if len(result) <= 3:
-            result = _inv_scalar(result)
-        else:
-            dim = 3 if len(result) % 3 == 0 else 1
-            result = _inv_column(result, len(result) // dim, dim)
+        result = _invert_values(result)
 
     return result
 
@@ -340,17 +334,23 @@ def acc_mul_hint_fields(
         hint_id, field1, field2, field2_inverse=True
     )
 
-    # Running accumulation: vals[i] = vals[i] op vals[i-1]
+    # Running accumulation using galois operations
     if dim == 1:
+        ff_vals = FF(np.asarray(vals[:N], dtype=np.uint64))
         for i in range(1, N):
             if add:
-                vals[i] = int(FF(int(vals[i])) + FF(int(vals[i - 1])))
+                ff_vals[i] = ff_vals[i] + ff_vals[i - 1]
             else:
-                vals[i] = int(FF(int(vals[i])) * FF(int(vals[i - 1])))
+                ff_vals[i] = ff_vals[i] * ff_vals[i - 1]
+        vals[:N] = np.asarray(ff_vals, dtype=np.uint64)
     else:
+        ff3_vals = _np_column_to_ff3_array(vals, N)
         for i in range(1, N):
-            prev, curr = vals[(i - 1) * dim:i * dim], vals[i * dim:(i + 1) * dim]
-            vals[i * dim:(i + 1) * dim] = _ff3_add(curr, prev) if add else _ff3_mul(curr, prev)
+            if add:
+                ff3_vals[i] = ff3_vals[i] + ff3_vals[i - 1]
+            else:
+                ff3_vals[i] = ff3_vals[i] * ff3_vals[i - 1]
+        vals = _ff3_array_to_np(ff3_vals, N)
 
     _set_hint_field(stark_info, expressions_bin, params, hint_id, dest_field, vals)
 
@@ -371,14 +371,14 @@ def update_airgroup_value(
     hfv1 = expressions_bin.get_hint_field(hint_id, field1).values[0]
     hfv2 = expressions_bin.get_hint_field(hint_id, field2).values[0]
 
-    # Handle number operands directly
+    # Handle number operands directly using galois
     if hfv1.operand == OpType.number and hfv2.operand == OpType.number:
         if hfv2.value == 0:
             return
         if hfv1.value == 0:
             result = np.array([0, 0, 0], dtype=np.uint64)
         else:
-            result_scalar = int(FF(hfv1.value) * FF(_ff_inv(hfv2.value)))
+            result_scalar = int(FF(hfv1.value) * (FF(hfv2.value) ** -1))
             result = np.array([result_scalar, 0, 0], dtype=np.uint64)
     else:
         # Use expression evaluator for complex operands
@@ -395,11 +395,18 @@ def update_airgroup_value(
         )
         result = dest_buffer
 
-    # Update airgroup value
+    # Update airgroup value using galois
     airgroup_id = expressions_bin.get_hint_field(hint_id, airgroup_val_field).values[0].id
     idx = airgroup_id * FIELD_EXTENSION
-    current = params.airgroupValues[idx:idx + FIELD_EXTENSION].copy()
-    params.airgroupValues[idx:idx + FIELD_EXTENSION] = _ff3_add(current, result) if add else _ff3_mul(current, result)
+    current = _np_to_ff3(params.airgroupValues[idx:idx + FIELD_EXTENSION])
+    result_ff3 = _np_to_ff3(result)
+
+    if add:
+        updated = current + result_ff3
+    else:
+        updated = current * result_ff3
+
+    params.airgroupValues[idx:idx + FIELD_EXTENSION] = _ff3_to_np(updated)
 
 
 # --- Main Entry Point ---
@@ -408,11 +415,7 @@ def calculate_witness_std(
     stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: StepsParams,
     expressions_ctx: 'ExpressionsPack', prod: bool
 ) -> None:
-    """Calculate gsum (prod=False) or gprod (prod=True) witness columns.
-
-    These running sum/product polynomials accumulate evidence for lookup
-    and permutation argument validity.
-    """
+    """Calculate gsum (prod=False) or gprod (prod=True) witness columns."""
     name = "gprod_col" if prod else "gsum_col"
     hint_ids = expressions_bin.get_hint_ids_by_name(name)
     if not hint_ids:

@@ -311,11 +311,57 @@ def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
 
 # --- Binary Serialization ---
 
+def _is_galois_array(arr: Any) -> bool:
+    """Check if arr is a galois FieldArray type."""
+    # galois arrays have vector() method and degree on the class
+    return hasattr(arr, 'vector') and hasattr(type(arr), 'degree')
+
+
+def _is_extension_field(arr: Any) -> bool:
+    """Check if arr is an extension field (degree > 1)."""
+    return hasattr(type(arr), 'degree') and type(arr).degree > 1
+
+
 def _to_list(arr: Any) -> list:
-    """Convert numpy array or other iterable to list."""
+    """Convert array to flat int list for serialization.
+
+    Handles:
+    - numpy arrays: use tolist()
+    - galois FF arrays: convert elements to int
+    - galois FF3 arrays: flatten with ascending coefficient order [c0, c1, c2]
+      (galois .vector() returns descending [c2, c1, c0])
+    """
+    if arr is None:
+        return []
+
+    # Handle galois FieldArray types
+    if _is_galois_array(arr):
+        if _is_extension_field(arr):
+            # FF3: Extract coefficients in ascending order for C++ compatibility
+            # galois .vector() returns [c2, c1, c0], C++ expects [c0, c1, c2]
+            if arr.ndim == 0:
+                # Scalar FF3 element
+                vec = arr.vector()
+                return [int(vec[2]), int(vec[1]), int(vec[0])]
+            else:
+                # Array of FF3 elements
+                vecs = arr.vector()  # Shape (N, degree) with descending order
+                result = []
+                for row in vecs:
+                    # Reverse: [c2, c1, c0] -> [c0, c1, c2]
+                    result.extend(int(row[i]) for i in range(len(row) - 1, -1, -1))
+                return result
+        else:
+            # FF (base field): just convert to ints
+            if arr.ndim == 0:
+                return [int(arr)]
+            return [int(v) for v in arr]
+
+    # Handle numpy arrays
     if hasattr(arr, 'tolist'):
         return arr.tolist()
-    return list(arr) if arr is not None else []
+
+    return list(arr)
 
 
 def to_bytes_partial(proof_dict: dict[str, Any], stark_info: Any) -> tuple[bytes, bytes]:

@@ -315,13 +315,11 @@ class Starks:
 
     def evmap(self, params: StepsParams, LEv: np.ndarray, openingPoints: list):
         """Evaluate polynomials at opening points using vectorized operations."""
-        from primitives.field import FF3, ff3_coeffs, GOLDILOCKS_PRIME
+        from primitives.field import ff3_array, ff3_coeffs
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         extendBits = self.setupCtx.stark_info.starkStruct.nBitsExt - self.setupCtx.stark_info.starkStruct.nBits
         nOpeningPoints = len(openingPoints)
-        p = GOLDILOCKS_PRIME
-        p2 = p * p
 
         # Build evaluation task list
         evalsToCalculate = [
@@ -342,15 +340,14 @@ class Starks:
             c0 = LEv[indices].tolist()
             c1 = LEv[indices + 1].tolist()
             c2 = LEv[indices + 2].tolist()
-            ints = [c0[k] + c1[k] * p + c2[k] * p2 for k in range(N)]
-            LEv_arrays[openingPointIdx] = FF3(ints)
+            LEv_arrays[openingPointIdx] = ff3_array(c0, c1, c2)
 
         # Evaluate each polynomial
         for evMapIdx in evalsToCalculate:
             evMap = self.setupCtx.stark_info.evMap[evMapIdx]
             openingPosIdx = openingPoints.index(evMap.prime)
 
-            pol_arr = self._load_evmap_poly(params, evMap, rows, p, p2)
+            pol_arr = self._load_evmap_poly(params, evMap, rows)
             products = LEv_arrays[openingPosIdx] * pol_arr
             result = np.sum(products)
 
@@ -358,12 +355,9 @@ class Starks:
             coeffs = ff3_coeffs(result)
             params.evals[dstIdx:dstIdx + 3] = coeffs
 
-    def _load_evmap_poly(self, params: StepsParams, evMap: EvMap,
-                         rows: np.ndarray, p: int, p2: int):
+    def _load_evmap_poly(self, params: StepsParams, evMap: EvMap, rows: np.ndarray):
         """Load polynomial values for evmap evaluation."""
-        from primitives.field import FF3
-
-        N = len(rows)
+        from primitives.field import ff3_array, ff3_array_from_base
 
         if evMap.type == EvMap.Type.cm:
             polInfo = self.setupCtx.stark_info.cmPolsMap[evMap.id]
@@ -373,22 +367,19 @@ class Starks:
             base_indices = offset + rows * nCols + polInfo.stagePos
 
             if polInfo.dim == 1:
-                vals = params.auxTrace[base_indices].tolist()
-                return FF3(vals)
+                return ff3_array_from_base(params.auxTrace[base_indices].tolist())
             else:
                 c0 = params.auxTrace[base_indices].tolist()
                 c1 = params.auxTrace[base_indices + 1].tolist()
                 c2 = params.auxTrace[base_indices + 2].tolist()
-                ints = [c0[k] + c1[k] * p + c2[k] * p2 for k in range(N)]
-                return FF3(ints)
+                return ff3_array(c0, c1, c2)
 
         elif evMap.type == EvMap.Type.const_:
             polInfo = self.setupCtx.stark_info.constPolsMap[evMap.id]
             offset = self.setupCtx.stark_info.mapOffsets[("const", True)]
             nCols = self.setupCtx.stark_info.mapSectionsN["const"]
             base_indices = offset + rows * nCols + polInfo.stagePos
-            vals = params.constPolsExtended[base_indices].tolist()
-            return FF3(vals)
+            return ff3_array_from_base(params.constPolsExtended[base_indices].tolist())
 
         elif evMap.type == EvMap.Type.custom:
             polInfo = self.setupCtx.stark_info.customCommitsMap[evMap.commitId][evMap.id]
@@ -397,8 +388,7 @@ class Starks:
             offset = self.setupCtx.stark_info.mapOffsets[(section, True)]
             nCols = self.setupCtx.stark_info.mapSectionsN[section]
             base_indices = offset + rows * nCols + polInfo.stagePos
-            vals = params.customCommits[base_indices].tolist()
-            return FF3(vals)
+            return ff3_array_from_base(params.customCommits[base_indices].tolist())
 
         else:
             raise ValueError(f"Unknown evMap type: {evMap.type}")

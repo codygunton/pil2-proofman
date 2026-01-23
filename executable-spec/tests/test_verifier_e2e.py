@@ -8,13 +8,13 @@ including Merkle tree verification.
 import pytest
 import numpy as np
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 
-from protocol.setup_ctx import SetupCtx, FIELD_EXTENSION
+from primitives.field import FF
+from protocol.setup_ctx import SetupCtx
 from protocol.steps_params import StepsParams
 from primitives.transcript import Transcript
 from protocol.verifier import stark_verify
-from primitives.transcript import Transcript
 
 
 TEST_DATA_DIR = Path(__file__).parent / "test-data"
@@ -103,12 +103,12 @@ def create_params_from_vectors(stark_info, vectors: dict) -> StepsParams:
             trace_size = max(trace_size, offset + size)
 
     # Allocate trace and copy witness
-    witness_trace_data = np.array(inputs['witness_trace'], dtype=np.uint64)
-    trace = np.zeros(trace_size, dtype=np.uint64)
+    witness_trace_data = FF(inputs['witness_trace'])
+    trace = FF.Zeros(trace_size)
     trace[:len(witness_trace_data)] = witness_trace_data
 
     # Convert constant polynomials
-    const_pols = np.array(inputs['const_pols'], dtype=np.uint64)
+    const_pols = FF(inputs['const_pols'])
 
     # Extend constant polynomials
     ntt = NTT(N)
@@ -120,7 +120,7 @@ def create_params_from_vectors(stark_info, vectors: dict) -> StepsParams:
     params = StepsParams(
         trace=trace,
         auxTrace=np.zeros(stark_info.mapTotalN, dtype=np.uint64),
-        publicInputs=np.zeros(max(1, stark_info.nPublics), dtype=np.uint64),
+        publicInputs=FF.Zeros(max(1, stark_info.nPublics)),
         challenges=challenges,
         evals=np.zeros(len(stark_info.evMap) * 3, dtype=np.uint64),
         airValues=np.zeros(max(1, stark_info.airValuesSize * 3), dtype=np.uint64),

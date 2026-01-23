@@ -1,6 +1,6 @@
 """Fiat-Shamir transcript using Poseidon2 sponge."""
 
-from typing import List
+from typing import List, Union
 from poseidon2_ffi import poseidon2_hash
 from primitives.field import GOLDILOCKS_PRIME
 
@@ -13,6 +13,11 @@ Challenge = List[int]
 # --- Constants ---
 
 HASH_SIZE = 4
+
+
+def _to_int(v) -> int:
+    """Convert field element or int to plain int for Poseidon2 FFI."""
+    return int(v) if hasattr(v, '__int__') else v
 
 
 # --- Transcript ---
@@ -39,10 +44,10 @@ class Transcript:
 
     # --- Core Operations ---
 
-    def put(self, elements: List[int]) -> None:
+    def put(self, elements: Union[List[int], List]) -> None:
         """Absorb field elements into the sponge."""
         for elem in elements:
-            self._absorb_one(elem)
+            self._absorb_one(_to_int(elem))
 
     def get_field(self) -> Challenge:
         """Squeeze 3 field elements as a cubic extension challenge."""

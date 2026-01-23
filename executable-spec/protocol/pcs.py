@@ -7,10 +7,7 @@ from poseidon2_ffi import grinding, linear_hash
 from primitives.merkle_tree import HASH_SIZE, MerkleRoot, MerkleTree, QueryProof
 from primitives.transcript import Transcript
 from protocol.fri import EvalPoly, FRI
-
-# --- Constants ---
-
-FIELD_EXTENSION = 3
+from protocol.stark_info import FIELD_EXTENSION
 
 # --- Type Aliases ---
 

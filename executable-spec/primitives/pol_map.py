@@ -10,31 +10,23 @@ map to different stages of the STARK proof system.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional
+from typing import List
+
+
+# --- Field Type Enum ---
+class FieldType(Enum):
+    """Field element type for type-safe field discrimination."""
+    FF = 1   # Base field (Goldilocks)
+    FF3 = 3  # Cubic extension (Goldilocks3)
 
 
 # C++: pil2-stark/src/starkpil/stark_info.hpp::PolMap (lines 93-106)
 @dataclass
 class PolMap:
-    """Maps a polynomial to its location in the proof system.
-
-    Corresponds to C++ class PolMap in stark_info.hpp (lines 93-106).
-
-    Attributes:
-        stage: Proof stage (0=constants, 1=trace, 2=intermediate, 3=quotient)
-        name: Polynomial name
-        dim: Field dimension (1 for Goldilocks, 3 for Goldilocks3)
-        stagePos: Position within stage columns
-        stageId: Identifier within stage
-        imPol: True if this is an intermediate polynomial
-        lengths: Optional array indices for multi-dimensional polynomials
-        commitId: Commitment identifier (for custom commits)
-        expId: Expression ID (if polynomial is computed from expression)
-        polsMapId: Global polynomial map identifier
-    """
+    """Maps a polynomial to its location in the proof system."""
     stage: int
     name: str
-    dim: int
+    field_type: FieldType
     stagePos: int
     stageId: int
     imPol: bool = False
@@ -42,6 +34,11 @@ class PolMap:
     commitId: int = 0
     expId: int = 0
     polsMapId: int = 0
+
+    @property
+    def dim(self) -> int:
+        """Backwards compatibility: returns 1 for FF, 3 for FF3."""
+        return self.field_type.value
 
 
 # C++: pil2-stark/src/starkpil/stark_info.hpp::EvMap (lines 108-135)
@@ -104,21 +101,16 @@ class EvMap:
 # C++: No direct equivalent (challenge info embedded in StarkInfo)
 @dataclass
 class ChallengeMap:
-    """Maps a challenge to its derivation stage.
-
-    In C++, challenges use the PolMap structure but only a subset of fields.
-    This dedicated class improves clarity for the executable spec.
-
-    Attributes:
-        name: Challenge name (e.g., "std_alpha", "std_gamma")
-        stage: Stage at which this challenge is derived
-        dim: Field dimension (1 for Goldilocks, 3 for Goldilocks3)
-        stageId: Identifier within stage challenges
-    """
+    """Maps a challenge to its derivation stage."""
     name: str
     stage: int
-    dim: int
+    field_type: FieldType
     stageId: int
+
+    @property
+    def dim(self) -> int:
+        """Backwards compatibility: returns 1 for FF, 3 for FF3."""
+        return self.field_type.value
 
 
 # C++: pil2-stark/src/starkpil/stark_info.hpp::CustomCommits (lines 52-58)

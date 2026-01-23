@@ -5,11 +5,16 @@ import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
-from primitives.pol_map import PolMap, EvMap, ChallengeMap, CustomCommits, Boundary
+from primitives.pol_map import PolMap, EvMap, ChallengeMap, CustomCommits, Boundary, FieldType
 
 # --- Constants ---
 FIELD_EXTENSION = 3  # Goldilocks3
 HASH_SIZE = 4
+
+
+def _field_type_from_dim(dim: int) -> FieldType:
+    """Convert dim int to FieldType enum."""
+    return FieldType.FF if dim == 1 else FieldType.FF3
 
 
 # --- Data Structures ---
@@ -203,7 +208,7 @@ class StarkInfo:
             ChallengeMap(
                 name=ch["name"],
                 stage=ch["stage"],
-                dim=ch["dim"],
+                field_type=_field_type_from_dim(ch["dim"]),
                 stageId=ch["stageId"],
             )
             for ch in j.get("challengesMap", [])
@@ -212,7 +217,7 @@ class StarkInfo:
     def _parse_publics(self, j: dict) -> None:
         """Parse publics map."""
         for p_data in j.get("publicsMap", []):
-            p = PolMap(stage=0, name=p_data["name"], dim=1, stagePos=0, stageId=0)
+            p = PolMap(stage=0, name=p_data["name"], field_type=FieldType.FF, stagePos=0, stageId=0)
             if "lengths" in p_data:
                 p.lengths = list(p_data["lengths"])
             self.publicsMap.append(p)
@@ -222,44 +227,44 @@ class StarkInfo:
         # Airgroup values
         self.airgroupValuesSize = 0
         for av_data in j.get("airgroupValuesMap", []):
-            dim = 1 if av_data["stage"] == 1 else FIELD_EXTENSION
+            ft = FieldType.FF if av_data["stage"] == 1 else FieldType.FF3
             av = PolMap(
                 stage=av_data["stage"],
                 name=av_data["name"],
-                dim=dim,
+                field_type=ft,
                 stagePos=0,
                 stageId=0,
             )
             self.airgroupValuesMap.append(av)
-            self.airgroupValuesSize += dim
+            self.airgroupValuesSize += ft.value
 
         # Air values
         self.airValuesSize = 0
         for av_data in j.get("airValuesMap", []):
-            dim = 1 if av_data["stage"] == 1 else FIELD_EXTENSION
+            ft = FieldType.FF if av_data["stage"] == 1 else FieldType.FF3
             av = PolMap(
                 stage=av_data["stage"],
                 name=av_data["name"],
-                dim=dim,
+                field_type=ft,
                 stagePos=0,
                 stageId=0,
             )
             self.airValuesMap.append(av)
-            self.airValuesSize += dim
+            self.airValuesSize += ft.value
 
         # Proof values
         self.proofValuesSize = 0
         for pv_data in j.get("proofValuesMap", []):
-            dim = 1 if pv_data["stage"] == 1 else FIELD_EXTENSION
+            ft = FieldType.FF if pv_data["stage"] == 1 else FieldType.FF3
             pv = PolMap(
                 stage=pv_data["stage"],
                 name=pv_data["name"],
-                dim=dim,
+                field_type=ft,
                 stagePos=0,
                 stageId=0,
             )
             self.proofValuesMap.append(pv)
-            self.proofValuesSize += dim
+            self.proofValuesSize += ft.value
 
     def _parse_polynomial_maps(self, j: dict) -> None:
         """Parse committed and constant polynomial maps."""
@@ -268,7 +273,7 @@ class StarkInfo:
             cm = PolMap(
                 stage=cm_data["stage"],
                 name=cm_data["name"],
-                dim=cm_data["dim"],
+                field_type=_field_type_from_dim(cm_data["dim"]),
                 stagePos=cm_data["stagePos"],
                 stageId=cm_data["stageId"],
                 imPol="imPol" in cm_data,
@@ -287,7 +292,7 @@ class StarkInfo:
                 pol = PolMap(
                     stage=pol_data["stage"],
                     name=pol_data["name"],
-                    dim=pol_data["dim"],
+                    field_type=_field_type_from_dim(pol_data["dim"]),
                     stagePos=pol_data["stagePos"],
                     stageId=pol_data["stageId"],
                     imPol=False,
@@ -306,7 +311,7 @@ class StarkInfo:
             const = PolMap(
                 stage=const_data["stage"],
                 name=const_data["name"],
-                dim=const_data["dim"],
+                field_type=_field_type_from_dim(const_data["dim"]),
                 stagePos=const_data["stageId"],
                 stageId=const_data["stageId"],
                 imPol=False,

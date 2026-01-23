@@ -1,7 +1,7 @@
 """Merkle tree commitment using Poseidon2."""
 
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Union
 import math
 import numpy as np
 from poseidon2_ffi import linear_hash, hash_seq
@@ -14,6 +14,13 @@ HASH_SIZE = 4
 
 MerkleRoot = List[int]
 LeafData = List[int]
+
+
+# --- FFI Boundary Helpers ---
+
+def _to_int_list(data: List[Union[int, object]]) -> List[int]:
+    """Convert FF/FF3/int elements to plain int for FFI calls."""
+    return [int(x) for x in data]
 
 
 # --- Data Classes ---
@@ -94,8 +101,11 @@ class MerkleTree:
         self.num_nodes = self._compute_num_nodes(height)
         self.nodes = [0] * self.num_nodes
 
+        # Convert to int at FFI boundary (supports FF/FF3 arrays)
+        int_source = _to_int_list(source)
+
         # Store source data for later query proof extraction
-        self.source_data = list(source)
+        self.source_data = int_source
 
         if height == 0:
             return
@@ -103,7 +113,7 @@ class MerkleTree:
         # Hash each leaf row
         for i in range(height):
             row_start = i * width
-            row_data = source[row_start:row_start + width]
+            row_data = int_source[row_start:row_start + width]
             leaf_hash = linear_hash(row_data, self.sponge_width)
             for j in range(HASH_SIZE):
                 self.nodes[i * HASH_SIZE + j] = leaf_hash[j]
@@ -334,7 +344,7 @@ class MerkleTree:
         leaf_data: LeafData
     ) -> bool:
         """Verify Merkle proof for a leaf."""
-        computed = linear_hash(leaf_data, self.sponge_width)
+        computed = linear_hash(_to_int_list(leaf_data), self.sponge_width)
 
         for level_siblings in proof:
             curr_idx = idx % self.arity

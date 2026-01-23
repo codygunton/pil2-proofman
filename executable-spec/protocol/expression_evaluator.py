@@ -15,14 +15,23 @@ GaloisValue = Union[FF, FF3]  # Field element or extension element
 
 # --- Constants ---
 
-# Rows per batch - large enough for any test domain
-NROWS_PACK = 1 << 16
+NROWS_PACK = 1 << 16  # Rows per batch
 
-# Operation codes for field arithmetic
-OP_ADD = 0
-OP_SUB = 1
-OP_MUL = 2
-OP_SUB_SWAP = 3  # b - a
+
+# --- Type Utilities ---
+
+def _is_ff3(val: GaloisValue) -> bool:
+    """Check if value is in the extension field FF3."""
+    return type(val).order != FF.order
+
+
+def _to_ff3(val: GaloisValue) -> FF3:
+    """Promote FF to FF3 by embedding as (a, 0, 0)."""
+    if _is_ff3(val):
+        return val
+    if val.ndim == 0:
+        return FF3(int(val))
+    return FF3(np.asarray(val, dtype=np.uint64).tolist())
 
 
 # --- Evaluation Parameters ---
@@ -267,7 +276,6 @@ class ExpressionsPack(ExpressionsCtx):
             tmp3_g: Dict[int, FF3] = {}  # extension field temps
 
             param_results: List[GaloisValue] = [None, None]
-            param_dims: List[int] = [1, 1]
 
             for k in range(len(dest.params)):
                 p = dest.params[k]
@@ -280,13 +288,11 @@ class ExpressionsPack(ExpressionsCtx):
                     if p.inverse:
                         result = batch_inverse(result)
                     param_results[k] = result
-                    param_dims[k] = p.dim
                     continue
 
                 # Literal number
                 if p.op == "number":
                     param_results[k] = FF(p.value)
-                    param_dims[k] = 1
                     continue
 
                 # AIR value
@@ -296,7 +302,6 @@ class ExpressionsPack(ExpressionsCtx):
                     else:
                         c = [int(params.airValues[p.pols_map_id + i]) for i in range(3)]
                         param_results[k] = ff3(c)
-                    param_dims[k] = p.dim
                     continue
 
                 # Expression bytecode evaluation
@@ -314,63 +319,27 @@ class ExpressionsPack(ExpressionsCtx):
                     arith_op = args[i_args]
                     dest_slot = args[i_args + 1]
 
-                    # Bytecode format: op_type determines operand dimensions
-                    #   0: dim1 x dim1 -> dim1
-                    #   1: dim3 x dim1 -> dim3
-                    #   2: dim3 x dim3 -> dim3
-                    if op_type == 0:
-                        a = self._load_operand(params, scalar_params, tmp1_g, tmp3_g, args,
-                                               map_offsets_exps, map_offsets_custom_exps,
-                                               next_strides_exps, i_args + 2, row, 1,
-                                               domain_size, domain_extended, is_cyclic, nrows_pack)
-                        b = self._load_operand(params, scalar_params, tmp1_g, tmp3_g, args,
-                                               map_offsets_exps, map_offsets_custom_exps,
-                                               next_strides_exps, i_args + 5, row, 1,
-                                               domain_size, domain_extended, is_cyclic, nrows_pack)
-                        result = self._apply_op(arith_op, a, b)
-                        if is_last:
-                            param_results[k] = result
-                            param_dims[k] = 1
-                        else:
-                            tmp1_g[dest_slot] = result
-                        i_args += 8
+                    # Bytecode op_type: 0=FF*FF, 1=FF3*FF, 2=FF3*FF3
+                    dim_a = 3 if op_type >= 1 else 1
+                    dim_b = 3 if op_type == 2 else 1
 
-                    elif op_type == 1:
-                        a = self._load_operand(params, scalar_params, tmp1_g, tmp3_g, args,
-                                               map_offsets_exps, map_offsets_custom_exps,
-                                               next_strides_exps, i_args + 2, row, 3,
-                                               domain_size, domain_extended, is_cyclic, nrows_pack)
-                        b = self._load_operand(params, scalar_params, tmp1_g, tmp3_g, args,
-                                               map_offsets_exps, map_offsets_custom_exps,
-                                               next_strides_exps, i_args + 5, row, 1,
-                                               domain_size, domain_extended, is_cyclic, nrows_pack)
-                        result = self._apply_op_ext_base(arith_op, a, b)
-                        if is_last:
-                            param_results[k] = result
-                            param_dims[k] = 3
-                        else:
-                            tmp3_g[dest_slot] = result
-                        i_args += 8
+                    a = self._load_operand(params, scalar_params, tmp1_g, tmp3_g, args,
+                                           map_offsets_exps, map_offsets_custom_exps,
+                                           next_strides_exps, i_args + 2, row, dim_a,
+                                           domain_size, domain_extended, is_cyclic, nrows_pack)
+                    b = self._load_operand(params, scalar_params, tmp1_g, tmp3_g, args,
+                                           map_offsets_exps, map_offsets_custom_exps,
+                                           next_strides_exps, i_args + 5, row, dim_b,
+                                           domain_size, domain_extended, is_cyclic, nrows_pack)
+                    result = self._apply_op(arith_op, a, b)
 
-                    elif op_type == 2:
-                        a = self._load_operand(params, scalar_params, tmp1_g, tmp3_g, args,
-                                               map_offsets_exps, map_offsets_custom_exps,
-                                               next_strides_exps, i_args + 2, row, 3,
-                                               domain_size, domain_extended, is_cyclic, nrows_pack)
-                        b = self._load_operand(params, scalar_params, tmp1_g, tmp3_g, args,
-                                               map_offsets_exps, map_offsets_custom_exps,
-                                               next_strides_exps, i_args + 5, row, 3,
-                                               domain_size, domain_extended, is_cyclic, nrows_pack)
-                        result = self._apply_op(arith_op, a, b)
-                        if is_last:
-                            param_results[k] = result
-                            param_dims[k] = 3
-                        else:
-                            tmp3_g[dest_slot] = result
-                        i_args += 8
-
+                    if is_last:
+                        param_results[k] = result
+                    elif op_type == 0:
+                        tmp1_g[dest_slot] = result
                     else:
-                        raise ValueError(f"Invalid operation type: {op_type}")
+                        tmp3_g[dest_slot] = result
+                    i_args += 8
 
                 assert i_args == parser_params.n_args, f"Args mismatch: {i_args} != {parser_params.n_args}"
 
@@ -379,8 +348,7 @@ class ExpressionsPack(ExpressionsCtx):
 
             # Combine results if two params
             if len(dest.params) == 2:
-                final_result = self._multiply_results(param_results[0], param_results[1],
-                                                      param_dims[0], param_dims[1], dest.dim)
+                final_result = self._multiply_results(param_results[0], param_results[1])
             else:
                 final_result = param_results[0]
 
@@ -556,10 +524,10 @@ class ExpressionsPack(ExpressionsCtx):
             else:
                 if boundary == 0:
                     x_vals = self.prover_helpers.x if domain_extended else self.prover_helpers.x_n
-                    return FF(np.asarray(x_vals[row:row + nrows_pack], dtype=np.uint64))
+                    return x_vals[row:row + nrows_pack]
                 else:
                     ofs = (boundary - 1) * domain_size + row
-                    return FF(np.asarray(self.prover_helpers.zi[ofs:ofs + nrows_pack], dtype=np.uint64))
+                    return self.prover_helpers.zi[ofs:ofs + nrows_pack]
 
         # Type nStages+3: Xi (x/(x-xi) for FRI)
         if type_arg == self.setup_ctx.stark_info.nStages + 3:
@@ -580,7 +548,7 @@ class ExpressionsPack(ExpressionsCtx):
                 xi_c2 = int(self.xis[o * FIELD_EXTENSION + 2])
                 xi_val = ff3([xi_c0, xi_c1, xi_c2])
 
-                x_vals = FF(np.asarray(self.prover_helpers.x[row:row + nrows_pack], dtype=np.uint64))
+                x_vals = self.prover_helpers.x[row:row + nrows_pack]
                 x_ff3 = FF3(np.asarray(x_vals, dtype=np.uint64).tolist())
                 diff = x_ff3 - xi_val
                 return batch_inverse(diff)
@@ -623,57 +591,39 @@ class ExpressionsPack(ExpressionsCtx):
     # --- Field Operations ---
 
     def _apply_op(self, op: int, a: GaloisValue, b: GaloisValue) -> GaloisValue:
-        """Apply arithmetic operation, promoting to FF3 if needed."""
-        # Check for field type mismatch
-        a_ext = hasattr(a, '__class__') and '^3' in str(a.__class__)
-        b_ext = hasattr(b, '__class__') and '^3' in str(b.__class__)
-
+        """Apply arithmetic operation, promoting to FF3 if types mismatch."""
+        a_ext, b_ext = _is_ff3(a), _is_ff3(b)
         if a_ext and not b_ext:
-            b = FF3(int(b)) if hasattr(b, 'ndim') and b.ndim == 0 else FF3(np.asarray(b, dtype=np.uint64).tolist())
+            b = _to_ff3(b)
         elif b_ext and not a_ext:
-            a = FF3(int(a)) if hasattr(a, 'ndim') and a.ndim == 0 else FF3(np.asarray(a, dtype=np.uint64).tolist())
+            a = _to_ff3(a)
 
-        if op == OP_ADD:
+        if op == 0:    # ADD
             return a + b
-        if op == OP_SUB:
+        if op == 1:    # SUB
             return a - b
-        if op == OP_MUL:
+        if op == 2:    # MUL
             return a * b
-        if op == OP_SUB_SWAP:
+        if op == 3:    # SUB_SWAP (b - a)
             return b - a
         raise ValueError(f"Invalid operation: {op}")
 
-    def _apply_op_ext_base(self, op: int, a: FF3, b: GaloisValue) -> FF3:
-        """Apply operation: FF3 x FF -> FF3 (embedding b as (b,0,0))."""
-        if isinstance(b, FF):
-            b = FF3(int(b)) if b.ndim == 0 else FF3(np.asarray(b, dtype=np.uint64).tolist())
-
-        if op == OP_ADD:
-            return a + b
-        if op == OP_SUB:
-            return a - b
-        if op == OP_MUL:
-            return a * b
-        if op == OP_SUB_SWAP:
-            return b - a
-        raise ValueError(f"Invalid operation: {op}")
-
-    def _multiply_results(self, a: GaloisValue, b: GaloisValue,
-                          dim_a: int, dim_b: int, dest_dim: int) -> GaloisValue:
-        """Multiply two results with proper field handling."""
-        if dest_dim == 1:
-            return a * b
-        if dim_a == FIELD_EXTENSION and dim_b == FIELD_EXTENSION:
-            return a * b
-        if dim_a == FIELD_EXTENSION:
-            return self._apply_op_ext_base(OP_MUL, a, b)
-        return self._apply_op_ext_base(OP_MUL, b, a)
+    def _multiply_results(self, a: GaloisValue, b: GaloisValue) -> GaloisValue:
+        """Multiply two results, promoting to FF3 if types mismatch."""
+        a_ext, b_ext = _is_ff3(a), _is_ff3(b)
+        if a_ext and not b_ext:
+            b = _to_ff3(b)
+        elif b_ext and not a_ext:
+            a = _to_ff3(a)
+        return a * b
 
     def _store_result(self, dest: Dest, result: GaloisValue, row: int, nrows_pack: int):
-        """Store result to destination buffer."""
-        offset = dest.offset if dest.offset != 0 else (FIELD_EXTENSION if dest.dim == 3 else 1)
+        """Store result to destination buffer. Type detected from result."""
+        is_ext = _is_ff3(result)
+        offset = dest.offset if dest.offset != 0 else (FIELD_EXTENSION if is_ext else 1)
 
-        if dest.dim == 1:
+        if not is_ext:
+            # FF: store single values
             if result.ndim == 0:
                 val = int(result)
                 for j in range(nrows_pack):
@@ -683,6 +633,7 @@ class ExpressionsPack(ExpressionsCtx):
                 for j in range(nrows_pack):
                     dest.dest[row * offset + j * offset] = vals[j]
         else:
+            # FF3: store 3 coefficients per element
             if result.ndim == 0:
                 coeffs = ff3_coeffs(result)
                 for j in range(nrows_pack):
@@ -691,7 +642,7 @@ class ExpressionsPack(ExpressionsCtx):
                     dest.dest[base + 1] = coeffs[1]
                     dest.dest[base + 2] = coeffs[2]
             else:
-                # vector() returns [c2, c1, c0] (descending)
+                # vector() returns [c2, c1, c0] (descending order)
                 vecs = result.vector()
                 for j in range(nrows_pack):
                     base = row * offset + j * offset

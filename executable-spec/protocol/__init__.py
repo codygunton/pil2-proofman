@@ -3,9 +3,9 @@
 from protocol.fri import (
     FRI,
     EvalPoly,
-    FriLayer,
-    FIELD_EXTENSION,
 )
+
+from protocol.pcs import FIELD_EXTENSION
 
 from protocol.pcs import (
     FriPcs,
@@ -35,7 +35,6 @@ __all__ = [
     # FRI
     "FRI",
     "EvalPoly",
-    "FriLayer",
     "FIELD_EXTENSION",
     # FRI PCS
     "FriPcs",

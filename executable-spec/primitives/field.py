@@ -50,6 +50,19 @@ def ff3_coeffs(elem: FF3) -> List[int]:
     return [int(c) for c in elem.vector()[::-1]]
 
 
+def ff3_array(c0: List[int], c1: List[int], c2: List[int]):
+    """Construct FF3 array from parallel coefficient lists."""
+    p = GOLDILOCKS_PRIME
+    p2 = p * p
+    # Use int() to avoid numpy uint64 overflow in the encoding computation
+    return FF3([int(c0[k]) + int(c1[k]) * p + int(c2[k]) * p2 for k in range(len(c0))])
+
+
+def ff3_array_from_base(vals: List[int]):
+    """Construct FF3 array from base field values (c1=c2=0)."""
+    return FF3(vals)
+
+
 # --- NTT Support ---
 
 ntt = galois.ntt

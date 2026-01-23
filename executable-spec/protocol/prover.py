@@ -2,8 +2,6 @@
 
 from typing import Optional
 
-import numpy as np
-
 from poseidon2_ffi import linear_hash
 from primitives.merkle_tree import QueryProof
 from primitives.ntt import NTT
@@ -20,7 +18,6 @@ from protocol.witness_generation import calculate_witness_std
 Fe3 = tuple[int, int, int]  # Cubic extension field element
 MerkleRoot = list[int]
 StageNum = int
-FIELD_EXTENSION = 3
 
 
 # --- Main Entry Point ---
@@ -98,11 +95,11 @@ def gen_proof(
     xi_challenge_index = _derive_eval_challenges(
         transcript, params, stark_info, skip_challenge_derivation
     )
-    xi = params.challenges[xi_challenge_index * FIELD_EXTENSION:(xi_challenge_index + 1) * FIELD_EXTENSION]
+    xi = params.get_challenge(xi_challenge_index)
 
     _compute_all_evals(stark_info, starks, params, xi, ntt)
 
-    n_evals = len(stark_info.evMap) * FIELD_EXTENSION
+    n_evals = len(stark_info.evMap) * 3
     if not stark_info.starkStruct.hashCommits:
         transcript.put(params.evals[:n_evals])
     else:
@@ -118,7 +115,7 @@ def gen_proof(
     starks.calculateFRIPolynomial(params, expressions_ctx)
 
     fri_pol_offset = stark_info.mapOffsets[("f", True)]
-    fri_pol_size = (1 << stark_info.starkStruct.steps[0].nBits) * FIELD_EXTENSION
+    fri_pol_size = (1 << stark_info.starkStruct.steps[0].nBits) * 3
     fri_pol = params.auxTrace[fri_pol_offset:fri_pol_offset + fri_pol_size]
 
     fri_config = FriPcsConfig(
@@ -166,7 +163,7 @@ def _derive_stage_challenges(transcript: Transcript, params: StepsParams,
     for i, cm in enumerate(challenges_map):
         if cm.stage == stage:
             challenge = transcript.get_field()
-            params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
+            params.set_challenge(i, challenge)
 
 
 def _derive_eval_challenges(transcript: Transcript, params: StepsParams,
@@ -181,7 +178,7 @@ def _derive_eval_challenges(transcript: Transcript, params: StepsParams,
                 xi_index = i
             if not skip:
                 challenge = transcript.get_field()
-                params.challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = challenge
+                params.set_challenge(i, challenge)
 
     return xi_index
 
@@ -189,7 +186,7 @@ def _derive_eval_challenges(transcript: Transcript, params: StepsParams,
 # --- Polynomial Evaluations ---
 
 def _compute_all_evals(stark_info, starks: Starks, params: StepsParams,
-                       xi: np.ndarray, ntt: NTT) -> None:
+                       xi: list[int], ntt: NTT) -> None:
     """Compute evaluations at all opening points in batches of 4."""
     for i in range(0, len(stark_info.openingPoints), 4):
         batch = stark_info.openingPoints[i:i + 4]

@@ -47,7 +47,6 @@ from protocol import (
     # FRI
     FRI,
     EvalPoly,
-    FriLayer,
     FIELD_EXTENSION,
     # FRI PCS
     FriPcs,
@@ -118,7 +117,6 @@ __all__ = [
     # FRI
     "FRI",
     "EvalPoly",
-    "FriLayer",
     "FIELD_EXTENSION",
     # FRI PCS
     "FriPcs",

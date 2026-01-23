@@ -6,21 +6,41 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from poseidon2_ffi import linear_hash, hash_seq, verify_grinding
-from primitives.field import FF, ff3, ff3_coeffs, get_omega, SHIFT
+from primitives.field import FF, FF3, ff3, ff3_coeffs, ff3_array, get_omega, SHIFT
 from primitives.merkle_tree import HASH_SIZE, MerkleTree
 from primitives.ntt import NTT
 from primitives.pol_map import EvMap
 from primitives.transcript import Transcript
 from protocol.expression_evaluator import ExpressionsPack, Dest, Params
 from protocol.fri import FRI
-from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
+from protocol.setup_ctx import SetupCtx, ProverHelpers
 from protocol.steps_params import StepsParams
 
 # --- Type Aliases ---
 
-Fe = int
-Fe3 = List[int]  # [c0, c1, c2]
 MerkleRoot = List[int]
+
+
+# --- FF3 Parsing Helpers ---
+
+def _parse_ff3_list(json_arr: List[List[int]]) -> FF3:
+    """Parse JSON array of [c0,c1,c2] triples to FF3 array."""
+    n = len(json_arr)
+    c0 = [int(json_arr[i][0]) for i in range(n)]
+    c1 = [int(json_arr[i][1]) for i in range(n)]
+    c2 = [int(json_arr[i][2]) for i in range(n)]
+    return ff3_array(c0, c1, c2)
+
+
+def _ff3_to_flat_numpy(arr: FF3) -> np.ndarray:
+    """Convert FF3 array to flat numpy array with interleaved coefficients."""
+    result = np.zeros(len(arr) * 3, dtype=np.uint64)
+    for i, elem in enumerate(arr):
+        coeffs = ff3_coeffs(elem)
+        result[i * 3] = coeffs[0]
+        result[i * 3 + 1] = coeffs[1]
+        result[i * 3 + 2] = coeffs[2]
+    return result
 
 
 # --- Main Entry Point ---
@@ -49,8 +69,8 @@ def stark_verify(
     )
 
     # --- Verify proof-of-work ---
-    grinding_idx = (len(stark_info.challengesMap) + len(stark_info.starkStruct.steps)) * FIELD_EXTENSION
-    grinding_challenge = challenges[grinding_idx:grinding_idx + FIELD_EXTENSION]
+    grinding_idx = len(stark_info.challengesMap) + len(stark_info.starkStruct.steps)
+    grinding_challenge = challenges[grinding_idx * 3:(grinding_idx + 1) * 3]
     nonce = int(jproof["nonce"])
 
     if not verify_grinding(list(grinding_challenge), nonce, stark_info.starkStruct.powBits):
@@ -165,23 +185,18 @@ def _parse_root(jproof: Dict, key: str, n_fields: int) -> MerkleRoot:
 
 
 def _parse_evals(jproof: Dict, stark_info) -> np.ndarray:
-    """Parse polynomial evaluations."""
-    n_evals = len(stark_info.evMap)
-    evals = np.zeros(n_evals * FIELD_EXTENSION, dtype=np.uint64)
-    for i in range(n_evals):
-        for j in range(FIELD_EXTENSION):
-            evals[i * FIELD_EXTENSION + j] = int(jproof["evals"][i][j])
-    return evals
+    """Parse polynomial evaluations as flat numpy array."""
+    evals_ff3 = _parse_ff3_list(jproof["evals"][:len(stark_info.evMap)])
+    return _ff3_to_flat_numpy(evals_ff3)
 
 
 def _parse_airgroup_values(jproof: Dict, stark_info) -> np.ndarray:
-    """Parse AIR group values."""
+    """Parse AIR group values as flat numpy array."""
     n = len(stark_info.airgroupValuesMap)
-    values = np.zeros(n * FIELD_EXTENSION, dtype=np.uint64)
-    for i in range(n):
-        for j in range(FIELD_EXTENSION):
-            values[i * FIELD_EXTENSION + j] = int(jproof["airgroupvalues"][i][j])
-    return values
+    if n == 0:
+        return np.zeros(0, dtype=np.uint64)
+    airgroup_ff3 = _parse_ff3_list(jproof["airgroupvalues"][:n])
+    return _ff3_to_flat_numpy(airgroup_ff3)
 
 
 def _parse_air_values(jproof: Dict, stark_info) -> np.ndarray:
@@ -276,8 +291,8 @@ def _find_xi_challenge(stark_info, challenges: np.ndarray) -> np.ndarray:
     """Find xi challenge (evaluation point) from challenges array."""
     for i, ch in enumerate(stark_info.challengesMap):
         if ch.stage == stark_info.nStages + 2 and ch.stageId == 0:
-            return challenges[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION]
-    return np.zeros(FIELD_EXTENSION, dtype=np.uint64)
+            return challenges[i * 3:(i + 1) * 3]
+    return np.zeros(3, dtype=np.uint64)
 
 
 # --- Fiat-Shamir Transcript Reconstruction ---
@@ -296,7 +311,7 @@ def _reconstruct_transcript(
     """
     n_challenges = len(stark_info.challengesMap)
     n_steps = len(stark_info.starkStruct.steps)
-    challenges = np.zeros((n_challenges + n_steps + 1) * FIELD_EXTENSION, dtype=np.uint64)
+    challenges = np.zeros((n_challenges + n_steps + 1) * 3, dtype=np.uint64)
 
     transcript = Transcript(
         arity=stark_info.starkStruct.transcriptArity,
@@ -320,7 +335,7 @@ def _reconstruct_transcript(
     else:
         if global_challenge is None:
             raise ValueError("Global challenge required in VADCOP mode")
-        transcript.put(global_challenge[:FIELD_EXTENSION].tolist())
+        transcript.put(global_challenge[:3].tolist())
 
     # Stages 2..nStages+1: Derive challenges and add roots
     c = 0
@@ -329,37 +344,27 @@ def _reconstruct_transcript(
         for ch in stark_info.challengesMap:
             if ch.stage == s:
                 challenge = transcript.get_field()
-                challenges[c * FIELD_EXTENSION:(c + 1) * FIELD_EXTENSION] = challenge
+                challenges[c * 3:(c + 1) * 3] = challenge
                 c += 1
 
         # Add stage root
         transcript.put(_parse_root(jproof, f"root{s}", HASH_SIZE))
 
         # Add air values for this stage
-        p = 0
         for av in stark_info.airValuesMap:
-            if av.stage == 1:
-                p += 1
-            else:
-                if av.stage == s:
-                    # Read air values from jproof (need to reconstruct)
-                    idx = stark_info.airValuesMap.index(av)
-                    transcript.put([int(jproof["airvalues"][idx][j]) for j in range(FIELD_EXTENSION)])
-                p += 3
+            if av.stage != 1 and av.stage == s:
+                idx = stark_info.airValuesMap.index(av)
+                transcript.put([int(v) for v in jproof["airvalues"][idx]])
 
     # Evals stage challenges (nStages + 2)
     for ch in stark_info.challengesMap:
         if ch.stage == stark_info.nStages + 2:
             challenge = transcript.get_field()
-            challenges[c * FIELD_EXTENSION:(c + 1) * FIELD_EXTENSION] = challenge
+            challenges[c * 3:(c + 1) * 3] = challenge
             c += 1
 
-    # Add evaluations to transcript
-    n_evals = len(stark_info.evMap)
-    evals_flat = []
-    for i in range(n_evals):
-        for j in range(FIELD_EXTENSION):
-            evals_flat.append(int(jproof["evals"][i][j]))
+    # Add evaluations to transcript - flatten [c0, c1, c2] triples
+    evals_flat = [int(v) for ev in jproof["evals"][:len(stark_info.evMap)] for v in ev]
     if not stark_info.starkStruct.hashCommits:
         transcript.put(evals_flat)
     else:
@@ -370,7 +375,7 @@ def _reconstruct_transcript(
     for ch in stark_info.challengesMap:
         if ch.stage == stark_info.nStages + 3:
             challenge = transcript.get_field()
-            challenges[c * FIELD_EXTENSION:(c + 1) * FIELD_EXTENSION] = challenge
+            challenges[c * 3:(c + 1) * 3] = challenge
             c += 1
 
     # FRI step challenges
@@ -378,18 +383,15 @@ def _reconstruct_transcript(
     for step in range(n_steps):
         if step > 0:
             challenge = transcript.get_field()
-            challenges[c * FIELD_EXTENSION:(c + 1) * FIELD_EXTENSION] = challenge
+            challenges[c * 3:(c + 1) * 3] = challenge
         c += 1
 
         if step < n_steps - 1:
             transcript.put(_parse_root(jproof, f"s{step + 1}_root", HASH_SIZE))
         else:
-            # Add final polynomial
-            final_pol_size = 1 << stark_info.starkStruct.steps[step].nBits
-            final_pol = np.zeros(final_pol_size * FIELD_EXTENSION, dtype=np.uint64)
-            for i in range(final_pol_size):
-                for j in range(FIELD_EXTENSION):
-                    final_pol[i * FIELD_EXTENSION + j] = int(jproof["finalPol"][i][j])
+            # Parse and add final polynomial
+            final_pol_ff3 = _parse_ff3_list(jproof["finalPol"])
+            final_pol = _ff3_to_flat_numpy(final_pol_ff3)
 
             if not stark_info.starkStruct.hashCommits:
                 transcript.put(final_pol.tolist())
@@ -401,7 +403,7 @@ def _reconstruct_transcript(
 
     # Final challenge
     challenge = transcript.get_field()
-    challenges[c * FIELD_EXTENSION:(c + 1) * FIELD_EXTENSION] = challenge
+    challenges[c * 3:(c + 1) * 3] = challenge
 
     return challenges, final_pol
 
@@ -413,7 +415,7 @@ def _compute_x_div_x_sub(stark_info, xi_challenge: np.ndarray, fri_queries: List
     n_queries = stark_info.starkStruct.nQueries
     n_opening_points = len(stark_info.openingPoints)
 
-    x_div_x_sub = np.zeros(n_queries * n_opening_points * FIELD_EXTENSION, dtype=np.uint64)
+    x_div_x_sub = np.zeros(n_queries * n_opening_points * 3, dtype=np.uint64)
 
     xi = ff3([int(xi_challenge[0]), int(xi_challenge[1]), int(xi_challenge[2])])
     w_ext = FF(get_omega(stark_info.starkStruct.nBitsExt))
@@ -434,9 +436,8 @@ def _compute_x_div_x_sub(stark_info, xi_challenge: np.ndarray, fri_queries: List
             aux = x - xi * ff3([int(w_power), 0, 0])
             aux = aux ** -1
 
-            idx = (i * n_opening_points + o) * FIELD_EXTENSION
-            coeffs = ff3_coeffs(aux)
-            x_div_x_sub[idx:idx + FIELD_EXTENSION] = coeffs
+            idx = (i * n_opening_points + o) * 3
+            x_div_x_sub[idx:idx + 3] = ff3_coeffs(aux)
 
     return x_div_x_sub
 
@@ -451,7 +452,7 @@ def _verify_evaluations(
 ) -> bool:
     """Verify Q(xi) == constraint_eval(xi)."""
     # Evaluate constraint expression at xi
-    buff = np.zeros(FIELD_EXTENSION, dtype=np.uint64)
+    buff = np.zeros(3, dtype=np.uint64)
     dest = Dest(dest=buff, domain_size=1, offset=0)
     dest.exp_id = stark_info.cExpId
     dest.dim = setup_ctx.expressions_bin.expressions_info[stark_info.cExpId].dest_dim
@@ -476,12 +477,12 @@ def _verify_evaluations(
     for i in range(stark_info.qDeg):
         ev_id = next(j for j, e in enumerate(stark_info.evMap)
                      if e.type == EvMap.Type.cm and e.id == q_index + i)
-        eval_val = ff3([int(evals[ev_id * FIELD_EXTENSION + k]) for k in range(FIELD_EXTENSION)])
+        eval_val = ff3([int(evals[ev_id * 3 + k]) for k in range(3)])
         q = q + x_acc * eval_val
         x_acc = x_acc * x_n
 
     # Check Q(xi) == constraint_eval(xi)
-    constraint_eval = ff3([int(buff[k]) for k in range(FIELD_EXTENSION)])
+    constraint_eval = ff3([int(buff[k]) for k in range(3)])
     res = ff3_coeffs(q - constraint_eval)
 
     if res[0] != 0 or res[1] != 0 or res[2] != 0:
@@ -505,7 +506,7 @@ def _verify_fri_consistency(
     n_queries = stark_info.starkStruct.nQueries
 
     # Evaluate FRI expression at query points
-    buff = np.zeros(FIELD_EXTENSION * n_queries, dtype=np.uint64)
+    buff = np.zeros(3 * n_queries, dtype=np.uint64)
     dest = Dest(dest=buff, domain_size=n_queries, offset=0)
     dest.exp_id = stark_info.friExpId
     dest.dim = setup_ctx.expressions_bin.expressions_info[stark_info.friExpId].dest_dim
@@ -520,16 +521,18 @@ def _verify_fri_consistency(
         if n_steps > 1:
             next_n_groups = 1 << stark_info.starkStruct.steps[1].nBits
             group_idx = idx // next_n_groups
-            for j in range(FIELD_EXTENSION):
-                proof_val = int(jproof["s1_vals"][q][group_idx * FIELD_EXTENSION + j])
-                computed_val = int(buff[q * FIELD_EXTENSION + j])
-                if proof_val != computed_val:
+            # Compare FF3 value: proof vs computed
+            proof_coeffs = jproof["s1_vals"][q][group_idx * 3:(group_idx + 1) * 3]
+            computed_coeffs = buff[q * 3:(q + 1) * 3]
+            for j in range(3):
+                if int(proof_coeffs[j]) != int(computed_coeffs[j]):
                     return False
         else:
-            for j in range(FIELD_EXTENSION):
-                proof_val = int(jproof["finalPol"][idx][j])
-                computed_val = int(buff[q * FIELD_EXTENSION + j])
-                if proof_val != computed_val:
+            # Compare FF3 value: finalPol vs computed
+            proof_coeffs = jproof["finalPol"][idx]
+            computed_coeffs = buff[q * 3:(q + 1) * 3]
+            for j in range(3):
+                if int(proof_coeffs[j]) != int(computed_coeffs[j]):
                     return False
 
     return True
@@ -638,7 +641,7 @@ def _verify_fri_merkle_tree(jproof: Dict, stark_info, step: int, fri_queries: Li
 
     n_groups = 1 << stark_info.starkStruct.steps[step].nBits
     group_size = (1 << stark_info.starkStruct.steps[step - 1].nBits) // n_groups
-    n_cols = group_size * FIELD_EXTENSION
+    n_cols = group_size * 3  # FF3 values have 3 coefficients
 
     root = _parse_root(jproof, f"s{step}_root", HASH_SIZE)
 
@@ -684,16 +687,16 @@ def _verify_fri_folding(
     for q in range(n_queries):
         idx = fri_queries[q] % (1 << stark_info.starkStruct.steps[step].nBits)
 
-        # Get sibling values
+        # Get sibling values (each is an FF3 triple [c0, c1, c2])
         n_x = 1 << (stark_info.starkStruct.steps[step - 1].nBits - stark_info.starkStruct.steps[step].nBits)
         siblings = [
-            [int(jproof[f"s{step}_vals"][q][i * FIELD_EXTENSION + j]) for j in range(FIELD_EXTENSION)]
+            [int(jproof[f"s{step}_vals"][q][i * 3 + j]) for j in range(3)]
             for i in range(n_x)
         ]
 
-        # Compute folded value
-        challenge_idx = (len(stark_info.challengesMap) + step) * FIELD_EXTENSION
-        challenge = [int(challenges[challenge_idx + j]) for j in range(FIELD_EXTENSION)]
+        # Get challenge for this step
+        challenge_idx = len(stark_info.challengesMap) + step
+        challenge = [int(challenges[challenge_idx * 3 + j]) for j in range(3)]
 
         value = FRI.verify_fold(
             value=[0, 0, 0],
@@ -710,29 +713,28 @@ def _verify_fri_folding(
         if step < n_steps - 1:
             next_bits = stark_info.starkStruct.steps[step + 1].nBits
             sibling_pos = idx >> next_bits
-            for j in range(FIELD_EXTENSION):
-                if value[j] != int(jproof[f"s{step + 1}_vals"][q][sibling_pos * FIELD_EXTENSION + j]):
-                    return False
+            expected = jproof[f"s{step + 1}_vals"][q][sibling_pos * 3:(sibling_pos + 1) * 3]
+            if value != [int(v) for v in expected]:
+                return False
         else:
-            for j in range(FIELD_EXTENSION):
-                if value[j] != int(jproof["finalPol"][idx][j]):
-                    return False
+            expected = jproof["finalPol"][idx]
+            if value != [int(v) for v in expected]:
+                return False
 
     return True
 
 
 def _verify_final_polynomial(jproof: Dict, stark_info) -> bool:
     """Verify final polynomial has correct degree bound."""
-    final_pol_size = 1 << stark_info.starkStruct.steps[-1].nBits
-    final_pol = np.zeros(final_pol_size * FIELD_EXTENSION, dtype=np.uint64)
-    for i in range(final_pol_size):
-        for j in range(FIELD_EXTENSION):
-            final_pol[i * FIELD_EXTENSION + j] = int(jproof["finalPol"][i][j])
+    # Parse final polynomial using FF3 helper
+    final_pol_ff3 = _parse_ff3_list(jproof["finalPol"])
+    final_pol = _ff3_to_flat_numpy(final_pol_ff3)
+    final_pol_size = len(final_pol_ff3)
 
     # INTT to coefficient form
     ntt = NTT(final_pol_size)
-    final_pol_reshaped = final_pol.reshape(final_pol_size, FIELD_EXTENSION)
-    final_pol_coeffs = ntt.intt(final_pol_reshaped, n_cols=FIELD_EXTENSION)
+    final_pol_reshaped = final_pol.reshape(final_pol_size, 3)
+    final_pol_coeffs = ntt.intt(final_pol_reshaped, n_cols=3)
 
     # Check high-degree coefficients are zero
     last_step = stark_info.starkStruct.steps[-1].nBits
@@ -740,9 +742,8 @@ def _verify_final_polynomial(jproof: Dict, stark_info) -> bool:
     init = 0 if blowup_factor > last_step else (1 << (last_step - blowup_factor))
 
     for i in range(init, final_pol_size):
-        for j in range(FIELD_EXTENSION):
-            if int(final_pol_coeffs[i, j]) != 0:
-                print(f"ERROR: Final polynomial is not zero at position {i}")
-                return False
+        if any(int(final_pol_coeffs[i, j]) != 0 for j in range(3)):
+            print(f"ERROR: Final polynomial is not zero at position {i}")
+            return False
 
     return True

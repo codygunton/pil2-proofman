@@ -1,9 +1,9 @@
 """Setup context and precomputed prover helpers."""
 
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING, Optional, List, Union
 import numpy as np
 
-from primitives.field import FF, ff3, ff3_coeffs, get_omega, SHIFT
+from primitives.field import FF, ff3, ff3_coeffs, get_omega, SHIFT, batch_inverse
 
 if TYPE_CHECKING:
     from protocol.stark_info import StarkInfo, Boundary
@@ -24,9 +24,9 @@ class ProverHelpers:
     """
 
     def __init__(self):
-        self.zi: Optional[np.ndarray] = None
-        self.x: Optional[np.ndarray] = None
-        self.x_n: Optional[np.ndarray] = None
+        self.zi: Optional[Union[FF, np.ndarray]] = None
+        self.x: Optional[FF] = None
+        self.x_n: Optional[Union[FF, np.ndarray]] = None
 
     @classmethod
     def from_stark_info(cls, stark_info: 'StarkInfo', pil1: bool = False) -> 'ProverHelpers':
@@ -104,37 +104,30 @@ class ProverHelpers:
         return helpers
 
     def compute_x(self, n_bits: int, n_bits_ext: int, pil1: bool):
-        """Compute coset points x[i] = shift * w^i."""
+        """Compute coset points x[i] = shift * w^i using cumulative product."""
         N_extended = 1 << n_bits_ext
         N = 1 << n_bits
 
-        self.x = np.zeros(N_extended, dtype=np.uint64)
-        if pil1:
-            self.x_n = np.zeros(N, dtype=np.uint64)
-
         w_ext = FF(get_omega(n_bits_ext))
-        w_n = FF(get_omega(n_bits))
-        shift = SHIFT
 
-        # Process in blocks of 4096 (matches C++ cache-friendly layout)
-        for k in range(0, N_extended, 4096):
-            if pil1 and k < N:
-                self.x_n[k] = int(w_n ** k)
-            self.x[k] = int(shift * (w_ext ** k))
+        # Build array [1, w, w, w, ...] then cumprod gives [1, w, w^2, w^3, ...]
+        ones = FF.Ones(N_extended)
+        ones[1:] = w_ext
+        powers = np.cumprod(ones)  # [1, w, w^2, ..., w^(N_ext-1)]
+        self.x = SHIFT * powers
 
-            # Incremental within block (galois needs Python int, not numpy uint64)
-            end = min(k + 4096, N_extended)
-            for j in range(k + 1, end):
-                if pil1 and j < N:
-                    self.x_n[j] = int(FF(int(self.x_n[j-1])) * w_n)
-                self.x[j] = int(FF(int(self.x[j-1])) * w_ext)
+        if pil1:
+            w_n = FF(get_omega(n_bits))
+            ones_n = FF.Ones(N)
+            ones_n[1:] = w_n
+            self.x_n = np.cumprod(ones_n)  # [1, w, w^2, ..., w^(N-1)]
 
     def compute_zerofier(self, n_bits: int, n_bits_ext: int, boundaries: List['Boundary']):
         """Compute zerofier inverses 1/Z_H(x) for all boundaries."""
         N = 1 << n_bits
         N_extended = 1 << n_bits_ext
 
-        self.zi = np.zeros(len(boundaries) * N_extended, dtype=np.uint64)
+        self.zi = FF.Zeros(len(boundaries) * N_extended)
 
         for i, boundary in enumerate(boundaries):
             if boundary.name == "everyRow":
@@ -156,11 +149,16 @@ class ProverHelpers:
         shift_n = SHIFT ** (1 << n_bits)
         w_ext = FF(get_omega(extend_bits))
 
-        # Compute unique values: zi[i] = 1/(shift^N * w^i - 1)
-        w = FF(1)
-        for i in range(extend):
-            self.zi[i] = int((shift_n * w - FF(1)) ** -1)
-            w = w * w_ext
+        # Build [1, w, w, ...] for cumprod
+        ones = FF.Ones(extend)
+        ones[1:] = w_ext
+        powers = np.cumprod(ones)  # [1, w, w^2, ..., w^(extend-1)]
+
+        # zi[i] = 1/(shift^N * w^i - 1)
+        unique_vals = batch_inverse(shift_n * powers - FF(1))
+
+        # Fill first extend values
+        self.zi[:extend] = unique_vals
 
         # Repeat pattern (exploits periodicity of x^N on extended domain)
         for i in range(extend, N_extended):
@@ -173,10 +171,10 @@ class ProverHelpers:
         w = FF(get_omega(n_bits))
         root = w ** row_index
 
-        for i in range(N_extended):
-            x_i = FF(int(self.x[i]))
-            zh_inv = FF(int(self.zi[i]))
-            self.zi[offset * N_extended + i] = int(((x_i - root) * zh_inv) ** -1)
+        # (x - root) * zh_inv, then invert
+        diffs = self.x - root
+        zh_inv = self.zi[:N_extended]
+        self.zi[offset * N_extended:(offset + 1) * N_extended] = batch_inverse(diffs * zh_inv)
 
     def build_frame_zerofier_inv(self, n_bits: int, n_bits_ext: int, offset: int,
                                  offset_min: int, offset_max: int):
@@ -189,12 +187,13 @@ class ProverHelpers:
         roots = [w ** k for k in range(offset_min)]
         roots += [w ** (N - k - 1) for k in range(offset_max)]
 
-        for i in range(N_extended):
-            x_i = FF(int(self.x[i]))
-            zi_val = FF(1)
-            for root in roots:
-                zi_val = zi_val * (x_i - root)
-            self.zi[offset * N_extended + i] = int(zi_val)
+        # Start with ones
+        result = FF.Ones(N_extended)
+
+        for root in roots:
+            result = result * (self.x - root)
+
+        self.zi[offset * N_extended:(offset + 1) * N_extended] = result
 
 
 # --- Setup Context ---

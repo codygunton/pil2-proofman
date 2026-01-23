@@ -1,18 +1,34 @@
 """FRI folding protocol."""
 
 from typing import List
+
 import galois
-from primitives.field import FF, FF3, ff3, ff3_coeffs, SHIFT, SHIFT_INV, get_omega_inv
+
+from primitives.field import FF, FF3, ff3, ff3_coeffs, ff3_array, SHIFT, SHIFT_INV, get_omega_inv
 from primitives.merkle_tree import MerkleTree, MerkleRoot, transpose_for_merkle
 
 # --- Type Aliases ---
 
 EvalPoly = List[int]  # Polynomial in evaluation form (flattened FF3 coefficients)
-FriLayer = EvalPoly   # Alias for clarity in FRI context
 
-# --- Constants ---
 
-FIELD_EXTENSION = 3
+# --- Internal Helpers ---
+
+def _list_to_ff3_array(pol: EvalPoly) -> FF3:
+    """Convert flattened coefficient list to FF3 galois array."""
+    n = len(pol) // 3
+    c0 = [pol[i * 3] for i in range(n)]
+    c1 = [pol[i * 3 + 1] for i in range(n)]
+    c2 = [pol[i * 3 + 2] for i in range(n)]
+    return ff3_array(c0, c1, c2)
+
+
+def _ff3_array_to_list(arr: FF3) -> EvalPoly:
+    """Convert FF3 galois array to flattened coefficient list."""
+    result = []
+    for elem in arr:
+        result.extend(ff3_coeffs(elem))
+    return result
 
 
 # --- FRI Protocol ---
@@ -40,22 +56,22 @@ class FRI:
         fold_factor = (1 << prev_bits) // n_out  # Points per group
         w_inv = FF(get_omega_inv(prev_bits))
 
-        result = [0] * (n_out * FIELD_EXTENSION)
+        # Convert input to FF3 array
+        pol_ff3 = _list_to_ff3_array(pol)
 
+        result_elems = []
         for g in range(n_out):
             # Gather fold_factor evaluations for this group
-            evals = [
-                ff3(pol[(g + i * n_out) * FIELD_EXTENSION:][:FIELD_EXTENSION])
-                for i in range(fold_factor)
-            ]
+            indices = [g + i * n_out for i in range(fold_factor)]
+            evals = [pol_ff3[idx] for idx in indices]
 
             # INTT: evaluations -> coefficients
             if fold_factor > 1:
-                fold_bits = (prev_bits - current_bits)
+                fold_bits = prev_bits - current_bits
                 evals = FRI._intt_cubic(evals, fold_factor, get_omega_inv(fold_bits))
 
             # Scale coefficients by (shift_inv * w_inv^g)^i (coset adjustment)
-            scale = shift_inv_pow * (w_inv**g)
+            scale = shift_inv_pow * (w_inv ** g)
             acc = FF(1)
             for i in range(fold_factor):
                 evals[i] = evals[i] * int(acc)
@@ -63,10 +79,12 @@ class FRI:
 
             # Evaluate at challenge point (Horner)
             folded = galois.Poly(evals[::-1], field=FF3)(challenge_ff3) if evals else FF3(0)
+            result_elems.append(folded)
 
-            c = ff3_coeffs(folded)
-            result[g * FIELD_EXTENSION : (g + 1) * FIELD_EXTENSION] = c
-
+        # Convert back to flattened list
+        result = []
+        for elem in result_elems:
+            result.extend(ff3_coeffs(elem))
         return result
 
     @staticmethod
@@ -78,10 +96,11 @@ class FRI:
         next_bits: int,
     ) -> MerkleRoot:
         """Commit to FRI layer via Merkle tree."""
+        dim = 3  # FF3 dimension
         height = 1 << next_bits
         n_groups = 1 << (current_bits - next_bits)
-        width = n_groups * FIELD_EXTENSION
-        transposed = transpose_for_merkle(pol, 1 << current_bits, height, FIELD_EXTENSION)
+        width = n_groups * dim
+        transposed = transpose_for_merkle(pol, 1 << current_bits, height, dim)
         tree.merkelize(transposed, height, width, n_cols=n_groups)
         return tree.get_root()
 
@@ -138,7 +157,7 @@ class FRI:
         coeffs = [ff3_coeffs(v) for v in values]
 
         # Separate components and apply INTT to each
-        components = [FF([c[i] for c in coeffs]) for i in range(FIELD_EXTENSION)]
+        components = [FF([c[i] for c in coeffs]) for i in range(3)]
         results = [galois.intt(comp, omega=w_inv) for comp in components]
 
         return [ff3([int(r[i]) for r in results]) for i in range(n)]
