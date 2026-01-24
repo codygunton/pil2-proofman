@@ -31,6 +31,7 @@ AIRs Tested:
 
 import pytest
 
+from primitives.field import ff3_from_flat_list, ff3_to_flat_list
 from primitives.merkle_tree import MerkleTree
 from primitives.transcript import Transcript
 from protocol.fri import FRI
@@ -82,8 +83,11 @@ class TestProveEndToEnd:
         """Load test vectors for the AIR."""
         self.air_name = air_name
         self.config = get_config(air_name)
-        self.input_pol = get_fri_input_polynomial(air_name)
+        # Convert input polynomial from flat list to FF3Poly (FriPcs.prove expects FF3Poly)
+        input_pol_flat = get_fri_input_polynomial(air_name)
+        self.input_pol = ff3_from_flat_list(input_pol_flat)
         self.fri_challenges = get_fri_challenges(air_name)
+        # Keep expected as flat list for comparison
         self.expected_final_pol = get_expected_final_pol(air_name)
         self.expected_nonce = get_expected_nonce(air_name)
         self.merkle_roots = get_merkle_roots(air_name)
@@ -138,8 +142,10 @@ class TestProveEndToEnd:
         assert proof.nonce == self.expected_nonce, \
             f"Nonce mismatch: expected {self.expected_nonce}, got {proof.nonce}"
 
-        assert proof.final_pol == self.expected_final_pol, \
-            f"Final polynomial mismatch (length: expected {len(self.expected_final_pol)}, got {len(proof.final_pol)})"
+        # Convert FF3Poly to flat list for comparison
+        actual_final_pol = ff3_to_flat_list(proof.final_pol)
+        assert actual_final_pol == self.expected_final_pol, \
+            f"Final polynomial mismatch (length: expected {len(self.expected_final_pol)}, got {len(actual_final_pol)})"
 
     def test_prove_challenges_match(self, air_name):
         """
@@ -236,7 +242,7 @@ class TestFRIFolding:
 
     def _compute_final_polynomial(self):
         """Compute final polynomial through all FRI folds."""
-        current_pol = list(self.input_pol)
+        current_pol = ff3_from_flat_list(self.input_pol)
         for fold_idx in range(len(self.fri_steps) - 1):
             current_pol = FRI.fold(
                 step=fold_idx,
@@ -246,7 +252,7 @@ class TestFRIFolding:
                 prev_bits=self.fri_steps[fold_idx],
                 current_bits=self.fri_steps[fold_idx + 1]
             )
-        return current_pol
+        return ff3_to_flat_list(current_pol)
 
     def test_input_polynomial_hash_matches(self, air_name):
         """Verify input polynomial hash matches C++ captured value."""
@@ -273,7 +279,7 @@ class TestFRIFolding:
 
         assert expected_hashes[0] == self.input_hash
 
-        current_pol = list(self.input_pol)
+        current_pol = ff3_from_flat_list(self.input_pol)
         for fold_idx in range(len(self.fri_steps) - 1):
             current_pol = FRI.fold(
                 step=fold_idx + 1,
@@ -286,7 +292,7 @@ class TestFRIFolding:
 
             cpp_step_idx = fold_idx + 1
             if cpp_step_idx < len(expected_hashes):
-                computed_hash = linear_hash(current_pol, width=16)
+                computed_hash = linear_hash(ff3_to_flat_list(current_pol), width=16)
                 assert computed_hash == expected_hashes[cpp_step_idx]
 
     def test_merkle_roots_match_cpp(self, air_name):
@@ -295,7 +301,7 @@ class TestFRIFolding:
         if not expected_roots:
             pytest.fail(f"Merkle roots not captured for {air_name}")
 
-        current_pol = list(self.input_pol)
+        current_pol = ff3_from_flat_list(self.input_pol)
         for step_idx in range(len(self.fri_steps) - 1):
             tree = MerkleTree(arity=self.config.get('merkle_arity', 4))
             computed_root = FRI.merkelize(
@@ -342,7 +348,7 @@ class TestFRIFolding:
 
         FRI.merkelize(
             step=0,
-            pol=self.input_pol,
+            pol=ff3_from_flat_list(self.input_pol),
             tree=tree,
             current_bits=current_bits,
             next_bits=next_bits

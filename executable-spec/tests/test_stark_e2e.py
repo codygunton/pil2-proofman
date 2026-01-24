@@ -13,7 +13,7 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from primitives.field import FF
+from primitives.field import FF, ff3_to_flat_list
 from protocol.setup_ctx import SetupCtx
 from protocol.steps_params import StepsParams
 from primitives.transcript import Transcript
@@ -309,9 +309,9 @@ class TestStarkE2E:
         actual_nonce = proof['nonce']
         assert actual_nonce == expected_nonce, f"Nonce mismatch: expected {expected_nonce}, got {actual_nonce}"
 
-        # Check final polynomial
+        # Check final polynomial (convert FF3Poly to flat list)
         expected_final_pol = vectors['expected']['final_pol']
-        actual_final_pol = [int(v) for v in proof['fri_proof'].final_pol]
+        actual_final_pol = ff3_to_flat_list(proof['fri_proof'].final_pol)
 
         assert actual_final_pol == expected_final_pol, (
             f"Final polynomial mismatch. "
@@ -511,9 +511,9 @@ class TestStarkE2EComplete:
         if proof['nonce'] != expected_nonce:
             mismatches.append(f"nonce: expected {expected_nonce}, got {proof['nonce']}")
 
-        # Check final polynomial
+        # Check final polynomial (convert FF3Poly to flat list)
         expected_final_pol = vectors['expected']['final_pol']
-        actual_final_pol = [int(v) for v in proof['fri_proof'].final_pol]
+        actual_final_pol = ff3_to_flat_list(proof['fri_proof'].final_pol)
         if actual_final_pol != expected_final_pol:
             n_match = sum(1 for i in range(len(expected_final_pol)) if expected_final_pol[i] == actual_final_pol[i])
             mismatches.append(f"final_pol: {n_match}/{len(expected_final_pol)} matching")
