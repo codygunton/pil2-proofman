@@ -8,6 +8,7 @@ initialization cost of galois.GF() for extension fields. To regenerate the cache
 """
 
 import galois
+import numpy as np
 import pickle
 from pathlib import Path
 from typing import List
@@ -15,6 +16,8 @@ from typing import List
 # --- Field Construction ---
 
 GOLDILOCKS_PRIME = 0xFFFFFFFF00000001
+FIELD_EXTENSION_DEGREE = 3  # Goldilocks cubic extension degree
+FIELD_EXTENSION = FIELD_EXTENSION_DEGREE  # Deprecated alias for backward compatibility
 
 FF = galois.GF(GOLDILOCKS_PRIME)
 """Base field GF(p) - Goldilocks prime field."""
@@ -25,6 +28,23 @@ _FF3_CACHE_PATH = Path(__file__).parent / "ff3_cache.pkl"
 with open(_FF3_CACHE_PATH, "rb") as _f:
     FF3 = pickle.load(_f)
 """Cubic extension field GF(p^3) with irreducible polynomial x^3 - x - 1."""
+
+# --- Type Aliases ---
+# These are documentation aliases for semantic clarity. The underlying types are FF/FF3.
+
+# Polynomials (1D arrays representing polynomials in evaluation or coefficient form)
+FF3Poly = FF3  # Polynomial over extension field (N evaluations or coefficients)
+FFPoly = FF    # Polynomial over base field
+
+# Columns (polynomial values at N evaluation points)
+# Same underlying type as Poly, but used when emphasizing "values of one polynomial at N rows"
+FF3Column = FF3  # Column of FF3 values (one per evaluation point)
+FFColumn = FF    # Column of base field values
+# NOTE: No FF3Row/FFRow - "row" means evaluation point index, not a row vector
+# NOTE: No generic FF3Array - use Poly or Column for semantic clarity
+
+# Hashes
+HashOutput = List[int]  # 4-element Poseidon hash output (base field)
 
 
 def _regenerate_ff3_cache():
@@ -61,6 +81,104 @@ def ff3_array(c0: List[int], c1: List[int], c2: List[int]):
 def ff3_array_from_base(vals: List[int]):
     """Construct FF3 array from base field values (c1=c2=0)."""
     return FF3(vals)
+
+
+# --- Flat List Conversions (for serialization/transcript) ---
+
+def ff3_from_flat_list(coeffs: List[int]) -> FF3:
+    """Convert flattened [c0,c1,c2,c0,c1,c2,...] to FF3 array."""
+    n = len(coeffs) // FIELD_EXTENSION_DEGREE
+    c0 = [coeffs[i * FIELD_EXTENSION_DEGREE] for i in range(n)]
+    c1 = [coeffs[i * FIELD_EXTENSION_DEGREE + 1] for i in range(n)]
+    c2 = [coeffs[i * FIELD_EXTENSION_DEGREE + 2] for i in range(n)]
+    return ff3_array(c0, c1, c2)
+
+
+def ff3_to_flat_list(arr: FF3) -> List[int]:
+    """Convert FF3 array to flattened [c0,c1,c2,c0,c1,c2,...]."""
+    result = []
+    for elem in arr:
+        result.extend(ff3_coeffs(elem))
+    return result
+
+
+# --- JSON Conversions (for proof parsing) ---
+
+def ff3_from_json(json_arr: List[List[int]]) -> FF3:
+    """Parse JSON [[c0,c1,c2],...] to FF3 array."""
+    n = len(json_arr)
+    c0 = [int(json_arr[i][0]) for i in range(n)]
+    c1 = [int(json_arr[i][1]) for i in range(n)]
+    c2 = [int(json_arr[i][2]) for i in range(n)]
+    return ff3_array(c0, c1, c2)
+
+
+def ff3_to_json(arr: FF3) -> List[List[int]]:
+    """Convert FF3 array to JSON [[c0,c1,c2],...] format."""
+    return [ff3_coeffs(elem) for elem in arr]
+
+
+# --- Interleaved NumPy Buffer Conversions (for C++ compatibility) ---
+
+def ff3_from_interleaved_numpy(arr: np.ndarray, n: int) -> FF3:
+    """Convert interleaved numpy [c0,c1,c2,c0,c1,c2,...] to FF3 array."""
+    c0 = arr[0::FIELD_EXTENSION_DEGREE][:n].tolist()
+    c1 = arr[1::FIELD_EXTENSION_DEGREE][:n].tolist()
+    c2 = arr[2::FIELD_EXTENSION_DEGREE][:n].tolist()
+    return ff3_array(c0, c1, c2)
+
+
+def ff3_to_interleaved_numpy(arr: FF3) -> np.ndarray:
+    """Convert FF3 array to interleaved numpy [c0,c1,c2,c0,c1,c2,...]."""
+    n = len(arr)
+    result = np.zeros(n * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
+    vecs = arr.vector()  # (n, 3) in descending [c2, c1, c0] order
+    result[0::3] = vecs[:, 2].view(np.ndarray).astype(np.uint64)  # c0
+    result[1::3] = vecs[:, 1].view(np.ndarray).astype(np.uint64)  # c1
+    result[2::3] = vecs[:, 0].view(np.ndarray).astype(np.uint64)  # c2
+    return result
+
+
+# --- Scalar Conversions ---
+
+def ff3_from_base(val: int) -> FF3:
+    """Embed base field element into FF3 as (val, 0, 0)."""
+    return ff3([val, 0, 0])
+
+
+def ff3_from_numpy_coeffs(arr: np.ndarray) -> FF3:
+    """Convert numpy [c0, c1, c2] to FF3 scalar."""
+    return ff3([int(arr[0]), int(arr[1]), int(arr[2])])
+
+
+def ff3_to_numpy_coeffs(elem: FF3) -> np.ndarray:
+    """Convert FF3 scalar to numpy [c0, c1, c2]."""
+    return np.array(ff3_coeffs(elem), dtype=np.uint64)
+
+
+# --- Buffer Index Access (for expression_evaluator hot path) ---
+
+def ff3_from_buffer_at(buffer: np.ndarray, indices: List[int]) -> FF3:
+    """Extract FF3 elements from buffer at coefficient indices.
+
+    Each index points to c0, with c1 at index+1, c2 at index+2.
+    """
+    c0 = [int(buffer[i]) for i in indices]
+    c1 = [int(buffer[i + 1]) for i in indices]
+    c2 = [int(buffer[i + 2]) for i in indices]
+    return ff3_array(c0, c1, c2)
+
+
+def ff3_store_to_buffer(arr: FF3, buffer: np.ndarray, indices: List[int]) -> None:
+    """Store FF3 elements to buffer at coefficient indices.
+
+    Each index points to c0, stores c1 at index+1, c2 at index+2.
+    """
+    vecs = arr.vector()  # (n, 3) descending [c2, c1, c0]
+    for j, idx in enumerate(indices):
+        buffer[idx] = int(vecs[j, 2])      # c0
+        buffer[idx + 1] = int(vecs[j, 1])  # c1
+        buffer[idx + 2] = int(vecs[j, 0])  # c2
 
 
 # --- NTT Support ---
