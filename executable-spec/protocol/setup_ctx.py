@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional, List, Union
 import numpy as np
 
 from primitives.field import (
-    FF, ff3, ff3_from_base, ff3_to_numpy_coeffs, get_omega, SHIFT, batch_inverse,
+    FF, ff3, ff3_to_numpy_coeffs, get_omega, SHIFT, batch_inverse,
     FIELD_EXTENSION_DEGREE,
 )
 
@@ -52,7 +52,7 @@ class ProverHelpers:
         helpers.zi = np.zeros(len(boundaries) * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
         z_ff3 = ff3([int(z[0]), int(z[1]), int(z[2])])
-        one_ff3 = ff3_from_base(1)
+        one_ff3 = ff3([1, 0, 0])
 
         # z^N
         x_n_ff3 = one_ff3
@@ -79,7 +79,7 @@ class ProverHelpers:
                 # (z - w^(N-1))^(-1) * (z^N - 1)
                 w = FF(get_omega(n_bits))
                 root = w ** (N - 1)
-                root_ff3 = ff3_from_base(int(root))
+                root_ff3 = ff3([int(root), 0, 0])
                 zi_temp = (z_ff3 - root_ff3) ** -1 * z_n_minus_one
                 helpers.zi[i*FIELD_EXTENSION_DEGREE:(i+1)*FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(zi_temp)
 
@@ -90,12 +90,12 @@ class ProverHelpers:
 
                 # Rows [0, offsetMin)
                 for k in range(boundary.offsetMin):
-                    root_ff3 = ff3_from_base(int(w ** k))
+                    root_ff3 = ff3([int(w ** k), 0, 0])
                     zi_temp = zi_temp * (z_ff3 - root_ff3)
 
                 # Rows [N - offsetMax, N)
                 for k in range(boundary.offsetMax):
-                    root_ff3 = ff3_from_base(int(w ** (N - k - 1)))
+                    root_ff3 = ff3([int(w ** (N - k - 1)), 0, 0])
                     zi_temp = zi_temp * (z_ff3 - root_ff3)
 
                 helpers.zi[i*FIELD_EXTENSION_DEGREE:(i+1)*FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(zi_temp)

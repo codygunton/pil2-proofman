@@ -132,7 +132,7 @@ class Starks:
         3. Reorganize from degree-major to evaluation-major layout
         4. NTT back to extended domain evaluations
         """
-        from primitives.field import FF, ff3_from_base, ff3_to_numpy_coeffs, ff3_from_numpy_coeffs, SHIFT_INV
+        from primitives.field import FF, ff3, ff3_from_buffer_at, ff3_store_to_buffer, SHIFT_INV
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
@@ -162,15 +162,20 @@ class Starks:
 
         # Step 3: Apply shifts and reorganize layout
         # cmQ[(i * qDeg + p) * 3] = qPol[(p * N + i) * 3] * S[p]
+        # Vectorized: process all N elements per degree p in one batch
         for p in range(qDeg):
-            shift_p = ff3_from_base(int(S[p]))
-            for i in range(N):
-                qIdx = (p * N + i) * FIELD_EXTENSION_DEGREE
-                qVal = ff3_from_numpy_coeffs(qPol[qIdx:qIdx + 3])
-                result = ff3_to_numpy_coeffs(qVal * shift_p)
+            shift_p = ff3([int(S[p]), 0, 0])
 
-                cmQIdx = (i * qDeg + p) * FIELD_EXTENSION_DEGREE
-                cmQ[cmQIdx:cmQIdx + 3] = result
+            # Batch read: indices (p * N + i) * 3 for i in [0, N)
+            read_indices = [(p * N + i) * FIELD_EXTENSION_DEGREE for i in range(N)]
+            qVals = ff3_from_buffer_at(qPol, read_indices)
+
+            # Batch multiply by scalar shift
+            results = qVals * shift_p
+
+            # Batch write: indices (i * qDeg + p) * 3 for i in [0, N)
+            write_indices = [(i * qDeg + p) * FIELD_EXTENSION_DEGREE for i in range(N)]
+            ff3_store_to_buffer(results, cmQ, write_indices)
 
         # Step 4: Zero-pad remaining coefficients
         cmQ[N * qDeg * qDim:NExtended * qDeg * qDim] = 0
@@ -230,7 +235,7 @@ class Starks:
     def calculateFRIPolynomial(self, params: StepsParams,
                               expressionsCtx: ExpressionsPack):
         """Compute FRI polynomial F = linear combination of committed polys at xi*w^offset."""
-        from primitives.field import FF, ff3_from_base, ff3_to_numpy_coeffs, ff3_from_numpy_coeffs, get_omega
+        from primitives.field import FF, FF3, ff3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega
 
         # Find xi challenge index (stage nStages + 2, stageId 0)
         xiChallengeIndex = next(
@@ -241,18 +246,19 @@ class Starks:
         xiChallenge = params.challenges[xiChallengeIndex * FIELD_EXTENSION_DEGREE:]
         xiFF3 = ff3_from_numpy_coeffs(xiChallenge)
 
-        # Compute xis[i] = xi * w^openingPoint[i]
+        # Compute xis[i] = xi * w^openingPoint[i] - vectorized
         w = FF(get_omega(self.setupCtx.stark_info.starkStruct.nBits))
-        nOpeningPoints = len(self.setupCtx.stark_info.openingPoints)
-        xis = np.zeros(nOpeningPoints * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
+        openingPoints = self.setupCtx.stark_info.openingPoints
+        nOpeningPoints = len(openingPoints)
 
-        for i, openingPoint in enumerate(self.setupCtx.stark_info.openingPoints):
-            wPower = w ** abs(openingPoint)
-            if openingPoint < 0:
-                wPower = wPower ** -1
+        # Compute w^|openingPoint| for all opening points
+        wPowers = [w ** abs(op) if op >= 0 else (w ** abs(op)) ** -1
+                   for op in openingPoints]
+        wPowers_ff3 = FF3([int(wp) for wp in wPowers])  # Embed in extension field
 
-            xisVal = xiFF3 * ff3_from_base(int(wPower))
-            xis[i * FIELD_EXTENSION_DEGREE:(i + 1) * FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(xisVal)
+        # Batch multiply: xis = xi * wPowers (broadcasts scalar xi over array)
+        xis_ff3 = xiFF3 * wPowers_ff3
+        xis = ff3_to_interleaved_numpy(xis_ff3)
 
         expressionsCtx.set_xi(xis)
 
@@ -267,38 +273,43 @@ class Starks:
         """Compute Lagrange evaluation coefficients.
 
         LEv[k, i] = ((xi * w^openingPoint[i]) * shift^-1)^k
+
+        Vectorized: compute all opening points in parallel for each k.
         """
-        from primitives.field import FF, ff3_from_base, ff3_to_numpy_coeffs, ff3_from_numpy_coeffs, get_omega, SHIFT_INV
+        from primitives.field import FF, FF3, ff3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega, SHIFT_INV
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         nOpeningPoints = len(openingPoints)
-        LEv = np.zeros(N * nOpeningPoints * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
         w = FF(get_omega(self.setupCtx.stark_info.starkStruct.nBits))
         shiftInv = FF(SHIFT_INV)
         xiFF3 = ff3_from_numpy_coeffs(xiChallenge)
 
-        for i, openingPoint in enumerate(openingPoints):
+        # Compute xisShifted[i] = xi * w^openingPoint[i] * shift^-1 for all opening points
+        wPowers = []
+        for openingPoint in openingPoints:
             wPower = w ** abs(openingPoint)
             if openingPoint < 0:
                 wPower = wPower ** -1
+            wPowers.append(int(wPower))
 
-            # xisShifted[i] = xi * w^openingPoint * shift^-1
-            xisVal = xiFF3 * ff3_from_base(int(wPower))
-            xisShiftedVal = xisVal * ff3_from_base(int(shiftInv))
+        # Embed in extension field and multiply by xi * shift^-1
+        wPowers_ff3 = FF3(wPowers)  # Base field values embedded in FF3
+        xisShiftedVals = xiFF3 * wPowers_ff3 * ff3([int(shiftInv), 0, 0])
 
-            # LEv[0, i] = 1
-            LEv[i * FIELD_EXTENSION_DEGREE] = 1
-            LEv[i * FIELD_EXTENSION_DEGREE + 1] = 0
-            LEv[i * FIELD_EXTENSION_DEGREE + 2] = 0
+        # Build LEv using FF3 arrays - one array per row k
+        # LEv[k, :] = LEv[k-1, :] * xisShiftedVals (element-wise)
+        LEv_rows = [FF3.Ones(nOpeningPoints)]  # LEv[0, :] = [1, 1, ..., 1]
 
-            # LEv[k, i] = LEv[k-1, i] * xisShifted[i]
-            for k in range(1, N):
-                prevIdx = ((k - 1) * nOpeningPoints + i) * FIELD_EXTENSION_DEGREE
-                currIdx = (k * nOpeningPoints + i) * FIELD_EXTENSION_DEGREE
+        for k in range(1, N):
+            LEv_rows.append(LEv_rows[k - 1] * xisShiftedVals)
 
-                prevVal = ff3_from_numpy_coeffs(LEv[prevIdx:prevIdx + 3])
-                LEv[currIdx:currIdx + 3] = ff3_to_numpy_coeffs(prevVal * xisShiftedVal)
+        # Convert to interleaved numpy format for INTT
+        # Layout: [LEv[0,0], LEv[0,1], ..., LEv[1,0], LEv[1,1], ...]
+        LEv = np.zeros(N * nOpeningPoints * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
+        for k in range(N):
+            row_interleaved = ff3_to_interleaved_numpy(LEv_rows[k])
+            LEv[k * nOpeningPoints * FIELD_EXTENSION_DEGREE:(k + 1) * nOpeningPoints * FIELD_EXTENSION_DEGREE] = row_interleaved
 
         # INTT to coefficient form
         LEvReshaped = LEv.reshape(N, nOpeningPoints * FIELD_EXTENSION_DEGREE)
