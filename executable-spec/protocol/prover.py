@@ -3,6 +3,7 @@
 from typing import Optional
 
 from poseidon2_ffi import linear_hash
+from primitives.field import FIELD_EXTENSION_DEGREE, ff3_from_interleaved_numpy
 from primitives.merkle_tree import QueryProof
 from primitives.ntt import NTT
 from primitives.transcript import Transcript
@@ -99,7 +100,7 @@ def gen_proof(
 
     _compute_all_evals(stark_info, starks, params, xi, ntt)
 
-    n_evals = len(stark_info.evMap) * 3
+    n_evals = len(stark_info.evMap) * FIELD_EXTENSION_DEGREE
     if not stark_info.starkStruct.hashCommits:
         transcript.put(params.evals[:n_evals])
     else:
@@ -115,8 +116,11 @@ def gen_proof(
     starks.calculateFRIPolynomial(params, expressions_ctx)
 
     fri_pol_offset = stark_info.mapOffsets[("f", True)]
-    fri_pol_size = (1 << stark_info.starkStruct.steps[0].nBits) * 3
-    fri_pol = params.auxTrace[fri_pol_offset:fri_pol_offset + fri_pol_size]
+    n_fri_elements = 1 << stark_info.starkStruct.steps[0].nBits
+    fri_pol_size = n_fri_elements * FIELD_EXTENSION_DEGREE
+    fri_pol_numpy = params.auxTrace[fri_pol_offset:fri_pol_offset + fri_pol_size]
+    # Convert from interleaved numpy to FF3Poly (C++ buffer boundary)
+    fri_pol = ff3_from_interleaved_numpy(fri_pol_numpy, n_fri_elements)
 
     fri_config = FriPcsConfig(
         n_bits_ext=stark_info.starkStruct.steps[0].nBits,

@@ -4,31 +4,11 @@ from typing import List
 
 import galois
 
-from primitives.field import FF, FF3, ff3, ff3_coeffs, ff3_array, SHIFT, SHIFT_INV, get_omega_inv
+from primitives.field import (
+    FF, FF3, FF3Poly, ff3, ff3_coeffs, ff3_to_flat_list,
+    SHIFT, SHIFT_INV, get_omega_inv, FIELD_EXTENSION_DEGREE,
+)
 from primitives.merkle_tree import MerkleTree, MerkleRoot, transpose_for_merkle
-
-# --- Type Aliases ---
-
-EvalPoly = List[int]  # Polynomial in evaluation form (flattened FF3 coefficients)
-
-
-# --- Internal Helpers ---
-
-def _list_to_ff3_array(pol: EvalPoly) -> FF3:
-    """Convert flattened coefficient list to FF3 galois array."""
-    n = len(pol) // 3
-    c0 = [pol[i * 3] for i in range(n)]
-    c1 = [pol[i * 3 + 1] for i in range(n)]
-    c2 = [pol[i * 3 + 2] for i in range(n)]
-    return ff3_array(c0, c1, c2)
-
-
-def _ff3_array_to_list(arr: FF3) -> EvalPoly:
-    """Convert FF3 galois array to flattened coefficient list."""
-    result = []
-    for elem in arr:
-        result.extend(ff3_coeffs(elem))
-    return result
 
 
 # --- FRI Protocol ---
@@ -39,12 +19,12 @@ class FRI:
     @staticmethod
     def fold(
         step: int,
-        pol: EvalPoly,
+        pol: FF3Poly,
         challenge: List[int],
         n_bits_ext: int,
         prev_bits: int,
         current_bits: int,
-    ) -> EvalPoly:
+    ) -> FF3Poly:
         """Fold polynomial by factor 2^(prev_bits - current_bits) using challenge."""
         challenge_ff3 = ff3(challenge)
 
@@ -56,14 +36,11 @@ class FRI:
         fold_factor = (1 << prev_bits) // n_out  # Points per group
         w_inv = FF(get_omega_inv(prev_bits))
 
-        # Convert input to FF3 array
-        pol_ff3 = _list_to_ff3_array(pol)
-
         result_elems = []
         for g in range(n_out):
             # Gather fold_factor evaluations for this group
             indices = [g + i * n_out for i in range(fold_factor)]
-            evals = [pol_ff3[idx] for idx in indices]
+            evals = [pol[idx] for idx in indices]
 
             # INTT: evaluations -> coefficients
             if fold_factor > 1:
@@ -81,26 +58,23 @@ class FRI:
             folded = galois.Poly(evals[::-1], field=FF3)(challenge_ff3) if evals else FF3(0)
             result_elems.append(folded)
 
-        # Convert back to flattened list
-        result = []
-        for elem in result_elems:
-            result.extend(ff3_coeffs(elem))
-        return result
+        return FF3(result_elems)
 
     @staticmethod
     def merkelize(
         step: int,  # noqa: ARG004 - kept for API consistency
-        pol: EvalPoly,
+        pol: FF3Poly,
         tree: MerkleTree,
         current_bits: int,
         next_bits: int,
     ) -> MerkleRoot:
         """Commit to FRI layer via Merkle tree."""
-        dim = 3  # FF3 dimension
+        dim = FIELD_EXTENSION_DEGREE
         height = 1 << next_bits
         n_groups = 1 << (current_bits - next_bits)
         width = n_groups * dim
-        transposed = transpose_for_merkle(pol, 1 << current_bits, height, dim)
+        pol_flat = ff3_to_flat_list(pol)
+        transposed = transpose_for_merkle(pol_flat, 1 << current_bits, height, dim)
         tree.merkelize(transposed, height, width, n_cols=n_groups)
         return tree.get_root()
 
@@ -114,7 +88,7 @@ class FRI:
         challenge: List[int],
         idx: int,
         siblings: List[List[int]],
-    ) -> List[int]:
+    ) -> FF3:
         """Verify fold step: recompute expected value from siblings and challenge."""
         challenge_ff3 = ff3(challenge)
 
@@ -134,8 +108,7 @@ class FRI:
         # Compute evaluation point: challenge * (shift * w^(-idx))^(-1)
         eval_point = challenge_ff3 * int((shift_pow * (w_inv ** (-idx))) ** -1)
 
-        result = galois.Poly(coeffs[::-1], field=FF3)(eval_point) if coeffs else FF3(0)
-        return ff3_coeffs(result)
+        return galois.Poly(coeffs[::-1], field=FF3)(eval_point) if coeffs else FF3(0)
 
     @staticmethod
     def prove_queries(
@@ -157,7 +130,7 @@ class FRI:
         coeffs = [ff3_coeffs(v) for v in values]
 
         # Separate components and apply INTT to each
-        components = [FF([c[i] for c in coeffs]) for i in range(3)]
+        components = [FF([c[i] for c in coeffs]) for i in range(FIELD_EXTENSION_DEGREE)]
         results = [galois.intt(comp, omega=w_inv) for comp in components]
 
         return [ff3([int(r[i]) for r in results]) for i in range(n)]

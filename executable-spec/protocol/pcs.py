@@ -4,13 +4,15 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from poseidon2_ffi import grinding, linear_hash
+from primitives.field import FF3, FF3Poly, ff3_to_flat_list
 from primitives.merkle_tree import HASH_SIZE, MerkleRoot, MerkleTree, QueryProof
 from primitives.transcript import Transcript
-from protocol.fri import EvalPoly, FRI
-from protocol.stark_info import FIELD_EXTENSION
+from protocol.fri import FRI
+from protocol.stark_info import FIELD_EXTENSION_DEGREE
 
 # --- Type Aliases ---
 
+EvalPoly = FF3Poly  # Polynomial in evaluation form (FF3 array)
 Nonce = int
 QueryIndex = int
 
@@ -35,7 +37,7 @@ class FriPcsConfig:
 class FriProof:
     """FRI proof: roots, final polynomial, grinding nonce, and query proofs."""
     fri_roots: List[MerkleRoot] = field(default_factory=list)
-    final_pol: EvalPoly = field(default_factory=list)
+    final_pol: FF3Poly = field(default_factory=lambda: FF3([]))
     nonce: Nonce = 0
     query_proofs: List[List[QueryProof]] = field(default_factory=list)
     query_indices: List[QueryIndex] = field(default_factory=list)
@@ -70,7 +72,7 @@ class FriPcs:
         # --- Commit-Fold Loop ---
         # Each iteration: merkelize -> commit root -> derive challenge -> fold
         fri_roots: List[MerkleRoot] = []
-        current_pol = list(polynomial)
+        current_pol = polynomial  # Already FF3Poly
 
         for step in range(n_fold_steps):
             prev_bits, curr_bits = cfg.fri_steps[step], cfg.fri_steps[step + 1]
@@ -85,11 +87,12 @@ class FriPcs:
             current_pol = FRI.fold(step, current_pol, challenge, cfg.n_bits_ext, prev_bits, curr_bits)
 
         # --- Finalize ---
-        final_pol = list(current_pol)
+        # Convert to flat list for transcript operations (serialization boundary)
+        final_pol_flat = ff3_to_flat_list(current_pol)
         if cfg.hash_commits:
-            transcript.put(linear_hash(final_pol, cfg.transcript_arity * HASH_SIZE))
+            transcript.put(linear_hash(final_pol_flat, cfg.transcript_arity * HASH_SIZE))
         else:
-            transcript.put(final_pol)
+            transcript.put(final_pol_flat)
 
         # --- Grinding (proof-of-work) ---
         grinding_challenge = transcript.get_state(3)
@@ -101,7 +104,7 @@ class FriPcs:
 
         return FriProof(
             fri_roots=fri_roots,
-            final_pol=final_pol,
+            final_pol=current_pol,  # Store as FF3Poly
             nonce=nonce,
             query_proofs=query_proofs,
             query_indices=query_indices,
@@ -125,7 +128,7 @@ class FriPcs:
             step_proofs = [
                 self.fri_trees[step].get_query_proof(
                     self._fold_index(idx, step) % (1 << domain_bits),
-                    elem_size=FIELD_EXTENSION,
+                    elem_size=FIELD_EXTENSION_DEGREE,
                 )
                 for idx in query_indices
             ]
