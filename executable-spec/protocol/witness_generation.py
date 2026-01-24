@@ -6,47 +6,15 @@ from typing import List, TYPE_CHECKING
 from protocol.expressions_bin import ExpressionsBin, HintFieldValue, OpType
 from protocol.stark_info import StarkInfo
 from protocol.steps_params import StepsParams
-from primitives.field import FF, FF3, ff3, ff3_coeffs, batch_inverse
+from primitives.field import (
+    FF, ff3, batch_inverse,
+    ff3_from_numpy_coeffs, ff3_to_numpy_coeffs,
+    ff3_from_interleaved_numpy, ff3_to_interleaved_numpy,
+    FIELD_EXTENSION_DEGREE,
+)
 
 if TYPE_CHECKING:
     from protocol.expression_evaluator import ExpressionsPack
-
-# --- Constants ---
-
-FIELD_EXTENSION = 3
-
-
-# --- Conversion Helpers ---
-# These convert between numpy coefficient storage and galois types.
-# Storage uses interleaved coefficients [a0, a1, a2, b0, b1, b2, ...] as uint64.
-
-def _np_to_ff3(arr: np.ndarray) -> FF3:
-    """Convert numpy coefficient array (len 3) to FF3 scalar."""
-    return ff3([int(arr[0]), int(arr[1]), int(arr[2])])
-
-
-def _ff3_to_np(elem: FF3) -> np.ndarray:
-    """Convert FF3 scalar to numpy coefficient array."""
-    return np.array(ff3_coeffs(elem), dtype=np.uint64)
-
-
-def _np_column_to_ff3_array(arr: np.ndarray, N: int) -> FF3:
-    """Convert interleaved numpy column [a0,a1,a2,b0,b1,b2,...] to FF3 array."""
-    from primitives.field import GOLDILOCKS_PRIME
-    p, p2 = GOLDILOCKS_PRIME, GOLDILOCKS_PRIME ** 2
-    c0, c1, c2 = arr[0::3][:N].tolist(), arr[1::3][:N].tolist(), arr[2::3][:N].tolist()
-    ints = [c0[i] + c1[i] * p + c2[i] * p2 for i in range(N)]
-    return FF3(ints)
-
-
-def _ff3_array_to_np(arr: FF3, N: int) -> np.ndarray:
-    """Convert FF3 array to interleaved numpy column."""
-    result = np.zeros(N * 3, dtype=np.uint64)
-    vecs = arr.vector()  # (N, 3) in descending [c2, c1, c0]
-    result[0::3] = vecs[:, 2].view(np.ndarray).astype(np.uint64)
-    result[1::3] = vecs[:, 1].view(np.ndarray).astype(np.uint64)
-    result[2::3] = vecs[:, 0].view(np.ndarray).astype(np.uint64)
-    return result
 
 
 # --- Polynomial Buffer Access ---
@@ -110,16 +78,16 @@ def _fetch_operand(stark_info: StarkInfo, params: StepsParams, hfv: HintFieldVal
     elif hfv.operand == OpType.const_:
         return _get_const_poly(stark_info, params, stark_info.constPolsMap[hfv.id], N)
     elif hfv.operand == OpType.challenge:
-        idx = hfv.id * FIELD_EXTENSION
-        return params.challenges[idx:idx + FIELD_EXTENSION].copy()
+        idx = hfv.id * FIELD_EXTENSION_DEGREE
+        return params.challenges[idx:idx + FIELD_EXTENSION_DEGREE].copy()
     elif hfv.operand == OpType.number:
         return np.array([hfv.value], dtype=np.uint64)
     elif hfv.operand == OpType.airgroupvalue:
-        idx = hfv.id * FIELD_EXTENSION
-        return params.airgroupValues[idx:idx + FIELD_EXTENSION].copy()
+        idx = hfv.id * FIELD_EXTENSION_DEGREE
+        return params.airgroupValues[idx:idx + FIELD_EXTENSION_DEGREE].copy()
     elif hfv.operand == OpType.airvalue:
-        idx = hfv.id * FIELD_EXTENSION
-        return params.airValues[idx:idx + FIELD_EXTENSION].copy()
+        idx = hfv.id * FIELD_EXTENSION_DEGREE
+        return params.airValues[idx:idx + FIELD_EXTENSION_DEGREE].copy()
     elif hfv.operand == OpType.tmp:
         raise ValueError("OpType.tmp requires expression evaluation")
     elif hfv.operand == OpType.custom:
@@ -138,7 +106,7 @@ def _set_hint_field(
     if hfv.operand == OpType.cm:
         _set_poly_column(stark_info, params, stark_info.cmPolsMap[hfv.id], values)
     elif hfv.operand == OpType.airgroupvalue:
-        idx = hfv.id * FIELD_EXTENSION
+        idx = hfv.id * FIELD_EXTENSION_DEGREE
         params.airgroupValues[idx:idx + len(values)] = values
     else:
         raise NotImplementedError(f"Cannot set hint field with operand type {hfv.operand}")
@@ -149,57 +117,57 @@ def _multiply_values(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     len_a, len_b = len(a), len(b)
 
     # Scalar * scalar
-    if len_a <= 3 and len_b <= 3:
+    if len_a <= FIELD_EXTENSION_DEGREE and len_b <= FIELD_EXTENSION_DEGREE:
         if len_a == 1 and len_b == 1:
             return np.array([int(FF(int(a[0])) * FF(int(b[0])))], dtype=np.uint64)
-        elif len_a == 3 and len_b == 3:
-            result = _np_to_ff3(a) * _np_to_ff3(b)
-            return _ff3_to_np(result)
-        elif len_a == 1 and len_b == 3:
+        elif len_a == FIELD_EXTENSION_DEGREE and len_b == FIELD_EXTENSION_DEGREE:
+            result = ff3_from_numpy_coeffs(a) * ff3_from_numpy_coeffs(b)
+            return ff3_to_numpy_coeffs(result)
+        elif len_a == 1 and len_b == FIELD_EXTENSION_DEGREE:
             scalar = FF(int(a[0]))
-            return np.array([int(scalar * FF(int(b[i]))) for i in range(3)], dtype=np.uint64)
-        else:  # len_a == 3 and len_b == 1
+            return np.array([int(scalar * FF(int(b[i]))) for i in range(FIELD_EXTENSION_DEGREE)], dtype=np.uint64)
+        else:  # len_a == FIELD_EXTENSION_DEGREE and len_b == 1
             scalar = FF(int(b[0]))
-            return np.array([int(scalar * FF(int(a[i]))) for i in range(3)], dtype=np.uint64)
+            return np.array([int(scalar * FF(int(a[i]))) for i in range(FIELD_EXTENSION_DEGREE)], dtype=np.uint64)
 
     # Column * column (same size)
     if len_a == len_b:
-        dim = 3 if len_a % 3 == 0 and len_a > 3 else 1
+        dim = FIELD_EXTENSION_DEGREE if len_a % FIELD_EXTENSION_DEGREE == 0 and len_a > FIELD_EXTENSION_DEGREE else 1
         N = len_a // dim
         if dim == 1:
             ff_a = FF(np.asarray(a, dtype=np.uint64))
             ff_b = FF(np.asarray(b, dtype=np.uint64))
             return np.asarray(ff_a * ff_b, dtype=np.uint64)
         else:
-            ff3_a = _np_column_to_ff3_array(a, N)
-            ff3_b = _np_column_to_ff3_array(b, N)
-            return _ff3_array_to_np(ff3_a * ff3_b, N)
+            ff3_a = ff3_from_interleaved_numpy(a, N)
+            ff3_b = ff3_from_interleaved_numpy(b, N)
+            return ff3_to_interleaved_numpy(ff3_a * ff3_b)
 
     # Scalar * column broadcast
-    if len_a <= 3 and len_b > 3:
-        dim = 3 if len_b % 3 == 0 else 1
+    if len_a <= FIELD_EXTENSION_DEGREE and len_b > FIELD_EXTENSION_DEGREE:
+        dim = FIELD_EXTENSION_DEGREE if len_b % FIELD_EXTENSION_DEGREE == 0 else 1
         N = len_b // dim
         if dim == 1:
             scalar = FF(int(a[0]))
             ff_b = FF(np.asarray(b, dtype=np.uint64))
             return np.asarray(scalar * ff_b, dtype=np.uint64)
         else:
-            scalar = _np_to_ff3(a) if len_a == 3 else ff3([int(a[0]), 0, 0])
-            ff3_b = _np_column_to_ff3_array(b, N)
-            return _ff3_array_to_np(scalar * ff3_b, N)
+            scalar = ff3_from_numpy_coeffs(a) if len_a == FIELD_EXTENSION_DEGREE else ff3([int(a[0]), 0, 0])
+            ff3_b = ff3_from_interleaved_numpy(b, N)
+            return ff3_to_interleaved_numpy(scalar * ff3_b)
 
     # Column * scalar broadcast
-    if len_b <= 3 and len_a > 3:
-        dim = 3 if len_a % 3 == 0 else 1
+    if len_b <= FIELD_EXTENSION_DEGREE and len_a > FIELD_EXTENSION_DEGREE:
+        dim = FIELD_EXTENSION_DEGREE if len_a % FIELD_EXTENSION_DEGREE == 0 else 1
         N = len_a // dim
         if dim == 1:
             scalar = FF(int(b[0]))
             ff_a = FF(np.asarray(a, dtype=np.uint64))
             return np.asarray(ff_a * scalar, dtype=np.uint64)
         else:
-            scalar = _np_to_ff3(b) if len_b == 3 else ff3([int(b[0]), 0, 0])
-            ff3_a = _np_column_to_ff3_array(a, N)
-            return _ff3_array_to_np(ff3_a * scalar, N)
+            scalar = ff3_from_numpy_coeffs(b) if len_b == FIELD_EXTENSION_DEGREE else ff3([int(b[0]), 0, 0])
+            ff3_a = ff3_from_interleaved_numpy(a, N)
+            return ff3_to_interleaved_numpy(ff3_a * scalar)
 
     raise ValueError(f"Cannot multiply arrays of size {len_a} and {len_b}")
 
@@ -208,20 +176,20 @@ def _invert_values(a: np.ndarray) -> np.ndarray:
     """Invert field values using galois. Handles scalar and column cases."""
     if len(a) == 1:
         return np.array([int(FF(int(a[0])) ** -1)], dtype=np.uint64)
-    elif len(a) == 3:
-        result = _np_to_ff3(a) ** -1
-        return _ff3_to_np(result)
+    elif len(a) == FIELD_EXTENSION_DEGREE:
+        result = ff3_from_numpy_coeffs(a) ** -1
+        return ff3_to_numpy_coeffs(result)
     else:
-        dim = 3 if len(a) % 3 == 0 else 1
+        dim = FIELD_EXTENSION_DEGREE if len(a) % FIELD_EXTENSION_DEGREE == 0 else 1
         N = len(a) // dim
         if dim == 1:
             ff_vals = FF(np.asarray(a, dtype=np.uint64))
             ff_invs = batch_inverse(ff_vals)
             return np.asarray(ff_invs, dtype=np.uint64)
         else:
-            ff3_vals = _np_column_to_ff3_array(a, N)
+            ff3_vals = ff3_from_interleaved_numpy(a, N)
             ff3_invs = batch_inverse(ff3_vals)
-            return _ff3_array_to_np(ff3_invs, N)
+            return ff3_to_interleaved_numpy(ff3_invs)
 
 
 def get_hint_field_values(
@@ -255,7 +223,7 @@ def _build_param_from_hint_field(stark_info: StarkInfo, hfv: HintFieldValue):
     from protocol.expression_evaluator import Params
 
     if hfv.operand == OpType.tmp:
-        return Params(op="tmp", exp_id=hfv.id, dim=hfv.dim if hfv.dim > 0 else 3,
+        return Params(op="tmp", exp_id=hfv.id, dim=hfv.dim if hfv.dim > 0 else FIELD_EXTENSION_DEGREE,
                       row_offset_index=hfv.row_offset_index)
     elif hfv.operand == OpType.cm:
         pol = stark_info.cmPolsMap[hfv.id]
@@ -268,11 +236,11 @@ def _build_param_from_hint_field(stark_info: StarkInfo, hfv: HintFieldValue):
     elif hfv.operand == OpType.number:
         return Params(op="number", dim=1, value=hfv.value)
     elif hfv.operand == OpType.challenge:
-        return Params(op="challenge", dim=3, pols_map_id=hfv.id)
+        return Params(op="challenge", dim=FIELD_EXTENSION_DEGREE, pols_map_id=hfv.id)
     elif hfv.operand == OpType.airgroupvalue:
-        return Params(op="airgroupvalue", dim=3, pols_map_id=hfv.id)
+        return Params(op="airgroupvalue", dim=FIELD_EXTENSION_DEGREE, pols_map_id=hfv.id)
     elif hfv.operand == OpType.airvalue:
-        return Params(op="airvalue", dim=3, pols_map_id=hfv.id)
+        return Params(op="airvalue", dim=FIELD_EXTENSION_DEGREE, pols_map_id=hfv.id)
     else:
         raise NotImplementedError(f"Cannot build Params for operand type {hfv.operand}")
 
@@ -344,13 +312,13 @@ def acc_mul_hint_fields(
                 ff_vals[i] = ff_vals[i] * ff_vals[i - 1]
         vals[:N] = np.asarray(ff_vals, dtype=np.uint64)
     else:
-        ff3_vals = _np_column_to_ff3_array(vals, N)
+        ff3_vals = ff3_from_interleaved_numpy(vals, N)
         for i in range(1, N):
             if add:
                 ff3_vals[i] = ff3_vals[i] + ff3_vals[i - 1]
             else:
                 ff3_vals[i] = ff3_vals[i] * ff3_vals[i - 1]
-        vals = _ff3_array_to_np(ff3_vals, N)
+        vals = ff3_to_interleaved_numpy(ff3_vals)
 
     _set_hint_field(stark_info, expressions_bin, params, hint_id, dest_field, vals)
 
@@ -388,8 +356,8 @@ def update_airgroup_value(
         param2 = _build_param_from_hint_field(stark_info, hfv2)
         param2.inverse = True
 
-        dest_buffer = np.zeros(FIELD_EXTENSION, dtype=np.uint64)
-        dest = Dest(dest=dest_buffer, dim=FIELD_EXTENSION, domain_size=1, params=[param1, param2])
+        dest_buffer = np.zeros(FIELD_EXTENSION_DEGREE, dtype=np.uint64)
+        dest = Dest(dest=dest_buffer, dim=FIELD_EXTENSION_DEGREE, domain_size=1, params=[param1, param2])
         expressions_ctx.calculate_expressions(
             params=params, dest=dest, domain_size=1, domain_extended=False, compilation_time=False
         )
@@ -397,16 +365,16 @@ def update_airgroup_value(
 
     # Update airgroup value using galois
     airgroup_id = expressions_bin.get_hint_field(hint_id, airgroup_val_field).values[0].id
-    idx = airgroup_id * FIELD_EXTENSION
-    current = _np_to_ff3(params.airgroupValues[idx:idx + FIELD_EXTENSION])
-    result_ff3 = _np_to_ff3(result)
+    idx = airgroup_id * FIELD_EXTENSION_DEGREE
+    current = ff3_from_numpy_coeffs(params.airgroupValues[idx:idx + FIELD_EXTENSION_DEGREE])
+    result_ff3 = ff3_from_numpy_coeffs(result)
 
     if add:
         updated = current + result_ff3
     else:
         updated = current * result_ff3
 
-    params.airgroupValues[idx:idx + FIELD_EXTENSION] = _ff3_to_np(updated)
+    params.airgroupValues[idx:idx + FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(updated)
 
 
 # --- Main Entry Point ---

@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 import numpy as np
 
-from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION
+from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION_DEGREE
 from protocol.steps_params import StepsParams
 from protocol.expressions_bin import ParserParams
-from primitives.field import FF, FF3, ff3, ff3_coeffs, GOLDILOCKS_PRIME, batch_inverse
+from primitives.field import (
+    FF, FF3, ff3, ff3_coeffs, ff3_from_buffer_at, batch_inverse,
+)
 
 # --- Type Aliases ---
 
@@ -24,14 +26,6 @@ def _is_ff3(val: GaloisValue) -> bool:
     """Check if value is in the extension field FF3."""
     return type(val).order != FF.order
 
-
-def _to_ff3(val: GaloisValue) -> FF3:
-    """Promote FF to FF3 by embedding as (a, 0, 0)."""
-    if _is_ff3(val):
-        return val
-    if val.ndim == 0:
-        return FF3(int(val))
-    return FF3(np.asarray(val, dtype=np.uint64).tolist())
 
 
 # --- Evaluation Parameters ---
@@ -183,7 +177,7 @@ class ExpressionsCtx:
             domain_size = 1 << self.setup_ctx.stark_info.starkStruct.nBitsExt
             domain_extended = True
             if expression_id in self.setup_ctx.expressions_bin.expressions_info:
-                self.setup_ctx.expressions_bin.expressions_info[expression_id].dest_dim = 3
+                self.setup_ctx.expressions_bin.expressions_info[expression_id].dest_dim = FIELD_EXTENSION_DEGREE
         else:
             domain_size = 1 << self.setup_ctx.stark_info.starkStruct.nBits
             domain_extended = False
@@ -300,7 +294,7 @@ class ExpressionsPack(ExpressionsCtx):
                     if p.dim == 1:
                         param_results[k] = FF(int(params.airValues[p.pols_map_id]))
                     else:
-                        c = [int(params.airValues[p.pols_map_id + i]) for i in range(3)]
+                        c = [int(params.airValues[p.pols_map_id + i]) for i in range(FIELD_EXTENSION_DEGREE)]
                         param_results[k] = ff3(c)
                     continue
 
@@ -320,8 +314,8 @@ class ExpressionsPack(ExpressionsCtx):
                     dest_slot = args[i_args + 1]
 
                     # Bytecode op_type: 0=FF*FF, 1=FF3*FF, 2=FF3*FF3
-                    dim_a = 3 if op_type >= 1 else 1
-                    dim_b = 3 if op_type == 2 else 1
+                    dim_a = FIELD_EXTENSION_DEGREE if op_type >= 1 else 1
+                    dim_b = FIELD_EXTENSION_DEGREE if op_type == 2 else 1
 
                     a = self._load_operand(params, scalar_params, tmp1_g, tmp3_g, args,
                                            map_offsets_exps, map_offsets_custom_exps,
@@ -384,16 +378,9 @@ class ExpressionsPack(ExpressionsCtx):
             return FF(vals)
 
         # FF3 load
-        p = GOLDILOCKS_PRIME
-        p2 = p * p
-        ints = []
-        for r in range(nrows_pack):
-            idx = (row + r + o) % domain_size
-            c0 = int(params.auxTrace[offset + idx * n_cols + param.stage_pos])
-            c1 = int(params.auxTrace[offset + idx * n_cols + param.stage_pos + 1])
-            c2 = int(params.auxTrace[offset + idx * n_cols + param.stage_pos + 2])
-            ints.append(c0 + c1 * p + c2 * p2)
-        return FF3(ints)
+        indices = [offset + ((row + r + o) % domain_size) * n_cols + param.stage_pos
+                   for r in range(nrows_pack)]
+        return ff3_from_buffer_at(params.auxTrace, indices)
 
     def _load_operand(self, params: StepsParams, scalar_params: Dict[int, np.ndarray],
                       tmp1_g: Dict[int, FF], tmp3_g: Dict[int, FF3],
@@ -404,8 +391,6 @@ class ExpressionsPack(ExpressionsCtx):
                       ) -> GaloisValue:
         """Load operand from bytecode-specified source."""
         type_arg = args[i_args]
-        p = GOLDILOCKS_PRIME
-        p2 = p * p
 
         # Type 0: Constant polynomials
         if type_arg == 0:
@@ -426,7 +411,7 @@ class ExpressionsPack(ExpressionsCtx):
                     from primitives.pol_map import EvMap
                     for idx, e in enumerate(self.setup_ctx.stark_info.evMap):
                         if e.type == EvMap.Type.const_ and e.id == pol_id and e.openingPos == opening_idx:
-                            base = idx * FIELD_EXTENSION
+                            base = idx * FIELD_EXTENSION_DEGREE
                             c0 = int(params.evals[base])
                             c1 = int(params.evals[base + 1])
                             c2 = int(params.evals[base + 2])
@@ -462,7 +447,7 @@ class ExpressionsPack(ExpressionsCtx):
                     from primitives.pol_map import EvMap
                     for idx, e in enumerate(self.setup_ctx.stark_info.evMap):
                         if e.type == EvMap.Type.cm and e.id == pol_id and e.openingPos == opening_idx:
-                            base = idx * FIELD_EXTENSION
+                            base = idx * FIELD_EXTENSION_DEGREE
                             c0 = int(params.evals[base])
                             c1 = int(params.evals[base + 1])
                             c2 = int(params.evals[base + 2])
@@ -487,22 +472,13 @@ class ExpressionsPack(ExpressionsCtx):
                 return FF(vals)
 
             # FF3
-            ints = []
             if is_cyclic:
-                for j in range(nrows_pack):
-                    idx = (row + j + o) % domain_size
-                    c0 = int(params.auxTrace[offset + idx * n_cols + stage_pos])
-                    c1 = int(params.auxTrace[offset + idx * n_cols + stage_pos + 1])
-                    c2 = int(params.auxTrace[offset + idx * n_cols + stage_pos + 2])
-                    ints.append(c0 + c1 * p + c2 * p2)
+                indices = [offset + ((row + j + o) % domain_size) * n_cols + stage_pos
+                           for j in range(nrows_pack)]
             else:
                 offset_col = offset + (row + o) * n_cols + stage_pos
-                for j in range(nrows_pack):
-                    c0 = int(params.auxTrace[offset_col + j * n_cols])
-                    c1 = int(params.auxTrace[offset_col + j * n_cols + 1])
-                    c2 = int(params.auxTrace[offset_col + j * n_cols + 2])
-                    ints.append(c0 + c1 * p + c2 * p2)
-            return FF3(ints)
+                indices = [offset_col + j * n_cols for j in range(nrows_pack)]
+            return ff3_from_buffer_at(params.auxTrace, indices)
 
         # Type nStages+2: Boundary values (x_n, zi)
         if type_arg == self.setup_ctx.stark_info.nStages + 2:
@@ -513,9 +489,9 @@ class ExpressionsPack(ExpressionsCtx):
                     c1 = int(self.prover_helpers.x_n[1])
                     c2 = int(self.prover_helpers.x_n[2])
                     scalar = ff3([c0, c1, c2])
-                    return FF3([int(scalar)] * nrows_pack) if dim == 3 else FF([c0] * nrows_pack)
+                    return FF3([int(scalar)] * nrows_pack) if dim == FIELD_EXTENSION_DEGREE else FF([c0] * nrows_pack)
                 else:
-                    base = (boundary - 1) * FIELD_EXTENSION
+                    base = (boundary - 1) * FIELD_EXTENSION_DEGREE
                     c0 = int(self.prover_helpers.zi[base])
                     c1 = int(self.prover_helpers.zi[base + 1])
                     c2 = int(self.prover_helpers.zi[base + 2])
@@ -533,19 +509,15 @@ class ExpressionsPack(ExpressionsCtx):
         if type_arg == self.setup_ctx.stark_info.nStages + 3:
             o = args[i_args + 1]
             if self.setup_ctx.stark_info.verify:
-                ints = []
-                for k in range(nrows_pack):
-                    base = ((row + k) * len(self.setup_ctx.stark_info.openingPoints) + o) * FIELD_EXTENSION
-                    c0 = int(params.xDivXSub[base])
-                    c1 = int(params.xDivXSub[base + 1])
-                    c2 = int(params.xDivXSub[base + 2])
-                    ints.append(c0 + c1 * p + c2 * p2)
-                return FF3(ints)
+                n_openings = len(self.setup_ctx.stark_info.openingPoints)
+                indices = [((row + k) * n_openings + o) * FIELD_EXTENSION_DEGREE
+                           for k in range(nrows_pack)]
+                return ff3_from_buffer_at(params.xDivXSub, indices)
             else:
                 # Compute x/(x-xi)
-                xi_c0 = int(self.xis[o * FIELD_EXTENSION])
-                xi_c1 = int(self.xis[o * FIELD_EXTENSION + 1])
-                xi_c2 = int(self.xis[o * FIELD_EXTENSION + 2])
+                xi_c0 = int(self.xis[o * FIELD_EXTENSION_DEGREE])
+                xi_c1 = int(self.xis[o * FIELD_EXTENSION_DEGREE + 1])
+                xi_c2 = int(self.xis[o * FIELD_EXTENSION_DEGREE + 2])
                 xi_val = ff3([xi_c0, xi_c1, xi_c2])
 
                 x_vals = self.prover_helpers.x[row:row + nrows_pack]
@@ -594,9 +566,9 @@ class ExpressionsPack(ExpressionsCtx):
         """Apply arithmetic operation, promoting to FF3 if types mismatch."""
         a_ext, b_ext = _is_ff3(a), _is_ff3(b)
         if a_ext and not b_ext:
-            b = _to_ff3(b)
+            b = FF3(b)
         elif b_ext and not a_ext:
-            a = _to_ff3(a)
+            a = FF3(a)
 
         if op == 0:    # ADD
             return a + b
@@ -609,18 +581,22 @@ class ExpressionsPack(ExpressionsCtx):
         raise ValueError(f"Invalid operation: {op}")
 
     def _multiply_results(self, a: GaloisValue, b: GaloisValue) -> GaloisValue:
-        """Multiply two results, promoting to FF3 if types mismatch."""
+        """Multiply two results, promoting to FF3 only if types mismatch.
+
+        FF3(val) is idempotent so we use it directly for promotion.
+        We check types to preserve FF*FF -> FF (avoid unnecessary extension).
+        """
         a_ext, b_ext = _is_ff3(a), _is_ff3(b)
         if a_ext and not b_ext:
-            b = _to_ff3(b)
+            b = FF3(b)
         elif b_ext and not a_ext:
-            a = _to_ff3(a)
+            a = FF3(a)
         return a * b
 
     def _store_result(self, dest: Dest, result: GaloisValue, row: int, nrows_pack: int):
         """Store result to destination buffer. Type detected from result."""
         is_ext = _is_ff3(result)
-        offset = dest.offset if dest.offset != 0 else (FIELD_EXTENSION if is_ext else 1)
+        offset = dest.offset if dest.offset != 0 else (FIELD_EXTENSION_DEGREE if is_ext else 1)
 
         if not is_ext:
             # FF: store single values

@@ -47,7 +47,7 @@ from protocol import (
     # FRI
     FRI,
     EvalPoly,
-    FIELD_EXTENSION,
+    FIELD_EXTENSION_DEGREE,
     # FRI PCS
     FriPcs,
     FriPcsConfig,
@@ -117,7 +117,7 @@ __all__ = [
     # FRI
     "FRI",
     "EvalPoly",
-    "FIELD_EXTENSION",
+    "FIELD_EXTENSION_DEGREE",
     # FRI PCS
     "FriPcs",
     "FriPcsConfig",

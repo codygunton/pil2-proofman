@@ -3,14 +3,14 @@
 from typing import TYPE_CHECKING, Optional, List, Union
 import numpy as np
 
-from primitives.field import FF, ff3, ff3_coeffs, get_omega, SHIFT, batch_inverse
+from primitives.field import (
+    FF, ff3, ff3_from_base, ff3_to_numpy_coeffs, get_omega, SHIFT, batch_inverse,
+    FIELD_EXTENSION_DEGREE,
+)
 
 if TYPE_CHECKING:
     from protocol.stark_info import StarkInfo, Boundary
     from protocol.expressions_bin import ExpressionsBin
-
-
-FIELD_EXTENSION = 3  # Goldilocks cubic extension
 
 
 # --- Prover Helpers ---
@@ -49,10 +49,10 @@ class ProverHelpers:
         boundaries = stark_info.boundaries
         N = 1 << n_bits
 
-        helpers.zi = np.zeros(len(boundaries) * FIELD_EXTENSION, dtype=np.uint64)
+        helpers.zi = np.zeros(len(boundaries) * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
         z_ff3 = ff3([int(z[0]), int(z[1]), int(z[2])])
-        one_ff3 = ff3([1, 0, 0])
+        one_ff3 = ff3_from_base(1)
 
         # z^N
         x_n_ff3 = one_ff3
@@ -64,7 +64,7 @@ class ProverHelpers:
         z_n_inv = z_n_minus_one ** -1
 
         # First boundary: 1/(z^N - 1)
-        helpers.zi[0:3] = ff3_coeffs(z_n_inv)
+        helpers.zi[0:3] = ff3_to_numpy_coeffs(z_n_inv)
 
         # Other boundary zerofiers
         for i in range(1, len(boundaries)):
@@ -73,15 +73,15 @@ class ProverHelpers:
             if boundary.name == "firstRow":
                 # (z - 1)^(-1) * (z^N - 1)
                 zi_temp = (z_ff3 - one_ff3) ** -1 * z_n_minus_one
-                helpers.zi[i*FIELD_EXTENSION:(i+1)*FIELD_EXTENSION] = ff3_coeffs(zi_temp)
+                helpers.zi[i*FIELD_EXTENSION_DEGREE:(i+1)*FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(zi_temp)
 
             elif boundary.name == "lastRow":
                 # (z - w^(N-1))^(-1) * (z^N - 1)
                 w = FF(get_omega(n_bits))
                 root = w ** (N - 1)
-                root_ff3 = ff3([int(root), 0, 0])
+                root_ff3 = ff3_from_base(int(root))
                 zi_temp = (z_ff3 - root_ff3) ** -1 * z_n_minus_one
-                helpers.zi[i*FIELD_EXTENSION:(i+1)*FIELD_EXTENSION] = ff3_coeffs(zi_temp)
+                helpers.zi[i*FIELD_EXTENSION_DEGREE:(i+1)*FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(zi_temp)
 
             elif boundary.name == "everyRow":
                 # Product of (z - w^k) for excluded rows
@@ -90,15 +90,15 @@ class ProverHelpers:
 
                 # Rows [0, offsetMin)
                 for k in range(boundary.offsetMin):
-                    root_ff3 = ff3([int(w ** k), 0, 0])
+                    root_ff3 = ff3_from_base(int(w ** k))
                     zi_temp = zi_temp * (z_ff3 - root_ff3)
 
                 # Rows [N - offsetMax, N)
                 for k in range(boundary.offsetMax):
-                    root_ff3 = ff3([int(w ** (N - k - 1)), 0, 0])
+                    root_ff3 = ff3_from_base(int(w ** (N - k - 1)))
                     zi_temp = zi_temp * (z_ff3 - root_ff3)
 
-                helpers.zi[i*FIELD_EXTENSION:(i+1)*FIELD_EXTENSION] = ff3_coeffs(zi_temp)
+                helpers.zi[i*FIELD_EXTENSION_DEGREE:(i+1)*FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(zi_temp)
 
         helpers.x_n = np.array([z[0], z[1], z[2]], dtype=np.uint64)
         return helpers

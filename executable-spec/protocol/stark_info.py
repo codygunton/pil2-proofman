@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple
 from primitives.pol_map import PolMap, EvMap, ChallengeMap, CustomCommits, Boundary, FieldType
 
 # --- Constants ---
-FIELD_EXTENSION = 3  # Goldilocks3
+from primitives.field import FIELD_EXTENSION_DEGREE
 HASH_SIZE = 4
 
 
@@ -355,12 +355,12 @@ class StarkInfo:
         self.proofSize = 0
 
         # Values and roots
-        self.proofSize += len(self.airgroupValuesMap) * FIELD_EXTENSION
-        self.proofSize += len(self.airValuesMap) * FIELD_EXTENSION
+        self.proofSize += len(self.airgroupValuesMap) * FIELD_EXTENSION_DEGREE
+        self.proofSize += len(self.airValuesMap) * FIELD_EXTENSION_DEGREE
         self.proofSize += (self.nStages + 1) * HASH_SIZE
 
         # Evaluations
-        self.proofSize += len(self.evMap) * FIELD_EXTENSION
+        self.proofSize += len(self.evMap) * FIELD_EXTENSION_DEGREE
 
         # Merkle proof siblings
         nSiblings = (
@@ -402,12 +402,12 @@ class StarkInfo:
             )
             nSiblingsPerLevel = (ss.merkleTreeArity - 1) * HASH_SIZE
             fold_factor = 1 << (ss.steps[i - 1].nBits - ss.steps[i].nBits)
-            self.proofSize += ss.nQueries * fold_factor * FIELD_EXTENSION
+            self.proofSize += ss.nQueries * fold_factor * FIELD_EXTENSION_DEGREE
             self.proofSize += ss.nQueries * nSiblings * nSiblingsPerLevel
 
         # Final polynomial + nonce
         final_pol_degree = 1 << ss.steps[-1].nBits
-        self.proofSize += final_pol_degree * FIELD_EXTENSION
+        self.proofSize += final_pol_degree * FIELD_EXTENSION_DEGREE
         self.proofSize += 1
 
     def _compute_map_offsets(self) -> None:
@@ -453,7 +453,7 @@ class StarkInfo:
         self.mapTotalN += NExtended * self.qDim
 
         self.mapOffsets[("f", True)] = self.mapTotalN
-        self.mapTotalN += NExtended * FIELD_EXTENSION
+        self.mapTotalN += NExtended * FIELD_EXTENSION_DEGREE
 
     def _merkle_tree_nodes(self, height: int) -> int:
         """Calculate total Merkle tree node count * HASH_SIZE."""

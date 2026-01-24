@@ -7,7 +7,7 @@ from the test AIRs and produces the expected data structures.
 
 import pytest
 from pathlib import Path
-from protocol.stark_info import StarkInfo, FIELD_EXTENSION
+from protocol.stark_info import StarkInfo, FIELD_EXTENSION_DEGREE
 from primitives.pol_map import EvMap
 
 
@@ -149,7 +149,7 @@ class TestStarkInfoSimple:
         assert len(stark_info.airgroupValuesMap) == 1
         assert stark_info.airgroupValuesMap[0].name == "Simple.gsum_result"
         assert stark_info.airgroupValuesMap[0].stage == 2
-        assert stark_info.airgroupValuesSize == FIELD_EXTENSION
+        assert stark_info.airgroupValuesSize == FIELD_EXTENSION_DEGREE
 
     def test_map_sections(self, stark_info):
         """Verify section column counts."""

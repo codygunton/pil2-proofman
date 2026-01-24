@@ -4,15 +4,14 @@ import json
 import math
 import struct
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, List
 
-from protocol.stark_info import FIELD_EXTENSION, HASH_SIZE
+from primitives.field import ff3_coeffs, ff3_to_flat_list
+from protocol.stark_info import FIELD_EXTENSION_DEGREE, HASH_SIZE
 
 
 # --- Type Aliases ---
-Fe = int
-Fe3 = list[int]  # [a, b, c] in F_{p^3}
-Hash = list[int]  # [h0, h1, h2, h3] Poseidon hash
+Hash = List[int]  # Poseidon hash output [h0, h1, h2, h3]
 
 
 # --- Proof Data Structures ---
@@ -36,19 +35,19 @@ class ProofTree:
 class FriProof:
     """FRI opening proof: folding trees and final polynomial."""
     trees: ProofTree = field(default_factory=ProofTree)
-    trees_fri: list[ProofTree] = field(default_factory=list)
-    pol: list[Fe3] = field(default_factory=list)
+    trees_fri: List[ProofTree] = field(default_factory=list)
+    pol: List[List[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
 
 
 @dataclass
 class STARKProof:
     """Complete STARK proof."""
-    roots: list[Hash] = field(default_factory=list)
-    last_levels: list[list[int]] = field(default_factory=list)
-    evals: list[Fe3] = field(default_factory=list)
-    airgroup_values: list[Fe3] = field(default_factory=list)
-    air_values: list[Fe3] = field(default_factory=list)
-    custom_commits: list[str] = field(default_factory=list)
+    roots: List[Hash] = field(default_factory=list)
+    last_levels: List[List[int]] = field(default_factory=list)
+    evals: List[List[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
+    airgroup_values: List[List[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
+    air_values: List[List[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
+    custom_commits: List[str] = field(default_factory=list)
     fri: FriProof = field(default_factory=FriProof)
     nonce: int = 0
 
@@ -57,7 +56,7 @@ class STARKProof:
 class FRIProofFull:
     """Full FRI proof with metadata."""
     proof: STARKProof = field(default_factory=STARKProof)
-    publics: list[int] = field(default_factory=list)
+    publics: List[int] = field(default_factory=list)
     airgroup_id: int = 0
     air_id: int = 0
     instance_id: int = 0
@@ -176,8 +175,8 @@ def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
     n_airgroup_values = len(stark_info.airgroupValuesMap)
     jproof['airgroupvalues'] = []
     for _ in range(n_airgroup_values):
-        jproof['airgroupvalues'].append(values[idx:idx + FIELD_EXTENSION])
-        idx += FIELD_EXTENSION
+        jproof['airgroupvalues'].append(values[idx:idx + FIELD_EXTENSION_DEGREE])
+        idx += FIELD_EXTENSION_DEGREE
 
     # Section 2: airValues
     jproof['airvalues'] = []
@@ -186,8 +185,8 @@ def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
             jproof['airvalues'].append([values[idx]])
             idx += 1
         else:
-            jproof['airvalues'].append(values[idx:idx + FIELD_EXTENSION])
-            idx += FIELD_EXTENSION
+            jproof['airvalues'].append(values[idx:idx + FIELD_EXTENSION_DEGREE])
+            idx += FIELD_EXTENSION_DEGREE
 
     # Section 3: roots
     for stage in range(1, n_stages + 2):
@@ -198,8 +197,8 @@ def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
     n_evals = len(stark_info.evMap)
     jproof['evals'] = []
     for _ in range(n_evals):
-        jproof['evals'].append(values[idx:idx + FIELD_EXTENSION])
-        idx += FIELD_EXTENSION
+        jproof['evals'].append(values[idx:idx + FIELD_EXTENSION_DEGREE])
+        idx += FIELD_EXTENSION_DEGREE
 
     # Sections 5-7: const tree query proofs
     if n_constants > 0:
@@ -266,7 +265,7 @@ def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
         step = step_idx + 1
         prev_bits = stark_info.starkStruct.steps[step_idx].nBits
         curr_bits = stark_info.starkStruct.steps[step_idx + 1].nBits
-        n_fri_cols = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION
+        n_fri_cols = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION_DEGREE
 
         # Values
         jproof[f's{step}_vals'] = []
@@ -296,8 +295,8 @@ def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
     final_pol_size = 1 << stark_info.starkStruct.steps[-1].nBits
     jproof['finalPol'] = []
     for _ in range(final_pol_size):
-        jproof['finalPol'].append(values[idx:idx + FIELD_EXTENSION])
-        idx += FIELD_EXTENSION
+        jproof['finalPol'].append(values[idx:idx + FIELD_EXTENSION_DEGREE])
+        idx += FIELD_EXTENSION_DEGREE
 
     # Section 13: nonce
     jproof['nonce'] = values[idx]
@@ -323,34 +322,17 @@ def _is_extension_field(arr: Any) -> bool:
 
 
 def _to_list(arr: Any) -> list:
-    """Convert array to flat int list for serialization.
-
-    Handles:
-    - numpy arrays: use tolist()
-    - galois FF arrays: convert elements to int
-    - galois FF3 arrays: flatten with ascending coefficient order [c0, c1, c2]
-      (galois .vector() returns descending [c2, c1, c0])
-    """
+    """Convert array to flat int list for serialization."""
     if arr is None:
         return []
 
     # Handle galois FieldArray types
     if _is_galois_array(arr):
         if _is_extension_field(arr):
-            # FF3: Extract coefficients in ascending order for C++ compatibility
-            # galois .vector() returns [c2, c1, c0], C++ expects [c0, c1, c2]
+            # FF3: use field.py helpers for ascending coefficient order
             if arr.ndim == 0:
-                # Scalar FF3 element
-                vec = arr.vector()
-                return [int(vec[2]), int(vec[1]), int(vec[0])]
-            else:
-                # Array of FF3 elements
-                vecs = arr.vector()  # Shape (N, degree) with descending order
-                result = []
-                for row in vecs:
-                    # Reverse: [c2, c1, c0] -> [c0, c1, c2]
-                    result.extend(int(row[i]) for i in range(len(row) - 1, -1, -1))
-                return result
+                return ff3_coeffs(arr)
+            return ff3_to_flat_list(arr)
         else:
             # FF (base field): just convert to ints
             if arr.ndim == 0:
@@ -372,15 +354,15 @@ def to_bytes_partial(proof_dict: dict[str, Any], stark_info: Any) -> tuple[bytes
     airgroup_values = _to_list(proof_dict.get('airgroup_values', []))
     n_airgroup_values = len(stark_info.airgroupValuesMap)
     for i in range(n_airgroup_values):
-        start = i * FIELD_EXTENSION
-        header_values.extend(int(v) for v in airgroup_values[start:start + FIELD_EXTENSION])
+        start = i * FIELD_EXTENSION_DEGREE
+        header_values.extend(int(v) for v in airgroup_values[start:start + FIELD_EXTENSION_DEGREE])
 
     # 2. airValues
     air_values = _to_list(proof_dict.get('air_values', []))
     n_air_values = len(stark_info.airValuesMap)
     for i in range(n_air_values):
-        start = i * FIELD_EXTENSION
-        header_values.extend(int(v) for v in air_values[start:start + FIELD_EXTENSION])
+        start = i * FIELD_EXTENSION_DEGREE
+        header_values.extend(int(v) for v in air_values[start:start + FIELD_EXTENSION_DEGREE])
 
     # 3. roots
     for root in proof_dict.get('roots', []):
@@ -390,8 +372,8 @@ def to_bytes_partial(proof_dict: dict[str, Any], stark_info: Any) -> tuple[bytes
     evals = _to_list(proof_dict.get('evals', []))
     n_evals = len(stark_info.evMap)
     for i in range(n_evals):
-        start = i * FIELD_EXTENSION
-        header_values.extend(int(v) for v in evals[start:start + FIELD_EXTENSION])
+        start = i * FIELD_EXTENSION_DEGREE
+        header_values.extend(int(v) for v in evals[start:start + FIELD_EXTENSION_DEGREE])
 
     header_bytes = struct.pack(f'<{len(header_values)}Q', *header_values)
 
@@ -400,8 +382,8 @@ def to_bytes_partial(proof_dict: dict[str, Any], stark_info: Any) -> tuple[bytes
     fri_proof = proof_dict.get('fri_proof')
     if fri_proof is not None:
         final_pol = _to_list(fri_proof.final_pol) if hasattr(fri_proof, 'final_pol') else []
-        for i in range(0, len(final_pol), FIELD_EXTENSION):
-            footer_values.extend(int(v) for v in final_pol[i:i + FIELD_EXTENSION])
+        for i in range(0, len(final_pol), FIELD_EXTENSION_DEGREE):
+            footer_values.extend(int(v) for v in final_pol[i:i + FIELD_EXTENSION_DEGREE])
 
     footer_values.append(int(proof_dict.get('nonce', 0)))
     footer_bytes = struct.pack(f'<{len(footer_values)}Q', *footer_values)
@@ -418,13 +400,13 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
 
     # 1-4: Header (airgroup_values, air_values, roots, evals)
     for av in proof.airgroup_values:
-        values.extend(av[:FIELD_EXTENSION])
+        values.extend(av[:FIELD_EXTENSION_DEGREE])
     for av in proof.air_values:
-        values.extend(av[:FIELD_EXTENSION])
+        values.extend(av[:FIELD_EXTENSION_DEGREE])
     for root in proof.roots:
         values.extend(root[:HASH_SIZE])
     for ev in proof.evals:
-        values.extend(ev[:FIELD_EXTENSION])
+        values.extend(ev[:FIELD_EXTENSION_DEGREE])
 
     # Configuration
     n_queries = stark_info.starkStruct.nQueries
@@ -489,7 +471,7 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
     for step in range(1, len(stark_info.starkStruct.steps)):
         prev_bits = stark_info.starkStruct.steps[step - 1].nBits
         curr_bits = stark_info.starkStruct.steps[step].nBits
-        n_fri_vals = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION
+        n_fri_vals = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION_DEGREE
 
         for i in range(n_queries):
             for col in range(n_fri_vals):
@@ -505,7 +487,7 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
 
     # 12: finalPol
     for pol_coef in proof.fri.pol:
-        values.extend(pol_coef[:FIELD_EXTENSION])
+        values.extend(pol_coef[:FIELD_EXTENSION_DEGREE])
 
     # 13: nonce
     values.append(proof.nonce)
@@ -535,14 +517,14 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
     # Section 1: airgroupValues
     n_airgroup_values = len(stark_info.airgroupValuesMap)
     for i in range(n_airgroup_values):
-        start = i * FIELD_EXTENSION
-        values.extend(int(v) for v in airgroup_values[start:start + FIELD_EXTENSION])
+        start = i * FIELD_EXTENSION_DEGREE
+        values.extend(int(v) for v in airgroup_values[start:start + FIELD_EXTENSION_DEGREE])
 
     # Section 2: airValues
     n_air_values = len(stark_info.airValuesMap)
     for i in range(n_air_values):
-        start = i * FIELD_EXTENSION
-        values.extend(int(v) for v in air_values[start:start + FIELD_EXTENSION])
+        start = i * FIELD_EXTENSION_DEGREE
+        values.extend(int(v) for v in air_values[start:start + FIELD_EXTENSION_DEGREE])
 
     # Section 3: roots
     for root in roots:
@@ -551,8 +533,8 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
     # Section 4: evals
     n_evals = len(stark_info.evMap)
     for i in range(n_evals):
-        start = i * FIELD_EXTENSION
-        values.extend(int(v) for v in evals[start:start + FIELD_EXTENSION])
+        start = i * FIELD_EXTENSION_DEGREE
+        values.extend(int(v) for v in evals[start:start + FIELD_EXTENSION_DEGREE])
 
     # Sections 5-7: const tree query proofs
     const_query_proofs = proof_dict.get('const_query_proofs', [])
@@ -635,9 +617,9 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
                 for qp in fri_proof.query_proofs[step_idx]:
                     for group_idx in range(n_fri_groups):
                         if group_idx < len(qp.v):
-                            values.extend(int(v) for v in qp.v[group_idx][:FIELD_EXTENSION])
+                            values.extend(int(v) for v in qp.v[group_idx][:FIELD_EXTENSION_DEGREE])
                         else:
-                            values.extend([0] * FIELD_EXTENSION)
+                            values.extend([0] * FIELD_EXTENSION_DEGREE)
 
             # Merkle paths
             n_siblings_fri = int(math.ceil(curr_bits / math.log2(merkle_arity))) - last_level_verification
@@ -661,8 +643,8 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
     # Section 12: finalPol
     if fri_proof is not None:
         final_pol = _to_list(fri_proof.final_pol)
-        for i in range(0, len(final_pol), FIELD_EXTENSION):
-            values.extend(int(v) for v in final_pol[i:i + FIELD_EXTENSION])
+        for i in range(0, len(final_pol), FIELD_EXTENSION_DEGREE):
+            values.extend(int(v) for v in final_pol[i:i + FIELD_EXTENSION_DEGREE])
 
     # Section 13: nonce
     values.append(int(nonce))
@@ -684,8 +666,8 @@ def validate_proof_structure(proof: STARKProof, stark_info: Any) -> list[str]:
         errors.append(f"Expected {len(stark_info.evMap)} evaluations, got {len(proof.evals)}")
 
     for i, ev in enumerate(proof.evals):
-        if len(ev) != FIELD_EXTENSION:
-            errors.append(f"Evaluation {i} has dimension {len(ev)}, expected {FIELD_EXTENSION}")
+        if len(ev) != FIELD_EXTENSION_DEGREE:
+            errors.append(f"Evaluation {i} has dimension {len(ev)}, expected {FIELD_EXTENSION_DEGREE}")
 
     if len(proof.airgroup_values) != len(stark_info.airgroupValuesMap):
         errors.append(

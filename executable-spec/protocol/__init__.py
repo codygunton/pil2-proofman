@@ -1,13 +1,9 @@
 """Protocol - Core STARK protocol algorithms."""
 
-from protocol.fri import (
-    FRI,
-    EvalPoly,
-)
-
-from protocol.pcs import FIELD_EXTENSION
-
+from protocol.fri import FRI
 from protocol.pcs import (
+    EvalPoly,
+    FIELD_EXTENSION_DEGREE,
     FriPcs,
     FriPcsConfig,
     FriProof,
@@ -35,7 +31,7 @@ __all__ = [
     # FRI
     "FRI",
     "EvalPoly",
-    "FIELD_EXTENSION",
+    "FIELD_EXTENSION_DEGREE",
     # FRI PCS
     "FriPcs",
     "FriPcsConfig",

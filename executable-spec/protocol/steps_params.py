@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 import numpy as np
 
-from primitives.field import FF, FF3
+from primitives.field import FF, FF3, FIELD_EXTENSION_DEGREE
 
 # Type aliases for documentation
 # Note: FF and FF3 are galois FieldArray types from primitives.field
@@ -29,6 +29,11 @@ class StepsParams:
     auxTrace: Optional[np.ndarray] = None
 
     # --- Public inputs (base field) ---
+    # A: Union[FFArray, np.ndarray] exists because we're in a transitional state -
+    # some callers (tests, expression_evaluator) still pass np.ndarray. The goal is
+    # to use FF/FF3 exclusively here, with np.ndarray only in auxTrace (which has
+    # interleaved FF/FF3 sections for C++ buffer compatibility).
+    # TODO: Remove Union types, make all fields strictly FF or FF3, fix all callers
     publicInputs: Optional[Union[FFArray, np.ndarray]] = None
 
     # --- Proof values (base field, application-specific) ---
@@ -64,11 +69,11 @@ class StepsParams:
 
     def get_challenge(self, index: int) -> list[int]:
         """Get challenge at index as [c0, c1, c2] coefficients."""
-        base = index * 3
-        return [int(self.challenges[base + j]) for j in range(3)]
+        base = index * FIELD_EXTENSION_DEGREE
+        return [int(self.challenges[base + j]) for j in range(FIELD_EXTENSION_DEGREE)]
 
     def set_challenge(self, index: int, value: list[int]) -> None:
         """Set challenge at index from [c0, c1, c2] coefficients."""
-        base = index * 3
-        for j in range(3):
+        base = index * FIELD_EXTENSION_DEGREE
+        for j in range(FIELD_EXTENSION_DEGREE):
             self.challenges[base + j] = value[j]

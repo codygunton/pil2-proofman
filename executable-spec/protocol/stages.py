@@ -3,7 +3,7 @@
 from typing import Optional, Dict
 import numpy as np
 
-from protocol.setup_ctx import SetupCtx, FIELD_EXTENSION
+from protocol.setup_ctx import SetupCtx, FIELD_EXTENSION_DEGREE
 from primitives.ntt import NTT
 from protocol.expression_evaluator import ExpressionsPack
 from protocol.steps_params import StepsParams
@@ -132,7 +132,7 @@ class Starks:
         3. Reorganize from degree-major to evaluation-major layout
         4. NTT back to extended domain evaluations
         """
-        from primitives.field import FF, ff3, ff3_coeffs, SHIFT_INV
+        from primitives.field import FF, ff3_from_base, ff3_to_numpy_coeffs, ff3_from_numpy_coeffs, SHIFT_INV
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
@@ -163,16 +163,14 @@ class Starks:
         # Step 3: Apply shifts and reorganize layout
         # cmQ[(i * qDeg + p) * 3] = qPol[(p * N + i) * 3] * S[p]
         for p in range(qDeg):
-            shift_p = ff3([int(S[p]), 0, 0])
+            shift_p = ff3_from_base(int(S[p]))
             for i in range(N):
-                qIdx = (p * N + i) * FIELD_EXTENSION
-                qVal = ff3([int(qPol[qIdx]), int(qPol[qIdx + 1]), int(qPol[qIdx + 2])])
-                result = ff3_coeffs(qVal * shift_p)
+                qIdx = (p * N + i) * FIELD_EXTENSION_DEGREE
+                qVal = ff3_from_numpy_coeffs(qPol[qIdx:qIdx + 3])
+                result = ff3_to_numpy_coeffs(qVal * shift_p)
 
-                cmQIdx = (i * qDeg + p) * FIELD_EXTENSION
-                cmQ[cmQIdx] = result[0]
-                cmQ[cmQIdx + 1] = result[1]
-                cmQ[cmQIdx + 2] = result[2]
+                cmQIdx = (i * qDeg + p) * FIELD_EXTENSION_DEGREE
+                cmQ[cmQIdx:cmQIdx + 3] = result
 
         # Step 4: Zero-pad remaining coefficients
         cmQ[N * qDeg * qDim:NExtended * qDeg * qDim] = 0
@@ -232,7 +230,7 @@ class Starks:
     def calculateFRIPolynomial(self, params: StepsParams,
                               expressionsCtx: ExpressionsPack):
         """Compute FRI polynomial F = linear combination of committed polys at xi*w^offset."""
-        from primitives.field import FF, ff3, ff3_coeffs, get_omega
+        from primitives.field import FF, ff3_from_base, ff3_to_numpy_coeffs, ff3_from_numpy_coeffs, get_omega
 
         # Find xi challenge index (stage nStages + 2, stageId 0)
         xiChallengeIndex = next(
@@ -240,22 +238,21 @@ class Starks:
             if cm.stage == self.setupCtx.stark_info.nStages + 2 and cm.stageId == 0
         )
 
-        xiChallenge = params.challenges[xiChallengeIndex * FIELD_EXTENSION:]
-        xiFF3 = ff3([int(xiChallenge[0]), int(xiChallenge[1]), int(xiChallenge[2])])
+        xiChallenge = params.challenges[xiChallengeIndex * FIELD_EXTENSION_DEGREE:]
+        xiFF3 = ff3_from_numpy_coeffs(xiChallenge)
 
         # Compute xis[i] = xi * w^openingPoint[i]
         w = FF(get_omega(self.setupCtx.stark_info.starkStruct.nBits))
         nOpeningPoints = len(self.setupCtx.stark_info.openingPoints)
-        xis = np.zeros(nOpeningPoints * FIELD_EXTENSION, dtype=np.uint64)
+        xis = np.zeros(nOpeningPoints * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
         for i, openingPoint in enumerate(self.setupCtx.stark_info.openingPoints):
             wPower = w ** abs(openingPoint)
             if openingPoint < 0:
                 wPower = wPower ** -1
 
-            xisVal = xiFF3 * ff3([int(wPower), 0, 0])
-            xisCoeffs = ff3_coeffs(xisVal)
-            xis[i * FIELD_EXTENSION:(i + 1) * FIELD_EXTENSION] = xisCoeffs
+            xisVal = xiFF3 * ff3_from_base(int(wPower))
+            xis[i * FIELD_EXTENSION_DEGREE:(i + 1) * FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(xisVal)
 
         expressionsCtx.set_xi(xis)
 
@@ -271,15 +268,15 @@ class Starks:
 
         LEv[k, i] = ((xi * w^openingPoint[i]) * shift^-1)^k
         """
-        from primitives.field import FF, ff3, ff3_coeffs, get_omega, SHIFT_INV
+        from primitives.field import FF, ff3_from_base, ff3_to_numpy_coeffs, ff3_from_numpy_coeffs, get_omega, SHIFT_INV
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         nOpeningPoints = len(openingPoints)
-        LEv = np.zeros(N * nOpeningPoints * FIELD_EXTENSION, dtype=np.uint64)
+        LEv = np.zeros(N * nOpeningPoints * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
         w = FF(get_omega(self.setupCtx.stark_info.starkStruct.nBits))
         shiftInv = FF(SHIFT_INV)
-        xiFF3 = ff3([int(xiChallenge[0]), int(xiChallenge[1]), int(xiChallenge[2])])
+        xiFF3 = ff3_from_numpy_coeffs(xiChallenge)
 
         for i, openingPoint in enumerate(openingPoints):
             wPower = w ** abs(openingPoint)
@@ -287,26 +284,25 @@ class Starks:
                 wPower = wPower ** -1
 
             # xisShifted[i] = xi * w^openingPoint * shift^-1
-            xisVal = xiFF3 * ff3([int(wPower), 0, 0])
-            xisShiftedVal = xisVal * ff3([int(shiftInv), 0, 0])
+            xisVal = xiFF3 * ff3_from_base(int(wPower))
+            xisShiftedVal = xisVal * ff3_from_base(int(shiftInv))
 
             # LEv[0, i] = 1
-            LEv[i * FIELD_EXTENSION] = 1
-            LEv[i * FIELD_EXTENSION + 1] = 0
-            LEv[i * FIELD_EXTENSION + 2] = 0
+            LEv[i * FIELD_EXTENSION_DEGREE] = 1
+            LEv[i * FIELD_EXTENSION_DEGREE + 1] = 0
+            LEv[i * FIELD_EXTENSION_DEGREE + 2] = 0
 
             # LEv[k, i] = LEv[k-1, i] * xisShifted[i]
             for k in range(1, N):
-                prevIdx = ((k - 1) * nOpeningPoints + i) * FIELD_EXTENSION
-                currIdx = (k * nOpeningPoints + i) * FIELD_EXTENSION
+                prevIdx = ((k - 1) * nOpeningPoints + i) * FIELD_EXTENSION_DEGREE
+                currIdx = (k * nOpeningPoints + i) * FIELD_EXTENSION_DEGREE
 
-                prevVal = ff3([int(LEv[prevIdx]), int(LEv[prevIdx + 1]), int(LEv[prevIdx + 2])])
-                currVal = ff3_coeffs(prevVal * xisShiftedVal)
-                LEv[currIdx:currIdx + 3] = currVal
+                prevVal = ff3_from_numpy_coeffs(LEv[prevIdx:prevIdx + 3])
+                LEv[currIdx:currIdx + 3] = ff3_to_numpy_coeffs(prevVal * xisShiftedVal)
 
         # INTT to coefficient form
-        LEvReshaped = LEv.reshape(N, nOpeningPoints * FIELD_EXTENSION)
-        LEvCoeffs = ntt.intt(LEvReshaped, n_cols=nOpeningPoints * FIELD_EXTENSION)
+        LEvReshaped = LEv.reshape(N, nOpeningPoints * FIELD_EXTENSION_DEGREE)
+        LEvCoeffs = ntt.intt(LEvReshaped, n_cols=nOpeningPoints * FIELD_EXTENSION_DEGREE)
         return LEvCoeffs.flatten()
 
     def computeEvals(self, params: StepsParams, LEv: np.ndarray, openingPoints: list):
@@ -336,7 +332,7 @@ class Starks:
         # Precompute LEv arrays per opening point
         LEv_arrays = {}
         for openingPointIdx in range(nOpeningPoints):
-            indices = (np.arange(N) * nOpeningPoints + openingPointIdx) * FIELD_EXTENSION
+            indices = (np.arange(N) * nOpeningPoints + openingPointIdx) * FIELD_EXTENSION_DEGREE
             c0 = LEv[indices].tolist()
             c1 = LEv[indices + 1].tolist()
             c2 = LEv[indices + 2].tolist()
@@ -351,7 +347,7 @@ class Starks:
             products = LEv_arrays[openingPosIdx] * pol_arr
             result = np.sum(products)
 
-            dstIdx = evMapIdx * FIELD_EXTENSION
+            dstIdx = evMapIdx * FIELD_EXTENSION_DEGREE
             coeffs = ff3_coeffs(result)
             params.evals[dstIdx:dstIdx + 3] = coeffs
 
