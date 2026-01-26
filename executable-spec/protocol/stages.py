@@ -6,7 +6,7 @@ import numpy as np
 from protocol.setup_ctx import SetupCtx, FIELD_EXTENSION_DEGREE
 from primitives.ntt import NTT
 from protocol.expression_evaluator import ExpressionsPack
-from protocol.steps_params import StepsParams
+from protocol.proof_context import ProofContext
 from primitives.pol_map import EvMap
 from primitives.merkle_tree import MerkleTree, MerkleRoot
 
@@ -94,7 +94,7 @@ class Starks:
             raise KeyError(f"Stage {step} tree not found. Has commitStage been called?")
         return self.stage_trees[step]
 
-    def commitStage(self, step: int, params: StepsParams, ntt: NTT,
+    def commitStage(self, step: int, params: ProofContext, ntt: NTT,
                    pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
         """Execute a commitment stage (witness or quotient polynomial)."""
         if step <= self.setupCtx.stark_info.nStages:
@@ -123,7 +123,7 @@ class Starks:
 
     # --- Quotient Polynomial ---
 
-    def computeFriPol(self, params: StepsParams, nttExtended: NTT,
+    def computeFriPol(self, params: ProofContext, nttExtended: NTT,
                      pBuffHelper: Optional[np.ndarray] = None):
         """Compute quotient polynomial Q for FRI commitment.
 
@@ -187,7 +187,7 @@ class Starks:
 
     # --- Intermediate Polynomial Expressions ---
 
-    def calculateImPolsExpressions(self, step: int, params: StepsParams,
+    def calculateImPolsExpressions(self, step: int, params: ProofContext,
                                   expressionsCtx: ExpressionsPack):
         """Calculate intermediate polynomial expressions for a stage."""
         from protocol.expression_evaluator import Dest, Params
@@ -225,14 +225,14 @@ class Starks:
 
     # --- Constraint and FRI Polynomials ---
 
-    def calculateQuotientPolynomial(self, params: StepsParams,
+    def calculateQuotientPolynomial(self, params: ProofContext,
                                    expressionsCtx: ExpressionsPack):
         """Evaluate constraint expression across the extended domain."""
         qOffset = self.setupCtx.stark_info.mapOffsets[("q", True)]
         qPol = params.auxTrace[qOffset:]
         expressionsCtx.calculate_expression(params, qPol, self.setupCtx.stark_info.cExpId)
 
-    def calculateFRIPolynomial(self, params: StepsParams,
+    def calculateFRIPolynomial(self, params: ProofContext,
                               expressionsCtx: ExpressionsPack):
         """Compute FRI polynomial F = linear combination of committed polys at xi*w^offset."""
         from primitives.field import FF, FF3, ff3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega
@@ -316,11 +316,11 @@ class Starks:
         LEvCoeffs = ntt.intt(LEvReshaped, n_cols=nOpeningPoints * FIELD_EXTENSION_DEGREE)
         return LEvCoeffs.flatten()
 
-    def computeEvals(self, params: StepsParams, LEv: np.ndarray, openingPoints: list):
+    def computeEvals(self, params: ProofContext, LEv: np.ndarray, openingPoints: list):
         """Compute polynomial evaluations at opening points."""
         self.evmap(params, LEv, openingPoints)
 
-    def evmap(self, params: StepsParams, LEv: np.ndarray, openingPoints: list):
+    def evmap(self, params: ProofContext, LEv: np.ndarray, openingPoints: list):
         """Evaluate polynomials at opening points using vectorized operations."""
         from primitives.field import ff3_array, ff3_coeffs
 
@@ -362,7 +362,7 @@ class Starks:
             coeffs = ff3_coeffs(result)
             params.evals[dstIdx:dstIdx + 3] = coeffs
 
-    def _load_evmap_poly(self, params: StepsParams, evMap: EvMap, rows: np.ndarray):
+    def _load_evmap_poly(self, params: ProofContext, evMap: EvMap, rows: np.ndarray):
         """Load polynomial values for evmap evaluation."""
         from primitives.field import ff3_array, ff3_array_from_base
 

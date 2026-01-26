@@ -255,16 +255,16 @@ def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
                 idx += HASH_SIZE
 
     # Section 10: FRI step roots
-    n_fri_steps = len(stark_info.starkStruct.steps) - 1
-    for step in range(1, n_fri_steps + 1):
+    n_fri_round_log_sizes = len(stark_info.starkStruct.friFoldSteps) - 1
+    for step in range(1, n_fri_round_log_sizes + 1):
         jproof[f's{step}_root'] = values[idx:idx + HASH_SIZE]
         idx += HASH_SIZE
 
     # Section 11: FRI step query proofs
-    for step_idx in range(n_fri_steps):
+    for step_idx in range(n_fri_round_log_sizes):
         step = step_idx + 1
-        prev_bits = stark_info.starkStruct.steps[step_idx].nBits
-        curr_bits = stark_info.starkStruct.steps[step_idx + 1].nBits
+        prev_bits = stark_info.starkStruct.friFoldSteps[step_idx].domainBits
+        curr_bits = stark_info.starkStruct.friFoldSteps[step_idx + 1].domainBits
         n_fri_cols = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION_DEGREE
 
         # Values
@@ -292,7 +292,7 @@ def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
                 idx += HASH_SIZE
 
     # Section 12: finalPol
-    final_pol_size = 1 << stark_info.starkStruct.steps[-1].nBits
+    final_pol_size = 1 << stark_info.starkStruct.friFoldSteps[-1].domainBits
     jproof['finalPol'] = []
     for _ in range(final_pol_size):
         jproof['finalPol'].append(values[idx:idx + FIELD_EXTENSION_DEGREE])
@@ -416,7 +416,7 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
     merkle_arity = stark_info.starkStruct.merkleTreeArity
     last_level_verification = stark_info.starkStruct.lastLevelVerification
 
-    n_siblings = int(math.ceil(stark_info.starkStruct.steps[0].nBits / math.log2(merkle_arity))) - last_level_verification
+    n_siblings = int(math.ceil(stark_info.starkStruct.friFoldSteps[0].domainBits / math.log2(merkle_arity))) - last_level_verification
     n_siblings_per_level = (merkle_arity - 1) * n_field_elements
 
     # 5-7: Constant tree queries
@@ -464,13 +464,13 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
             values.extend(proof.last_levels[s][:num_nodes])
 
     # 10: FRI step roots
-    for step in range(1, len(stark_info.starkStruct.steps)):
+    for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
         values.extend(proof.fri.trees_fri[step - 1].root[:n_field_elements])
 
     # 11: FRI step query proofs
-    for step in range(1, len(stark_info.starkStruct.steps)):
-        prev_bits = stark_info.starkStruct.steps[step - 1].nBits
-        curr_bits = stark_info.starkStruct.steps[step].nBits
+    for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
+        prev_bits = stark_info.starkStruct.friFoldSteps[step - 1].domainBits
+        curr_bits = stark_info.starkStruct.friFoldSteps[step].domainBits
         n_fri_vals = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION_DEGREE
 
         for i in range(n_queries):
@@ -607,9 +607,9 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
 
     # Section 11: FRI step query proofs
     if fri_proof is not None:
-        for step_idx in range(len(stark_info.starkStruct.steps) - 1):
-            prev_bits = stark_info.starkStruct.steps[step_idx].nBits
-            curr_bits = stark_info.starkStruct.steps[step_idx + 1].nBits
+        for step_idx in range(len(stark_info.starkStruct.friFoldSteps) - 1):
+            prev_bits = stark_info.starkStruct.friFoldSteps[step_idx].domainBits
+            curr_bits = stark_info.starkStruct.friFoldSteps[step_idx + 1].domainBits
             n_fri_groups = 1 << (prev_bits - curr_bits)
 
             # Values
@@ -681,12 +681,12 @@ def validate_proof_structure(proof: STARKProof, stark_info: Any) -> list[str]:
             f"got {len(proof.air_values)}"
         )
 
-    expected_fri_steps = len(stark_info.starkStruct.steps) - 1
-    if len(proof.fri.trees_fri) != expected_fri_steps:
-        errors.append(f"Expected {expected_fri_steps} FRI trees, got {len(proof.fri.trees_fri)}")
+    expected_fri_round_log_sizes = len(stark_info.starkStruct.friFoldSteps) - 1
+    if len(proof.fri.trees_fri) != expected_fri_round_log_sizes:
+        errors.append(f"Expected {expected_fri_round_log_sizes} FRI trees, got {len(proof.fri.trees_fri)}")
 
     if proof.fri.pol:
-        expected_degree = 1 << stark_info.starkStruct.steps[-1].nBits
+        expected_degree = 1 << stark_info.starkStruct.friFoldSteps[-1].domainBits
         if len(proof.fri.pol) != expected_degree:
             errors.append(f"Final polynomial degree {len(proof.fri.pol)}, expected {expected_degree}")
 

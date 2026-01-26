@@ -15,8 +15,8 @@ from primitives.pol_map import EvMap
 from primitives.transcript import Transcript
 from protocol.expression_evaluator import ExpressionsPack, Dest, Params
 from protocol.fri import FRI
+from protocol.proof_context import ProofContext
 from protocol.setup_ctx import SetupCtx, ProverHelpers
-from protocol.steps_params import StepsParams
 
 # --- Type Aliases ---
 
@@ -49,7 +49,7 @@ def stark_verify(
     )
 
     # --- Verify proof-of-work ---
-    grinding_idx = len(stark_info.challengesMap) + len(stark_info.starkStruct.steps)
+    grinding_idx = len(stark_info.challengesMap) + len(stark_info.starkStruct.friFoldSteps)
     grinding_challenge = challenges[grinding_idx * FIELD_EXTENSION_DEGREE:(grinding_idx + 1) * FIELD_EXTENSION_DEGREE]
     nonce = int(jproof["nonce"])
 
@@ -66,7 +66,7 @@ def stark_verify(
     transcript_permutation.put([nonce])
     fri_queries = transcript_permutation.get_permutations(
         stark_info.starkStruct.nQueries,
-        stark_info.starkStruct.steps[0].nBits
+        stark_info.starkStruct.friFoldSteps[0].domainBits
     )
 
     # --- Parse query values ---
@@ -81,7 +81,7 @@ def stark_verify(
     expressions_pack = ExpressionsPack(setup_ctx, prover_helpers, 1, stark_info.starkStruct.nQueries)
     x_div_x_sub = _compute_x_div_x_sub(stark_info, xi_challenge, fri_queries)
 
-    params = StepsParams(
+    params = ProofContext(
         trace=trace,
         auxTrace=aux_trace,
         publicInputs=publics,
@@ -136,13 +136,13 @@ def stark_verify(
                 is_valid = False
 
     print("Verifying FRI foldings Merkle Trees")
-    for step in range(1, len(stark_info.starkStruct.steps)):
+    for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
         if not _verify_fri_merkle_tree(jproof, stark_info, step, fri_queries):
             print("ERROR: FRI folding Merkle Tree verification failed")
             is_valid = False
 
     print("Verifying FRI foldings")
-    for step in range(1, len(stark_info.starkStruct.steps)):
+    for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
         if not _verify_fri_folding(jproof, stark_info, challenges, step, fri_queries):
             print("ERROR: FRI folding verification failed")
             is_valid = False
@@ -290,7 +290,7 @@ def _reconstruct_transcript(
     Returns (challenges, final_pol).
     """
     n_challenges = len(stark_info.challengesMap)
-    n_steps = len(stark_info.starkStruct.steps)
+    n_steps = len(stark_info.starkStruct.friFoldSteps)
     challenges = np.zeros((n_challenges + n_steps + 1) * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
     transcript = Transcript(
@@ -426,7 +426,7 @@ def _verify_evaluations(
     stark_info,
     setup_ctx: SetupCtx,
     expressions_pack: ExpressionsPack,
-    params: StepsParams,
+    params: ProofContext,
     evals: np.ndarray,
     xi_challenge: np.ndarray
 ) -> bool:
@@ -479,7 +479,7 @@ def _verify_fri_consistency(
     stark_info,
     setup_ctx: SetupCtx,
     expressions_pack: ExpressionsPack,
-    params: StepsParams,
+    params: ProofContext,
     fri_queries: List[int]
 ) -> bool:
     """Verify FRI polynomial values match expression evaluation at query points."""
@@ -494,12 +494,12 @@ def _verify_fri_consistency(
     expressions_pack.calculate_expressions(params, dest, n_queries, False, False)
 
     # Check against proof values
-    n_steps = len(stark_info.starkStruct.steps)
+    n_steps = len(stark_info.starkStruct.friFoldSteps)
     for q in range(n_queries):
-        idx = fri_queries[q] % (1 << stark_info.starkStruct.steps[0].nBits)
+        idx = fri_queries[q] % (1 << stark_info.starkStruct.friFoldSteps[0].domainBits)
 
         if n_steps > 1:
-            next_n_groups = 1 << stark_info.starkStruct.steps[1].nBits
+            next_n_groups = 1 << stark_info.starkStruct.friFoldSteps[1].domainBits
             group_idx = idx // next_n_groups
             # Compare FF3 value: proof vs computed
             proof_coeffs = jproof["s1_vals"][q][group_idx * FIELD_EXTENSION_DEGREE:(group_idx + 1) * FIELD_EXTENSION_DEGREE]
@@ -595,7 +595,7 @@ def _verify_merkle_tree(
             return False
 
     # Calculate sibling levels
-    n_siblings = math.ceil(stark_info.starkStruct.steps[0].nBits / math.log2(arity)) - llv
+    n_siblings = math.ceil(stark_info.starkStruct.friFoldSteps[0].domainBits / math.log2(arity)) - llv
     siblings_per_level = (arity - 1) * HASH_SIZE
 
     # Verify each query
@@ -619,8 +619,8 @@ def _verify_fri_merkle_tree(jproof: Dict, stark_info, step: int, fri_queries: Li
     n_queries = stark_info.starkStruct.nQueries
     sponge_width = {2: 8, 3: 12, 4: 16}[arity]
 
-    n_groups = 1 << stark_info.starkStruct.steps[step].nBits
-    group_size = (1 << stark_info.starkStruct.steps[step - 1].nBits) // n_groups
+    n_groups = 1 << stark_info.starkStruct.friFoldSteps[step].domainBits
+    group_size = (1 << stark_info.starkStruct.friFoldSteps[step - 1].domainBits) // n_groups
     n_cols = group_size * FIELD_EXTENSION_DEGREE  # FF3 values have FIELD_EXTENSION_DEGREE coefficients
 
     root = _parse_root(jproof, f"s{step}_root", HASH_SIZE)
@@ -637,11 +637,11 @@ def _verify_fri_merkle_tree(jproof: Dict, stark_info, step: int, fri_queries: Li
         if not MerkleTree.verify_merkle_root(root, level, n_groups, llv, arity, sponge_width):
             return False
 
-    n_siblings = math.ceil(stark_info.starkStruct.steps[step].nBits / math.log2(arity)) - llv
+    n_siblings = math.ceil(stark_info.starkStruct.friFoldSteps[step].domainBits / math.log2(arity)) - llv
     siblings_per_level = (arity - 1) * HASH_SIZE
 
     for q in range(n_queries):
-        idx = fri_queries[q] % (1 << stark_info.starkStruct.steps[step].nBits)
+        idx = fri_queries[q] % (1 << stark_info.starkStruct.friFoldSteps[step].domainBits)
         values = [int(jproof[f"s{step}_vals"][q][i]) for i in range(n_cols)]
         siblings = [
             [int(jproof[f"s{step}_siblings"][q][i][j]) for j in range(siblings_per_level)]
@@ -662,13 +662,13 @@ def _verify_fri_folding(
 ) -> bool:
     """Verify FRI folding step computation."""
     n_queries = stark_info.starkStruct.nQueries
-    n_steps = len(stark_info.starkStruct.steps)
+    n_steps = len(stark_info.starkStruct.friFoldSteps)
 
     for q in range(n_queries):
-        idx = fri_queries[q] % (1 << stark_info.starkStruct.steps[step].nBits)
+        idx = fri_queries[q] % (1 << stark_info.starkStruct.friFoldSteps[step].domainBits)
 
         # Get sibling values (each is an FF3 triple [c0, c1, c2])
-        n_x = 1 << (stark_info.starkStruct.steps[step - 1].nBits - stark_info.starkStruct.steps[step].nBits)
+        n_x = 1 << (stark_info.starkStruct.friFoldSteps[step - 1].domainBits - stark_info.starkStruct.friFoldSteps[step].domainBits)
         siblings = [
             [int(jproof[f"s{step}_vals"][q][i * FIELD_EXTENSION_DEGREE + j]) for j in range(FIELD_EXTENSION_DEGREE)]
             for i in range(n_x)
@@ -680,10 +680,10 @@ def _verify_fri_folding(
 
         value = FRI.verify_fold(
             value=[0, 0, 0],
-            step=step,
+            fri_round=step,
             n_bits_ext=stark_info.starkStruct.nBitsExt,
-            current_bits=stark_info.starkStruct.steps[step].nBits,
-            prev_bits=stark_info.starkStruct.steps[step - 1].nBits,
+            current_bits=stark_info.starkStruct.friFoldSteps[step].domainBits,
+            prev_bits=stark_info.starkStruct.friFoldSteps[step - 1].domainBits,
             challenge=challenge,
             idx=idx,
             siblings=siblings
@@ -691,7 +691,7 @@ def _verify_fri_folding(
 
         # Check against next layer or final polynomial
         if step < n_steps - 1:
-            next_bits = stark_info.starkStruct.steps[step + 1].nBits
+            next_bits = stark_info.starkStruct.friFoldSteps[step + 1].domainBits
             sibling_pos = idx >> next_bits
             expected = jproof[f"s{step + 1}_vals"][q][sibling_pos * FIELD_EXTENSION_DEGREE:(sibling_pos + 1) * FIELD_EXTENSION_DEGREE]
             if value != ff3([int(v) for v in expected]):
@@ -717,7 +717,7 @@ def _verify_final_polynomial(jproof: Dict, stark_info) -> bool:
     final_pol_coeffs = ntt.intt(final_pol_reshaped, n_cols=FIELD_EXTENSION_DEGREE)
 
     # Check high-degree coefficients are zero
-    last_step = stark_info.starkStruct.steps[-1].nBits
+    last_step = stark_info.starkStruct.friFoldSteps[-1].domainBits
     blowup_factor = stark_info.starkStruct.nBitsExt - stark_info.starkStruct.nBits
     init = 0 if blowup_factor > last_step else (1 << (last_step - blowup_factor))
 

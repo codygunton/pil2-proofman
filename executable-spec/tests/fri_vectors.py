@@ -10,7 +10,7 @@ JSON Schema:
             "air_name": str,           # AIR identifier (e.g., "SimpleLeft", "Lookup2_12")
             "n_bits": int,             # Original polynomial size (log2)
             "n_bits_ext": int,         # Extended domain size (log2)
-            "fri_steps": List[int],    # Domain bits at each FRI step
+            "fri_round_log_sizes": List[int],    # Domain bits at each FRI step
             "n_queries": int,          # Number of FRI queries
             "pow_bits": int,           # Proof-of-work difficulty
             "merkle_arity": int,       # Merkle tree branching factor
@@ -86,6 +86,9 @@ def get_config(air_name: str) -> dict:
     """
     vectors = _load_vectors(air_name)
     metadata = vectors['metadata']
+    # Handle backward compatibility: accept both old 'fri_steps' and new 'fri_round_log_sizes' keys
+    fri_round_log_sizes = metadata.get('fri_round_log_sizes') or metadata.get('fri_steps')
+    num_fri_rounds = metadata.get('num_fri_round_log_sizes') or metadata.get('num_fri_steps')
     return {
         'n_bits': metadata.get('n_bits'),
         'n_bits_ext': metadata.get('n_bits_ext'),
@@ -96,8 +99,8 @@ def get_config(air_name: str) -> dict:
         'last_level_verification': metadata.get('last_level_verification'),
         'hash_commits': metadata.get('hash_commits'),
         'merkle_tree_custom': metadata.get('merkle_tree_custom'),
-        'num_fri_steps': metadata.get('num_fri_steps'),
-        'fri_steps': metadata.get('fri_steps'),
+        'num_fri_round_log_sizes': num_fri_rounds,
+        'fri_round_log_sizes': fri_round_log_sizes,
     }
 
 
@@ -198,15 +201,17 @@ def get_fri_queries(air_name: str) -> list:
     return fri_queries
 
 
-def get_fri_steps(air_name: str) -> list:
+def get_fri_round_log_sizes(air_name: str) -> list:
     """
-    Get FRI steps configuration for given AIR.
+    Get FRI round log sizes configuration for given AIR.
 
     C++ Reference: NO CORRESPONDING FUNCTION
                    (Python test utility)
     """
     vectors = _load_vectors(air_name)
-    return vectors['metadata']['fri_steps']
+    metadata = vectors['metadata']
+    # Handle backward compatibility: accept both old 'fri_steps' and new 'fri_round_log_sizes' keys
+    return metadata.get('fri_round_log_sizes') or metadata.get('fri_steps')
 
 
 def get_n_bits_ext(air_name: str) -> int:

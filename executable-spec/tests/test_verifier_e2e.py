@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from primitives.field import FF
+from protocol.proof_context import ProofContext
 from protocol.setup_ctx import SetupCtx
-from protocol.steps_params import StepsParams
 from primitives.transcript import Transcript
 from protocol.verifier import stark_verify
 
@@ -84,8 +84,8 @@ def create_fresh_transcript(stark_info, vectors: dict) -> Transcript:
     return transcript
 
 
-def create_params_from_vectors(stark_info, vectors: dict) -> StepsParams:
-    """Create StepsParams initialized from test vectors."""
+def create_params_from_vectors(stark_info, vectors: dict) -> ProofContext:
+    """Create ProofContext initialized from test vectors."""
     from primitives.ntt import NTT
 
     inputs = vectors['inputs']
@@ -117,7 +117,7 @@ def create_params_from_vectors(stark_info, vectors: dict) -> StepsParams:
     # Allocate challenges buffer
     challenges = np.zeros(len(stark_info.challengesMap) * 3, dtype=np.uint64)
 
-    params = StepsParams(
+    params = ProofContext(
         trace=trace,
         auxTrace=np.zeros(stark_info.mapTotalN, dtype=np.uint64),
         publicInputs=FF.Zeros(max(1, stark_info.nPublics)),

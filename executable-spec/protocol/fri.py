@@ -18,7 +18,7 @@ class FRI:
 
     @staticmethod
     def fold(
-        step: int,
+        fri_round: int,
         pol: FF3Poly,
         challenge: List[int],
         n_bits_ext: int,
@@ -29,7 +29,7 @@ class FRI:
         challenge_ff3 = ff3(challenge)
 
         # Coset shift: SHIFT^(-2^k) where k depends on accumulated folding
-        k = n_bits_ext - prev_bits if step > 0 else 0
+        k = n_bits_ext - prev_bits if fri_round > 0 else 0
         shift_inv_pow = SHIFT_INV ** (1 << k)
 
         n_out = 1 << current_bits  # Output size (number of groups)
@@ -62,7 +62,7 @@ class FRI:
 
     @staticmethod
     def merkelize(
-        step: int,  # noqa: ARG004 - kept for API consistency
+        fri_round: int,  # noqa: ARG004 - kept for API consistency
         pol: FF3Poly,
         tree: MerkleTree,
         current_bits: int,
@@ -81,7 +81,7 @@ class FRI:
     @staticmethod
     def verify_fold(
         value: List[int],  # noqa: ARG004 - unused but part of protocol API
-        step: int,
+        fri_round: int,
         n_bits_ext: int,
         current_bits: int,
         prev_bits: int,
@@ -93,7 +93,7 @@ class FRI:
         challenge_ff3 = ff3(challenge)
 
         # Coset shift for verification (forward direction)
-        k = n_bits_ext - prev_bits if step > 0 else 0
+        k = n_bits_ext - prev_bits if fri_round > 0 else 0
         shift_pow = SHIFT ** (1 << k)
 
         w_inv = FF(get_omega_inv(prev_bits))

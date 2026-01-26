@@ -19,9 +19,9 @@ def _field_type_from_dim(dim: int) -> FieldType:
 
 # --- Data Structures ---
 @dataclass
-class StepStruct:
-    """FRI folding step configuration."""
-    nBits: int
+class FriFoldStep:
+    """FRI recursive folding layer configuration."""
+    domainBits: int
 
 
 @dataclass
@@ -31,7 +31,7 @@ class StarkStruct:
     nBitsExt: int
     nQueries: int
     verificationHashType: str
-    steps: List[StepStruct] = field(default_factory=list)
+    friFoldSteps: List[FriFoldStep] = field(default_factory=list)
     merkleTreeArity: int = 16
     merkleTreeCustom: bool = False
     transcriptArity: int = 16
@@ -171,7 +171,7 @@ class StarkInfo:
             self.starkStruct.lastLevelVerification = ss["lastLevelVerification"]
 
         self.starkStruct.hashCommits = ss.get("hashCommits", False)
-        self.starkStruct.steps = [StepStruct(nBits=s["nBits"]) for s in ss["steps"]]
+        self.starkStruct.friFoldSteps = [FriFoldStep(domainBits=s["nBits"]) for s in ss["steps"]]
 
     def _parse_basic_params(self, j: dict) -> None:
         """Parse basic polynomial parameters."""
@@ -364,7 +364,7 @@ class StarkInfo:
 
         # Merkle proof siblings
         nSiblings = (
-            math.ceil(ss.steps[0].nBits / math.log2(ss.merkleTreeArity))
+            math.ceil(ss.friFoldSteps[0].domainBits / math.log2(ss.merkleTreeArity))
             - ss.lastLevelVerification
         )
         nSiblingsPerLevel = (ss.merkleTreeArity - 1) * HASH_SIZE
@@ -384,29 +384,29 @@ class StarkInfo:
             self.proofSize += ss.nQueries * nSiblings * nSiblingsPerLevel
 
         # FRI roots
-        self.proofSize += (len(ss.steps) - 1) * HASH_SIZE
+        self.proofSize += (len(ss.friFoldSteps) - 1) * HASH_SIZE
 
         # Last level verification nodes
         if ss.lastLevelVerification > 0:
             numNodesLevel = int(ss.merkleTreeArity**ss.lastLevelVerification)
-            self.proofSize += (len(ss.steps) - 1) * numNodesLevel * HASH_SIZE
+            self.proofSize += (len(ss.friFoldSteps) - 1) * numNodesLevel * HASH_SIZE
             self.proofSize += (
                 (self.nStages + 2 + len(self.customCommits)) * numNodesLevel * HASH_SIZE
             )
 
         # FRI query proofs
-        for i in range(1, len(ss.steps)):
+        for i in range(1, len(ss.friFoldSteps)):
             nSiblings = (
-                math.ceil(ss.steps[i].nBits / math.log2(ss.merkleTreeArity))
+                math.ceil(ss.friFoldSteps[i].domainBits / math.log2(ss.merkleTreeArity))
                 - ss.lastLevelVerification
             )
             nSiblingsPerLevel = (ss.merkleTreeArity - 1) * HASH_SIZE
-            fold_factor = 1 << (ss.steps[i - 1].nBits - ss.steps[i].nBits)
+            fold_factor = 1 << (ss.friFoldSteps[i - 1].domainBits - ss.friFoldSteps[i].domainBits)
             self.proofSize += ss.nQueries * fold_factor * FIELD_EXTENSION_DEGREE
             self.proofSize += ss.nQueries * nSiblings * nSiblingsPerLevel
 
         # Final polynomial + nonce
-        final_pol_degree = 1 << ss.steps[-1].nBits
+        final_pol_degree = 1 << ss.friFoldSteps[-1].domainBits
         self.proofSize += final_pol_degree * FIELD_EXTENSION_DEGREE
         self.proofSize += 1
 

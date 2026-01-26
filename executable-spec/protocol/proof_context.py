@@ -1,4 +1,4 @@
-"""StepsParams container for prover/verifier working data."""
+"""ProofContext container for prover/verifier working data."""
 
 from dataclasses import dataclass
 from typing import Optional, Union
@@ -14,7 +14,7 @@ FF3Array = FF3  # 1D array of extension field elements
 
 
 @dataclass
-class StepsParams:
+class ProofContext:
     """Container for all prover/verifier working data.
 
     C++ reference: pil2-stark/src/starkpil/steps.hpp::StepsParams

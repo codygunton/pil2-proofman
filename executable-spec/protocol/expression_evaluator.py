@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 
 from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION_DEGREE
-from protocol.steps_params import StepsParams
+from protocol.proof_context import ProofContext
 from protocol.expressions_bin import ParserParams
 from primitives.field import (
     FF, FF3, ff3, ff3_coeffs, ff3_from_buffer_at, batch_inverse,
@@ -164,7 +164,7 @@ class ExpressionsCtx:
         """Set xi evaluation points for FRI division."""
         self.xis = xis
 
-    def calculate_expression(self, params: StepsParams, dest: np.ndarray,
+    def calculate_expression(self, params: ProofContext, dest: np.ndarray,
                             expression_id: int, inverse: bool = False,
                             compilation_time: bool = False):
         """Evaluate a single expression into dest buffer."""
@@ -191,7 +191,7 @@ class ExpressionsCtx:
 
         self.calculate_expressions(params, dest_struct, domain_size, domain_extended, compilation_time)
 
-    def calculate_expressions(self, params: StepsParams, dest: Dest,
+    def calculate_expressions(self, params: ProofContext, dest: Dest,
                              domain_size: int, domain_extended: bool,
                              compilation_time: bool = False,
                              verify_constraints: bool = False, debug: bool = False):
@@ -210,7 +210,7 @@ class ExpressionsPack(ExpressionsCtx):
         N = 1 << setup_ctx.stark_info.starkStruct.nBits
         self.nrows_pack_ = min(nrows_pack, N)
 
-    def calculate_expressions(self, params: StepsParams, dest: Dest,
+    def calculate_expressions(self, params: ProofContext, dest: Dest,
                               domain_size: int, domain_extended: bool,
                               compilation_time: bool = False,
                               verify_constraints: bool = False, debug: bool = False):
@@ -350,7 +350,7 @@ class ExpressionsPack(ExpressionsCtx):
 
     # --- Operand Loading ---
 
-    def _load_direct_poly(self, params: StepsParams, param: Params, row: int,
+    def _load_direct_poly(self, params: ProofContext, param: Params, row: int,
                           nrows_pack: int, domain_size: int, domain_extended: bool,
                           map_offsets_exps: np.ndarray, next_strides_exps: np.ndarray
                           ) -> GaloisValue:
@@ -382,7 +382,7 @@ class ExpressionsPack(ExpressionsCtx):
                    for r in range(nrows_pack)]
         return ff3_from_buffer_at(params.auxTrace, indices)
 
-    def _load_operand(self, params: StepsParams, scalar_params: Dict[int, np.ndarray],
+    def _load_operand(self, params: ProofContext, scalar_params: Dict[int, np.ndarray],
                       tmp1_g: Dict[int, FF], tmp3_g: Dict[int, FF3],
                       args: np.ndarray, map_offsets_exps: np.ndarray,
                       map_offsets_custom_exps: np.ndarray, next_strides_exps: np.ndarray,

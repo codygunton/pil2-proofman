@@ -44,10 +44,10 @@ class TestStarkInfoSimple:
         assert ss.powBits == 16
         assert ss.hashCommits is True
 
-    def test_fri_steps(self, stark_info):
+    def test_fri_round_log_sizes(self, stark_info):
         """Verify FRI folding steps."""
-        assert len(stark_info.starkStruct.steps) == 1
-        assert stark_info.starkStruct.steps[0].nBits == 4
+        assert len(stark_info.starkStruct.friFoldSteps) == 1
+        assert stark_info.starkStruct.friFoldSteps[0].domainBits == 4
 
     def test_basic_counts(self, stark_info):
         """Verify polynomial counts."""

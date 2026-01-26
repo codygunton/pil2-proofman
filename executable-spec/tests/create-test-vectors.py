@@ -204,8 +204,8 @@ def load_starkinfo(starkinfo_path: Path) -> dict:
         'last_level_verification': stark_struct.get('lastLevelVerification'),
         'hash_commits': stark_struct.get('hashCommits'),
         'merkle_tree_custom': stark_struct.get('merkleTreeCustom'),
-        'num_fri_steps': len(steps),
-        'fri_steps': [step.get('nBits') for step in steps],
+        'num_fri_round_log_sizes': len(steps),
+        'fri_round_log_sizes': [step.get('nBits') for step in steps],
     }
 
 
@@ -245,8 +245,8 @@ def build_test_vectors(
             'last_level_verification': starkinfo['last_level_verification'],
             'hash_commits': starkinfo['hash_commits'],
             'merkle_tree_custom': starkinfo['merkle_tree_custom'],
-            'num_fri_steps': starkinfo['num_fri_steps'],
-            'fri_steps': starkinfo['fri_steps'],
+            'num_fri_round_log_sizes': starkinfo['num_fri_round_log_sizes'],
+            'fri_round_log_sizes': starkinfo['fri_round_log_sizes'],
         },
         'expected': {
             'final_pol': proof_data['final_pol'],

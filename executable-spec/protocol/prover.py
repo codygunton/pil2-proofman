@@ -9,9 +9,9 @@ from primitives.ntt import NTT
 from primitives.transcript import Transcript
 from protocol.expression_evaluator import ExpressionsPack
 from protocol.pcs import FriPcs, FriPcsConfig
+from protocol.proof_context import ProofContext
 from protocol.setup_ctx import ProverHelpers, SetupCtx
 from protocol.stages import Starks
-from protocol.steps_params import StepsParams
 from protocol.witness_generation import calculate_witness_std
 
 # --- Type Aliases ---
@@ -25,7 +25,7 @@ StageNum = int
 
 def gen_proof(
     setup_ctx: SetupCtx,
-    params: StepsParams,
+    params: ProofContext,
     recursive: bool = False,
     transcript: Optional[Transcript] = None,
     skip_challenge_derivation: bool = False
@@ -116,15 +116,15 @@ def gen_proof(
     starks.calculateFRIPolynomial(params, expressions_ctx)
 
     fri_pol_offset = stark_info.mapOffsets[("f", True)]
-    n_fri_elements = 1 << stark_info.starkStruct.steps[0].nBits
+    n_fri_elements = 1 << stark_info.starkStruct.friFoldSteps[0].domainBits
     fri_pol_size = n_fri_elements * FIELD_EXTENSION_DEGREE
     fri_pol_numpy = params.auxTrace[fri_pol_offset:fri_pol_offset + fri_pol_size]
     # Convert from interleaved numpy to FF3Poly (C++ buffer boundary)
     fri_pol = ff3_from_interleaved_numpy(fri_pol_numpy, n_fri_elements)
 
     fri_config = FriPcsConfig(
-        n_bits_ext=stark_info.starkStruct.steps[0].nBits,
-        fri_steps=[step.nBits for step in stark_info.starkStruct.steps],
+        n_bits_ext=stark_info.starkStruct.friFoldSteps[0].domainBits,
+        fri_round_log_sizes=[step.domainBits for step in stark_info.starkStruct.friFoldSteps],
         n_queries=stark_info.starkStruct.nQueries,
         merkle_arity=stark_info.starkStruct.merkleTreeArity,
         pow_bits=stark_info.starkStruct.powBits,
@@ -161,7 +161,7 @@ def gen_proof(
 
 # --- Challenge Derivation ---
 
-def _derive_stage_challenges(transcript: Transcript, params: StepsParams,
+def _derive_stage_challenges(transcript: Transcript, params: ProofContext,
                              challenges_map: list, stage: int) -> None:
     """Derive Fiat-Shamir challenges for a given stage."""
     for i, cm in enumerate(challenges_map):
@@ -170,7 +170,7 @@ def _derive_stage_challenges(transcript: Transcript, params: StepsParams,
             params.set_challenge(i, challenge)
 
 
-def _derive_eval_challenges(transcript: Transcript, params: StepsParams,
+def _derive_eval_challenges(transcript: Transcript, params: ProofContext,
                             stark_info, skip: bool) -> int:
     """Derive evaluation-stage challenges, return xi challenge index."""
     eval_stage = stark_info.nStages + 2
@@ -189,7 +189,7 @@ def _derive_eval_challenges(transcript: Transcript, params: StepsParams,
 
 # --- Polynomial Evaluations ---
 
-def _compute_all_evals(stark_info, starks: Starks, params: StepsParams,
+def _compute_all_evals(stark_info, starks: Starks, params: ProofContext,
                        xi: list[int], ntt: NTT) -> None:
     """Compute evaluations at all opening points in batches of 4."""
     for i in range(0, len(stark_info.openingPoints), 4):
@@ -237,7 +237,7 @@ def _collect_last_level_nodes(starks: Starks, stark_info, fri_pcs: FriPcs) -> di
                 result[f'cm{stage}'] = nodes
 
     # FRI trees
-    for step_idx in range(len(stark_info.starkStruct.steps) - 1):
+    for step_idx in range(len(stark_info.starkStruct.friFoldSteps) - 1):
         if step_idx < len(fri_pcs.fri_trees):
             nodes = fri_pcs.fri_trees[step_idx].get_last_level_nodes()
             if nodes:

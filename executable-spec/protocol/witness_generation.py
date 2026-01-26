@@ -4,8 +4,8 @@ import numpy as np
 from typing import List, TYPE_CHECKING
 
 from protocol.expressions_bin import ExpressionsBin, HintFieldValue, OpType
+from protocol.proof_context import ProofContext
 from protocol.stark_info import StarkInfo
-from protocol.steps_params import StepsParams
 from primitives.field import (
     FF, ff3, batch_inverse,
     ff3_from_numpy_coeffs, ff3_to_numpy_coeffs,
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 # --- Polynomial Buffer Access ---
 
-def _get_poly_column(stark_info: StarkInfo, params: StepsParams, pol_info, row_offset_index: int) -> np.ndarray:
+def _get_poly_column(stark_info: StarkInfo, params: ProofContext, pol_info, row_offset_index: int) -> np.ndarray:
     """Read a committed polynomial column from trace buffer."""
     N = 1 << stark_info.starkStruct.nBits
     stage, dim = pol_info.stage, pol_info.dim
@@ -41,7 +41,7 @@ def _get_poly_column(stark_info: StarkInfo, params: StepsParams, pol_info, row_o
     return result
 
 
-def _get_const_poly(stark_info: StarkInfo, params: StepsParams, pol_info, N: int) -> np.ndarray:
+def _get_const_poly(stark_info: StarkInfo, params: ProofContext, pol_info, N: int) -> np.ndarray:
     """Read a constant polynomial column."""
     dim, n_cols = pol_info.dim, stark_info.nConstants
     result = np.zeros(N * dim, dtype=np.uint64)
@@ -51,7 +51,7 @@ def _get_const_poly(stark_info: StarkInfo, params: StepsParams, pol_info, N: int
     return result
 
 
-def _set_poly_column(stark_info: StarkInfo, params: StepsParams, pol_info, values: np.ndarray) -> None:
+def _set_poly_column(stark_info: StarkInfo, params: ProofContext, pol_info, values: np.ndarray) -> None:
     """Write values to a committed polynomial column."""
     N = 1 << stark_info.starkStruct.nBits
     stage, dim = pol_info.stage, pol_info.dim
@@ -71,7 +71,7 @@ def _set_poly_column(stark_info: StarkInfo, params: StepsParams, pol_info, value
 
 # --- Hint Field Access ---
 
-def _fetch_operand(stark_info: StarkInfo, params: StepsParams, hfv: HintFieldValue, N: int) -> np.ndarray:
+def _fetch_operand(stark_info: StarkInfo, params: ProofContext, hfv: HintFieldValue, N: int) -> np.ndarray:
     """Fetch value for a hint field operand."""
     if hfv.operand == OpType.cm:
         return _get_poly_column(stark_info, params, stark_info.cmPolsMap[hfv.id], hfv.row_offset_index)
@@ -97,7 +97,7 @@ def _fetch_operand(stark_info: StarkInfo, params: StepsParams, hfv: HintFieldVal
 
 
 def _set_hint_field(
-    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: StepsParams,
+    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: ProofContext,
     hint_id: int, field_name: str, values: np.ndarray
 ) -> None:
     """Store values into polynomial/airgroup referenced by hint field."""
@@ -193,7 +193,7 @@ def _invert_values(a: np.ndarray) -> np.ndarray:
 
 
 def get_hint_field_values(
-    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: StepsParams,
+    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: ProofContext,
     hint_id: int, field_name: str, inverse: bool = False
 ) -> np.ndarray:
     """Fetch hint field values, multiplying multiple operands if present."""
@@ -246,7 +246,7 @@ def _build_param_from_hint_field(stark_info: StarkInfo, hfv: HintFieldValue):
 
 
 def evaluate_hint_field_with_expressions(
-    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: StepsParams,
+    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: ProofContext,
     expressions_ctx: 'ExpressionsPack', hint_id: int, field1_name: str, field2_name: str,
     field2_inverse: bool = True
 ) -> np.ndarray:
@@ -274,7 +274,7 @@ def evaluate_hint_field_with_expressions(
 # --- Core Witness STD Functions ---
 
 def multiply_hint_fields(
-    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: StepsParams,
+    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: ProofContext,
     expressions_ctx: 'ExpressionsPack', hint_ids: List[int], dest_field: str,
     field1: str, field2: str, field2_inverse: bool = True
 ) -> None:
@@ -288,7 +288,7 @@ def multiply_hint_fields(
 
 
 def acc_mul_hint_fields(
-    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: StepsParams,
+    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: ProofContext,
     expressions_ctx: 'ExpressionsPack', hint_id: int, dest_field: str,
     airgroup_val_field: str, field1: str, field2: str, add: bool
 ) -> None:
@@ -328,7 +328,7 @@ def acc_mul_hint_fields(
 
 
 def update_airgroup_value(
-    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: StepsParams,
+    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: ProofContext,
     expressions_ctx: 'ExpressionsPack', hint_id: int, airgroup_val_field: str,
     field1: str, field2: str, add: bool
 ) -> None:
@@ -380,7 +380,7 @@ def update_airgroup_value(
 # --- Main Entry Point ---
 
 def calculate_witness_std(
-    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: StepsParams,
+    stark_info: StarkInfo, expressions_bin: ExpressionsBin, params: ProofContext,
     expressions_ctx: 'ExpressionsPack', prod: bool
 ) -> None:
     """Calculate gsum (prod=False) or gprod (prod=True) witness columns."""

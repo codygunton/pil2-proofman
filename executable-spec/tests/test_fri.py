@@ -45,7 +45,7 @@ from tests.fri_vectors import (
     get_expected_nonce,
     get_fri_challenges,
     get_grinding_challenge,
-    get_fri_steps,
+    get_fri_round_log_sizes,
     get_n_bits_ext,
     get_fri_queries,
     get_fri_input_polynomial,
@@ -92,14 +92,14 @@ class TestProveEndToEnd:
         self.expected_nonce = get_expected_nonce(air_name)
         self.merkle_roots = get_merkle_roots(air_name)
         self.transcript_state = get_transcript_state(air_name)
-        self.fri_steps = get_fri_steps(air_name)
+        self.fri_round_log_sizes = get_fri_round_log_sizes(air_name)
         self.n_bits_ext = get_n_bits_ext(air_name)
 
     def _create_fri_pcs(self):
         """Create FriPcs with config."""
         return FriPcs(FriPcsConfig(
             n_bits_ext=self.n_bits_ext,
-            fri_steps=self.fri_steps,
+            fri_round_log_sizes=self.fri_round_log_sizes,
             n_queries=self.config['n_queries'],
             merkle_arity=self.config['merkle_arity'],
             pow_bits=self.config['pow_bits'],
@@ -204,7 +204,7 @@ def test_query_indices_derivation(air_name):
     query_transcript.put([nonce])
 
     actual_queries = query_transcript.get_permutations(
-        config['n_queries'], config['fri_steps'][0]
+        config['n_queries'], config['fri_round_log_sizes'][0]
     )
 
     assert actual_queries == expected_queries
@@ -236,21 +236,21 @@ class TestFRIFolding:
         self.input_pol = get_fri_input_polynomial(air_name)
         self.input_hash = get_fri_input_hash(air_name)
         self.challenges = get_fri_challenges(air_name)
-        self.fri_steps = get_fri_steps(air_name)
+        self.fri_round_log_sizes = get_fri_round_log_sizes(air_name)
         self.n_bits_ext = get_n_bits_ext(air_name)
         self.config = get_config(air_name)
 
     def _compute_final_polynomial(self):
         """Compute final polynomial through all FRI folds."""
         current_pol = ff3_from_flat_list(self.input_pol)
-        for fold_idx in range(len(self.fri_steps) - 1):
+        for fold_idx in range(len(self.fri_round_log_sizes) - 1):
             current_pol = FRI.fold(
-                step=fold_idx,
+                fri_round=fold_idx,
                 pol=current_pol,
                 challenge=self.challenges[fold_idx],
                 n_bits_ext=self.n_bits_ext,
-                prev_bits=self.fri_steps[fold_idx],
-                current_bits=self.fri_steps[fold_idx + 1]
+                prev_bits=self.fri_round_log_sizes[fold_idx],
+                current_bits=self.fri_round_log_sizes[fold_idx + 1]
             )
         return ff3_to_flat_list(current_pol)
 
@@ -280,14 +280,14 @@ class TestFRIFolding:
         assert expected_hashes[0] == self.input_hash
 
         current_pol = ff3_from_flat_list(self.input_pol)
-        for fold_idx in range(len(self.fri_steps) - 1):
+        for fold_idx in range(len(self.fri_round_log_sizes) - 1):
             current_pol = FRI.fold(
-                step=fold_idx + 1,
+                fri_round=fold_idx + 1,
                 pol=current_pol,
                 challenge=self.challenges[fold_idx],
                 n_bits_ext=self.n_bits_ext,
-                prev_bits=self.fri_steps[fold_idx],
-                current_bits=self.fri_steps[fold_idx + 1]
+                prev_bits=self.fri_round_log_sizes[fold_idx],
+                current_bits=self.fri_round_log_sizes[fold_idx + 1]
             )
 
             cpp_step_idx = fold_idx + 1
@@ -302,26 +302,26 @@ class TestFRIFolding:
             pytest.fail(f"Merkle roots not captured for {air_name}")
 
         current_pol = ff3_from_flat_list(self.input_pol)
-        for step_idx in range(len(self.fri_steps) - 1):
+        for fri_round in range(len(self.fri_round_log_sizes) - 1):
             tree = MerkleTree(arity=self.config.get('merkle_arity', 4))
             computed_root = FRI.merkelize(
-                step=step_idx,
+                fri_round=fri_round,
                 pol=current_pol,
                 tree=tree,
-                current_bits=self.fri_steps[step_idx],
-                next_bits=self.fri_steps[step_idx + 1]
+                current_bits=self.fri_round_log_sizes[fri_round],
+                next_bits=self.fri_round_log_sizes[fri_round + 1]
             )
 
-            if step_idx < len(expected_roots):
-                assert computed_root == expected_roots[step_idx]
+            if fri_round < len(expected_roots):
+                assert computed_root == expected_roots[fri_round]
 
             current_pol = FRI.fold(
-                step=step_idx,
+                fri_round=fri_round,
                 pol=current_pol,
-                challenge=self.challenges[step_idx],
+                challenge=self.challenges[fri_round],
                 n_bits_ext=self.n_bits_ext,
-                prev_bits=self.fri_steps[step_idx],
-                current_bits=self.fri_steps[step_idx + 1]
+                prev_bits=self.fri_round_log_sizes[fri_round],
+                current_bits=self.fri_round_log_sizes[fri_round + 1]
             )
 
     def test_query_proof_siblings_match_cpp(self, air_name):
@@ -343,11 +343,11 @@ class TestFRIFolding:
             last_level_verification=self.config.get('last_level_verification', 0),
             custom=self.config.get('merkle_tree_custom', False)
         )
-        current_bits = self.fri_steps[0]
-        next_bits = self.fri_steps[1]
+        current_bits = self.fri_round_log_sizes[0]
+        next_bits = self.fri_round_log_sizes[1]
 
         FRI.merkelize(
-            step=0,
+            fri_round=0,
             pol=ff3_from_flat_list(self.input_pol),
             tree=tree,
             current_bits=current_bits,

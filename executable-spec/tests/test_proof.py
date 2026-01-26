@@ -168,10 +168,11 @@ class TestProofLoading:
         metadata = data["metadata"]
         assert metadata["air_name"] == "Lookup2_12"
 
-        # Lookup2_12 should have FRI folding steps
-        assert "num_fri_steps" in metadata
+        # Lookup2_12 should have FRI folding steps (accept both old and new key names)
+        assert "num_fri_round_log_sizes" in metadata or "num_fri_steps" in metadata
         # Lookup has larger domain, so may have more FRI steps
-        assert metadata["num_fri_steps"] >= 1
+        num_fri = metadata.get("num_fri_round_log_sizes") or metadata.get("num_fri_steps")
+        assert num_fri >= 1
 
     def test_load_permutation_proof_structure(self, test_data_dir):
         """Test loading Permutation1_6 proof structure."""
@@ -275,7 +276,7 @@ class TestProofValidation:
         """Create a simple StarkInfo for testing."""
         info = StarkInfo()
         info.nStages = 2
-        info.starkStruct.steps = [type('obj', (object,), {'nBits': 4})()]
+        info.starkStruct.friFoldSteps = [type('obj', (object,), {'domainBits': 4})()]
         info.evMap = [None, None, None]  # 3 evaluations
         info.airgroupValuesMap = []
         info.airValuesMap = []

@@ -23,7 +23,7 @@ from protocol.prover import gen_proof
 
 from protocol.stark_info import StarkInfo
 from protocol.setup_ctx import SetupCtx, ProverHelpers
-from protocol.steps_params import StepsParams
+from protocol.proof_context import ProofContext
 from protocol.expressions_bin import ExpressionsBin
 from protocol.proof import STARKProof
 
@@ -48,7 +48,7 @@ __all__ = [
     "StarkInfo",
     "SetupCtx",
     "ProverHelpers",
-    "StepsParams",
+    "ProofContext",
     "ExpressionsBin",
     "STARKProof",
 ]

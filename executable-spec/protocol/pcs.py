@@ -23,7 +23,7 @@ QueryIndex = int
 class FriPcsConfig:
     """FRI PCS parameters."""
     n_bits_ext: int
-    fri_steps: List[int]
+    fri_round_log_sizes: List[int]
     n_queries: int
     merkle_arity: int = 4
     pow_bits: int = 16
@@ -56,7 +56,7 @@ class FriPcs:
                 last_level_verification=config.last_level_verification,
                 custom=config.merkle_tree_custom
             )
-            for _ in range(len(config.fri_steps) - 1)
+            for _ in range(len(config.fri_round_log_sizes) - 1)
         ]
 
     def prove(
@@ -67,24 +67,24 @@ class FriPcs:
     ) -> FriProof:
         """Generate FRI proof: commit-fold, finalize, grind, query."""
         cfg = self.config
-        n_fold_steps = len(cfg.fri_steps) - 1
+        n_fri_rounds = len(cfg.fri_round_log_sizes) - 1
 
         # --- Commit-Fold Loop ---
         # Each iteration: merkelize -> commit root -> derive challenge -> fold
         fri_roots: List[MerkleRoot] = []
         current_pol = polynomial  # Already FF3Poly
 
-        for step in range(n_fold_steps):
-            prev_bits, curr_bits = cfg.fri_steps[step], cfg.fri_steps[step + 1]
+        for fri_round in range(n_fri_rounds):
+            prev_bits, curr_bits = cfg.fri_round_log_sizes[fri_round], cfg.fri_round_log_sizes[fri_round + 1]
 
             # Commit: build Merkle tree, add root to transcript
-            root = FRI.merkelize(step, current_pol, self.fri_trees[step], prev_bits, curr_bits)
+            root = FRI.merkelize(fri_round, current_pol, self.fri_trees[fri_round], prev_bits, curr_bits)
             fri_roots.append(list(root))
             transcript.put(root)
 
             # Fold: derive challenge, reduce polynomial
             challenge = transcript.get_field()
-            current_pol = FRI.fold(step, current_pol, challenge, cfg.n_bits_ext, prev_bits, curr_bits)
+            current_pol = FRI.fold(fri_round, current_pol, challenge, cfg.n_bits_ext, prev_bits, curr_bits)
 
         # --- Finalize ---
         # Convert to flat list for transcript operations (serialization boundary)
@@ -116,18 +116,18 @@ class FriPcs:
         query_transcript = Transcript(arity=cfg.transcript_arity)
         query_transcript.put(challenge)
         query_transcript.put([nonce])
-        return query_transcript.get_permutations(cfg.n_queries, cfg.fri_steps[0])
+        return query_transcript.get_permutations(cfg.n_queries, cfg.fri_round_log_sizes[0])
 
     def _generate_query_proofs(self, query_indices: List[QueryIndex]) -> List[List[QueryProof]]:
-        """Generate Merkle proofs for all queries at each FRI step."""
+        """Generate Merkle proofs for all queries at each FRI layer."""
         cfg = self.config
         query_proofs: List[List[QueryProof]] = []
 
-        for step in range(len(cfg.fri_steps) - 1):
-            domain_bits = cfg.fri_steps[step + 1]
+        for fri_round in range(len(cfg.fri_round_log_sizes) - 1):
+            domain_bits = cfg.fri_round_log_sizes[fri_round + 1]
             step_proofs = [
-                self.fri_trees[step].get_query_proof(
-                    self._fold_index(idx, step) % (1 << domain_bits),
+                self.fri_trees[fri_round].get_query_proof(
+                    self._fold_index(idx, fri_round) % (1 << domain_bits),
                     elem_size=FIELD_EXTENSION_DEGREE,
                 )
                 for idx in query_indices
@@ -136,14 +136,14 @@ class FriPcs:
 
         return query_proofs
 
-    def _fold_index(self, query_idx: int, step: int) -> int:
-        """Map original query index to folded domain index at given step."""
+    def _fold_index(self, query_idx: int, fri_round: int) -> int:
+        """Map original query index to folded domain index at given FRI layer."""
         # Each fold step reduces domain size, so index wraps modulo new size
         idx = query_idx
-        for s in range(step):
-            idx %= 1 << self.config.fri_steps[s + 1]
+        for s in range(fri_round):
+            idx %= 1 << self.config.fri_round_log_sizes[s + 1]
         return idx
 
-    def get_fri_tree(self, step: int) -> MerkleTree:
-        """Get Merkle tree for given FRI step."""
-        return self.fri_trees[step]
+    def get_fri_tree(self, fri_round: int) -> MerkleTree:
+        """Get Merkle tree for given FRI layer."""
+        return self.fri_trees[fri_round]
