@@ -16,7 +16,6 @@ from typing import Dict, Any, Optional
 from primitives.field import FF, ff3_to_flat_list
 from protocol.proof_context import ProofContext
 from protocol.setup_ctx import SetupCtx
-from primitives.transcript import Transcript
 from protocol.prover import gen_proof
 
 
@@ -70,25 +69,6 @@ def load_setup_ctx(air_name: str) -> Optional[SetupCtx]:
         return None
 
     return SetupCtx.from_files(str(starkinfo_path), str(expressions_bin_path))
-
-
-def create_fresh_transcript(stark_info, vectors: dict) -> Transcript:
-    """Create a fresh transcript with global_challenge (if any).
-
-    This creates a transcript in the same initial state as C++ - with only
-    the global_challenge added. Python then computes all roots independently.
-    """
-    transcript = Transcript(
-        arity=stark_info.starkStruct.transcriptArity,
-        custom=stark_info.starkStruct.merkleTreeCustom
-    )
-
-    # Add global_challenge to transcript (this is added before root1 in C++)
-    global_challenge = vectors['inputs'].get('global_challenge', [])
-    if global_challenge:
-        transcript.put(global_challenge)
-
-    return transcript
 
 
 def create_params_from_vectors(stark_info, vectors: dict,
@@ -209,12 +189,10 @@ class TestStarkE2E:
 
         stark_info = setup_ctx.stark_info
 
-        # Create fresh transcript with global_challenge
-        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params, transcript=transcript)
+        proof = gen_proof(setup_ctx, params)
 
         # Check challenges
         intermediates = vectors['intermediates']
@@ -258,12 +236,10 @@ class TestStarkE2E:
 
         stark_info = setup_ctx.stark_info
 
-        # Create fresh transcript with global_challenge
-        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params, transcript=transcript)
+        proof = gen_proof(setup_ctx, params)
 
         # Check evals
         expected_evals = vectors['intermediates'].get('evals', [])
@@ -297,12 +273,10 @@ class TestStarkE2E:
 
         stark_info = setup_ctx.stark_info
 
-        # Create fresh transcript with global_challenge
-        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params, transcript=transcript)
+        proof = gen_proof(setup_ctx, params)
 
         # Check nonce
         expected_nonce = vectors['expected']['nonce']
@@ -346,13 +320,9 @@ class TestStarkWithInjectedChallenges:
         # Create params with injected challenges - bypass transcript for challenge derivation
         params = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
 
-        # Create fresh transcript with global_challenge
-        transcript = create_fresh_transcript(stark_info, vectors)
-
         # Run gen_proof - challenges are pre-populated, skip transcript challenge derivation
         # Python still computes roots independently
-        proof = gen_proof(setup_ctx, params, transcript=transcript,
-                         skip_challenge_derivation=True)
+        proof = gen_proof(setup_ctx, params, skip_challenge_derivation=True)
 
         # Check that stage 2 challenges match (they were injected)
         intermediates = vectors['intermediates']
@@ -403,13 +373,9 @@ class TestStarkPartialEvals:
         # Create params with injected challenges
         params = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
 
-        # Create fresh transcript with global_challenge
-        transcript = create_fresh_transcript(stark_info, vectors)
-
         # Run gen_proof with challenge derivation skipped
         # Python still computes roots independently
-        proof = gen_proof(setup_ctx, params, transcript=transcript,
-                         skip_challenge_derivation=True)
+        proof = gen_proof(setup_ctx, params, skip_challenge_derivation=True)
 
         # Identify testable evaluations (cm1 and const only)
         testable_eval_indices = []
@@ -468,12 +434,10 @@ class TestStarkE2EComplete:
 
         stark_info = setup_ctx.stark_info
 
-        # Create fresh transcript with global_challenge
-        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params, transcript=transcript)
+        proof = gen_proof(setup_ctx, params)
 
         # Verify Python-computed roots match C++ expected roots
         intermediates = vectors['intermediates']
@@ -607,12 +571,10 @@ class TestFullBinaryComparison:
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
 
-        # Create fresh transcript with global_challenge
-        transcript = create_fresh_transcript(stark_info, vectors)
         params = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params, transcript=transcript)
+        proof = gen_proof(setup_ctx, params)
 
         # Verify Python-computed roots match C++ expected roots
         intermediates = vectors['intermediates']

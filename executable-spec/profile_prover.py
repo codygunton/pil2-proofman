@@ -200,7 +200,7 @@ def run_lookup_test():
 
     # Now import and run
     from tests.test_stark_e2e import (
-        load_setup_ctx, load_test_vectors, create_fresh_transcript,
+        load_setup_ctx, load_test_vectors,
         create_params_from_vectors
     )
     from protocol.prover import gen_proof
@@ -218,14 +218,12 @@ def run_lookup_test():
         print(f"Test vectors not found for {air_name}")
         return
 
-    # Create fresh transcript with global_challenge
-    transcript = create_fresh_transcript(setup_ctx.stark_info, vectors)
     params = create_params_from_vectors(setup_ctx.stark_info, vectors)
 
     # Run gen_proof with timing
     print("Starting proof generation...")
     start = time.perf_counter()
-    proof = gen_proof(setup_ctx, params, transcript=transcript)
+    proof = gen_proof(setup_ctx, params)
     total_time = time.perf_counter() - start
     print(f"Proof generation complete in {total_time:.2f}s")
 
