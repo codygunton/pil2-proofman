@@ -15,8 +15,6 @@ from protocol.stages import Starks
 from protocol.witness_generation import calculate_witness_std
 
 # --- Type Aliases ---
-
-Fe3 = tuple[int, int, int]  # Cubic extension field element
 MerkleRoot = list[int]
 StageNum = int
 
@@ -27,134 +25,638 @@ def gen_proof(
     setup_ctx: SetupCtx,
     params: ProofContext,
     recursive: bool = False,
+    # ANSWER TO YOUR QUESTION: `recursive` is CRITICAL and changes both transcript structure AND
+    # the public input handling. When recursive=True, the prover attempts to make its Fiat-Shamir
+    # transcript structure match what the verifier expects. However, there's a fundamental mismatch:
+    #
+    # **Verifier's initialization (ALWAYS does this):**
+    # 1. puts(verkey) - the verification key (this is NEVER done in prover!)
+    # 2. if nPublics > 0:
+    #    - if hashCommits=False: puts(publics) directly
+    #    - if hashCommits=True: hashes publics through separate transcript, then puts hash
+    # 3. puts(root1) - the witness commitment root
+    #
+    # **Prover's initialization (when recursive=False):**
+    # - Does NOT put verkey (missing!)
+    # - Does NOT put publics (missing!)
+    # - Does NOT put root1 (missing!)
+    # - Challenges derived will NOT match verifier's challenges!
+    #
+    # **Prover's initialization (when recursive=True):**
+    # - Still does NOT put verkey (still missing!)
+    # - Puts publics DIRECTLY (not hashed, even if hashCommits=True!)
+    # - Puts root1 (now matches verifier)
+    # - Challenges derived still may NOT match due to verkey/hashing differences!
+    #
+    # So the `recursive` flag is a PARTIAL COMPATIBILITY FLAG that only handles some of the
+    # transcript initialization mismatch. For full compatibility with verifier, prover would need to:
+    # - Always initialize with verkey (not conditional on recursive)
+    # - Hash publics conditionally based on hashCommits (not just put raw)
+    # - This suggests recursive proofs might have a verifier path that doesn't need verkey?
+    # Or there's a higher-level caller that handles verkey separately?
+    #
+    # Usage effect:
+    # - recursive=False: Prover transcript is incomplete, challenges won't match verifier exactly
+    # - recursive=True: Prover transcript is more complete but still missing verkey and conditional hashing
     transcript: Optional[Transcript] = None,
+    # ANSWER: The transcript can be passed in externally for advanced use cases like recursive proofs
+    # where you want to combine multiple proofs under a single transcript. In normal usage (default None),
+    # we construct a fresh transcript here. This allows flexibility for recursive composition:
+    # - transcript=None (default): Create fresh Fiat-Shamir RNG initialized with protocol parameters
+    # - transcript=not None: Use provided transcript, which may already contain external data from parent proof
+    # The transcript is the heart of non-interactive randomness: every challenge we need is derived from it.
+    # WARNING: The verifier does something subtle with hashCommits=True: it hashes publics through a
+    # separate temporary transcript before putting the hash into the main transcript. The prover doesn't
+    # do this conditional hashing, which means the challenge streams diverge when hashCommits=True!
     skip_challenge_derivation: bool = False
+    # ANSWER: When True, skips deriving Fiat-Shamir challenges from the transcript.
+    # This is used in testing/debugging when you want to inject pre-computed challenges.
+    # Normal proof generation always has this False, so challenges are automatically derived.
 ) -> dict:
-    """Generate complete STARK proof."""
+    """Generate complete STARK proof.
+
+    ENGINEERING OVERVIEW:
+    This function orchestrates the entire STARK proof generation process. At a high level, the workflow is:
+
+    1. **Setup Phase**: Allocate working buffers (polynomial evaluations, intermediate values)
+    2. **Commit-Challenge-Respond Loop**:
+       - Stage 1: Commit to witness (constraint trace evaluations) → get random challenge
+       - Stage 2: Commit to intermediate values (permutation/lookup witness) → get random challenge
+       - Stage Q: Commit to quotient polynomial → get random challenge for FRI
+    3. **Evaluation Phase**: Open all polynomials at a random point (xi)
+    4. **FRI Phase**: Prove all commitments are actually low-degree via folding/merkle queries
+    5. **Query Proof Collection**: Pre-compute merkle proofs for all FRI query points
+    6. **Assemble**: Return complete proof as dict
+
+    The key insight is that this is a "commit-challenge-respond" protocol made non-interactive
+    through Fiat-Shamir hashing. Every commitment (merkle root) goes into the transcript, which
+    generates the next challenge deterministically. This ensures the proof is deterministic and
+    replayable without interaction.
+
+    **CRITICAL ARCHITECTURAL NOTE: Prover/Verifier Transcript Mismatch**
+
+    There's a fundamental mismatch between how the prover and verifier initialize the Fiat-Shamir
+    transcript, which affects challenge derivation:
+
+    **Verifier (verifier.py:301-318) ALWAYS initializes with:**
+    1. verkey (verification key hash)
+    2. publics (conditionally hashed if hashCommits=True)
+    3. root1 (witness commitment)
+
+    **Prover (this function) initializes with:**
+    1. Nothing for verkey (MISSING!)
+    2. publics only if recursive=True (and never hashed, even if hashCommits=True)
+    3. root1 only if recursive=True
+
+    This means:
+    - When recursive=False: Prover/verifier derive completely different challenge streams
+    - When recursive=True: Still diverges due to verkey and conditional hashing differences
+    - Non-recursive proofs must use a different verification path, or verkey is handled externally
+    - The conditional hashing of publics is inconsistent: verifier does it, prover doesn't
+
+    This suggests the architecture may be:
+    - recursive=False proofs are never directly verified (or verified differently)
+    - recursive=True proofs are used in recursive circuits where verkey may be implicit
+    - Higher-level callers may handle verkey initialization separately
+
+    CONSTRAINT CHECKING MECHANISM:
+    The constraint system works via a "quotient polynomial" trick. For each constraint C(x):
+      - C(x) should be zero at every valid execution step
+      - Outside the domain, C(x) is arbitrary (garbage)
+      - We divide by a domain mask polynomial D(x) which is 1 on domain, 0 elsewhere
+      - This makes Q(x) = C(x) / D(x) also low-degree (provable via FRI)
+    If constraints are violated anywhere, the quotient won't actually be low-degree,
+    and FRI will catch it with high probability.
+    """
+    # Extract the AIR specification (constraint definitions, parameters, domains, challenge map, etc.)
+    # from setup context. stark_info contains:
+    # - starkStruct: domain sizes, FRI configuration, merkle parameters, etc.
+    # - constraintPols: the constraint polynomials (compiled from AIR expressions)
+    # - nStages: how many polynomial commitment stages (usually 2: witness + intermediate)
+    # - evMap: which polynomials are opened at which points (for verifier)
+    # - mapOffsets: where each polynomial is stored in the auxTrace buffer
+    # - challengesMap: which challenges are derived at which stages
     stark_info = setup_ctx.stark_info
 
-    # --- Setup ---
+    # === INITIALIZATION: Set up all working data structures ===
+
+    # The main domain size N controls how many evaluation points we have.
+    # This is 2^nBits, where nBits typically logs2(execution trace length).
+    # All constraint traces are evaluated at N points in the field.
+    # The domain is the multiplicative subgroup of order N in GF(p).
     N = 1 << stark_info.starkStruct.nBits
+
+    # The extended domain N_extended is larger (2^nBitsExt) for FRI's low-degree test.
+    # FRI needs a larger domain to test low-degree-ness properly. If we only tested on the
+    # original N points, a dishonest prover could find a high-degree polynomial that happens
+    # to be low-degree on exactly those N points (pigeonhole principle).
+    # The extended domain gives us extra "random" evaluation points for verification.
+    # Typically N_extended ≈ 2*N or 4*N depending on security parameters.
     N_extended = 1 << stark_info.starkStruct.nBitsExt
+
+    # ENGINEERING NOTE: NTT (Number Theoretic Transform) objects pre-compute FFT twiddle factors
+    # for fast polynomial operations (interpolation, evaluation, multiplication). These are lookup
+    # tables that make FFT O(N log N) instead of O(N^2). We need two instances:
+    # - ntt: for the base domain (N points, used for stages 1-2)
+    # - ntt_extended: for the extended domain (N_extended points, used for quotient stage and FRI)
+    # This is an IMPLEMENTATION DETAIL that could be hidden. The protocol doesn't care about FFT—
+    # it just needs fast polynomial evaluation. Currently NTT creation is explicit here, but it could be:
+    # (a) Moved into Starks.__init__() to hide it
+    # (b) Created lazily on first use
+    # (c) Pre-created in SetupCtx to reduce initialization complexity in gen_proof
+    # For simplification: this is a strong candidate for abstraction.
     ntt = NTT(N)
     ntt_extended = NTT(N_extended)
 
+    # ProverHelpers contains precomputed tables derived from AIR structure. These include:
+    # - Sibling maps for permutation constraints (which execution step has which sibling in permutation)
+    # - Parent maps for lookup constraints (where to find elements in lookup table)
+    # - Range check tables
+    # These are used by constraint expression evaluation to validate permutation/lookup arguments.
+    # This is an internal data structure that expression evaluation depends on.
     prover_helpers = ProverHelpers.from_stark_info(stark_info, pil1=False)
+
+    # Starks orchestrates polynomial commitment (merkle tree construction from evaluations).
+    # It maintains:
+    # - stage_trees: dict of merkle trees, one per polynomial commitment stage
+    # - const_tree: merkle tree for constant polynomials (read-only lookup tables)
+    # When you call starks.commitStage(stage, params, ntt), it:
+    # 1. Extracts all polynomials for that stage from params.polynomials
+    # 2. Evaluates them (or extracts pre-computed evaluations)
+    # 3. Builds a merkle tree from evaluations
+    # 4. Returns the merkle root
+    # The merkle tree is stored for later query proof generation.
     starks = Starks(setup_ctx)
+
+    # ExpressionsPack manages constraint polynomial evaluation by parsing and executing AIR expressions.
+    # It contains:
+    # - Compiled expressions (from setup_ctx.expressions_bin) that compute constraint polynomials
+    # - ProverHelpers for constraint evaluation (sibling/parent maps, etc.)
+    # When you call expressions_ctx.compute(...), it evaluates expressions on params.polynomials
+    # and stores results in params.auxTrace or other buffers. The key insight: expression evaluation
+    # is a black box that takes polynomials and outputs constraint values.
     expressions_ctx = ExpressionsPack(setup_ctx, prover_helpers)
 
+    # Initialize Fiat-Shamir transcript (deterministic RNG seeded by public protocol state).
+    # The transcript is the heart of the protocol's security: it ensures challenges are unpredictable
+    # yet reproducible. Every time we call transcript.get_field(), we:
+    # 1. Hash all data fed into the transcript so far
+    # 2. Return a field element derived from that hash
+    # 3. Update internal state so the next call gets a different challenge
+    # This is essentially: challenge_n = Hash(all_committed_data_so_far || counter).
+    # If no transcript is provided, create a fresh one with protocol parameters.
     if transcript is None:
+        # transcriptArity: how many field elements are hashed at once (optimization for Poseidon2)
+        # merkleTreeCustom: custom data added to hash (varies by AIR)
         transcript = Transcript(
             arity=stark_info.starkStruct.transcriptArity,
             custom=stark_info.starkStruct.merkleTreeCustom
         )
 
-    # --- Stage 0: Initialize Transcript ---
+    # === STAGE 0: Initialize Transcript with Public Inputs (Recursive Proofs Only) ===
+
+    # CRITICAL MISMATCH WITH VERIFIER:
+    # The verifier ALWAYS initializes with: verkey, publics (conditionally hashed), root1
+    # The prover only initializes with publics + root1 if recursive=True, and never includes verkey
+    #
+    # This suggests one of:
+    # 1. Non-recursive proofs use a different verification path that doesn't require transcript matching
+    # 2. Verkey is handled separately at a higher level (not in gen_proof)
+    # 3. There's an architectural inconsistency between prover/verifier transcript initialization
+    #
+    # For recursive proofs (recursive=True), public inputs are included to ensure the recursive circuit
+    # can verify they match. However, there's a subtle issue:
+    # - Verifier hashes publics through a temporary transcript if hashCommits=True
+    # - Prover puts publics raw without hashing
+    # - This means challenge derivation diverges when hashCommits=True!
     if recursive:
         if stark_info.nPublics > 0:
+            # Feed only the first nPublics field elements into the transcript (RAW, not hashed).
+            # WARNING: This doesn't match verifier behavior when hashCommits=True.
+            # The verifier would have hashed these through a temporary transcript first.
+            # Public inputs are typically instance data (problem statement), not witness data.
+            # They're known to both prover and verifier, so hashing them ensures consistency.
             transcript.put(params.publicInputs[:stark_info.nPublics])
 
+    # If constant polynomials (read-only lookup tables) exist, build a merkle tree from them.
+    # These are tables of constant values that lookup/permutation constraints reference.
+    # We need to commit to them so the verifier can open them at arbitrary query points.
+    # The merkle tree allows logarithmic-size proofs of specific table entries.
+    # Note: Constant polynomials are evaluated over the extended domain (constPolsExtended).
     if params.constPolsExtended is not None and len(params.constPolsExtended) > 0:
+        # Build merkle tree from constant polynomials (no challenge derivation needed; they're fixed)
         starks.build_const_tree(params.constPolsExtended)
 
-    # --- Stage 1: Witness Commitment ---
+    # === STAGE 1: Witness Commitment ===
+
+    # The witness is the execution trace: all polynomial evaluations that satisfy the constraints.
+    # In a computation, this is like the state at each step: CPU registers, memory, etc.
+    # We commit to all witness polynomials by building a merkle tree.
+    # The merkle root proves we've committed to a specific set of polynomial values without revealing them.
+    # This is cryptographically binding: we can't change the polynomials without changing the root.
+
+    # List to accumulate all merkle roots in order (Stage 1, Stage 2, Stage Q).
+    # The verifier will need all of these to reconstruct the transcript and verify challenges.
     computed_roots: list[MerkleRoot] = []
 
+    # commitStage(1, params, ntt) extracts all stage-1 polynomials from params,
+    # evaluates them (using ntt for FFT efficiency), builds a merkle tree, and returns the root.
+    # The tree is stored in starks.stage_trees[1] for later query proof generation.
+    # Stage 1 is the witness stage: everything about the execution trace.
     root1 = starks.commitStage(1, params, ntt)
     computed_roots.append(list(root1))
 
+    # For recursive proofs: feed the witness root into the transcript so the recursive circuit
+    # can verify it matches the claimed root.
+    # CRITICAL: The verifier ALWAYS puts root1 into Stage 0 initialization (verifier.py:314).
+    # But the prover only puts it if recursive=True, and only AFTER Stage 1 is computed.
+    # The timing/conditional nature means prover/verifier transcript state diverges:
+    # - When recursive=False: root1 is not in transcript during challenge derivation
+    # - When recursive=True: root1 is in transcript, but at a different point than verifier
+    # This architectural mismatch suggests non-recursive and recursive proofs may use
+    # completely different verification paths, or verkey/root1 are handled externally.
     if recursive:
         transcript.put(root1)
 
-    # --- Stage 2: Intermediate Polynomials ---
+    # === STAGE 2: Intermediate Polynomials (Lookup/Permutation Witness) ===
+
+    # Before checking constraints, we need to compute intermediate polynomials that support
+    # lookup and permutation arguments. These are "preprocessed" values derived from the witness:
+    #
+    # - For lookup arguments: We need to prove each element in the witness appears in a lookup table.
+    #   This requires computing a "grand product" polynomial that encodes table inclusion proofs.
+    # - For permutation arguments: We need to prove elements are permuted consistently across columns.
+    #   This requires a "grand product" polynomial that encodes permutation proofs.
+    #
+    # These grand products are built from the witness via polynomial expressions defined in the AIR.
+    # The challenge: we can't compute them yet because the verifier hasn't given us random challenges.
+    # The solution: Fiat-Shamir. We derive a random challenge from the transcript and use it to compute.
+
+    # Derive Fiat-Shamir challenge for Stage 2 from the transcript.
+    # This challenge is a random linear combination weight used in:
+    # - Grand product computation for permutation arguments
+    # - Expression evaluation for intermediate polynomial construction
+    # The challenge must be random (derived from transcript), yet deterministic (same across prover/verifier).
     if not skip_challenge_derivation:
         _derive_stage_challenges(transcript, params, stark_info.challengesMap, stage=2)
 
+    # Execute all AIR constraint expressions to compute intermediate polynomials (Stage 2).
+    # These are derived values computed from the witness:
+    # - Polynomial flags (is_first_row, is_last_row, etc.)
+    # - Temporary values (T0, T1, ... = intermediate variables in constraints)
+    # - Permutation/lookup support values
+    # The expressions parse the AIR's constraint definitions and evaluate them point-by-point.
+    # Results are stored in params.auxTrace (auxiliary trace buffer).
     starks.calculateImPolsExpressions(2, params, expressions_ctx)
 
-    # Compute grand product and sum polynomials for lookup/permutation arguments
+    # For lookup/permutation arguments: compute grand product polynomials.
+    # These polynomials prove the prover didn't cheat by skipping elements or using wrong values.
+    #
+    # calculate_witness_std with prod=True computes:
+    #   P(x) = Product over evaluation points of (witness_element(x) + random_challenge)
+    # This product encodes that all witness elements are valid under the random challenge.
+    #
+    # calculate_witness_std with prod=False computes:
+    #   S(x) = Sum over evaluation points of (witness_element(x))
+    # This sum is used for range checking (proving values are in a specific range).
+    #
+    # Both are stored in params.auxTrace at computed offsets.
     calculate_witness_std(stark_info, setup_ctx.expressions_bin, params, expressions_ctx, prod=True)
     calculate_witness_std(stark_info, setup_ctx.expressions_bin, params, expressions_ctx, prod=False)
 
+    # Commit to all Stage 2 polynomials (witness, intermediate, grand products).
+    # This is a second merkle tree, building on the same evaluation domain as Stage 1.
+    # The root proves we've committed to all intermediate values without revealing them.
     root2 = starks.commitStage(2, params, ntt)
     computed_roots.append(list(root2))
+
+    # Feed Stage 2 root into transcript for next challenge derivation.
+    # The verifier will use this root to verify the challenge derivations match.
     transcript.put(root2)
 
-    # --- Stage Q: Quotient Polynomial ---
+    # === STAGE Q: Quotient Polynomial ===
+
+    # The quotient polynomial is the core of constraint checking. The idea:
+    #
+    # For each constraint C(x):
+    #   C(x) should equal 0 at every valid execution step
+    #   Outside the domain, C(x) is garbage (not constrained)
+    #
+    # We define Q(x) = Sum of [C_i(x) / D(x)] over all constraints
+    #   where D(x) is a "vanishing polynomial" = 0 everywhere except on domain
+    #
+    # Key insight: If all constraints are satisfied on the domain, Q(x) is a valid polynomial
+    # of degree < trace_deg + constraint_deg. If even one constraint is violated, Q(x) will be
+    # artificially high-degree and FRI will catch it.
+    #
+    # The quotient is typically degree ~(trace_deg + constraint_deg), which is still reasonable
+    # to verify via FRI folding.
+
+    # Stage Q is computed after Stage 2 (constraint checking depends on intermediate values).
+    # q_stage index is nStages + 1 (e.g., if nStages=2, then q_stage=3).
     q_stage = stark_info.nStages + 1
 
+    # Derive Fiat-Shamir challenge for Stage Q from the transcript.
+    # This challenge is a random linear combination weight used when computing the quotient polynomial.
+    # It's the weight used to combine all constraints: Q(x) = c0*C0(x)/D(x) + c1*C1(x)/D(x) + ...
+    # The randomness ensures constraint violations can't be cancelled out by careful cancellation.
     if not skip_challenge_derivation:
         _derive_stage_challenges(transcript, params, stark_info.challengesMap, stage=q_stage)
 
+    # Build the quotient polynomial.
+    # This evaluates all constraints at all trace points, divides by vanishing polynomial,
+    # and stores the result as Stage Q polynomials in params.auxTrace.
+    # The quotient must be low-degree (verifiable by FRI), so constraint violations would
+    # immediately make it high-degree.
     starks.calculateQuotientPolynomial(params, expressions_ctx)
 
+    # Commit to the quotient polynomial.
+    # Note: we use ntt_extended here because the quotient is evaluated over the extended domain.
+    # This is necessary for FRI: we need evaluations on a larger domain than just the execution trace.
+    # FRI will prove the quotient is low-degree by folding on this extended domain.
     rootQ = starks.commitStage(q_stage, params, ntt_extended)
     computed_roots.append(list(rootQ))
+
+    # Feed quotient root into transcript.
     transcript.put(rootQ)
 
-    # --- Stage EVALS: Polynomial Evaluations ---
+    # === STAGE EVALS: Polynomial Evaluations at Challenge Point ===
+
+    # Now we've committed to three things: witness, intermediate, quotient.
+    # To prove they're actually low-degree, we open them all at a single random point.
+    # If a polynomial is truly low-degree, opening at a random point should be easy.
+    # If it's high-degree (cheating), the opening would be inconsistent with the low-degree commitment.
+
+    # The key protocol step:
+    # 1. Verifier derives a random challenge point (xi) from transcript
+    # 2. Prover evaluates all committed polynomials at xi
+    # 3. Verifier checks: the opening is consistent with the merkle root
+    # 4. Verifier checks: the opened values satisfy a "polynomial relationship"
+    #    (i.e., quotient = sum of [C(xi) / D(xi)])
+    #
+    # This is the constraint checking step. The verifier doesn't re-compute constraints;
+    # it just checks that the prover's evaluations are consistent.
+
+    # Derive FRI opening point (random evaluation point in field).
+    # This is the point xi where we open all polynomials.
+    # The challenge must be random for security: if prover can predict xi, it could craft
+    # a high-degree polynomial that happens to "work" at xi.
     xi_challenge_index = _derive_eval_challenges(
         transcript, params, stark_info, skip_challenge_derivation
     )
     xi = params.get_challenge(xi_challenge_index)
 
+    # Evaluate all committed polynomials at xi.
+    # This is the expensive step: FFT evaluates a polynomial at a single point in O(log N) field ops.
+    # We evaluate thousands of polynomials, so we batch them in groups of 4 for efficiency.
+    # Results are stored in params.evals.
+    #
+    # What gets evaluated:
+    # - All witness polynomials (trace columns)
+    # - All intermediate polynomials (flags, temps, grand products)
+    # - The quotient polynomial
+    # - Potentially others (depends on evMap configuration)
     _compute_all_evals(stark_info, starks, params, xi, ntt)
 
+    # Feed polynomial evaluations into the transcript (or their hash).
+    # The verifier will derive the next challenge from these evaluations.
+    # If we skip this step, the verifier can forge proofs by picking arbitrary evaluations.
+    #
+    # Two approaches:
+    # (a) hashCommits=False: Put all evaluations directly in transcript
+    #     Pro: Verifier has full data
+    #     Con: Proof is larger (many field elements)
+    # (b) hashCommits=True: Hash evaluations with Poseidon2, put hash in transcript
+    #     Pro: Proof is smaller (just one hash)
+    #     Con: Verifier must check the hash matches (adds a Poseidon2 verification constraint)
+    #
+    # This is a security/efficiency tradeoff. Recursive proofs typically use hashCommits=True.
+    # CRITICAL ISSUE: The verifier uses conditional hashing for PUBLIC INPUTS (verifier.py:307-313):
+    # - If hashCommits=False: puts publics raw
+    # - If hashCommits=True: hashes publics through temporary transcript, then puts hash
+    # But the prover (Stage 0 above) puts publics raw regardless of hashCommits.
+    # This is INCONSISTENT. The verifier's conditional hashing pattern should be applied
+    # to publics in prover too, but it's not. This diverges the challenge stream.
+
     n_evals = len(stark_info.evMap) * FIELD_EXTENSION_DEGREE
+    # evMap contains which polynomials are evaluated (base field vs. extension field).
+    # FIELD_EXTENSION_DEGREE is 3 (cubic extension), so extension evaluations are 3x base.
     if not stark_info.starkStruct.hashCommits:
+        # Direct approach: all evaluations in transcript
+        # Matches verifier (verifier.py:349)
         transcript.put(params.evals[:n_evals])
     else:
+        # Optimized approach: hash evaluations to single Poseidon2 digest
+        # Matches verifier (verifier.py:351)
         evals_hash = list(linear_hash([int(v) for v in params.evals[:n_evals]], width=16))
         transcript.put(evals_hash)
 
-    # FRI polynomial challenges
+    # === STAGE FRI: Polynomial Commitment via Low-Degree Test ===
+
+    # We've committed to polynomials via merkle trees, but merkle trees alone don't prove low-degree.
+    # Example: the merkle root could commit to arbitrary data (high-degree polynomial).
+    # Merke tree is just a commitment; FRI is the proof of low-degree.
+    #
+    # FRI (Fast Reed-Solomon IOP) proves low-degree by:
+    # 1. Taking a polynomial P(x) of claimed degree d
+    # 2. Constructing a folded polynomial P'(x) from evaluations of P at 2d points
+    #    (by taking even/odd evaluations and combining with a random challenge)
+    # 3. Proving P'(x) has half the degree
+    # 4. Recursing: fold again, degree halves, continue until degree=0
+    #
+    # At each level, the prover builds a merkle tree of folded evaluations and commits to the root.
+    # The verifier randomly samples leaves, checks merkle proofs, and verifies the folding equations.
+    # If the original polynomial is truly low-degree, all folding equations check out.
+    # If it's high-degree, the prover is caught with exponential probability.
+
+    # Derive Fiat-Shamir challenges for FRI folding stages.
+    # Each FRI fold level (halving degree) needs a random challenge.
+    # There are typically 10-15 folding levels (since degree goes from 2^20 → 2^19 → ... → 2^0).
     if not skip_challenge_derivation:
         _derive_stage_challenges(transcript, params, stark_info.challengesMap,
                                  stage=stark_info.nStages + 3)
 
-    # --- Stage FRI: Polynomial Commitment ---
+    # Construct the FRI polynomial: the polynomial we'll prove low-degree-ness of.
+    # This is a linear combination of all committed polynomials:
+    #   FRI_Poly(x) = c0 * witness(x) + c1 * intermediate(x) + c2 * quotient(x) + ...
+    # where c0, c1, c2 are random coefficients derived from challenges.
+    #
+    # Why a linear combination? Because we want to batch-prove all polynomials are low-degree.
+    # If even one polynomial is high-degree, the linear combination is high-degree.
+    # So proving the combination is low-degree proves all constituents are low-degree.
     starks.calculateFRIPolynomial(params, expressions_ctx)
 
+    # Extract the FRI polynomial from the auxiliary trace buffer.
+    # params.auxTrace is a flat array containing all polynomials:
+    #   [witness_polys, intermediate_polys, quotient, fri_poly, ...]
+    # We need to find fri_poly and extract it.
+    # mapOffsets[("f", True)] gives the byte offset of the FRI polynomial in auxTrace.
     fri_pol_offset = stark_info.mapOffsets[("f", True)]
+    # The FRI polynomial is evaluated on the extended domain.
     n_fri_elements = 1 << stark_info.starkStruct.friFoldSteps[0].domainBits
+    # Each element is FF3 (cubic extension), so 3 field elements per polynomial value.
     fri_pol_size = n_fri_elements * FIELD_EXTENSION_DEGREE
+    # Extract the numpy array slice containing FRI polynomial data.
     fri_pol_numpy = params.auxTrace[fri_pol_offset:fri_pol_offset + fri_pol_size]
-    # Convert from interleaved numpy to FF3Poly (C++ buffer boundary)
+
+    # Convert from interleaved numpy buffer layout to FF3Poly (galois library format).
+    # C++ stores data in a specific binary layout (C buffer order).
+    # Python galois library uses a different layout (numpy interleaved).
+    # ff3_from_interleaved_numpy handles the conversion:
+    #   [a0, a1, a2, b0, b1, b2, ...] (interleaved: a=(a0,a1,a2), b=(b0,b1,b2))
+    #   →
+    #   [(a0, a1, a2), (b0, b1, b2), ...] (FF3Poly objects)
     fri_pol = ff3_from_interleaved_numpy(fri_pol_numpy, n_fri_elements)
 
+    # Configure FRI with all protocol parameters.
+    # FRI is heavily parameterized: folding schedule, query count, merkle tree structure, etc.
     fri_config = FriPcsConfig(
+        # n_bits_ext: log2(extended domain size) for initial FRI level
+        # E.g., if extended domain = 2^20, this is 20.
+        # FRI folds this down to 2^19, 2^18, ..., 2^0.
         n_bits_ext=stark_info.starkStruct.friFoldSteps[0].domainBits,
+        # fri_round_log_sizes: log2 size at each folding level
+        # E.g., [20, 19, 18, 17, 16, 15, ...] (one per fold)
         fri_round_log_sizes=[step.domainBits for step in stark_info.starkStruct.friFoldSteps],
+        # n_queries: how many leaves to sample for verification
+        # Larger = more security, larger proof. Typically 16-128 queries.
+        # Each query samples one leaf from the merkle tree at each fold level.
         n_queries=stark_info.starkStruct.nQueries,
+        # ANSWER: merkleTreeArity is the branching factor of FRI merkle trees.
+        # - arity=2 (binary): each node has 2 children, tree height = log2(N)
+        # - arity=4 (quaternary): each node has 4 children, tree height = log4(N) = log2(N)/2
+        # - arity=8 (octary): each node has 8 children, tree height = log8(N) = log2(N)/3
+        # Larger arity = shorter proof (fewer merkle path elements) but larger intermediate nodes.
+        # This spec supports any arity; C++ tests mainly use arity=4.
         merkle_arity=stark_info.starkStruct.merkleTreeArity,
+        # pow_bits: difficulty of proof-of-work nonce
+        # If pow_bits=20, prover must find a nonce such that Hash(proof || nonce) has 20 leading zero bits.
+        # This adds computational cost but doesn't affect proof size or verifier time.
+        # Used for anti-DOS in some applications. Typically 0 (disabled) for specs.
         pow_bits=stark_info.starkStruct.powBits,
+        # last_level_verification: whether to include leaf hashes in the proof
+        # If True, verifier can check the final constant values directly (extra security).
+        # If False, verifier trusts the merkle tree commitment to the final level.
         last_level_verification=stark_info.starkStruct.lastLevelVerification,
+        # hash_commits: whether to hash polynomial evaluations (evMap stage)
+        # Matches the choice made earlier for efficiency/security tradeoff.
         hash_commits=stark_info.starkStruct.hashCommits,
+        # transcript_arity: how many field elements per Poseidon2 hash (optimization)
+        # Matches the transcript configuration.
         transcript_arity=stark_info.starkStruct.transcriptArity,
+        # merkle_tree_custom: custom data for hash function (AIR-specific)
         merkle_tree_custom=stark_info.starkStruct.merkleTreeCustom,
     )
 
+    # Run FRI: the main low-degree testing protocol.
+    # FRI returns:
+    # - merkle roots for each folding level (proves commitment to folded evaluations)
+    # - query indices (which leaves were sampled)
+    # - query proofs (merkle paths for those leaves)
+    # - final constant value (when degree reaches 0)
+    # This is the most cryptographically expensive part (merkle tree construction + hashing).
     fri_pcs = FriPcs(fri_config)
     fri_proof = fri_pcs.prove(fri_pol, transcript)
 
-    # --- Collect Query Proofs ---
-    query_indices = fri_proof.query_indices
+    # === STAGE QUERY PROOFS: Merkle Openings ===
 
+    # FRI has told us which query indices to open (fri_proof.query_indices).
+    # For each index, we need merkle proofs proving:
+    # - The witness evaluations at that index are correct (match the root1 commitment)
+    # - The intermediate evaluations at that index are correct (match the root2 commitment)
+    # - The quotient evaluations at that index are correct (match the rootQ commitment)
+    # - The constant table evaluations at that index are correct (if present)
+    #
+    # Without these merkle proofs, the verifier can't check that the opened values
+    # correspond to the committed polynomials. The merkle proofs cryptographically
+    # bind the evaluations to the roots.
+
+    query_indices = fri_proof.query_indices
+    # query_indices is a list of which evaluation points (0 to N-1) were sampled.
+    # Typically 16-128 indices, determined by FRI's challenge derivation.
+
+    # Collect merkle proofs for constant polynomials at query points.
+    # If there's no const_tree (no lookup tables), this returns an empty list.
+    # Otherwise, for each query_index in query_indices, we get a merkle path proving
+    # const_poly[query_index] is correct.
     const_query_proofs = _collect_const_query_proofs(starks, query_indices)
+
+    # Collect merkle proofs for all witness/intermediate/quotient polynomials at query points.
+    # This returns a dict: { stage_num: [QueryProof, QueryProof, ...] }
+    # For each stage (1, 2, Q) and each query index, we get a merkle path.
+    # The merkle path allows verifier to reconstruct the root from the opened value.
     stage_query_proofs = _collect_stage_query_proofs(starks, stark_info, query_indices)
+
+    # Collect last-level merkle tree nodes (if lastLevelVerification is enabled).
+    # This includes leaf hashes from the merkle trees, allowing the verifier to
+    # double-check that commitment roots match.
+    # If lastLevelVerification=0, this is empty; if >0, it contains leaf hashes.
     last_level_nodes = _collect_last_level_nodes(starks, stark_info, fri_pcs)
 
-    # --- Assemble Proof ---
+    # === ASSEMBLE PROOF ===
+
+    # Collect all proof components into a single dictionary.
+    # This is what gets serialized and sent to the verifier.
+    # The verifier will:
+    # 1. Reconstruct the transcript from the roots
+    # 2. Verify FRI (merkle trees, folding equations, query proofs)
+    # 3. Verify constraint checking (polynomial relationship at xi)
+    # 4. Accept or reject the proof
     return {
+        # Polynomial evaluations at the FRI challenge point (xi).
+        # Verifier uses these to check: quotient(xi) = sum of [constraint(xi) / vanishing(xi)].
+        # This is the core constraint checking: if evaluations don't match the quotient relationship,
+        # either the constraints are violated or the prover cheated.
         'evals': params.evals[:n_evals],
+
+        # Computed AIR group values (internal, used for verifier computation).
+        # These are intermediate values needed to re-compute constraint relationships during verification.
         'airgroup_values': params.airgroupValues,
+
+        # Computed AIR values (internal, used for verifier computation).
+        # Similar to airgroup_values, supports verifier constraint checking.
         'air_values': params.airValues,
+
+        # Proof-of-work nonce (if powBits > 0).
+        # If pow_bits is enabled, the nonce is such that Hash(proof || nonce) has powBits leading zeros.
+        # Verifier will re-hash to confirm. If pow_bits=0 (disabled), this is 0.
         'nonce': fri_proof.nonce,
+
+        # FRI low-degree proof object.
+        # Contains: merkle roots per folding level, final constant value, folding equations.
+        # This is what proves all committed polynomials are actually low-degree.
         'fri_proof': fri_proof,
+
+        # List of merkle roots [root1, root2, rootQ].
+        # root1: commitment to witness polynomials
+        # root2: commitment to intermediate polynomials (flags, temps, grand products)
+        # rootQ: commitment to quotient polynomial
+        # Verifier uses these to verify merkle proofs in stage_query_proofs.
         'roots': computed_roots,
+
+        # Dict of merkle query proofs by stage.
+        # stage_query_proofs[1] = [QueryProof, ...] for witness stage at all query indices
+        # stage_query_proofs[2] = [QueryProof, ...] for intermediate stage at all query indices
+        # stage_query_proofs[3] = [QueryProof, ...] for quotient stage at all query indices
+        # Verifier uses these to check that opened evaluations correspond to committed roots.
         'stage_query_proofs': stage_query_proofs,
+
+        # List of merkle query proofs for constant polynomials.
+        # If no constant polynomials, this is empty.
+        # Otherwise, one QueryProof per query index, proving const_poly[idx] is correct.
         'const_query_proofs': const_query_proofs,
+
+        # List of query indices sampled by FRI.
+        # Typically [7, 42, 103, ...] (16-128 random indices, 0 to N-1).
+        # Verifier will independently sample the same indices using Fiat-Shamir,
+        # then check the merkle proofs match.
         'query_indices': query_indices,
+
+        # Dict of last-level merkle tree nodes by tree name.
+        # E.g., { 'const': [...], 'cm1': [...], 'cm2': [...], 'cm3': [...], 'fri0': [...], ... }
+        # If lastLevelVerification=0, this is empty.
+        # If >0, verifier can cross-check that leaves match the commitment roots.
+        # Provides extra security against merkle tree collisions.
         'last_level_nodes': last_level_nodes,
     }
 
