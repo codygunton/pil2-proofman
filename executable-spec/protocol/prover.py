@@ -1,7 +1,5 @@
 """Top-level STARK proof generation."""
 
-from typing import Optional
-
 from poseidon2_ffi import linear_hash
 from primitives.field import FIELD_EXTENSION_DEGREE, ff3_from_interleaved_numpy
 from primitives.merkle_tree import QueryProof
@@ -24,109 +22,12 @@ StageNum = int
 def gen_proof(
     setup_ctx: SetupCtx,
     params: ProofContext,
-    recursive: bool = False,
-    # ANSWER TO YOUR QUESTION: `recursive` is CRITICAL and changes both transcript structure AND
-    # the public input handling. When recursive=True, the prover attempts to make its Fiat-Shamir
-    # transcript structure match what the verifier expects. However, there's a fundamental mismatch:
-    #
-    # **Verifier's initialization (ALWAYS does this):**
-    # 1. puts(verkey) - the verification key (this is NEVER done in prover!)
-    # 2. if nPublics > 0:
-    #    - if hashCommits=False: puts(publics) directly
-    #    - if hashCommits=True: hashes publics through separate transcript, then puts hash
-    # 3. puts(root1) - the witness commitment root
-    #
-    # **Prover's initialization (when recursive=False):**
-    # - Does NOT put verkey (missing!)
-    # - Does NOT put publics (missing!)
-    # - Does NOT put root1 (missing!)
-    # - Challenges derived will NOT match verifier's challenges!
-    #
-    # **Prover's initialization (when recursive=True):**
-    # - Still does NOT put verkey (still missing!)
-    # - Puts publics DIRECTLY (not hashed, even if hashCommits=True!)
-    # - Puts root1 (now matches verifier)
-    # - Challenges derived still may NOT match due to verkey/hashing differences!
-    #
-    # So the `recursive` flag is a PARTIAL COMPATIBILITY FLAG that only handles some of the
-    # transcript initialization mismatch. For full compatibility with verifier, prover would need to:
-    # - Always initialize with verkey (not conditional on recursive)
-    # - Hash publics conditionally based on hashCommits (not just put raw)
-    # - This suggests recursive proofs might have a verifier path that doesn't need verkey?
-    # Or there's a higher-level caller that handles verkey separately?
-    #
-    # Usage effect:
-    # - recursive=False: Prover transcript is incomplete, challenges won't match verifier exactly
-    # - recursive=True: Prover transcript is more complete but still missing verkey and conditional hashing
-    transcript: Optional[Transcript] = None,
-    # ANSWER: The transcript can be passed in externally for advanced use cases like recursive proofs
-    # where you want to combine multiple proofs under a single transcript. In normal usage (default None),
-    # we construct a fresh transcript here. This allows flexibility for recursive composition:
-    # - transcript=None (default): Create fresh Fiat-Shamir RNG initialized with protocol parameters
-    # - transcript=not None: Use provided transcript, which may already contain external data from parent proof
-    # The transcript is the heart of non-interactive randomness: every challenge we need is derived from it.
-    # WARNING: The verifier does something subtle with hashCommits=True: it hashes publics through a
-    # separate temporary transcript before putting the hash into the main transcript. The prover doesn't
-    # do this conditional hashing, which means the challenge streams diverge when hashCommits=True!
     skip_challenge_derivation: bool = False
-    # ANSWER: When True, skips deriving Fiat-Shamir challenges from the transcript.
-    # This is used in testing/debugging when you want to inject pre-computed challenges.
-    # Normal proof generation always has this False, so challenges are automatically derived.
 ) -> dict:
     """Generate complete STARK proof.
 
-    ENGINEERING OVERVIEW:
-    This function orchestrates the entire STARK proof generation process. At a high level, the workflow is:
-
-    1. **Setup Phase**: Allocate working buffers (polynomial evaluations, intermediate values)
-    2. **Commit-Challenge-Respond Loop**:
-       - Stage 1: Commit to witness (constraint trace evaluations) → get random challenge
-       - Stage 2: Commit to intermediate values (permutation/lookup witness) → get random challenge
-       - Stage Q: Commit to quotient polynomial → get random challenge for FRI
-    3. **Evaluation Phase**: Open all polynomials at a random point (xi)
-    4. **FRI Phase**: Prove all commitments are actually low-degree via folding/merkle queries
-    5. **Query Proof Collection**: Pre-compute merkle proofs for all FRI query points
-    6. **Assemble**: Return complete proof as dict
-
-    The key insight is that this is a "commit-challenge-respond" protocol made non-interactive
-    through Fiat-Shamir hashing. Every commitment (merkle root) goes into the transcript, which
-    generates the next challenge deterministically. This ensures the proof is deterministic and
-    replayable without interaction.
-
-    **CRITICAL ARCHITECTURAL NOTE: Prover/Verifier Transcript Mismatch**
-
-    There's a fundamental mismatch between how the prover and verifier initialize the Fiat-Shamir
-    transcript, which affects challenge derivation:
-
-    **Verifier (verifier.py:301-318) ALWAYS initializes with:**
-    1. verkey (verification key hash)
-    2. publics (conditionally hashed if hashCommits=True)
-    3. root1 (witness commitment)
-
-    **Prover (this function) initializes with:**
-    1. Nothing for verkey (MISSING!)
-    2. publics only if recursive=True (and never hashed, even if hashCommits=True)
-    3. root1 only if recursive=True
-
-    This means:
-    - When recursive=False: Prover/verifier derive completely different challenge streams
-    - When recursive=True: Still diverges due to verkey and conditional hashing differences
-    - Non-recursive proofs must use a different verification path, or verkey is handled externally
-    - The conditional hashing of publics is inconsistent: verifier does it, prover doesn't
-
-    This suggests the architecture may be:
-    - recursive=False proofs are never directly verified (or verified differently)
-    - recursive=True proofs are used in recursive circuits where verkey may be implicit
-    - Higher-level callers may handle verkey initialization separately
-
-    CONSTRAINT CHECKING MECHANISM:
-    The constraint system works via a "quotient polynomial" trick. For each constraint C(x):
-      - C(x) should be zero at every valid execution step
-      - Outside the domain, C(x) is arbitrary (garbage)
-      - We divide by a domain mask polynomial D(x) which is 1 on domain, 0 elsewhere
-      - This makes Q(x) = C(x) / D(x) also low-degree (provable via FRI)
-    If constraints are violated anywhere, the quotient won't actually be low-degree,
-    and FRI will catch it with high probability.
+    Fiat-Shamir transcript is created internally. For testing purposes that require
+    pre-set randomness, use the params object or testing helpers.
     """
     # Extract the AIR specification (constraint definitions, parameters, domains, challenge map, etc.)
     # from setup context. stark_info contains:
@@ -204,39 +105,12 @@ def gen_proof(
     # 2. Return a field element derived from that hash
     # 3. Update internal state so the next call gets a different challenge
     # This is essentially: challenge_n = Hash(all_committed_data_so_far || counter).
-    # If no transcript is provided, create a fresh one with protocol parameters.
-    if transcript is None:
-        # transcriptArity: how many field elements are hashed at once (optimization for Poseidon2)
-        # merkleTreeCustom: custom data added to hash (varies by AIR)
-        transcript = Transcript(
-            arity=stark_info.starkStruct.transcriptArity,
-            custom=stark_info.starkStruct.merkleTreeCustom
-        )
+    transcript = Transcript(
+        arity=stark_info.starkStruct.transcriptArity,
+        custom=stark_info.starkStruct.merkleTreeCustom
+    )
 
-    # === STAGE 0: Initialize Transcript with Public Inputs (Recursive Proofs Only) ===
-
-    # CRITICAL MISMATCH WITH VERIFIER:
-    # The verifier ALWAYS initializes with: verkey, publics (conditionally hashed), root1
-    # The prover only initializes with publics + root1 if recursive=True, and never includes verkey
-    #
-    # This suggests one of:
-    # 1. Non-recursive proofs use a different verification path that doesn't require transcript matching
-    # 2. Verkey is handled separately at a higher level (not in gen_proof)
-    # 3. There's an architectural inconsistency between prover/verifier transcript initialization
-    #
-    # For recursive proofs (recursive=True), public inputs are included to ensure the recursive circuit
-    # can verify they match. However, there's a subtle issue:
-    # - Verifier hashes publics through a temporary transcript if hashCommits=True
-    # - Prover puts publics raw without hashing
-    # - This means challenge derivation diverges when hashCommits=True!
-    if recursive:
-        if stark_info.nPublics > 0:
-            # Feed only the first nPublics field elements into the transcript (RAW, not hashed).
-            # WARNING: This doesn't match verifier behavior when hashCommits=True.
-            # The verifier would have hashed these through a temporary transcript first.
-            # Public inputs are typically instance data (problem statement), not witness data.
-            # They're known to both prover and verifier, so hashing them ensures consistency.
-            transcript.put(params.publicInputs[:stark_info.nPublics])
+    # === STAGE 0: Initialize Constant Polynomials ===
 
     # If constant polynomials (read-only lookup tables) exist, build a merkle tree from them.
     # These are tables of constant values that lookup/permutation constraints reference.
@@ -265,18 +139,6 @@ def gen_proof(
     # Stage 1 is the witness stage: everything about the execution trace.
     root1 = starks.commitStage(1, params, ntt)
     computed_roots.append(list(root1))
-
-    # For recursive proofs: feed the witness root into the transcript so the recursive circuit
-    # can verify it matches the claimed root.
-    # CRITICAL: The verifier ALWAYS puts root1 into Stage 0 initialization (verifier.py:314).
-    # But the prover only puts it if recursive=True, and only AFTER Stage 1 is computed.
-    # The timing/conditional nature means prover/verifier transcript state diverges:
-    # - When recursive=False: root1 is not in transcript during challenge derivation
-    # - When recursive=True: root1 is in transcript, but at a different point than verifier
-    # This architectural mismatch suggests non-recursive and recursive proofs may use
-    # completely different verification paths, or verkey/root1 are handled externally.
-    if recursive:
-        transcript.put(root1)
 
     # === STAGE 2: Intermediate Polynomials (Lookup/Permutation Witness) ===
 
