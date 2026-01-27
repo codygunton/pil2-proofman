@@ -218,12 +218,12 @@ def run_lookup_test():
         print(f"Test vectors not found for {air_name}")
         return
 
-    params = create_params_from_vectors(setup_ctx.stark_info, vectors)
+    params, global_challenge = create_params_from_vectors(setup_ctx.stark_info, vectors)
 
     # Run gen_proof with timing
     print("Starting proof generation...")
     start = time.perf_counter()
-    proof = gen_proof(setup_ctx, params)
+    proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
     total_time = time.perf_counter() - start
     print(f"Proof generation complete in {total_time:.2f}s")
 

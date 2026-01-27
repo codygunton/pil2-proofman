@@ -72,13 +72,17 @@ def load_setup_ctx(air_name: str) -> Optional[SetupCtx]:
 
 
 def create_params_from_vectors(stark_info, vectors: dict,
-                                inject_challenges: bool = False) -> ProofContext:
-    """Create ProofContext initialized from test vectors.
+                                inject_challenges: bool = False) -> tuple:
+    """Create ProofContext and global_challenge from test vectors.
 
     Args:
         stark_info: STARK configuration
         vectors: Test vectors dict
         inject_challenges: If True, pre-populate challenges from test vectors
+
+    Returns:
+        Tuple of (ProofContext, Optional[np.ndarray]) where global_challenge
+        is extracted from test vectors if available.
     """
     from primitives.ntt import NTT
 
@@ -159,7 +163,16 @@ def create_params_from_vectors(stark_info, vectors: dict,
         constPolsExtended=const_pols_extended,
     )
 
-    return params
+    # Extract global_challenge from test vectors (if available)
+    global_challenge = None
+    if 'global_challenge' in inputs:
+        gc = inputs['global_challenge']
+        if isinstance(gc, list):
+            global_challenge = np.array(gc, dtype=np.uint64)
+        else:
+            global_challenge = gc
+
+    return params, global_challenge
 
 
 def flatten_evals(evals_nested):
@@ -189,10 +202,10 @@ class TestStarkE2E:
 
         stark_info = setup_ctx.stark_info
 
-        params = create_params_from_vectors(stark_info, vectors)
+        params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params)
+        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
 
         # Check challenges
         intermediates = vectors['intermediates']
@@ -236,10 +249,10 @@ class TestStarkE2E:
 
         stark_info = setup_ctx.stark_info
 
-        params = create_params_from_vectors(stark_info, vectors)
+        params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params)
+        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
 
         # Check evals
         expected_evals = vectors['intermediates'].get('evals', [])
@@ -273,10 +286,10 @@ class TestStarkE2E:
 
         stark_info = setup_ctx.stark_info
 
-        params = create_params_from_vectors(stark_info, vectors)
+        params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params)
+        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
 
         # Check nonce
         expected_nonce = vectors['expected']['nonce']
@@ -318,11 +331,11 @@ class TestStarkWithInjectedChallenges:
         stark_info = setup_ctx.stark_info
 
         # Create params with injected challenges - bypass transcript for challenge derivation
-        params = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
+        params, global_challenge = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
 
         # Run gen_proof - challenges are pre-populated, skip transcript challenge derivation
         # Python still computes roots independently
-        proof = gen_proof(setup_ctx, params, skip_challenge_derivation=True)
+        proof = gen_proof(setup_ctx, params, skip_challenge_derivation=True, global_challenge=global_challenge)
 
         # Check that stage 2 challenges match (they were injected)
         intermediates = vectors['intermediates']
@@ -371,11 +384,11 @@ class TestStarkPartialEvals:
         stark_info = setup_ctx.stark_info
 
         # Create params with injected challenges
-        params = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
+        params, global_challenge = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
 
         # Run gen_proof with challenge derivation skipped
         # Python still computes roots independently
-        proof = gen_proof(setup_ctx, params, skip_challenge_derivation=True)
+        proof = gen_proof(setup_ctx, params, skip_challenge_derivation=True, global_challenge=global_challenge)
 
         # Identify testable evaluations (cm1 and const only)
         testable_eval_indices = []
@@ -434,10 +447,10 @@ class TestStarkE2EComplete:
 
         stark_info = setup_ctx.stark_info
 
-        params = create_params_from_vectors(stark_info, vectors)
+        params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params)
+        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
 
         # Verify Python-computed roots match C++ expected roots
         intermediates = vectors['intermediates']
@@ -571,10 +584,10 @@ class TestFullBinaryComparison:
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
 
-        params = create_params_from_vectors(stark_info, vectors)
+        params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof - Python computes all roots independently
-        proof = gen_proof(setup_ctx, params)
+        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
 
         # Verify Python-computed roots match C++ expected roots
         intermediates = vectors['intermediates']

@@ -1,8 +1,11 @@
 """Top-level STARK proof generation."""
 
+from typing import Optional
+import numpy as np
+
 from poseidon2_ffi import linear_hash
 from primitives.field import FIELD_EXTENSION_DEGREE, ff3_from_interleaved_numpy
-from primitives.merkle_tree import QueryProof
+from primitives.merkle_tree import QueryProof, HASH_SIZE
 from primitives.ntt import NTT
 from primitives.transcript import Transcript
 from protocol.expression_evaluator import ExpressionsPack
@@ -22,12 +25,26 @@ StageNum = int
 def gen_proof(
     setup_ctx: SetupCtx,
     params: ProofContext,
-    skip_challenge_derivation: bool = False
+    skip_challenge_derivation: bool = False,
+    global_challenge: Optional[np.ndarray] = None
 ) -> dict:
     """Generate complete STARK proof.
 
-    Fiat-Shamir transcript is created internally. For testing purposes that require
-    pre-set randomness, use the params object or testing helpers.
+    Args:
+        setup_ctx: Setup context with AIR configuration
+        params: Prover parameters and witness data
+        skip_challenge_derivation: Skip challenge derivation (testing)
+        global_challenge: Optional pre-computed challenge for VADCOP mode.
+            If provided, seeds transcript at Stage 0 for external challenge use.
+            Shape: (3,) numpy array of FF elements or None.
+
+    Returns:
+        Dictionary containing serialized proof.
+
+    Notes:
+        - When global_challenge is None: Normal mode, derives all challenges from transcript
+        - When global_challenge is provided: VADCOP mode, seeds transcript with pre-computed value
+        - Verifier expects this pattern: prover/verifier must use identical Stage 0 seeding
     """
     # Extract the AIR specification (constraint definitions, parameters, domains, challenge map, etc.)
     # from setup context. stark_info contains:
@@ -110,16 +127,21 @@ def gen_proof(
         custom=stark_info.starkStruct.merkleTreeCustom
     )
 
-    # === STAGE 0: Initialize Constant Polynomials ===
+    # === STAGE 0: Initialize Constant Polynomials and Transcript ===
 
     # If constant polynomials (read-only lookup tables) exist, build a merkle tree from them.
     # These are tables of constant values that lookup/permutation constraints reference.
     # We need to commit to them so the verifier can open them at arbitrary query points.
     # The merkle tree allows logarithmic-size proofs of specific table entries.
     # Note: Constant polynomials are evaluated over the extended domain (constPolsExtended).
+    verkey = None
     if params.constPolsExtended is not None and len(params.constPolsExtended) > 0:
         # Build merkle tree from constant polynomials (no challenge derivation needed; they're fixed)
-        starks.build_const_tree(params.constPolsExtended)
+        # Capture the root as verkey (commitment to preprocessed data)
+        verkey = starks.build_const_tree(params.constPolsExtended)
+    else:
+        # No constant polynomials - use empty root
+        verkey = [0] * 4
 
     # === STAGE 1: Witness Commitment ===
 
@@ -139,6 +161,42 @@ def gen_proof(
     # Stage 1 is the witness stage: everything about the execution trace.
     root1 = starks.commitStage(1, params, ntt)
     computed_roots.append(list(root1))
+
+    # === STAGE 0: Seed Fiat-Shamir Transcript ===
+    #
+    # The transcript is the deterministic randomness source for all challenges.
+    # It MUST be seeded identically in prover and verifier for challenges to match.
+    #
+    # Two modes:
+    # 1. VADCOP Mode (global_challenge provided):
+    #    - External layer computed global_challenge from publics + proof values
+    #    - Seed transcript with pre-computed global_challenge
+    #    - This ensures deterministic challenge derivation from external state
+    #
+    # 2. Normal Mode (global_challenge is None):
+    #    - Seed transcript with verkey + publics + root1 (matches verifier pattern)
+    #    - Then derive all challenges normally
+    #
+    # Both approaches ensure prover and verifier use identical transcript seeding.
+    if global_challenge is not None:
+        # VADCOP mode: Use externally provided global challenge
+        # This matches verifier.py:318 pattern for external challenge provision
+        transcript.put(global_challenge[:3].tolist())
+    else:
+        # Normal mode: Initialize transcript with proof metadata
+        # This matches verifier.py:303-314 pattern for standard verification
+        transcript.put(verkey)
+        if stark_info.nPublics > 0:
+            # Add public inputs (conditionally hashed depending on stark_info.starkStruct.hashCommits)
+            if not stark_info.starkStruct.hashCommits:
+                transcript.put(params.publicInputs[:stark_info.nPublics].tolist())
+            else:
+                # Hash publics through temporary transcript
+                th = Transcript(arity=stark_info.starkStruct.transcriptArity,
+                               custom=stark_info.starkStruct.merkleTreeCustom)
+                th.put(params.publicInputs[:stark_info.nPublics].tolist())
+                transcript.put(th.get_state(HASH_SIZE))
+        transcript.put(root1)
 
     # === STAGE 2: Intermediate Polynomials (Lookup/Permutation Witness) ===
 
