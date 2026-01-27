@@ -101,8 +101,6 @@ class StarkInfo:
         self.nrowsPack = 0
 
         # Configuration flags
-        self.recursive = False
-        self.recursive_final = False
         self.verify_constraints = False
         self.verify = False
         self.gpu = False
@@ -113,8 +111,6 @@ class StarkInfo:
     def from_json(
         cls,
         path: str,
-        recursive_final: bool = False,
-        recursive: bool = False,
         verify_constraints: bool = False,
         verify: bool = False,
         gpu: bool = False,
@@ -122,8 +118,6 @@ class StarkInfo:
     ) -> "StarkInfo":
         """Load StarkInfo from starkinfo.json file."""
         info = cls()
-        info.recursive = recursive
-        info.recursive_final = recursive_final
         info.verify_constraints = verify_constraints
         info.verify = verify
         info.gpu = gpu
