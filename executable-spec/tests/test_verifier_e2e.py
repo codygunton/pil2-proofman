@@ -174,7 +174,6 @@ class TestVerifierE2E:
         starks = Starks(setup_ctx)
         verkey = starks.build_const_tree(params.constPolsExtended)
 
-        # C++ proofs were generated in VADCOP mode with global_challenge
         global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
 
         # Verify the proof
@@ -183,9 +182,8 @@ class TestVerifierE2E:
             jproof=jproof,
             setup_ctx=setup_ctx,
             verkey=verkey,
-            publics=params.publicInputs,
-            challenges_vadcop=True,
             global_challenge=global_challenge,
+            publics=params.publicInputs,
         )
 
         assert result is True, f"Valid proof for {air_name} should verify"
@@ -238,9 +236,8 @@ class TestVerifierE2E:
             jproof=jproof_corrupted,
             setup_ctx=setup_ctx,
             verkey=verkey,
-            publics=params.publicInputs,
-            challenges_vadcop=True,
             global_challenge=global_challenge,
+            publics=params.publicInputs,
         )
 
         assert result is False, "Proof with corrupted root1 should fail verification"

@@ -1,4 +1,18 @@
-"""STARK proof verification."""
+"""STARK proof verification.
+
+This module implements the verifier for the STARK (Scalable Transparent ARgument of Knowledge)
+protocol. The verifier checks that a proof correctly demonstrates knowledge of a valid
+execution trace satisfying the AIR (Algebraic Intermediate Representation) constraints.
+
+Verification consists of several phases:
+1. Fiat-Shamir transcript reconstruction - Re-derive all random challenges from proof commitments
+2. Proof-of-work verification - Check the prover performed required computational work
+3. Evaluation check - Verify Q(xi) = C(xi) where Q is quotient poly and C is constraint poly
+4. FRI verification - Check low-degree of the committed polynomial via FRI protocol
+5. Merkle tree verification - Verify all polynomial commitments are consistent
+
+The verifier is non-interactive: all randomness comes from hashing proof elements (Fiat-Shamir).
+"""
 
 import math
 from typing import Dict, List, Optional
@@ -29,26 +43,46 @@ def stark_verify(
     jproof: Dict,
     setup_ctx: SetupCtx,
     verkey: List[int],
+    global_challenge: np.ndarray,
     publics: Optional[np.ndarray] = None,
     proof_values: Optional[np.ndarray] = None,
-    challenges_vadcop: bool = False,
-    global_challenge: Optional[np.ndarray] = None
 ) -> bool:
-    """Verify a STARK proof."""
+    """Verify a STARK proof.
+
+    Args:
+        jproof: JSON-decoded proof containing commitments, evaluations, and query responses
+        setup_ctx: Setup context with compiled constraint system and proving parameters
+        verkey: Verification key (Merkle root of constant polynomials)
+        global_challenge: Global challenge for transcript seeding (3 field elements)
+        publics: Public inputs to the computation (optional)
+        proof_values: Additional proof values passed between AIRs (optional)
+
+    Returns:
+        True if proof is valid, False otherwise
+    """
     stark_info = setup_ctx.stark_info
-    stark_info.verify = True  # Enable verification mode for expression evaluator
+    # Verification mode changes how expression evaluator reads polynomial values:
+    # instead of full polynomials, it reads only the queried positions
+    stark_info.verify = True
 
     # --- Parse proof data ---
+    # Extract polynomial evaluations at the random point xi (provided by prover, verified later)
     evals = _parse_evals(jproof, stark_info)
+    # AIR group values are intermediate values shared between AIRs in a multi-AIR proof
     airgroup_values = _parse_airgroup_values(jproof, stark_info)
+    # AIR values are stage-specific values (stage 1 values are base field, later stages are extension)
     air_values = _parse_air_values(jproof, stark_info)
 
     # --- Reconstruct Fiat-Shamir transcript ---
+    # Re-derive all random challenges by hashing proof commitments in the same order as prover.
+    # This makes the protocol non-interactive: verifier computes same challenges as prover.
     challenges, final_pol = _reconstruct_transcript(
-        jproof, stark_info, verkey, publics, challenges_vadcop, global_challenge
+        jproof, stark_info, global_challenge
     )
 
     # --- Verify proof-of-work ---
+    # PoW prevents denial-of-service by requiring prover to find a nonce that, when hashed
+    # with the final challenge, produces a value with powBits leading zeros.
     grinding_idx = len(stark_info.challengesMap) + len(stark_info.starkStruct.friFoldSteps)
     grinding_challenge = challenges[grinding_idx * FIELD_EXTENSION_DEGREE:(grinding_idx + 1) * FIELD_EXTENSION_DEGREE]
     nonce = int(jproof["nonce"])
@@ -58,6 +92,9 @@ def stark_verify(
         return False
 
     # --- Derive FRI query indices ---
+    # Query positions are derived from grinding challenge + nonce, so they're unpredictable
+    # until after prover commits to all polynomials. This prevents prover from cheating at
+    # specific positions while being honest elsewhere.
     transcript_permutation = Transcript(
         arity=stark_info.starkStruct.transcriptArity,
         custom=stark_info.starkStruct.merkleTreeCustom
@@ -70,15 +107,23 @@ def stark_verify(
     )
 
     # --- Parse query values ---
+    # For each FRI query position, extract the polynomial values from the proof.
+    # These are the "opened" values that will be checked against Merkle commitments.
     const_pols_vals = _parse_const_pols_vals(jproof, stark_info)
     trace, aux_trace, custom_commits = _parse_trace_values(jproof, stark_info)
 
     # --- Find xi challenge ---
+    # xi is the random evaluation point in the extension field where we check
+    # that constraint polynomial C(xi) equals quotient reconstruction Q(xi).
     xi_challenge = _find_xi_challenge(stark_info, challenges)
 
     # --- Build verifier parameters ---
+    # ProverHelpers precomputes values needed for expression evaluation at xi
     prover_helpers = ProverHelpers.from_challenge(stark_info, xi_challenge)
+    # ExpressionsPack evaluates constraint expressions using the bytecode interpreter
     expressions_pack = ExpressionsPack(setup_ctx, prover_helpers, 1, stark_info.starkStruct.nQueries)
+    # x_div_x_sub[i,o] = x_i / (x_i - xi * w^openingPoint[o]) for DEEP-ALI quotient computation
+    # where x_i is the evaluation domain point for query i
     x_div_x_sub = _compute_x_div_x_sub(stark_info, xi_challenge, fri_queries)
 
     params = ProofContext(
@@ -97,18 +142,32 @@ def stark_verify(
     )
 
     # --- Run all verification checks ---
+    # The proof is valid only if ALL checks pass. We continue checking even after
+    # a failure to provide complete diagnostic information.
     is_valid = True
 
+    # CHECK 1: Evaluation consistency
+    # Verify that Q(xi) = C(xi) where Q is the quotient polynomial and C is the
+    # constraint polynomial. This is the core STARK check: if constraints are satisfied
+    # on the trace, then C(x) is divisible by the vanishing polynomial Z_H(x), making
+    # Q(x) = C(x)/Z_H(x) a low-degree polynomial.
     print("Verifying evaluations")
     if not _verify_evaluations(stark_info, setup_ctx, expressions_pack, params, evals, xi_challenge):
         print("ERROR: Invalid evaluations")
         is_valid = False
 
+    # CHECK 2: FRI query consistency
+    # Verify that the FRI polynomial values at query points match what we compute
+    # from the constraint expression. This links the committed FRI polynomial to
+    # the actual constraint evaluation.
     print("Verifying FRI queries consistency")
     if not _verify_fri_consistency(jproof, stark_info, setup_ctx, expressions_pack, params, fri_queries):
         print("ERROR: Verify FRI query consistency failed")
         is_valid = False
 
+    # CHECK 3: Stage commitment Merkle trees
+    # Each prover stage commits to polynomials via Merkle tree. Verify that the
+    # opened values at query positions are consistent with the committed roots.
     print("Verifying stage Merkle trees")
     for s in range(stark_info.nStages + 1):
         root = _parse_root(jproof, f"root{s + 1}", HASH_SIZE)
@@ -117,16 +176,23 @@ def stark_verify(
             print(f"ERROR: Stage {s + 1} Merkle Tree verification failed")
             is_valid = False
 
+    # CHECK 4: Constant polynomial Merkle tree
+    # The constant polynomials (preprocessed from the circuit) are committed in the
+    # verification key. Verify opened values match this commitment.
     print("Verifying constant Merkle tree")
     if not _verify_merkle_tree(jproof, stark_info, verkey, "s0_valsC", "s0_siblingsC",
                                "s0_last_levelsC", None, fri_queries, n_cols=stark_info.nConstants):
         print("ERROR: Constant Merkle Tree verification failed")
         is_valid = False
 
+    # CHECK 5: Custom commit Merkle trees
+    # Custom commits allow additional polynomial commitments whose roots are passed
+    # as public inputs. Used for cross-AIR communication in multi-AIR proofs.
     print("Verifying custom commits Merkle trees")
     if publics is not None:
         for c in range(len(stark_info.customCommits)):
             cc = stark_info.customCommits[c]
+            # Root is embedded in public inputs at specified positions
             root = [int(publics[cc.publicValues[j]]) for j in range(HASH_SIZE)]
             section = f"{cc.name}0"
             if not _verify_merkle_tree(jproof, stark_info, root,
@@ -135,18 +201,29 @@ def stark_verify(
                 print(f"ERROR: Custom Commit {cc.name} Merkle Tree verification failed")
                 is_valid = False
 
+    # CHECK 6: FRI layer Merkle trees
+    # Each FRI folding step produces a new polynomial committed via Merkle tree.
+    # Verify that opened folding values are consistent with layer roots.
     print("Verifying FRI foldings Merkle Trees")
     for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
         if not _verify_fri_merkle_tree(jproof, stark_info, step, fri_queries):
             print("ERROR: FRI folding Merkle Tree verification failed")
             is_valid = False
 
+    # CHECK 7: FRI folding correctness
+    # Verify that each FRI layer is correctly folded from the previous layer.
+    # Folding combines evaluations at related points using the random challenge,
+    # reducing polynomial degree by half (or more) at each step.
     print("Verifying FRI foldings")
     for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
         if not _verify_fri_folding(jproof, stark_info, challenges, step, fri_queries):
             print("ERROR: FRI folding verification failed")
             is_valid = False
 
+    # CHECK 8: Final polynomial degree bound
+    # After all FRI folding, the final polynomial is sent in full. Its degree must
+    # be below the target bound (high-degree coefficients must be zero). If not,
+    # the original polynomial was not low-degree, meaning constraints weren't satisfied.
     print("Verifying final pol")
     if not _verify_final_polynomial(jproof, stark_info):
         print("ERROR: Final polynomial verification failed")
@@ -276,18 +353,31 @@ def _find_xi_challenge(stark_info, challenges: np.ndarray) -> np.ndarray:
 
 
 # --- Fiat-Shamir Transcript Reconstruction ---
+#
+# The Fiat-Shamir transform converts an interactive proof into a non-interactive one.
+# Instead of the verifier sending random challenges, the prover hashes its messages
+# to derive challenges deterministically. The verifier re-derives the same challenges
+# by hashing the same proof elements in the same order.
+#
+# The transcript accumulates: verkey -> publics -> root1 -> challenges -> root2 -> ...
+# Each challenge is derived by squeezing the Poseidon2 sponge state.
 
 def _reconstruct_transcript(
     jproof: Dict,
     stark_info,
-    verkey: List[int],
-    publics: Optional[np.ndarray],
-    challenges_vadcop: bool,
-    global_challenge: Optional[np.ndarray]
+    global_challenge: np.ndarray,
 ) -> tuple:
     """Reconstruct Fiat-Shamir transcript and derive all challenges.
 
-    Returns (challenges, final_pol).
+    The transcript follows the same sequence as the prover:
+    1. Initialize with global_challenge (3 field elements)
+    2. For each stage: derive stage challenges, then absorb stage commitment root
+    3. Absorb polynomial evaluations at xi
+    4. Derive FRI challenges, absorbing FRI layer roots between steps
+    5. Derive final grinding challenge
+
+    Returns (challenges, final_pol) where challenges is a flat array of all
+    random field elements and final_pol is the fully-folded FRI polynomial.
     """
     n_challenges = len(stark_info.challengesMap)
     n_steps = len(stark_info.starkStruct.friFoldSteps)
@@ -298,24 +388,8 @@ def _reconstruct_transcript(
         custom=stark_info.starkStruct.merkleTreeCustom
     )
 
-    # Stage 0: Initialize transcript
-    if not challenges_vadcop:
-        transcript.put(verkey)
-        if stark_info.nPublics > 0:
-            if publics is None:
-                raise ValueError("Public inputs required but not provided")
-            if not stark_info.starkStruct.hashCommits:
-                transcript.put(publics[:stark_info.nPublics].tolist())
-            else:
-                th = Transcript(arity=stark_info.starkStruct.transcriptArity,
-                                custom=stark_info.starkStruct.merkleTreeCustom)
-                th.put(publics[:stark_info.nPublics].tolist())
-                transcript.put(th.get_state(HASH_SIZE))
-        transcript.put(_parse_root(jproof, "root1", HASH_SIZE))
-    else:
-        if global_challenge is None:
-            raise ValueError("Global challenge required in VADCOP mode")
-        transcript.put(global_challenge[:3].tolist())
+    # Stage 0: Initialize transcript with global challenge
+    transcript.put(global_challenge[:3].tolist())
 
     # Stages 2..nStages+1: Derive challenges and add roots
     c = 0
@@ -389,9 +463,21 @@ def _reconstruct_transcript(
 
 
 # --- Verification Helpers ---
+#
+# These functions implement the core verification logic: checking that polynomial
+# evaluations are consistent and that FRI folding was performed correctly.
 
 def _compute_x_div_x_sub(stark_info, xi_challenge: np.ndarray, fri_queries: List[int]) -> np.ndarray:
-    """Compute x/(x - xi*w^openingPoint) for each query and opening point."""
+    """Compute x/(x - xi*w^openingPoint) for each query and opening point.
+
+    This implements the DEEP-ALI (Algebraic Linking IOP) technique. For each query point x
+    and each opening point (offset into the trace), we compute x/(x - xi*w^offset).
+
+    These values are used to interpolate polynomial evaluations:
+    If P(xi*w^offset) = v, then P(x) ≈ v * x/(x - xi*w^offset) near x = xi*w^offset.
+
+    The result is stored as a flat array indexed by [query_idx * n_opening_points + opening_idx].
+    """
     n_queries = stark_info.starkStruct.nQueries
     n_opening_points = len(stark_info.openingPoints)
 
@@ -430,8 +516,22 @@ def _verify_evaluations(
     evals: np.ndarray,
     xi_challenge: np.ndarray
 ) -> bool:
-    """Verify Q(xi) == constraint_eval(xi)."""
-    # Evaluate constraint expression at xi
+    """Verify Q(xi) == constraint_eval(xi).
+
+    This is the central STARK verification equation. The prover claims:
+    - The constraint polynomial C(x) evaluates to some value at random point xi
+    - The quotient polynomial Q(x) = C(x) / Z_H(x) has the claimed evaluations
+
+    If constraints are satisfied on the trace domain H, then C(x) vanishes on H,
+    meaning C(x) is divisible by the vanishing polynomial Z_H(x) = x^N - 1.
+    This makes Q(x) a polynomial (not a rational function), and we verify:
+
+        Q(xi) * Z_H(xi) = C(xi)
+
+    which simplifies to Q(xi) * (xi^N - 1) = C(xi).
+    """
+    # Evaluate the constraint expression at xi using the prover's claimed polynomial values.
+    # This computes C(xi) from the evaluations in the proof.
     buff = np.zeros(FIELD_EXTENSION_DEGREE, dtype=np.uint64)
     dest = Dest(dest=buff, domain_size=1, offset=0)
     dest.exp_id = stark_info.cExpId
@@ -439,29 +539,34 @@ def _verify_evaluations(
     dest.params.append(Params(exp_id=stark_info.cExpId, dim=dest.dim, batch=True, op="tmp"))
     expressions_pack.calculate_expressions(params, dest, 1, False, False)
 
-    # Compute xi^N
+    # Compute xi^N where N is the trace length (size of evaluation domain H).
+    # This is needed to reconstruct Q(xi) from its degree-reduced pieces.
     xi = ff3([int(xi_challenge[0]), int(xi_challenge[1]), int(xi_challenge[2])])
     N = 1 << stark_info.starkStruct.nBits
     x_n = ff3([1, 0, 0])
     for _ in range(N):
         x_n = x_n * xi
 
-    # Reconstruct Q(xi) from quotient polynomial evaluations
+    # The quotient polynomial Q(x) is split into qDeg pieces to reduce degree:
+    # Q(x) = Q_0(x) + x^N * Q_1(x) + x^(2N) * Q_2(x) + ...
+    # Reconstruct Q(xi) by evaluating this sum at xi.
     q_stage = stark_info.nStages + 1
     q_index = next(i for i, p in enumerate(stark_info.cmPolsMap)
                    if p.stage == q_stage and p.stageId == 0)
 
     q = ff3([0, 0, 0])
-    x_acc = ff3([1, 0, 0])
+    x_acc = ff3([1, 0, 0])  # Accumulates powers: 1, xi^N, xi^(2N), ...
 
     for i in range(stark_info.qDeg):
+        # Find the evaluation map entry for Q_i and get its value at xi
         ev_id = next(j for j, e in enumerate(stark_info.evMap)
                      if e.type == EvMap.Type.cm and e.id == q_index + i)
         eval_val = ff3([int(evals[ev_id * FIELD_EXTENSION_DEGREE + k]) for k in range(FIELD_EXTENSION_DEGREE)])
         q = q + x_acc * eval_val
         x_acc = x_acc * x_n
 
-    # Check Q(xi) == constraint_eval(xi)
+    # The verification equation: Q(xi) must equal C(xi).
+    # Any difference means either the evaluations are wrong or constraints weren't satisfied.
     constraint_eval = ff3([int(buff[k]) for k in range(FIELD_EXTENSION_DEGREE)])
     res = ff3_coeffs(q - constraint_eval)
 
@@ -482,10 +587,25 @@ def _verify_fri_consistency(
     params: ProofContext,
     fri_queries: List[int]
 ) -> bool:
-    """Verify FRI polynomial values match expression evaluation at query points."""
+    """Verify FRI polynomial values match expression evaluation at query points.
+
+    The FRI protocol commits to a polynomial P(x) via Merkle tree, then proves
+    it has low degree by iterative folding. This check verifies that P(x) is
+    actually the polynomial derived from the STARK constraint evaluation.
+
+    Specifically, P(x) is constructed as a random linear combination of:
+    - Trace polynomials evaluated at x
+    - Quotient polynomials scaled by DEEP-ALI terms
+
+    At each query point x_q, we:
+    1. Compute P(x_q) from the constraint expression using opened trace values
+    2. Check this matches the P(x_q) value from the first FRI layer commitment
+    """
     n_queries = stark_info.starkStruct.nQueries
 
-    # Evaluate FRI expression at query points
+    # Evaluate the FRI polynomial expression at each query point.
+    # This uses the opened polynomial values from the proof to compute what
+    # the FRI polynomial should be at these positions.
     buff = np.zeros(FIELD_EXTENSION_DEGREE * n_queries, dtype=np.uint64)
     dest = Dest(dest=buff, domain_size=n_queries, offset=0)
     dest.exp_id = stark_info.friExpId
@@ -493,7 +613,8 @@ def _verify_fri_consistency(
     dest.params.append(Params(exp_id=stark_info.friExpId, dim=dest.dim, batch=True, op="tmp"))
     expressions_pack.calculate_expressions(params, dest, n_queries, False, False)
 
-    # Check against proof values
+    # Compare computed values against what the prover committed to in the first FRI layer.
+    # If these don't match, the prover's FRI commitment is inconsistent with the trace.
     n_steps = len(stark_info.starkStruct.friFoldSteps)
     for q in range(n_queries):
         idx = fri_queries[q] % (1 << stark_info.starkStruct.friFoldSteps[0].domainBits)
@@ -519,6 +640,15 @@ def _verify_fri_consistency(
 
 
 # --- Merkle Tree Verification ---
+#
+# Merkle trees provide succinct commitments to polynomial evaluations. The prover
+# commits to a polynomial by building a Merkle tree over its evaluations, then
+# reveals the root. Later, to prove P(x_i) = v, the prover provides:
+# - The value v
+# - The authentication path (sibling hashes from leaf to root)
+#
+# The verifier recomputes the root from the leaf and siblings, checking it matches.
+# This uses Poseidon2 hashing with configurable arity (2, 3, or 4 children per node).
 
 def _verify_merkle_query(
     root: MerkleRoot,
@@ -530,7 +660,22 @@ def _verify_merkle_query(
     sponge_width: int,
     last_level_verification: int
 ) -> bool:
-    """Verify a single Merkle query proof."""
+    """Verify a single Merkle query proof.
+
+    Starting from the leaf values, recompute hashes up to the root (or last level).
+    At each level, combine the computed hash with sibling hashes in the correct order
+    based on the query index, then hash to get the parent.
+
+    Args:
+        root: Expected Merkle root (or None if using last_level_verification)
+        level: Pre-verified last level hashes (for optimization)
+        siblings: Authentication path - sibling hashes at each level
+        idx: Leaf index being verified
+        values: Leaf values to verify
+        arity: Tree branching factor (2, 3, or 4)
+        sponge_width: Poseidon sponge width for this arity
+        last_level_verification: If >0, verify against level instead of root
+    """
     computed = linear_hash(values, sponge_width)
     curr_idx = idx
 
@@ -660,14 +805,31 @@ def _verify_fri_folding(
     step: int,
     fri_queries: List[int]
 ) -> bool:
-    """Verify FRI folding step computation."""
+    """Verify FRI folding step computation.
+
+    FRI (Fast Reed-Solomon IOP) proves low-degree by iteratively folding the polynomial.
+    Each step reduces the degree by combining evaluations at related points:
+
+    Given polynomial P(x) of degree < d evaluated on domain D, folding produces
+    P'(y) of degree < d/2 evaluated on domain D' = {y : y^2 ∈ D}.
+
+    The folding uses a random challenge α:
+        P'(y) = (P(y) + P(-y))/2 + α * (P(y) - P(-y))/(2y)
+
+    This is the "even-odd decomposition": if P(x) = P_even(x²) + x*P_odd(x²),
+    then P'(y) = P_even(y) + α*P_odd(y).
+
+    The verifier checks that P'(y) was computed correctly from P(y) and P(-y).
+    """
     n_queries = stark_info.starkStruct.nQueries
     n_steps = len(stark_info.starkStruct.friFoldSteps)
 
     for q in range(n_queries):
+        # Map the original query index to this FRI layer's domain size
         idx = fri_queries[q] % (1 << stark_info.starkStruct.friFoldSteps[step].domainBits)
 
-        # Get sibling values (each is an FF3 triple [c0, c1, c2])
+        # Get all sibling evaluations needed for folding.
+        # n_x is the folding factor (how many points combine into one).
         n_x = 1 << (stark_info.starkStruct.friFoldSteps[step - 1].domainBits - stark_info.starkStruct.friFoldSteps[step].domainBits)
         siblings = [
             [int(jproof[f"s{step}_vals"][q][i * FIELD_EXTENSION_DEGREE + j]) for j in range(FIELD_EXTENSION_DEGREE)]
@@ -705,22 +867,36 @@ def _verify_fri_folding(
 
 
 def _verify_final_polynomial(jproof: Dict, stark_info) -> bool:
-    """Verify final polynomial has correct degree bound."""
-    # Parse final polynomial using FF3 helper
+    """Verify final polynomial has correct degree bound.
+
+    After all FRI folding steps, the polynomial is small enough to send in full.
+    The verifier checks that this polynomial actually has low degree by:
+    1. Converting from evaluation form to coefficient form via inverse NTT
+    2. Checking that all coefficients above the degree bound are zero
+
+    If the original polynomial had degree > target, the folded polynomial would
+    still have high-degree terms, failing this check. This is the final guarantee
+    that the committed polynomial was truly low-degree.
+    """
+    # Parse final polynomial evaluations (in the small final domain)
     final_pol_ff3 = ff3_from_json(jproof["finalPol"])
     final_pol = ff3_to_interleaved_numpy(final_pol_ff3)
     final_pol_size = len(final_pol_ff3)
 
-    # INTT to coefficient form
+    # Convert from evaluation form to coefficient form.
+    # If evaluations are [P(w^0), P(w^1), ..., P(w^(n-1))], INTT gives coefficients [c_0, c_1, ..., c_(n-1)].
     ntt = NTT(final_pol_size)
     final_pol_reshaped = final_pol.reshape(final_pol_size, FIELD_EXTENSION_DEGREE)
     final_pol_coeffs = ntt.intt(final_pol_reshaped, n_cols=FIELD_EXTENSION_DEGREE)
 
-    # Check high-degree coefficients are zero
+    # Compute the degree bound: coefficients from 'init' onward must be zero.
+    # The bound depends on how much the blowup factor exceeds the final domain size.
     last_step = stark_info.starkStruct.friFoldSteps[-1].domainBits
     blowup_factor = stark_info.starkStruct.nBitsExt - stark_info.starkStruct.nBits
     init = 0 if blowup_factor > last_step else (1 << (last_step - blowup_factor))
 
+    # Check all high-degree coefficients are zero (in the extension field).
+    # A non-zero coefficient here means the original polynomial exceeded its degree bound.
     for i in range(init, final_pol_size):
         if any(int(final_pol_coeffs[i, j]) != 0 for j in range(FIELD_EXTENSION_DEGREE)):
             print(f"ERROR: Final polynomial is not zero at position {i}")
