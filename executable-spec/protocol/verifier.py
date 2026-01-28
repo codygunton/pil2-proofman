@@ -1,31 +1,18 @@
-"""STARK proof verification.
-
-This module implements the verifier for the STARK (Scalable Transparent ARgument of Knowledge)
-protocol. The verifier checks that a proof correctly demonstrates knowledge of a valid
-execution trace satisfying the AIR (Algebraic Intermediate Representation) constraints.
-
-Verification consists of several phases:
-1. Fiat-Shamir transcript reconstruction - Re-derive all random challenges from proof commitments
-2. Proof-of-work verification - Check the prover performed required computational work
-3. Evaluation check - Verify Q(xi) = C(xi) where Q is quotient poly and C is constraint poly
-4. FRI verification - Check low-degree of the committed polynomial via FRI protocol
-5. Merkle tree verification - Verify all polynomial commitments are consistent
-
-The verifier is non-interactive: all randomness comes from hashing proof elements (Fiat-Shamir).
-"""
+"""STARK proof verification."""
 
 import math
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import numpy as np
 
 from poseidon2_ffi import linear_hash, hash_seq, verify_grinding
-from primitives.field import (FF, ff3, ff3_coeffs, ff3_from_json,
-                               ff3_to_interleaved_numpy, get_omega, SHIFT,
-                               FIELD_EXTENSION_DEGREE)
-from primitives.merkle_tree import HASH_SIZE, MerkleTree
-from primitives.ntt import NTT
+from primitives.field import (
+    FF, ff3, ff3_coeffs, ff3_from_json, ff3_to_interleaved_numpy,
+    get_omega, SHIFT, FIELD_EXTENSION_DEGREE,
+)
+from primitives.merkle_tree import HASH_SIZE, MerkleTree, MerkleRoot
 from primitives.pol_map import EvMap
+from primitives.polynomial import to_coefficients
 from primitives.transcript import Transcript
 from protocol.expression_evaluator import ExpressionsPack, Dest, Params
 from protocol.fri import FRI
@@ -33,98 +20,59 @@ from protocol.proof_context import ProofContext
 from protocol.setup_ctx import SetupCtx, ProverHelpers
 
 # --- Type Aliases ---
+# These provide semantic clarity for the verifier's data structures.
+# Challenge represents FF3 elements stored as numpy arrays for performance.
 
-MerkleRoot = List[int]
+JProof = dict                   # JSON-decoded proof structure
+Challenge = np.ndarray          # Extension field element [c0, c1, c2] - interleaved FF3 coefficients
+QueryIdx = int                  # FRI query position in domain
 
 
 # --- Main Entry Point ---
 
 def stark_verify(
-    jproof: Dict,
+    jproof: JProof,
     setup_ctx: SetupCtx,
-    verkey: List[int],
+    verkey: MerkleRoot,
     global_challenge: np.ndarray,
     publics: Optional[np.ndarray] = None,
     proof_values: Optional[np.ndarray] = None,
 ) -> bool:
-    """Verify a STARK proof.
+    """Verify a STARK proof. Returns True if valid."""
+    si = setup_ctx.stark_info
+    si.verify = True
+    ss = si.starkStruct
 
-    Args:
-        jproof: JSON-decoded proof containing commitments, evaluations, and query responses
-        setup_ctx: Setup context with compiled constraint system and proving parameters
-        verkey: Verification key (Merkle root of constant polynomials)
-        global_challenge: Global challenge for transcript seeding (3 field elements)
-        publics: Public inputs to the computation (optional)
-        proof_values: Additional proof values passed between AIRs (optional)
-
-    Returns:
-        True if proof is valid, False otherwise
-    """
-    stark_info = setup_ctx.stark_info
-    # Verification mode changes how expression evaluator reads polynomial values:
-    # instead of full polynomials, it reads only the queried positions
-    stark_info.verify = True
-
-    # --- Parse proof data ---
-    # Extract polynomial evaluations at the random point xi (provided by prover, verified later)
-    evals = _parse_evals(jproof, stark_info)
-    # AIR group values are intermediate values shared between AIRs in a multi-AIR proof
-    airgroup_values = _parse_airgroup_values(jproof, stark_info)
-    # AIR values are stage-specific values (stage 1 values are base field, later stages are extension)
-    air_values = _parse_air_values(jproof, stark_info)
+    # --- Parse proof components ---
+    evals = _parse_evals(jproof, si)
+    airgroup_values = _parse_airgroup_values(jproof, si)
+    air_values = _parse_air_values(jproof, si)
 
     # --- Reconstruct Fiat-Shamir transcript ---
-    # Re-derive all random challenges by hashing proof commitments in the same order as prover.
-    # This makes the protocol non-interactive: verifier computes same challenges as prover.
-    challenges, final_pol = _reconstruct_transcript(
-        jproof, stark_info, global_challenge
-    )
+    challenges, final_pol = _reconstruct_transcript(jproof, si, global_challenge)
 
     # --- Verify proof-of-work ---
-    # PoW prevents denial-of-service by requiring prover to find a nonce that, when hashed
-    # with the final challenge, produces a value with powBits leading zeros.
-    grinding_idx = len(stark_info.challengesMap) + len(stark_info.starkStruct.friFoldSteps)
+    grinding_idx = len(si.challengesMap) + len(ss.friFoldSteps)
     grinding_challenge = challenges[grinding_idx * FIELD_EXTENSION_DEGREE:(grinding_idx + 1) * FIELD_EXTENSION_DEGREE]
-    nonce = int(jproof["nonce"])
-
-    if not verify_grinding(list(grinding_challenge), nonce, stark_info.starkStruct.powBits):
+    if not verify_grinding(list(grinding_challenge), int(jproof["nonce"]), ss.powBits):
         print("ERROR: PoW verification failed")
         return False
 
     # --- Derive FRI query indices ---
-    # Query positions are derived from grinding challenge + nonce, so they're unpredictable
-    # until after prover commits to all polynomials. This prevents prover from cheating at
-    # specific positions while being honest elsewhere.
-    transcript_permutation = Transcript(
-        arity=stark_info.starkStruct.transcriptArity,
-        custom=stark_info.starkStruct.merkleTreeCustom
-    )
-    transcript_permutation.put(list(grinding_challenge))
-    transcript_permutation.put([nonce])
-    fri_queries = transcript_permutation.get_permutations(
-        stark_info.starkStruct.nQueries,
-        stark_info.starkStruct.friFoldSteps[0].domainBits
-    )
+    transcript_perm = Transcript(arity=ss.transcriptArity, custom=ss.merkleTreeCustom)
+    transcript_perm.put(list(grinding_challenge))
+    transcript_perm.put([int(jproof["nonce"])])
+    fri_queries = transcript_perm.get_permutations(ss.nQueries, ss.friFoldSteps[0].domainBits)
 
     # --- Parse query values ---
-    # For each FRI query position, extract the polynomial values from the proof.
-    # These are the "opened" values that will be checked against Merkle commitments.
-    const_pols_vals = _parse_const_pols_vals(jproof, stark_info)
-    trace, aux_trace, custom_commits = _parse_trace_values(jproof, stark_info)
+    const_pols_vals = _parse_const_pols_vals(jproof, si)
+    trace, aux_trace, custom_commits = _parse_trace_values(jproof, si)
 
-    # --- Find xi challenge ---
-    # xi is the random evaluation point in the extension field where we check
-    # that constraint polynomial C(xi) equals quotient reconstruction Q(xi).
-    xi_challenge = _find_xi_challenge(stark_info, challenges)
-
-    # --- Build verifier parameters ---
-    # ProverHelpers precomputes values needed for expression evaluation at xi
-    prover_helpers = ProverHelpers.from_challenge(stark_info, xi_challenge)
-    # ExpressionsPack evaluates constraint expressions using the bytecode interpreter
-    expressions_pack = ExpressionsPack(setup_ctx, prover_helpers, 1, stark_info.starkStruct.nQueries)
-    # x_div_x_sub[i,o] = x_i / (x_i - xi * w^openingPoint[o]) for DEEP-ALI quotient computation
-    # where x_i is the evaluation domain point for query i
-    x_div_x_sub = _compute_x_div_x_sub(stark_info, xi_challenge, fri_queries)
+    # --- Build verifier context ---
+    xi = _find_xi_challenge(si, challenges)
+    prover_helpers = ProverHelpers.from_challenge(si, xi)
+    expressions_pack = ExpressionsPack(setup_ctx, prover_helpers, 1, ss.nQueries)
+    x_div_x_sub = _compute_x_div_x_sub(si, xi, fri_queries)
 
     params = ProofContext(
         trace=trace,
@@ -138,94 +86,64 @@ def stark_verify(
         xDivXSub=x_div_x_sub,
         constPols=const_pols_vals,
         constPolsExtended=None,
-        customCommits=custom_commits
+        customCommits=custom_commits,
     )
 
-    # --- Run all verification checks ---
-    # The proof is valid only if ALL checks pass. We continue checking even after
-    # a failure to provide complete diagnostic information.
+    # --- Verification Checks ---
     is_valid = True
 
-    # CHECK 1: Evaluation consistency
-    # Verify that Q(xi) = C(xi) where Q is the quotient polynomial and C is the
-    # constraint polynomial. This is the core STARK check: if constraints are satisfied
-    # on the trace, then C(x) is divisible by the vanishing polynomial Z_H(x), making
-    # Q(x) = C(x)/Z_H(x) a low-degree polynomial.
+    # Check 1: Q(xi) = C(xi)
     print("Verifying evaluations")
-    if not _verify_evaluations(stark_info, setup_ctx, expressions_pack, params, evals, xi_challenge):
+    if not _verify_evaluations(si, setup_ctx, expressions_pack, params, evals, xi):
         print("ERROR: Invalid evaluations")
         is_valid = False
 
-    # CHECK 2: FRI query consistency
-    # Verify that the FRI polynomial values at query points match what we compute
-    # from the constraint expression. This links the committed FRI polynomial to
-    # the actual constraint evaluation.
+    # Check 2: FRI polynomial consistency at query points
     print("Verifying FRI queries consistency")
-    if not _verify_fri_consistency(jproof, stark_info, setup_ctx, expressions_pack, params, fri_queries):
+    if not _verify_fri_consistency(jproof, si, setup_ctx, expressions_pack, params, fri_queries):
         print("ERROR: Verify FRI query consistency failed")
         is_valid = False
 
-    # CHECK 3: Stage commitment Merkle trees
-    # Each prover stage commits to polynomials via Merkle tree. Verify that the
-    # opened values at query positions are consistent with the committed roots.
+    # Check 3: Stage commitment Merkle trees
     print("Verifying stage Merkle trees")
-    for s in range(stark_info.nStages + 1):
-        root = _parse_root(jproof, f"root{s + 1}", HASH_SIZE)
-        if not _verify_merkle_tree(jproof, stark_info, root, f"s0_vals{s + 1}", f"s0_siblings{s + 1}",
-                                   f"s0_last_levels{s + 1}", f"cm{s + 1}", fri_queries):
+    for s in range(si.nStages + 1):
+        root = _parse_root(jproof, f"root{s + 1}")
+        if not _verify_stage_merkle(jproof, si, root, s + 1, fri_queries):
             print(f"ERROR: Stage {s + 1} Merkle Tree verification failed")
             is_valid = False
 
-    # CHECK 4: Constant polynomial Merkle tree
-    # The constant polynomials (preprocessed from the circuit) are committed in the
-    # verification key. Verify opened values match this commitment.
+    # Check 4: Constant polynomial Merkle tree
     print("Verifying constant Merkle tree")
-    if not _verify_merkle_tree(jproof, stark_info, verkey, "s0_valsC", "s0_siblingsC",
-                               "s0_last_levelsC", None, fri_queries, n_cols=stark_info.nConstants):
+    if not _verify_const_merkle(jproof, si, verkey, fri_queries):
         print("ERROR: Constant Merkle Tree verification failed")
         is_valid = False
 
-    # CHECK 5: Custom commit Merkle trees
-    # Custom commits allow additional polynomial commitments whose roots are passed
-    # as public inputs. Used for cross-AIR communication in multi-AIR proofs.
+    # Check 5: Custom commit Merkle trees
     print("Verifying custom commits Merkle trees")
     if publics is not None:
-        for c in range(len(stark_info.customCommits)):
-            cc = stark_info.customCommits[c]
-            # Root is embedded in public inputs at specified positions
+        for cc in si.customCommits:
             root = [int(publics[cc.publicValues[j]]) for j in range(HASH_SIZE)]
-            section = f"{cc.name}0"
-            if not _verify_merkle_tree(jproof, stark_info, root,
-                                       f"s0_vals_{cc.name}_0", f"s0_siblings_{cc.name}_0",
-                                       f"s0_last_levels_{cc.name}_0", section, fri_queries):
+            if not _verify_custom_commit_merkle(jproof, si, root, cc.name, fri_queries):
                 print(f"ERROR: Custom Commit {cc.name} Merkle Tree verification failed")
                 is_valid = False
 
-    # CHECK 6: FRI layer Merkle trees
-    # Each FRI folding step produces a new polynomial committed via Merkle tree.
-    # Verify that opened folding values are consistent with layer roots.
+    # Check 6: FRI layer Merkle trees
     print("Verifying FRI foldings Merkle Trees")
-    for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
-        if not _verify_fri_merkle_tree(jproof, stark_info, step, fri_queries):
+    for step in range(1, len(ss.friFoldSteps)):
+        if not _verify_fri_merkle_tree(jproof, si, step, fri_queries):
             print("ERROR: FRI folding Merkle Tree verification failed")
             is_valid = False
 
-    # CHECK 7: FRI folding correctness
-    # Verify that each FRI layer is correctly folded from the previous layer.
-    # Folding combines evaluations at related points using the random challenge,
-    # reducing polynomial degree by half (or more) at each step.
+    # Check 7: FRI folding correctness
     print("Verifying FRI foldings")
-    for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
-        if not _verify_fri_folding(jproof, stark_info, challenges, step, fri_queries):
+    for step in range(1, len(ss.friFoldSteps)):
+        if not _verify_fri_folding(jproof, si, challenges, step, fri_queries):
             print("ERROR: FRI folding verification failed")
             is_valid = False
 
-    # CHECK 8: Final polynomial degree bound
-    # After all FRI folding, the final polynomial is sent in full. Its degree must
-    # be below the target bound (high-degree coefficients must be zero). If not,
-    # the original polynomial was not low-degree, meaning constraints weren't satisfied.
+    # Check 8: Final polynomial degree bound
     print("Verifying final pol")
-    if not _verify_final_polynomial(jproof, stark_info):
+    if not _verify_final_polynomial(jproof, si):
         print("ERROR: Final polynomial verification failed")
         is_valid = False
 
@@ -234,48 +152,39 @@ def stark_verify(
 
 # --- Proof Parsing ---
 
-def _parse_root(jproof: Dict, key: str, n_fields: int) -> MerkleRoot:
-    """Parse Merkle root from proof JSON."""
-    if n_fields == 1:
-        return [int(jproof[key])]
-    return [int(jproof[key][i]) for i in range(n_fields)]
+def _parse_root(jproof: JProof, key: str) -> MerkleRoot:
+    val = jproof[key]
+    return [int(val)] if isinstance(val, (int, str)) else [int(val[i]) for i in range(HASH_SIZE)]
 
 
-def _parse_evals(jproof: Dict, stark_info) -> np.ndarray:
-    """Parse polynomial evaluations as flat numpy array."""
-    evals_ff3 = ff3_from_json(jproof["evals"][:len(stark_info.evMap)])
-    return ff3_to_interleaved_numpy(evals_ff3)
+def _parse_evals(jproof: JProof, si) -> np.ndarray:
+    return ff3_to_interleaved_numpy(ff3_from_json(jproof["evals"][:len(si.evMap)]))
 
 
-def _parse_airgroup_values(jproof: Dict, stark_info) -> np.ndarray:
-    """Parse AIR group values as flat numpy array."""
-    n = len(stark_info.airgroupValuesMap)
+def _parse_airgroup_values(jproof: JProof, si) -> np.ndarray:
+    n = len(si.airgroupValuesMap)
     if n == 0:
         return np.zeros(0, dtype=np.uint64)
-    airgroup_ff3 = ff3_from_json(jproof["airgroupvalues"][:n])
-    return ff3_to_interleaved_numpy(airgroup_ff3)
+    return ff3_to_interleaved_numpy(ff3_from_json(jproof["airgroupvalues"][:n]))
 
 
-def _parse_air_values(jproof: Dict, stark_info) -> np.ndarray:
-    """Parse AIR values (stage 1 = 1 elem, other stages = 3 elems)."""
-    values = np.zeros(stark_info.airValuesSize, dtype=np.uint64)
+def _parse_air_values(jproof: JProof, si) -> np.ndarray:
+    """Stage 1 values are single Fe, stage 2+ are Fe3."""
+    values = np.zeros(si.airValuesSize, dtype=np.uint64)
     a = 0
-    for i in range(len(stark_info.airValuesMap)):
-        if stark_info.airValuesMap[i].stage == 1:
+    for i, av in enumerate(si.airValuesMap):
+        if av.stage == 1:
             values[a] = int(jproof["airvalues"][i][0])
             a += 1
         else:
-            values[a] = int(jproof["airvalues"][i][0])
-            values[a + 1] = int(jproof["airvalues"][i][1])
-            values[a + 2] = int(jproof["airvalues"][i][2])
-            a += 3
+            for j in range(FIELD_EXTENSION_DEGREE):
+                values[a + j] = int(jproof["airvalues"][i][j])
+            a += FIELD_EXTENSION_DEGREE
     return values
 
 
-def _parse_const_pols_vals(jproof: Dict, stark_info) -> np.ndarray:
-    """Parse constant polynomial values at query points."""
-    n_queries = stark_info.starkStruct.nQueries
-    n_constants = stark_info.nConstants
+def _parse_const_pols_vals(jproof: JProof, si) -> np.ndarray:
+    n_queries, n_constants = si.starkStruct.nQueries, si.nConstants
     vals = np.zeros(n_constants * n_queries, dtype=np.uint64)
     for q in range(n_queries):
         for i in range(n_constants):
@@ -283,446 +192,442 @@ def _parse_const_pols_vals(jproof: Dict, stark_info) -> np.ndarray:
     return vals
 
 
-def _parse_trace_values(jproof: Dict, stark_info) -> tuple:
-    """Parse trace query values from proof.
+def _compute_stage_offsets(si, n_queries: int) -> tuple[dict, int]:
+    """Compute buffer offsets for each stage 2+ in aux_trace.
 
-    Returns (trace, aux_trace, custom_commits) arrays with verify-mode layout.
+    Returns:
+        (offsets, total_size) where offsets maps stage -> buffer offset
+        and total_size is the total buffer size needed.
     """
-    n_queries = stark_info.starkStruct.nQueries
+    offsets = {}
+    current_offset = 0
+    for stage in range(2, si.nStages + 2):
+        section = f"cm{stage}"
+        if section in si.mapSectionsN:
+            offsets[stage] = current_offset
+            current_offset += n_queries * si.mapSectionsN[section]
+    return offsets, current_offset
 
-    # cm1 goes in trace buffer
-    cm1_n_pols = stark_info.mapSectionsN["cm1"]
+
+def _compute_custom_commit_offsets(si, n_queries: int) -> tuple[dict, int]:
+    """Compute buffer offsets for each custom commit.
+
+    Returns:
+        (offsets, total_size) where offsets maps commit_idx -> buffer offset
+        and total_size is the total buffer size needed.
+    """
+    offsets = {}
+    current_offset = 0
+    for commit_idx, commit in enumerate(si.customCommits):
+        section = commit.name + "0"
+        if section in si.mapSectionsN:
+            offsets[commit_idx] = current_offset
+            current_offset += n_queries * si.mapSectionsN[section]
+    return offsets, current_offset
+
+
+def _allocate_trace_buffers(si, stage_offsets: dict, stage_total: int,
+                            custom_offsets: dict, custom_total: int, n_queries: int) -> tuple:
+    """Allocate empty buffers for trace, aux_trace, and custom_commits."""
+    cm1_n_pols = si.mapSectionsN["cm1"]
     trace = np.zeros(n_queries * cm1_n_pols, dtype=np.uint64)
 
-    # Compute verify-mode offsets for stages 2+
-    verify_offsets = {}
-    offset = 0
-    for stage in range(2, stark_info.nStages + 2):
-        section = f"cm{stage}"
-        if section in stark_info.mapSectionsN:
-            verify_offsets[stage] = offset
-            offset += n_queries * stark_info.mapSectionsN[section]
-    aux_trace = np.zeros(max(offset, stark_info.mapTotalN), dtype=np.uint64)
+    # aux_trace holds all stages 2+
+    aux_trace_size = max(stage_total, si.mapTotalN)
+    aux_trace = np.zeros(aux_trace_size, dtype=np.uint64)
 
-    # Compute verify-mode offsets for custom commits
-    custom_offsets = {}
-    offset = 0
-    for c in range(len(stark_info.customCommits)):
-        section = stark_info.customCommits[c].name + "0"
-        if section in stark_info.mapSectionsN:
-            custom_offsets[c] = offset
-            offset += n_queries * stark_info.mapSectionsN[section]
-    custom_commits = np.zeros(max(offset, stark_info.mapTotalNCustomCommitsFixed), dtype=np.uint64)
-
-    # Parse committed polynomial values
-    for q in range(n_queries):
-        for i in range(len(stark_info.cmPolsMap)):
-            stage = stark_info.cmPolsMap[i].stage
-            stage_pos = stark_info.cmPolsMap[i].stagePos
-            n_pols = stark_info.mapSectionsN[f"cm{stage}"]
-            dim = stark_info.cmPolsMap[i].dim
-
-            if stage == 1:
-                for d in range(dim):
-                    trace[q * n_pols + stage_pos + d] = int(jproof[f"s0_vals{stage}"][q][stage_pos + d])
-            else:
-                base = verify_offsets[stage] + q * n_pols + stage_pos
-                for d in range(dim):
-                    aux_trace[base + d] = int(jproof[f"s0_vals{stage}"][q][stage_pos + d])
-
-    # Parse custom commit values
-    for q in range(n_queries):
-        for c in range(len(stark_info.customCommits)):
-            cc = stark_info.customCommits[c]
-            section = cc.name + "0"
-            n_pols = stark_info.mapSectionsN[section]
-            base = custom_offsets.get(c, 0) + q * n_pols
-            for i in range(len(stark_info.customCommitsMap[c])):
-                stage_pos = stark_info.customCommitsMap[c][i].stagePos
-                custom_commits[base + stage_pos] = int(jproof[f"s0_vals_{cc.name}_0"][q][stage_pos])
+    # custom_commits holds custom commitment values
+    custom_size = max(custom_total, si.mapTotalNCustomCommitsFixed)
+    custom_commits = np.zeros(custom_size, dtype=np.uint64)
 
     return trace, aux_trace, custom_commits
 
 
-def _find_xi_challenge(stark_info, challenges: np.ndarray) -> np.ndarray:
-    """Find xi challenge (evaluation point) from challenges array."""
-    for i, ch in enumerate(stark_info.challengesMap):
-        if ch.stage == stark_info.nStages + 2 and ch.stageId == 0:
+def _fill_trace_from_proof(jproof: JProof, si, trace: np.ndarray, aux_trace: np.ndarray,
+                           custom_commits: np.ndarray, stage_offsets: dict, custom_offsets: dict) -> None:
+    """Fill trace buffers with values from proof."""
+    n_queries = si.starkStruct.nQueries
+
+    for query_idx in range(n_queries):
+        # Fill committed polynomial values
+        for cm_pol in si.cmPolsMap:
+            stage = cm_pol.stage
+            stage_pos = cm_pol.stagePos
+            n_pols = si.mapSectionsN[f"cm{stage}"]
+
+            if stage == 1:
+                # Stage 1 goes into trace buffer
+                for dim_offset in range(cm_pol.dim):
+                    buffer_idx = query_idx * n_pols + stage_pos + dim_offset
+                    trace[buffer_idx] = int(jproof[f"s0_vals{stage}"][query_idx][stage_pos + dim_offset])
+            else:
+                # Stage 2+ goes into aux_trace buffer
+                base_idx = stage_offsets[stage] + query_idx * n_pols + stage_pos
+                for dim_offset in range(cm_pol.dim):
+                    aux_trace[base_idx + dim_offset] = int(jproof[f"s0_vals{stage}"][query_idx][stage_pos + dim_offset])
+
+        # Fill custom commit values
+        for commit_idx, commit in enumerate(si.customCommits):
+            section = commit.name + "0"
+            n_pols = si.mapSectionsN[section]
+            base_idx = custom_offsets.get(commit_idx, 0) + query_idx * n_pols
+
+            for cm in si.customCommitsMap[commit_idx]:
+                proof_key = f"s0_vals_{commit.name}_0"
+                custom_commits[base_idx + cm.stagePos] = int(jproof[proof_key][query_idx][cm.stagePos])
+
+
+def _parse_trace_values(jproof: JProof, si) -> tuple:
+    """Parse trace query values into (trace, aux_trace, custom_commits) buffers.
+
+    This function orchestrates three steps:
+    1. Compute offsets - where each stage/commit starts in its buffer
+    2. Allocate buffers - create appropriately-sized numpy arrays
+    3. Fill from proof - copy values from JSON proof into buffers
+    """
+    n_queries = si.starkStruct.nQueries
+
+    stage_offsets, stage_total = _compute_stage_offsets(si, n_queries)
+    custom_offsets, custom_total = _compute_custom_commit_offsets(si, n_queries)
+
+    trace, aux_trace, custom_commits = _allocate_trace_buffers(
+        si, stage_offsets, stage_total, custom_offsets, custom_total, n_queries
+    )
+
+    _fill_trace_from_proof(jproof, si, trace, aux_trace, custom_commits, stage_offsets, custom_offsets)
+
+    return trace, aux_trace, custom_commits
+
+
+def _find_xi_challenge(si, challenges: np.ndarray) -> Challenge:
+    """Find xi (evaluation point) in challenges array."""
+    for i, ch in enumerate(si.challengesMap):
+        if ch.stage == si.nStages + 2 and ch.stageId == 0:
             return challenges[i * FIELD_EXTENSION_DEGREE:(i + 1) * FIELD_EXTENSION_DEGREE]
     return np.zeros(FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
 
 # --- Fiat-Shamir Transcript Reconstruction ---
-#
-# The Fiat-Shamir transform converts an interactive proof into a non-interactive one.
-# Instead of the verifier sending random challenges, the prover hashes its messages
-# to derive challenges deterministically. The verifier re-derives the same challenges
-# by hashing the same proof elements in the same order.
-#
-# The transcript accumulates: verkey -> publics -> root1 -> challenges -> root2 -> ...
-# Each challenge is derived by squeezing the Poseidon2 sponge state.
 
-def _reconstruct_transcript(
-    jproof: Dict,
-    stark_info,
-    global_challenge: np.ndarray,
-) -> tuple:
-    """Reconstruct Fiat-Shamir transcript and derive all challenges.
-
-    The transcript follows the same sequence as the prover:
-    1. Initialize with global_challenge (3 field elements)
-    2. For each stage: derive stage challenges, then absorb stage commitment root
-    3. Absorb polynomial evaluations at xi
-    4. Derive FRI challenges, absorbing FRI layer roots between steps
-    5. Derive final grinding challenge
-
-    Returns (challenges, final_pol) where challenges is a flat array of all
-    random field elements and final_pol is the fully-folded FRI polynomial.
-    """
-    n_challenges = len(stark_info.challengesMap)
-    n_steps = len(stark_info.starkStruct.friFoldSteps)
+def _reconstruct_transcript(jproof: JProof, si, global_challenge: np.ndarray) -> tuple:
+    """Reconstruct Fiat-Shamir transcript, returning (challenges, final_pol)."""
+    ss = si.starkStruct
+    n_challenges = len(si.challengesMap)
+    n_steps = len(ss.friFoldSteps)
     challenges = np.zeros((n_challenges + n_steps + 1) * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
-    transcript = Transcript(
-        arity=stark_info.starkStruct.transcriptArity,
-        custom=stark_info.starkStruct.merkleTreeCustom
-    )
-
-    # Stage 0: Initialize transcript with global challenge
+    transcript = Transcript(arity=ss.transcriptArity, custom=ss.merkleTreeCustom)
     transcript.put(global_challenge[:3].tolist())
 
-    # Stages 2..nStages+1: Derive challenges and add roots
+    # Stages 2..nStages+1
     c = 0
-    for s in range(2, stark_info.nStages + 2):
-        # Derive challenges for this stage
-        for ch in stark_info.challengesMap:
+    for s in range(2, si.nStages + 2):
+        for ch in si.challengesMap:
             if ch.stage == s:
-                challenge = transcript.get_field()
-                challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = challenge
+                challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
                 c += 1
 
-        # Add stage root
-        transcript.put(_parse_root(jproof, f"root{s}", HASH_SIZE))
+        transcript.put(_parse_root(jproof, f"root{s}"))
 
-        # Add air values for this stage
-        for av in stark_info.airValuesMap:
+        for av in si.airValuesMap:
             if av.stage != 1 and av.stage == s:
-                idx = stark_info.airValuesMap.index(av)
+                idx = si.airValuesMap.index(av)
                 transcript.put([int(v) for v in jproof["airvalues"][idx]])
 
-    # Evals stage challenges (nStages + 2)
-    for ch in stark_info.challengesMap:
-        if ch.stage == stark_info.nStages + 2:
-            challenge = transcript.get_field()
-            challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = challenge
+    # Evals stage (nStages + 2)
+    for ch in si.challengesMap:
+        if ch.stage == si.nStages + 2:
+            challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
             c += 1
 
-    # Add evaluations to transcript - flatten [c0, c1, c2] triples
-    evals_flat = [int(v) for ev in jproof["evals"][:len(stark_info.evMap)] for v in ev]
-    if not stark_info.starkStruct.hashCommits:
+    evals_flat = [int(v) for ev in jproof["evals"][:len(si.evMap)] for v in ev]
+    if not ss.hashCommits:
         transcript.put(evals_flat)
     else:
-        evals_hash = list(linear_hash(evals_flat, width=16))
-        transcript.put(evals_hash)
+        transcript.put(list(linear_hash(evals_flat, width=16)))
 
-    # FRI polynomial challenges (nStages + 3)
-    for ch in stark_info.challengesMap:
-        if ch.stage == stark_info.nStages + 3:
-            challenge = transcript.get_field()
-            challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = challenge
+    # FRI polynomial stage (nStages + 3)
+    for ch in si.challengesMap:
+        if ch.stage == si.nStages + 3:
+            challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
             c += 1
 
-    # FRI step challenges
+    # FRI steps
     final_pol = None
     for step in range(n_steps):
         if step > 0:
-            challenge = transcript.get_field()
-            challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = challenge
+            challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
         c += 1
 
         if step < n_steps - 1:
-            transcript.put(_parse_root(jproof, f"s{step + 1}_root", HASH_SIZE))
+            transcript.put(_parse_root(jproof, f"s{step + 1}_root"))
         else:
-            # Parse and add final polynomial
             final_pol_ff3 = ff3_from_json(jproof["finalPol"])
             final_pol = ff3_to_interleaved_numpy(final_pol_ff3)
 
-            if not stark_info.starkStruct.hashCommits:
+            if not ss.hashCommits:
                 transcript.put(final_pol.tolist())
             else:
-                th = Transcript(arity=stark_info.starkStruct.transcriptArity,
-                                custom=stark_info.starkStruct.merkleTreeCustom)
+                th = Transcript(arity=ss.transcriptArity, custom=ss.merkleTreeCustom)
                 th.put(final_pol.tolist())
                 transcript.put(th.get_state(HASH_SIZE))
 
-    # Final challenge
-    challenge = transcript.get_field()
-    challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = challenge
+    # Grinding challenge
+    challenges[c * FIELD_EXTENSION_DEGREE:(c + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
 
     return challenges, final_pol
 
 
-# --- Verification Helpers ---
-#
-# These functions implement the core verification logic: checking that polynomial
-# evaluations are consistent and that FRI folding was performed correctly.
+# --- Evaluation Verification ---
 
-def _compute_x_div_x_sub(stark_info, xi_challenge: np.ndarray, fri_queries: List[int]) -> np.ndarray:
-    """Compute x/(x - xi*w^openingPoint) for each query and opening point.
+def _compute_x_div_x_sub(si, xi_challenge: Challenge, fri_queries: List[QueryIdx]) -> np.ndarray:
+    """Compute 1/(x - xi*w^openingPoint) for DEEP-ALI quotient.
 
-    This implements the DEEP-ALI (Algebraic Linking IOP) technique. For each query point x
-    and each opening point (offset into the trace), we compute x/(x - xi*w^offset).
-
-    These values are used to interpolate polynomial evaluations:
-    If P(xi*w^offset) = v, then P(x) ≈ v * x/(x - xi*w^offset) near x = xi*w^offset.
-
-    The result is stored as a flat array indexed by [query_idx * n_opening_points + opening_idx].
+    For each query point x and each opening point, we compute the denominator
+    of the DEEP quotient: 1/(x - xi * w^openingPoint). This is used to
+    reconstruct the committed polynomials from their evaluations.
     """
-    n_queries = stark_info.starkStruct.nQueries
-    n_opening_points = len(stark_info.openingPoints)
+    n_queries = si.starkStruct.nQueries
+    n_opening_points = len(si.openingPoints)
 
     x_div_x_sub = np.zeros(n_queries * n_opening_points * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
+    # Convert challenge to extension field element
     xi = ff3([int(xi_challenge[0]), int(xi_challenge[1]), int(xi_challenge[2])])
-    w_ext = FF(get_omega(stark_info.starkStruct.nBitsExt))
-    w = FF(get_omega(stark_info.starkStruct.nBits))
+
+    # Domain generators
+    omega_extended = FF(get_omega(si.starkStruct.nBitsExt))  # Extended domain
+    omega_trace = FF(get_omega(si.starkStruct.nBits))        # Trace domain
     shift = FF(SHIFT)
 
-    for i in range(n_queries):
-        x_base = shift * (w_ext ** fri_queries[i])
-        x = ff3([int(x_base), 0, 0])
+    for query_idx in range(n_queries):
+        # Evaluation point: x = shift * omega_extended^query_position
+        query_position = fri_queries[query_idx]
+        x = ff3([int(shift * (omega_extended ** query_position)), 0, 0])
 
-        for o, opening_point in enumerate(stark_info.openingPoints):
-            # w^|openingPoint|
-            w_power = w ** abs(opening_point)
+        for opening_idx, opening_point in enumerate(si.openingPoints):
+            # Compute omega_trace^opening_point (handle negative exponents)
+            omega_power = omega_trace ** abs(opening_point)
             if opening_point < 0:
-                w_power = w_power ** -1
+                omega_power = omega_power ** -1
 
-            # x / (x - xi * w^openingPoint)
-            aux = x - xi * ff3([int(w_power), 0, 0])
-            aux = aux ** -1
+            # Compute 1/(x - xi * omega^opening_point)
+            shifted_challenge = xi * ff3([int(omega_power), 0, 0])
+            inv_difference = (x - shifted_challenge) ** -1
 
-            idx = (i * n_opening_points + o) * FIELD_EXTENSION_DEGREE
-            x_div_x_sub[idx:idx + FIELD_EXTENSION_DEGREE] = ff3_coeffs(aux)
+            # Store in flattened buffer
+            buffer_idx = (query_idx * n_opening_points + opening_idx) * FIELD_EXTENSION_DEGREE
+            x_div_x_sub[buffer_idx:buffer_idx + FIELD_EXTENSION_DEGREE] = ff3_coeffs(inv_difference)
 
     return x_div_x_sub
 
 
-def _verify_evaluations(
-    stark_info,
-    setup_ctx: SetupCtx,
-    expressions_pack: ExpressionsPack,
-    params: ProofContext,
-    evals: np.ndarray,
-    xi_challenge: np.ndarray
-) -> bool:
-    """Verify Q(xi) == constraint_eval(xi).
+def _evaluate_constraint_at_xi(si, setup_ctx: SetupCtx, expressions_pack: ExpressionsPack,
+                               params: ProofContext) -> np.ndarray:
+    """Evaluate the constraint polynomial C(xi) using the expression evaluator.
 
-    This is the central STARK verification equation. The prover claims:
-    - The constraint polynomial C(x) evaluates to some value at random point xi
-    - The quotient polynomial Q(x) = C(x) / Z_H(x) has the claimed evaluations
-
-    If constraints are satisfied on the trace domain H, then C(x) vanishes on H,
-    meaning C(x) is divisible by the vanishing polynomial Z_H(x) = x^N - 1.
-    This makes Q(x) a polynomial (not a rational function), and we verify:
-
-        Q(xi) * Z_H(xi) = C(xi)
-
-    which simplifies to Q(xi) * (xi^N - 1) = C(xi).
+    Returns:
+        Buffer containing C(xi) coefficients in extension field
     """
-    # Evaluate the constraint expression at xi using the prover's claimed polynomial values.
-    # This computes C(xi) from the evaluations in the proof.
     buff = np.zeros(FIELD_EXTENSION_DEGREE, dtype=np.uint64)
     dest = Dest(dest=buff, domain_size=1, offset=0)
-    dest.exp_id = stark_info.cExpId
-    dest.dim = setup_ctx.expressions_bin.expressions_info[stark_info.cExpId].dest_dim
-    dest.params.append(Params(exp_id=stark_info.cExpId, dim=dest.dim, batch=True, op="tmp"))
+    dest.exp_id = si.cExpId
+    dest.dim = setup_ctx.expressions_bin.expressions_info[si.cExpId].dest_dim
+    dest.params.append(Params(exp_id=si.cExpId, dim=dest.dim, batch=True, op="tmp"))
     expressions_pack.calculate_expressions(params, dest, 1, False, False)
+    return buff
 
-    # Compute xi^N where N is the trace length (size of evaluation domain H).
-    # This is needed to reconstruct Q(xi) from its degree-reduced pieces.
+
+def _compute_xi_to_trace_size(xi, trace_size: int):
+    """Compute xi^N where N is the trace size.
+
+    This is needed to reconstruct the full quotient polynomial from its split pieces.
+    """
+    x_power = ff3([1, 0, 0])
+    for _ in range(trace_size):
+        x_power = x_power * xi
+    return x_power
+
+
+def _reconstruct_quotient_at_xi(si, evals: np.ndarray, xi, xi_to_n) -> ff3:
+    """Reconstruct Q(xi) from split quotient pieces Q_0, Q_1, ..., Q_{d-1}.
+
+    The quotient polynomial Q is split into qDeg pieces to keep degrees manageable:
+    Q(x) = Q_0(x) + x^N * Q_1(x) + x^(2N) * Q_2(x) + ...
+
+    We reconstruct Q(xi) by summing these terms.
+    """
+    quotient_stage = si.nStages + 1
+    quotient_start_idx = next(
+        i for i, p in enumerate(si.cmPolsMap)
+        if p.stage == quotient_stage and p.stageId == 0
+    )
+
+    reconstructed_quotient = ff3([0, 0, 0])
+    xi_power_accumulator = ff3([1, 0, 0])
+
+    for piece_idx in range(si.qDeg):
+        # Find evaluation of Q_i(xi) in the evals array
+        eval_map_idx = next(
+            j for j, e in enumerate(si.evMap)
+            if e.type == EvMap.Type.cm and e.id == quotient_start_idx + piece_idx
+        )
+
+        # Extract the FF3 value from interleaved buffer
+        q_piece_eval = ff3([
+            int(evals[eval_map_idx * FIELD_EXTENSION_DEGREE + k])
+            for k in range(FIELD_EXTENSION_DEGREE)
+        ])
+
+        # Accumulate: Q += xi^(i*N) * Q_i(xi)
+        reconstructed_quotient = reconstructed_quotient + xi_power_accumulator * q_piece_eval
+        xi_power_accumulator = xi_power_accumulator * xi_to_n
+
+    return reconstructed_quotient
+
+
+def _verify_evaluations(si, setup_ctx: SetupCtx, expressions_pack: ExpressionsPack,
+                        params: ProofContext, evals: np.ndarray, xi_challenge: Challenge) -> bool:
+    """Verify Q(xi) = C(xi) - the core STARK equation.
+
+    This checks that the prover correctly computed the quotient polynomial Q
+    such that C(x) = Q(x) * Z_H(x) where C is the constraint and Z_H is the
+    vanishing polynomial on the trace domain.
+    """
+    # Step 1: Evaluate constraint polynomial at xi
+    constraint_buffer = _evaluate_constraint_at_xi(si, setup_ctx, expressions_pack, params)
+    constraint_at_xi = ff3([int(constraint_buffer[k]) for k in range(FIELD_EXTENSION_DEGREE)])
+
+    # Step 2: Compute powers of xi needed for reconstruction
     xi = ff3([int(xi_challenge[0]), int(xi_challenge[1]), int(xi_challenge[2])])
-    N = 1 << stark_info.starkStruct.nBits
-    x_n = ff3([1, 0, 0])
-    for _ in range(N):
-        x_n = x_n * xi
+    trace_size = 1 << si.starkStruct.nBits
+    xi_to_n = _compute_xi_to_trace_size(xi, trace_size)
 
-    # The quotient polynomial Q(x) is split into qDeg pieces to reduce degree:
-    # Q(x) = Q_0(x) + x^N * Q_1(x) + x^(2N) * Q_2(x) + ...
-    # Reconstruct Q(xi) by evaluating this sum at xi.
-    q_stage = stark_info.nStages + 1
-    q_index = next(i for i, p in enumerate(stark_info.cmPolsMap)
-                   if p.stage == q_stage and p.stageId == 0)
+    # Step 3: Reconstruct Q(xi) from split quotient pieces
+    quotient_at_xi = _reconstruct_quotient_at_xi(si, evals, xi, xi_to_n)
 
-    q = ff3([0, 0, 0])
-    x_acc = ff3([1, 0, 0])  # Accumulates powers: 1, xi^N, xi^(2N), ...
+    # Step 4: Verify Q(xi) = C(xi)
+    residual = ff3_coeffs(quotient_at_xi - constraint_at_xi)
 
-    for i in range(stark_info.qDeg):
-        # Find the evaluation map entry for Q_i and get its value at xi
-        ev_id = next(j for j, e in enumerate(stark_info.evMap)
-                     if e.type == EvMap.Type.cm and e.id == q_index + i)
-        eval_val = ff3([int(evals[ev_id * FIELD_EXTENSION_DEGREE + k]) for k in range(FIELD_EXTENSION_DEGREE)])
-        q = q + x_acc * eval_val
-        x_acc = x_acc * x_n
-
-    # The verification equation: Q(xi) must equal C(xi).
-    # Any difference means either the evaluations are wrong or constraints weren't satisfied.
-    constraint_eval = ff3([int(buff[k]) for k in range(FIELD_EXTENSION_DEGREE)])
-    res = ff3_coeffs(q - constraint_eval)
-
-    if res[0] != 0 or res[1] != 0 or res[2] != 0:
-        print(f"  Q(xi): {ff3_coeffs(q)}")
-        print(f"  constraint_eval(xi): {ff3_coeffs(constraint_eval)}")
-        print(f"  residual: {res}")
+    if residual[0] != 0 or residual[1] != 0 or residual[2] != 0:
+        print(f"  Q(xi): {ff3_coeffs(quotient_at_xi)}")
+        print(f"  C(xi): {ff3_coeffs(constraint_at_xi)}")
+        print(f"  residual: {residual}")
         return False
 
     return True
 
 
-def _verify_fri_consistency(
-    jproof: Dict,
-    stark_info,
-    setup_ctx: SetupCtx,
-    expressions_pack: ExpressionsPack,
-    params: ProofContext,
-    fri_queries: List[int]
-) -> bool:
-    """Verify FRI polynomial values match expression evaluation at query points.
+def _verify_fri_consistency(jproof: JProof, si, setup_ctx: SetupCtx,
+                            expressions_pack: ExpressionsPack, params: ProofContext,
+                            fri_queries: List[QueryIdx]) -> bool:
+    """Verify FRI polynomial matches constraint evaluation at query points."""
+    n_queries = si.starkStruct.nQueries
+    n_steps = len(si.starkStruct.friFoldSteps)
 
-    The FRI protocol commits to a polynomial P(x) via Merkle tree, then proves
-    it has low degree by iterative folding. This check verifies that P(x) is
-    actually the polynomial derived from the STARK constraint evaluation.
-
-    Specifically, P(x) is constructed as a random linear combination of:
-    - Trace polynomials evaluated at x
-    - Quotient polynomials scaled by DEEP-ALI terms
-
-    At each query point x_q, we:
-    1. Compute P(x_q) from the constraint expression using opened trace values
-    2. Check this matches the P(x_q) value from the first FRI layer commitment
-    """
-    n_queries = stark_info.starkStruct.nQueries
-
-    # Evaluate the FRI polynomial expression at each query point.
-    # This uses the opened polynomial values from the proof to compute what
-    # the FRI polynomial should be at these positions.
+    # Evaluate FRI polynomial at query points
     buff = np.zeros(FIELD_EXTENSION_DEGREE * n_queries, dtype=np.uint64)
     dest = Dest(dest=buff, domain_size=n_queries, offset=0)
-    dest.exp_id = stark_info.friExpId
-    dest.dim = setup_ctx.expressions_bin.expressions_info[stark_info.friExpId].dest_dim
-    dest.params.append(Params(exp_id=stark_info.friExpId, dim=dest.dim, batch=True, op="tmp"))
+    dest.exp_id = si.friExpId
+    dest.dim = setup_ctx.expressions_bin.expressions_info[si.friExpId].dest_dim
+    dest.params.append(Params(exp_id=si.friExpId, dim=dest.dim, batch=True, op="tmp"))
     expressions_pack.calculate_expressions(params, dest, n_queries, False, False)
 
-    # Compare computed values against what the prover committed to in the first FRI layer.
-    # If these don't match, the prover's FRI commitment is inconsistent with the trace.
-    n_steps = len(stark_info.starkStruct.friFoldSteps)
     for q in range(n_queries):
-        idx = fri_queries[q] % (1 << stark_info.starkStruct.friFoldSteps[0].domainBits)
+        idx = fri_queries[q] % (1 << si.starkStruct.friFoldSteps[0].domainBits)
 
         if n_steps > 1:
-            next_n_groups = 1 << stark_info.starkStruct.friFoldSteps[1].domainBits
+            next_n_groups = 1 << si.starkStruct.friFoldSteps[1].domainBits
             group_idx = idx // next_n_groups
-            # Compare FF3 value: proof vs computed
             proof_coeffs = jproof["s1_vals"][q][group_idx * FIELD_EXTENSION_DEGREE:(group_idx + 1) * FIELD_EXTENSION_DEGREE]
-            computed_coeffs = buff[q * FIELD_EXTENSION_DEGREE:(q + 1) * FIELD_EXTENSION_DEGREE]
-            for j in range(FIELD_EXTENSION_DEGREE):
-                if int(proof_coeffs[j]) != int(computed_coeffs[j]):
-                    return False
         else:
-            # Compare FF3 value: finalPol vs computed
             proof_coeffs = jproof["finalPol"][idx]
-            computed_coeffs = buff[q * FIELD_EXTENSION_DEGREE:(q + 1) * FIELD_EXTENSION_DEGREE]
-            for j in range(FIELD_EXTENSION_DEGREE):
-                if int(proof_coeffs[j]) != int(computed_coeffs[j]):
-                    return False
+
+        computed = buff[q * FIELD_EXTENSION_DEGREE:(q + 1) * FIELD_EXTENSION_DEGREE]
+        for j in range(FIELD_EXTENSION_DEGREE):
+            if int(proof_coeffs[j]) != int(computed[j]):
+                return False
 
     return True
 
 
 # --- Merkle Tree Verification ---
-#
-# Merkle trees provide succinct commitments to polynomial evaluations. The prover
-# commits to a polynomial by building a Merkle tree over its evaluations, then
-# reveals the root. Later, to prove P(x_i) = v, the prover provides:
-# - The value v
-# - The authentication path (sibling hashes from leaf to root)
-#
-# The verifier recomputes the root from the leaf and siblings, checking it matches.
-# This uses Poseidon2 hashing with configurable arity (2, 3, or 4 children per node).
 
-def _verify_merkle_query(
-    root: MerkleRoot,
-    level: List[int],
-    siblings: List[List[int]],
-    idx: int,
-    values: List[int],
-    arity: int,
-    sponge_width: int,
-    last_level_verification: int
-) -> bool:
-    """Verify a single Merkle query proof.
+def _build_parent_hash_input(child_hash: List[int], siblings: List[int],
+                             child_position: int, arity: int, sponge_width: int) -> List[int]:
+    """Build hash input for parent node from child hash and siblings.
 
-    Starting from the leaf values, recompute hashes up to the root (or last level).
-    At each level, combine the computed hash with sibling hashes in the correct order
-    based on the query index, then hash to get the parent.
+    In a Merkle tree with arity N, each parent hashes N children together.
+    This function constructs that hash input by placing the child hash at
+    its position and filling other positions with sibling hashes.
 
     Args:
-        root: Expected Merkle root (or None if using last_level_verification)
-        level: Pre-verified last level hashes (for optimization)
-        siblings: Authentication path - sibling hashes at each level
-        idx: Leaf index being verified
-        values: Leaf values to verify
-        arity: Tree branching factor (2, 3, or 4)
-        sponge_width: Poseidon sponge width for this arity
-        last_level_verification: If >0, verify against level instead of root
+        child_hash: Hash of the child we're authenticating
+        siblings: Hashes of the (arity-1) sibling children
+        child_position: Which position (0..arity-1) the child occupies
+        arity: Number of children per parent node
+        sponge_width: Total width of hash input array
+
+    Returns:
+        Hash input array ready for hash_seq()
     """
-    computed = linear_hash(values, sponge_width)
-    curr_idx = idx
+    hash_input = [0] * sponge_width
+    sibling_idx = 0
+
+    for position in range(arity):
+        for hash_element in range(HASH_SIZE):
+            buffer_idx = position * HASH_SIZE + hash_element
+
+            if buffer_idx < sponge_width:
+                if position == child_position:
+                    # This position holds our child's hash
+                    hash_input[buffer_idx] = child_hash[hash_element]
+                else:
+                    # This position holds a sibling's hash
+                    hash_input[buffer_idx] = siblings[sibling_idx * HASH_SIZE + hash_element]
+
+        # Move to next sibling after processing non-child positions
+        if position != child_position:
+            sibling_idx += 1
+
+    return hash_input
+
+
+def _verify_merkle_query(root: MerkleRoot, level: List[int], siblings: List[List[int]],
+                         idx: int, values: List[int], arity: int, sponge_width: int,
+                         last_level_verification: int) -> bool:
+    """Verify a single Merkle query proof.
+
+    Walk up the tree from leaf to root, hashing at each level with siblings,
+    until we reach either the root or the last-level-verification boundary.
+    """
+    current_hash = linear_hash(values, sponge_width)
+    current_idx = idx
 
     for level_siblings in siblings:
-        pos = curr_idx % arity
-        curr_idx = curr_idx // arity
+        child_position = current_idx % arity
+        current_idx = current_idx // arity
 
-        hash_input = [0] * sponge_width
-        sib_ptr = 0
-        for i in range(arity):
-            for j in range(HASH_SIZE):
-                if i * HASH_SIZE + j < sponge_width:
-                    if i == pos:
-                        hash_input[i * HASH_SIZE + j] = computed[j]
-                    else:
-                        hash_input[i * HASH_SIZE + j] = level_siblings[sib_ptr * HASH_SIZE + j]
-            if i != pos:
-                sib_ptr += 1
+        hash_input = _build_parent_hash_input(current_hash, level_siblings, child_position, arity, sponge_width)
+        current_hash = hash_seq(hash_input, sponge_width)
 
-        computed = hash_seq(hash_input, sponge_width)
-
+    # Check against root or last-level boundary
     if last_level_verification == 0:
-        return computed[:HASH_SIZE] == root[:HASH_SIZE]
+        return current_hash[:HASH_SIZE] == root[:HASH_SIZE]
     else:
-        expected = level[curr_idx * HASH_SIZE:(curr_idx + 1) * HASH_SIZE]
-        return computed[:HASH_SIZE] == expected
+        expected = level[current_idx * HASH_SIZE:(current_idx + 1) * HASH_SIZE]
+        return current_hash[:HASH_SIZE] == expected
 
 
-def _verify_merkle_tree(
-    jproof: Dict,
-    stark_info,
-    root: MerkleRoot,
-    vals_key: str,
-    siblings_key: str,
-    last_levels_key: str,
-    section: Optional[str],
-    fri_queries: List[int],
-    n_cols: Optional[int] = None
-) -> bool:
-    """Generic Merkle tree verification for stage/constant/custom commits."""
-    arity = stark_info.starkStruct.merkleTreeArity
-    llv = stark_info.starkStruct.lastLevelVerification
-    n_queries = stark_info.starkStruct.nQueries
+def _verify_merkle_tree(jproof: JProof, si, root: MerkleRoot, vals_key: str,
+                        siblings_key: str, last_levels_key: str, n_cols: int,
+                        fri_queries: List[QueryIdx], domain_bits: int) -> bool:
+    """Verify Merkle tree for stage/constant/custom commits."""
+    ss = si.starkStruct
+    arity = ss.merkleTreeArity
+    llv = ss.lastLevelVerification
+    n_queries = ss.nQueries
     sponge_width = {2: 8, 3: 12, 4: 16}[arity]
-
-    if n_cols is None:
-        n_cols = stark_info.mapSectionsN[section]
 
     # Parse last level nodes
     num_nodes = 0 if llv == 0 else arity ** llv
@@ -732,18 +637,13 @@ def _verify_merkle_tree(
             for j in range(HASH_SIZE):
                 level.append(int(jproof[last_levels_key][i][j]))
 
-    # Verify root from last level nodes
     if llv > 0:
-        if not MerkleTree.verify_merkle_root(
-            root, level, 1 << stark_info.starkStruct.nBitsExt, llv, arity, sponge_width
-        ):
+        if not MerkleTree.verify_merkle_root(root, level, 1 << ss.nBitsExt, llv, arity, sponge_width):
             return False
 
-    # Calculate sibling levels
-    n_siblings = math.ceil(stark_info.starkStruct.friFoldSteps[0].domainBits / math.log2(arity)) - llv
+    n_siblings = math.ceil(domain_bits / math.log2(arity)) - llv
     siblings_per_level = (arity - 1) * HASH_SIZE
 
-    # Verify each query
     for q in range(n_queries):
         values = [int(jproof[vals_key][q][i]) for i in range(n_cols)]
         siblings = [
@@ -757,18 +657,51 @@ def _verify_merkle_tree(
     return True
 
 
-def _verify_fri_merkle_tree(jproof: Dict, stark_info, step: int, fri_queries: List[int]) -> bool:
-    """Verify FRI folding Merkle tree for a step."""
-    arity = stark_info.starkStruct.merkleTreeArity
-    llv = stark_info.starkStruct.lastLevelVerification
-    n_queries = stark_info.starkStruct.nQueries
+def _verify_stage_merkle(jproof: JProof, si, root: MerkleRoot, stage: int,
+                         fri_queries: List[QueryIdx]) -> bool:
+    """Verify stage commitment Merkle tree."""
+    section = f"cm{stage}"
+    return _verify_merkle_tree(
+        jproof, si, root,
+        f"s0_vals{stage}", f"s0_siblings{stage}", f"s0_last_levels{stage}",
+        si.mapSectionsN[section], fri_queries, si.starkStruct.friFoldSteps[0].domainBits
+    )
+
+
+def _verify_const_merkle(jproof: JProof, si, verkey: MerkleRoot,
+                         fri_queries: List[QueryIdx]) -> bool:
+    """Verify constant polynomial Merkle tree."""
+    return _verify_merkle_tree(
+        jproof, si, verkey,
+        "s0_valsC", "s0_siblingsC", "s0_last_levelsC",
+        si.nConstants, fri_queries, si.starkStruct.friFoldSteps[0].domainBits
+    )
+
+
+def _verify_custom_commit_merkle(jproof: JProof, si, root: MerkleRoot, name: str,
+                                 fri_queries: List[QueryIdx]) -> bool:
+    """Verify custom commit Merkle tree."""
+    section = f"{name}0"
+    return _verify_merkle_tree(
+        jproof, si, root,
+        f"s0_vals_{name}_0", f"s0_siblings_{name}_0", f"s0_last_levels_{name}_0",
+        si.mapSectionsN[section], fri_queries, si.starkStruct.friFoldSteps[0].domainBits
+    )
+
+
+def _verify_fri_merkle_tree(jproof: JProof, si, step: int, fri_queries: List[QueryIdx]) -> bool:
+    """Verify FRI layer Merkle tree."""
+    ss = si.starkStruct
+    arity = ss.merkleTreeArity
+    llv = ss.lastLevelVerification
+    n_queries = ss.nQueries
     sponge_width = {2: 8, 3: 12, 4: 16}[arity]
 
-    n_groups = 1 << stark_info.starkStruct.friFoldSteps[step].domainBits
-    group_size = (1 << stark_info.starkStruct.friFoldSteps[step - 1].domainBits) // n_groups
-    n_cols = group_size * FIELD_EXTENSION_DEGREE  # FF3 values have FIELD_EXTENSION_DEGREE coefficients
+    n_groups = 1 << ss.friFoldSteps[step].domainBits
+    group_size = (1 << ss.friFoldSteps[step - 1].domainBits) // n_groups
+    n_cols = group_size * FIELD_EXTENSION_DEGREE
 
-    root = _parse_root(jproof, f"s{step}_root", HASH_SIZE)
+    root = _parse_root(jproof, f"s{step}_root")
 
     # Parse last level nodes
     num_nodes = 0 if llv == 0 else arity ** llv
@@ -782,11 +715,11 @@ def _verify_fri_merkle_tree(jproof: Dict, stark_info, step: int, fri_queries: Li
         if not MerkleTree.verify_merkle_root(root, level, n_groups, llv, arity, sponge_width):
             return False
 
-    n_siblings = math.ceil(stark_info.starkStruct.friFoldSteps[step].domainBits / math.log2(arity)) - llv
+    n_siblings = math.ceil(ss.friFoldSteps[step].domainBits / math.log2(arity)) - llv
     siblings_per_level = (arity - 1) * HASH_SIZE
 
     for q in range(n_queries):
-        idx = fri_queries[q] % (1 << stark_info.starkStruct.friFoldSteps[step].domainBits)
+        idx = fri_queries[q] % (1 << ss.friFoldSteps[step].domainBits)
         values = [int(jproof[f"s{step}_vals"][q][i]) for i in range(n_cols)]
         siblings = [
             [int(jproof[f"s{step}_siblings"][q][i][j]) for j in range(siblings_per_level)]
@@ -798,105 +731,78 @@ def _verify_fri_merkle_tree(jproof: Dict, stark_info, step: int, fri_queries: Li
     return True
 
 
-def _verify_fri_folding(
-    jproof: Dict,
-    stark_info,
-    challenges: np.ndarray,
-    step: int,
-    fri_queries: List[int]
-) -> bool:
-    """Verify FRI folding step computation.
+# --- FRI Verification ---
 
-    FRI (Fast Reed-Solomon IOP) proves low-degree by iteratively folding the polynomial.
-    Each step reduces the degree by combining evaluations at related points:
-
-    Given polynomial P(x) of degree < d evaluated on domain D, folding produces
-    P'(y) of degree < d/2 evaluated on domain D' = {y : y^2 ∈ D}.
-
-    The folding uses a random challenge α:
-        P'(y) = (P(y) + P(-y))/2 + α * (P(y) - P(-y))/(2y)
-
-    This is the "even-odd decomposition": if P(x) = P_even(x²) + x*P_odd(x²),
-    then P'(y) = P_even(y) + α*P_odd(y).
-
-    The verifier checks that P'(y) was computed correctly from P(y) and P(-y).
-    """
-    n_queries = stark_info.starkStruct.nQueries
-    n_steps = len(stark_info.starkStruct.friFoldSteps)
+def _verify_fri_folding(jproof: JProof, si, challenges: np.ndarray, step: int,
+                        fri_queries: List[QueryIdx]) -> bool:
+    """Verify FRI folding: P'(y) derived correctly from P(y), P(-y), etc."""
+    ss = si.starkStruct
+    n_queries = ss.nQueries
+    n_steps = len(ss.friFoldSteps)
 
     for q in range(n_queries):
-        # Map the original query index to this FRI layer's domain size
-        idx = fri_queries[q] % (1 << stark_info.starkStruct.friFoldSteps[step].domainBits)
+        idx = fri_queries[q] % (1 << ss.friFoldSteps[step].domainBits)
 
-        # Get all sibling evaluations needed for folding.
-        # n_x is the folding factor (how many points combine into one).
-        n_x = 1 << (stark_info.starkStruct.friFoldSteps[step - 1].domainBits - stark_info.starkStruct.friFoldSteps[step].domainBits)
+        # Gather sibling evaluations
+        n_x = 1 << (ss.friFoldSteps[step - 1].domainBits - ss.friFoldSteps[step].domainBits)
         siblings = [
             [int(jproof[f"s{step}_vals"][q][i * FIELD_EXTENSION_DEGREE + j]) for j in range(FIELD_EXTENSION_DEGREE)]
             for i in range(n_x)
         ]
 
-        # Get challenge for this step
-        challenge_idx = len(stark_info.challengesMap) + step
+        challenge_idx = len(si.challengesMap) + step
         challenge = [int(challenges[challenge_idx * FIELD_EXTENSION_DEGREE + j]) for j in range(FIELD_EXTENSION_DEGREE)]
 
         value = FRI.verify_fold(
             value=[0, 0, 0],
             fri_round=step,
-            n_bits_ext=stark_info.starkStruct.nBitsExt,
-            current_bits=stark_info.starkStruct.friFoldSteps[step].domainBits,
-            prev_bits=stark_info.starkStruct.friFoldSteps[step - 1].domainBits,
+            n_bits_ext=ss.nBitsExt,
+            current_bits=ss.friFoldSteps[step].domainBits,
+            prev_bits=ss.friFoldSteps[step - 1].domainBits,
             challenge=challenge,
             idx=idx,
-            siblings=siblings
+            siblings=siblings,
         )
 
         # Check against next layer or final polynomial
         if step < n_steps - 1:
-            next_bits = stark_info.starkStruct.friFoldSteps[step + 1].domainBits
+            next_bits = ss.friFoldSteps[step + 1].domainBits
             sibling_pos = idx >> next_bits
             expected = jproof[f"s{step + 1}_vals"][q][sibling_pos * FIELD_EXTENSION_DEGREE:(sibling_pos + 1) * FIELD_EXTENSION_DEGREE]
-            if value != ff3([int(v) for v in expected]):
-                return False
         else:
             expected = jproof["finalPol"][idx]
-            if value != ff3([int(v) for v in expected]):
-                return False
+
+        if value != ff3([int(v) for v in expected]):
+            return False
 
     return True
 
 
-def _verify_final_polynomial(jproof: Dict, stark_info) -> bool:
+def _verify_final_polynomial(jproof: JProof, si) -> bool:
     """Verify final polynomial has correct degree bound.
 
-    After all FRI folding steps, the polynomial is small enough to send in full.
-    The verifier checks that this polynomial actually has low degree by:
-    1. Converting from evaluation form to coefficient form via inverse NTT
-    2. Checking that all coefficients above the degree bound are zero
+    Protocol check: The final FRI polynomial must have degree less than the
+    claimed bound. We verify this by converting to coefficient form and checking
+    that high-degree coefficients are zero.
 
-    If the original polynomial had degree > target, the folded polynomial would
-    still have high-degree terms, failing this check. This is the final guarantee
-    that the committed polynomial was truly low-degree.
+    Note: The conversion to coefficient form is a protocol-level operation
+    (interpolation), not an implementation detail. The fact that we use INTT
+    internally is hidden by the polynomial abstraction.
     """
-    # Parse final polynomial evaluations (in the small final domain)
+    ss = si.starkStruct
     final_pol_ff3 = ff3_from_json(jproof["finalPol"])
     final_pol = ff3_to_interleaved_numpy(final_pol_ff3)
     final_pol_size = len(final_pol_ff3)
 
-    # Convert from evaluation form to coefficient form.
-    # If evaluations are [P(w^0), P(w^1), ..., P(w^(n-1))], INTT gives coefficients [c_0, c_1, ..., c_(n-1)].
-    ntt = NTT(final_pol_size)
+    # Convert from evaluation form to coefficient form
     final_pol_reshaped = final_pol.reshape(final_pol_size, FIELD_EXTENSION_DEGREE)
-    final_pol_coeffs = ntt.intt(final_pol_reshaped, n_cols=FIELD_EXTENSION_DEGREE)
+    final_pol_coeffs = to_coefficients(final_pol_reshaped, final_pol_size, n_cols=FIELD_EXTENSION_DEGREE)
 
-    # Compute the degree bound: coefficients from 'init' onward must be zero.
-    # The bound depends on how much the blowup factor exceeds the final domain size.
-    last_step = stark_info.starkStruct.friFoldSteps[-1].domainBits
-    blowup_factor = stark_info.starkStruct.nBitsExt - stark_info.starkStruct.nBits
+    # High-degree coefficients must be zero
+    last_step = ss.friFoldSteps[-1].domainBits
+    blowup_factor = ss.nBitsExt - ss.nBits
     init = 0 if blowup_factor > last_step else (1 << (last_step - blowup_factor))
 
-    # Check all high-degree coefficients are zero (in the extension field).
-    # A non-zero coefficient here means the original polynomial exceeded its degree bound.
     for i in range(init, final_pol_size):
         if any(int(final_pol_coeffs[i, j]) != 0 for j in range(FIELD_EXTENSION_DEGREE)):
             print(f"ERROR: Final polynomial is not zero at position {i}")

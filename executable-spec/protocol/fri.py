@@ -9,6 +9,7 @@ from primitives.field import (
     SHIFT, SHIFT_INV, get_omega_inv, FIELD_EXTENSION_DEGREE,
 )
 from primitives.merkle_tree import MerkleTree, MerkleRoot, transpose_for_merkle
+from primitives.polynomial import to_coefficients_cubic
 
 
 # --- FRI Protocol ---
@@ -42,10 +43,9 @@ class FRI:
             indices = [g + i * n_out for i in range(fold_factor)]
             evals = [pol[idx] for idx in indices]
 
-            # INTT: evaluations -> coefficients
+            # Convert evaluations to coefficients (interpolation)
             if fold_factor > 1:
-                fold_bits = prev_bits - current_bits
-                evals = FRI._intt_cubic(evals, fold_factor, get_omega_inv(fold_bits))
+                evals = to_coefficients_cubic(evals, fold_factor)
 
             # Scale coefficients by (shift_inv * w_inv^g)^i (coset adjustment)
             scale = shift_inv_pow * (w_inv ** g)
@@ -99,11 +99,10 @@ class FRI:
         w_inv = FF(get_omega_inv(prev_bits))
         fold_factor = 1 << (prev_bits - current_bits)
 
-        # Convert siblings to FF3 coefficients
+        # Convert siblings to FF3 coefficients (interpolation)
         coeffs = [ff3(s) for s in siblings]
         if fold_factor > 1:
-            fold_bits = prev_bits - current_bits
-            coeffs = FRI._intt_cubic(coeffs, fold_factor, get_omega_inv(fold_bits))
+            coeffs = to_coefficients_cubic(coeffs, fold_factor)
 
         # Compute evaluation point: challenge * (shift * w^(-idx))^(-1)
         eval_point = challenge_ff3 * int((shift_pow * (w_inv ** (-idx))) ** -1)
@@ -123,14 +122,4 @@ class FRI:
         ]
 
     # --- Internal ---
-
-    @staticmethod
-    def _intt_cubic(values: List[FF3], n: int, w_inv: int) -> List[FF3]:
-        """INTT on cubic extension elements (component-wise over base field)."""
-        coeffs = [ff3_coeffs(v) for v in values]
-
-        # Separate components and apply INTT to each
-        components = [FF([c[i] for c in coeffs]) for i in range(FIELD_EXTENSION_DEGREE)]
-        results = [galois.intt(comp, omega=w_inv) for comp in components]
-
-        return [ff3([int(r[i]) for r in results]) for i in range(n)]
+    # (All implementation details moved to primitives/polynomial.py)
