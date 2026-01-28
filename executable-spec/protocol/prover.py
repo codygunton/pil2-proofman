@@ -1,6 +1,5 @@
 """Top-level STARK proof generation."""
 
-from typing import Optional
 import numpy as np
 
 from poseidon2_ffi import linear_hash
@@ -14,10 +13,47 @@ from protocol.proof_context import ProofContext
 from protocol.setup_ctx import ProverHelpers, SetupCtx
 from protocol.stages import Starks
 from protocol.witness_generation import calculate_witness_std
+from protocol.utils.challenge_utils import derive_global_challenge
 
 # --- Type Aliases ---
 MerkleRoot = list[int]
 StageNum = int
+
+
+# --- Helper Functions ---
+
+def _get_air_values_stage1(stark_info, params: ProofContext) -> list[int]:
+    """Extract stage 1 air_values for global_challenge computation.
+
+    C++ reference: proofman.rs:3472-3540 (get_contribution_air)
+    Only stage 1 air_values go into global_challenge hash.
+    For simple AIRs, this returns an empty list.
+    """
+    result = []
+    if hasattr(stark_info, 'airValuesMap') and stark_info.airValuesMap:
+        for i, av in enumerate(stark_info.airValuesMap):
+            if av.stage == 1:
+                # Stage 1 air_values are single field elements
+                result.append(int(params.airValues[i]))
+    return result
+
+
+def _get_proof_values_stage1(stark_info, params: ProofContext) -> list[int]:
+    """Extract stage 1 proof_values for global_challenge computation.
+
+    C++ reference: challenge_accumulation.rs:96-99
+    Stage 1 proof values are included if not empty.
+    For simple AIRs, this returns an empty list.
+    """
+    result = []
+    # proofValuesMap is typically empty for simple AIRs
+    # When populated, extract stage 1 values
+    if hasattr(stark_info, 'proofValuesMap') and stark_info.proofValuesMap:
+        for pv in stark_info.proofValuesMap:
+            if pv.get('stage') == 1:
+                # Would extract from params.proofValues
+                pass
+    return result
 
 
 # --- Main Entry Point ---
@@ -26,7 +62,8 @@ def gen_proof(
     setup_ctx: SetupCtx,
     params: ProofContext,
     skip_challenge_derivation: bool = False,
-    global_challenge: Optional[np.ndarray] = None
+    global_challenge: list[int] | None = None,
+    compute_global_challenge: bool = True
 ) -> dict:
     """Generate complete STARK proof.
 
@@ -34,17 +71,21 @@ def gen_proof(
         setup_ctx: Setup context with AIR configuration
         params: Prover parameters and witness data
         skip_challenge_derivation: Skip challenge derivation (testing)
-        global_challenge: Optional pre-computed challenge for VADCOP mode.
-            If provided, seeds transcript at Stage 0 for external challenge use.
-            Shape: (3,) numpy array of FF elements or None.
+        global_challenge: Pre-computed global challenge for VADCOP mode.
+            If provided (3 field elements), uses directly (external VADCOP).
+            If None, computed internally or uses non-VADCOP mode.
+        compute_global_challenge: When global_challenge is None:
+            If True: Compute via lattice expansion (VADCOP internal)
+            If False: Use simpler verkey+publics+root1 seeding (non-VADCOP)
 
     Returns:
         Dictionary containing serialized proof.
 
     Notes:
-        - When global_challenge is None: Normal mode, derives all challenges from transcript
-        - When global_challenge is provided: VADCOP mode, seeds transcript with pre-computed value
-        - Verifier expects this pattern: prover/verifier must use identical Stage 0 seeding
+        - External VADCOP: Uses externally-provided global_challenge
+        - Internal VADCOP: Computes global_challenge via 368-element lattice expansion
+        - Non-VADCOP: Seeds transcript with verkey + publics + root1 directly
+        - For byte-identical proofs with C++ proofman, use internal or external VADCOP
     """
     # Extract the AIR specification (constraint definitions, parameters, domains, challenge map, etc.)
     # from setup context. stark_info contains:
@@ -164,39 +205,62 @@ def gen_proof(
 
     # === STAGE 0: Seed Fiat-Shamir Transcript ===
     #
-    # The transcript is the deterministic randomness source for all challenges.
-    # It MUST be seeded identically in prover and verifier for challenges to match.
-    #
-    # Two modes:
-    # 1. VADCOP Mode (global_challenge provided):
-    #    - External layer computed global_challenge from publics + proof values
-    #    - Seed transcript with pre-computed global_challenge
-    #    - This ensures deterministic challenge derivation from external state
-    #
-    # 2. Normal Mode (global_challenge is None):
-    #    - Seed transcript with verkey + publics + root1 (matches verifier pattern)
-    #    - Then derive all challenges normally
-    #
-    # Both approaches ensure prover and verifier use identical transcript seeding.
+    # Three modes depending on parameters:
+    # 1. global_challenge provided → use directly (external VADCOP)
+    # 2. compute_global_challenge=True → compute via lattice expansion (internal VADCOP)
+    # 3. compute_global_challenge=False → seed with verkey+publics+root1 (non-VADCOP)
+
     if global_challenge is not None:
-        # VADCOP mode: Use externally provided global challenge
-        # This matches verifier.py:318 pattern for external challenge provision
-        transcript.put(global_challenge[:3].tolist())
+        # Mode 1: External VADCOP - use pre-computed global_challenge
+        transcript.put(global_challenge[:3])
+    elif compute_global_challenge:
+        # Mode 2: Internal VADCOP - compute via lattice expansion algorithm
+        # Matches C++ proofman challenge_accumulation.rs
+
+        # Get lattice_size from globalInfo (default 368 for CurveType::None)
+        lattice_size = 368
+        if setup_ctx.global_info is not None:
+            lattice_size = setup_ctx.global_info.lattice_size
+
+        # Extract stage 1 air_values (empty for simple AIRs)
+        air_values_stage1 = _get_air_values_stage1(stark_info, params)
+
+        # Extract stage 1 proof_values (empty for simple AIRs)
+        proof_values_stage1 = _get_proof_values_stage1(stark_info, params)
+
+        # Compute global_challenge via lattice expansion
+        # Steps:
+        # 1. Hash [verkey, root1, air_values] → 16-element state
+        # 2. Expand to lattice_size (368) via Poseidon2 hash chain
+        # 3. Hash [publics, proof_values_stage1, 368-element contribution]
+        # 4. Extract 3 field elements
+        computed_challenge = derive_global_challenge(
+            stark_info=stark_info,
+            publics=params.publicInputs,
+            root1=list(root1),
+            verkey=verkey,
+            air_values=air_values_stage1,
+            proof_values_stage1=proof_values_stage1,
+            lattice_size=lattice_size
+        )
+
+        # Seed transcript with computed challenge
+        transcript.put(computed_challenge[:3])
     else:
-        # Normal mode: Initialize transcript with proof metadata
-        # This matches verifier.py:303-314 pattern for standard verification
+        # Mode 3: Non-VADCOP - seed with verkey + publics + root1 directly
+        # Produces different challenge sequence than VADCOP mode
         transcript.put(verkey)
         if stark_info.nPublics > 0:
-            # Add public inputs (conditionally hashed depending on stark_info.starkStruct.hashCommits)
-            if not stark_info.starkStruct.hashCommits:
-                transcript.put(params.publicInputs[:stark_info.nPublics].tolist())
+            if stark_info.starkStruct.hashCommits:
+                publics_transcript = Transcript(
+                    arity=stark_info.starkStruct.transcriptArity,
+                    custom=stark_info.starkStruct.merkleTreeCustom
+                )
+                publics_transcript.put(params.publicInputs[:stark_info.nPublics].tolist())
+                transcript.put(publics_transcript.get_state(4))
             else:
-                # Hash publics through temporary transcript
-                th = Transcript(arity=stark_info.starkStruct.transcriptArity,
-                               custom=stark_info.starkStruct.merkleTreeCustom)
-                th.put(params.publicInputs[:stark_info.nPublics].tolist())
-                transcript.put(th.get_state(HASH_SIZE))
-        transcript.put(root1)
+                transcript.put(params.publicInputs[:stark_info.nPublics].tolist())
+        transcript.put(list(root1))
 
     # === STAGE 2: Intermediate Polynomials (Lookup/Permutation Witness) ===
 

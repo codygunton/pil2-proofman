@@ -11,6 +11,7 @@ from primitives.field import (
 if TYPE_CHECKING:
     from protocol.stark_info import StarkInfo, Boundary
     from protocol.expressions_bin import ExpressionsBin
+    from protocol.global_info import GlobalInfo
 
 
 # --- Prover Helpers ---
@@ -199,19 +200,41 @@ class ProverHelpers:
 # --- Setup Context ---
 
 class SetupCtx:
-    """Configuration bundle: StarkInfo + ExpressionsBin."""
+    """Configuration bundle: StarkInfo + ExpressionsBin + GlobalInfo."""
 
-    def __init__(self, stark_info: 'StarkInfo', expressions_bin: 'ExpressionsBin'):
+    def __init__(
+        self,
+        stark_info: 'StarkInfo',
+        expressions_bin: 'ExpressionsBin',
+        global_info: Optional['GlobalInfo'] = None
+    ):
         self.stark_info = stark_info
         self.expressions_bin = expressions_bin
+        self.global_info = global_info
 
     @classmethod
-    def from_files(cls, starkinfo_path: str, expressions_bin_path: str) -> 'SetupCtx':
-        """Load from starkinfo.json and expressions.bin files."""
+    def from_files(
+        cls,
+        starkinfo_path: str,
+        expressions_bin_path: str,
+        global_info_path: Optional[str] = None
+    ) -> 'SetupCtx':
+        """Load from starkinfo.json, expressions.bin, and optionally globalInfo.json.
+
+        Args:
+            starkinfo_path: Path to starkinfo.json
+            expressions_bin_path: Path to expressions.bin
+            global_info_path: Optional path to pilout.globalInfo.json
+        """
         from protocol.stark_info import StarkInfo
         from protocol.expressions_bin import ExpressionsBin
+        from protocol.global_info import GlobalInfo
 
         stark_info = StarkInfo.from_json(starkinfo_path)
         expressions_bin = ExpressionsBin.from_file(expressions_bin_path)
 
-        return cls(stark_info, expressions_bin)
+        global_info = None
+        if global_info_path:
+            global_info = GlobalInfo.from_json(global_info_path)
+
+        return cls(stark_info, expressions_bin, global_info)
