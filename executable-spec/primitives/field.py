@@ -36,15 +36,15 @@ with open(_FF3_CACHE_PATH, "rb") as _f:
 FF3Poly = FF3  # Polynomial over extension field (N evaluations or coefficients)
 FFPoly = FF    # Polynomial over base field
 
-# Columns (polynomial values at N evaluation points)
-# Same underlying type as Poly, but used when emphasizing "values of one polynomial at N rows"
-FF3Column = FF3  # Column of FF3 values (one per evaluation point)
-FFColumn = FF    # Column of base field values
-# NOTE: No FF3Row/FFRow - "row" means evaluation point index, not a row vector
-# NOTE: No generic FF3Array - use Poly or Column for semantic clarity
+# Arrays of field elements
+FF3Array = FF3   # Array of extension field values
+FFArray = FF     # Array of base field values
 
 # Hashes
 HashOutput = List[int]  # 4-element Poseidon hash output (base field)
+
+# Interleaved buffers (for C++ compatibility and performance)
+InterleavedFF3 = np.ndarray  # Interleaved FF3 coefficients [c0,c1,c2,c0,c1,c2,...] as uint64
 
 
 def _regenerate_ff3_cache():
