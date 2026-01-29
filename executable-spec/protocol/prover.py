@@ -1,10 +1,10 @@
 """Top-level STARK proof generation."""
 
-import numpy as np
 
 from poseidon2_ffi import linear_hash
+
 from primitives.field import FIELD_EXTENSION_DEGREE, ff3_from_interleaved_numpy
-from primitives.merkle_tree import QueryProof, HASH_SIZE
+from primitives.merkle_tree import HASH_SIZE, QueryProof
 from primitives.ntt import NTT
 from primitives.transcript import Transcript
 from protocol.expression_evaluator import ExpressionsPack
@@ -12,17 +12,26 @@ from protocol.pcs import FriPcs, FriPcsConfig
 from protocol.proof_context import ProofContext
 from protocol.setup_ctx import ProverHelpers, SetupCtx
 from protocol.stages import Starks
-from protocol.witness_generation import calculate_witness_std
+from protocol.stark_info import StarkInfo
 from protocol.utils.challenge_utils import derive_global_challenge
+from protocol.witness_generation import calculate_witness_std
 
 # --- Type Aliases ---
 MerkleRoot = list[int]
 StageNum = int
 
+# --- Module Constants ---
+# Default lattice expansion size for VADCOP protocol (CurveType::None)
+# Reference: C++ proofman challenge_accumulation.rs
+DEFAULT_LATTICE_SIZE = 368
+
+# Poseidon2 linear hash width (internal state size)
+POSEIDON2_LINEAR_HASH_WIDTH = 16
+
 
 # --- Helper Functions ---
 
-def _get_air_values_stage1(stark_info, params: ProofContext) -> list[int]:
+def _get_air_values_stage1(stark_info: StarkInfo, params: ProofContext) -> list[int]:
     """Extract stage 1 air_values for global_challenge computation.
 
     C++ reference: proofman.rs:3472-3540 (get_contribution_air)
@@ -38,7 +47,7 @@ def _get_air_values_stage1(stark_info, params: ProofContext) -> list[int]:
     return result
 
 
-def _get_proof_values_stage1(stark_info, params: ProofContext) -> list[int]:
+def _get_proof_values_stage1(stark_info: StarkInfo, params: ProofContext) -> list[int]:
     """Extract stage 1 proof_values for global_challenge computation.
 
     C++ reference: challenge_accumulation.rs:96-99
@@ -182,7 +191,7 @@ def gen_proof(
         verkey = starks.build_const_tree(params.constPolsExtended)
     else:
         # No constant polynomials - use empty root
-        verkey = [0] * 4
+        verkey = [0] * HASH_SIZE
 
     # === STAGE 1: Witness Commitment ===
 
@@ -218,7 +227,7 @@ def gen_proof(
         # Matches C++ proofman challenge_accumulation.rs
 
         # Get lattice_size from globalInfo (default 368 for CurveType::None)
-        lattice_size = 368
+        lattice_size = DEFAULT_LATTICE_SIZE
         if setup_ctx.global_info is not None:
             lattice_size = setup_ctx.global_info.lattice_size
 
@@ -432,7 +441,8 @@ def gen_proof(
     else:
         # Optimized approach: hash evaluations to single Poseidon2 digest
         # Matches verifier (verifier.py:351)
-        evals_hash = list(linear_hash([int(v) for v in params.evals[:n_evals]], width=16))
+        evals_as_ints = [int(v) for v in params.evals[:n_evals]]
+        evals_hash = list(linear_hash(evals_as_ints, width=POSEIDON2_LINEAR_HASH_WIDTH))
         transcript.put(evals_hash)
 
     # === STAGE FRI: Polynomial Commitment via Low-Degree Test ===
@@ -649,7 +659,14 @@ def gen_proof(
 
 def _derive_stage_challenges(transcript: Transcript, params: ProofContext,
                              challenges_map: list, stage: int) -> None:
-    """Derive Fiat-Shamir challenges for a given stage."""
+    """Derive Fiat-Shamir challenges for a given stage.
+
+    Args:
+        transcript: Fiat-Shamir transcript for challenge generation
+        params: Proof context where challenges are stored
+        challenges_map: List of challenge specifications from AIR
+        stage: Stage number to derive challenges for
+    """
     for i, cm in enumerate(challenges_map):
         if cm.stage == stage:
             challenge = transcript.get_field()
@@ -657,8 +674,18 @@ def _derive_stage_challenges(transcript: Transcript, params: ProofContext,
 
 
 def _derive_eval_challenges(transcript: Transcript, params: ProofContext,
-                            stark_info, skip: bool) -> int:
-    """Derive evaluation-stage challenges, return xi challenge index."""
+                            stark_info: StarkInfo, skip: bool) -> int:
+    """Derive evaluation-stage challenges and return xi challenge index.
+
+    Args:
+        transcript: Fiat-Shamir transcript for challenge generation
+        params: Proof context where challenges are stored
+        stark_info: AIR specification with challenge map
+        skip: If True, skip actual challenge derivation (testing mode)
+
+    Returns:
+        Index of xi challenge in params.challenges array
+    """
     eval_stage = stark_info.nStages + 2
     xi_index = 0
 
@@ -675,28 +702,54 @@ def _derive_eval_challenges(transcript: Transcript, params: ProofContext,
 
 # --- Polynomial Evaluations ---
 
-def _compute_all_evals(stark_info, starks: Starks, params: ProofContext,
+def _compute_all_evals(stark_info: StarkInfo, starks: Starks, params: ProofContext,
                        xi: list[int], ntt: NTT) -> None:
-    """Compute evaluations at all opening points in batches of 4."""
-    for i in range(0, len(stark_info.openingPoints), 4):
-        batch = stark_info.openingPoints[i:i + 4]
-        LEv = starks.computeLEv(xi, batch, ntt)
-        starks.computeEvals(params, LEv, batch)
+    """Compute polynomial evaluations at all opening points in batches of 4.
+
+    Args:
+        stark_info: AIR specification with opening points configuration
+        starks: Stage orchestrator with evaluation methods
+        params: Proof context where evaluations are stored
+        xi: FRI challenge point (extension field element as 3 ints)
+        ntt: NTT instance for polynomial operations
+    """
+    batch_size = 4
+    for i in range(0, len(stark_info.openingPoints), batch_size):
+        batch = stark_info.openingPoints[i:i + batch_size]
+        lagrange_evaluations = starks.computeLEv(xi, batch, ntt)
+        starks.computeEvals(params, lagrange_evaluations, batch)
 
 
 # --- Query Proof Collection ---
 
 def _collect_const_query_proofs(starks: Starks,
                                 query_indices: list[int]) -> list[QueryProof]:
-    """Collect constant polynomial query proofs."""
+    """Collect Merkle query proofs for constant polynomials.
+
+    Args:
+        starks: Stage orchestrator containing constant tree
+        query_indices: Evaluation point indices to open
+
+    Returns:
+        List of Merkle query proofs, one per query index (empty if no constant tree)
+    """
     if starks.const_tree is None:
         return []
     return [starks.get_const_query_proof(idx, elem_size=1) for idx in query_indices]
 
 
-def _collect_stage_query_proofs(starks: Starks, stark_info,
+def _collect_stage_query_proofs(starks: Starks, stark_info: StarkInfo,
                                 query_indices: list[int]) -> dict[StageNum, list[QueryProof]]:
-    """Collect query proofs for all stage trees."""
+    """Collect Merkle query proofs for all polynomial commitment stages.
+
+    Args:
+        starks: Stage orchestrator containing stage trees
+        stark_info: AIR specification with stage count
+        query_indices: Evaluation point indices to open
+
+    Returns:
+        Dictionary mapping stage number to list of query proofs
+    """
     result: dict[StageNum, list[QueryProof]] = {}
     for stage in range(1, stark_info.nStages + 2):
         if stage in starks.stage_trees:
@@ -705,8 +758,19 @@ def _collect_stage_query_proofs(starks: Starks, stark_info,
     return result
 
 
-def _collect_last_level_nodes(starks: Starks, stark_info, fri_pcs: FriPcs) -> dict[str, list[int]]:
-    """Collect last-level Merkle nodes for all trees (if lastLevelVerification > 0)."""
+def _collect_last_level_nodes(starks: Starks, stark_info: StarkInfo,
+                              fri_pcs: FriPcs) -> dict[str, list[int]]:
+    """Collect last-level Merkle nodes for all trees if verification is enabled.
+
+    Args:
+        starks: Stage orchestrator containing const and stage trees
+        stark_info: AIR specification with stage and FRI configuration
+        fri_pcs: FRI polynomial commitment scheme with FRI trees
+
+    Returns:
+        Dictionary mapping tree name to list of leaf-level node hashes
+        (empty dict if lastLevelVerification is disabled)
+    """
     result: dict[str, list[int]] = {}
 
     # Constant tree
