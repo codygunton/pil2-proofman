@@ -7,7 +7,8 @@ import numpy as np
 
 from poseidon2_ffi import linear_hash, hash_seq, verify_grinding
 from primitives.field import (
-    FF, ff3, ff3_coeffs, ff3_from_json, ff3_to_interleaved_numpy,
+    FF, FF3, FFArray, InterleavedFF3,
+    ff3, ff3_coeffs, ff3_from_json, ff3_to_interleaved_numpy,
     get_omega, SHIFT, FIELD_EXTENSION_DEGREE,
 )
 from primitives.merkle_tree import HASH_SIZE, MerkleTree, MerkleRoot
@@ -21,10 +22,10 @@ from protocol.setup_ctx import SetupCtx, ProverHelpers
 
 # --- Type Aliases ---
 # These provide semantic clarity for the verifier's data structures.
-# Challenge represents FF3 elements stored as numpy arrays for performance.
+# Challenge represents FF3 elements stored as interleaved numpy arrays for performance.
 
 JProof = dict                   # JSON-decoded proof structure
-Challenge = np.ndarray          # Extension field element [c0, c1, c2] - interleaved FF3 coefficients
+Challenge = InterleavedFF3      # Extension field element [c0, c1, c2] - interleaved FF3 coefficients
 QueryIdx = int                  # FRI query position in domain
 
 
@@ -34,11 +35,21 @@ def stark_verify(
     jproof: JProof,
     setup_ctx: SetupCtx,
     verkey: MerkleRoot,
-    global_challenge: np.ndarray,
-    publics: Optional[np.ndarray] = None,
-    proof_values: Optional[np.ndarray] = None,
+    global_challenge: InterleavedFF3,
+    publics: Optional[FFArray] = None,
+    proof_values: Optional[FFArray] = None,
 ) -> bool:
-    """Verify a STARK proof. Returns True if valid."""
+    """Verify a STARK proof. Returns True if valid.
+
+    Verification phases:
+    1. Parse proof components (evals, air values, trace values)
+    2. Reconstruct Fiat-Shamir transcript to derive challenges
+    3. Run verification checks:
+       - Q(xi) = C(xi): quotient matches constraint evaluation
+       - FRI consistency: polynomial evaluations match commitments
+       - Merkle proofs: all commitment openings are valid
+       - Degree bound: final FRI polynomial has correct degree
+    """
     si = setup_ctx.stark_info
     si.verify = True
     ss = si.starkStruct
@@ -157,18 +168,18 @@ def _parse_root(jproof: JProof, key: str) -> MerkleRoot:
     return [int(val)] if isinstance(val, (int, str)) else [int(val[i]) for i in range(HASH_SIZE)]
 
 
-def _parse_evals(jproof: JProof, si) -> np.ndarray:
+def _parse_evals(jproof: JProof, si) -> InterleavedFF3:
     return ff3_to_interleaved_numpy(ff3_from_json(jproof["evals"][:len(si.evMap)]))
 
 
-def _parse_airgroup_values(jproof: JProof, si) -> np.ndarray:
+def _parse_airgroup_values(jproof: JProof, si) -> InterleavedFF3:
     n = len(si.airgroupValuesMap)
     if n == 0:
         return np.zeros(0, dtype=np.uint64)
     return ff3_to_interleaved_numpy(ff3_from_json(jproof["airgroupvalues"][:n]))
 
 
-def _parse_air_values(jproof: JProof, si) -> np.ndarray:
+def _parse_air_values(jproof: JProof, si) -> InterleavedFF3:
     """Stage 1 values are single Fe, stage 2+ are Fe3."""
     values = np.zeros(si.airValuesSize, dtype=np.uint64)
     a = 0
@@ -183,7 +194,7 @@ def _parse_air_values(jproof: JProof, si) -> np.ndarray:
     return values
 
 
-def _parse_const_pols_vals(jproof: JProof, si) -> np.ndarray:
+def _parse_const_pols_vals(jproof: JProof, si) -> FFArray:
     n_queries, n_constants = si.starkStruct.nQueries, si.nConstants
     vals = np.zeros(n_constants * n_queries, dtype=np.uint64)
     for q in range(n_queries):
@@ -243,8 +254,8 @@ def _allocate_trace_buffers(si, stage_offsets: dict, stage_total: int,
     return trace, aux_trace, custom_commits
 
 
-def _fill_trace_from_proof(jproof: JProof, si, trace: np.ndarray, aux_trace: np.ndarray,
-                           custom_commits: np.ndarray, stage_offsets: dict, custom_offsets: dict) -> None:
+def _fill_trace_from_proof(jproof: JProof, si, trace: FFArray, aux_trace: FFArray,
+                           custom_commits: FFArray, stage_offsets: dict, custom_offsets: dict) -> None:
     """Fill trace buffers with values from proof."""
     n_queries = si.starkStruct.nQueries
 
@@ -299,7 +310,7 @@ def _parse_trace_values(jproof: JProof, si) -> tuple:
     return trace, aux_trace, custom_commits
 
 
-def _find_xi_challenge(si, challenges: np.ndarray) -> Challenge:
+def _find_xi_challenge(si, challenges: InterleavedFF3) -> Challenge:
     """Find xi (evaluation point) in challenges array."""
     for i, ch in enumerate(si.challengesMap):
         if ch.stage == si.nStages + 2 and ch.stageId == 0:
@@ -309,8 +320,18 @@ def _find_xi_challenge(si, challenges: np.ndarray) -> Challenge:
 
 # --- Fiat-Shamir Transcript Reconstruction ---
 
-def _reconstruct_transcript(jproof: JProof, si, global_challenge: np.ndarray) -> tuple:
-    """Reconstruct Fiat-Shamir transcript, returning (challenges, final_pol)."""
+def _reconstruct_transcript(jproof: JProof, si, global_challenge: InterleavedFF3) -> tuple:
+    """Reconstruct Fiat-Shamir transcript, returning (challenges, final_pol).
+
+    Protocol flow:
+    1. Initialize transcript with global_challenge
+    2. For each stage 2..nStages+1: derive challenges, absorb root and air values
+    3. Derive evaluation point (xi) challenges
+    4. Absorb evals (hashed if hashCommits enabled)
+    5. Derive FRI polynomial challenges
+    6. For each FRI step: derive fold challenge, absorb next root (or final poly)
+    7. Derive grinding challenge for proof-of-work
+    """
     ss = si.starkStruct
     n_challenges = len(si.challengesMap)
     n_steps = len(ss.friFoldSteps)
@@ -380,7 +401,7 @@ def _reconstruct_transcript(jproof: JProof, si, global_challenge: np.ndarray) ->
 
 # --- Evaluation Verification ---
 
-def _compute_x_div_x_sub(si, xi_challenge: Challenge, fri_queries: List[QueryIdx]) -> np.ndarray:
+def _compute_x_div_x_sub(si, xi_challenge: Challenge, fri_queries: List[QueryIdx]) -> InterleavedFF3:
     """Compute 1/(x - xi*w^openingPoint) for DEEP-ALI quotient.
 
     For each query point x and each opening point, we compute the denominator
@@ -423,7 +444,7 @@ def _compute_x_div_x_sub(si, xi_challenge: Challenge, fri_queries: List[QueryIdx
 
 
 def _evaluate_constraint_at_xi(si, setup_ctx: SetupCtx, expressions_pack: ExpressionsPack,
-                               params: ProofContext) -> np.ndarray:
+                               params: ProofContext) -> InterleavedFF3:
     """Evaluate the constraint polynomial C(xi) using the expression evaluator.
 
     Returns:
@@ -438,7 +459,7 @@ def _evaluate_constraint_at_xi(si, setup_ctx: SetupCtx, expressions_pack: Expres
     return buff
 
 
-def _compute_xi_to_trace_size(xi, trace_size: int):
+def _compute_xi_to_trace_size(xi: FF3, trace_size: int) -> FF3:
     """Compute xi^N where N is the trace size.
 
     This is needed to reconstruct the full quotient polynomial from its split pieces.
@@ -449,7 +470,7 @@ def _compute_xi_to_trace_size(xi, trace_size: int):
     return x_power
 
 
-def _reconstruct_quotient_at_xi(si, evals: np.ndarray, xi, xi_to_n) -> ff3:
+def _reconstruct_quotient_at_xi(si, evals: InterleavedFF3, xi: FF3, xi_to_n: FF3) -> FF3:
     """Reconstruct Q(xi) from split quotient pieces Q_0, Q_1, ..., Q_{d-1}.
 
     The quotient polynomial Q is split into qDeg pieces to keep degrees manageable:
@@ -487,7 +508,7 @@ def _reconstruct_quotient_at_xi(si, evals: np.ndarray, xi, xi_to_n) -> ff3:
 
 
 def _verify_evaluations(si, setup_ctx: SetupCtx, expressions_pack: ExpressionsPack,
-                        params: ProofContext, evals: np.ndarray, xi_challenge: Challenge) -> bool:
+                        params: ProofContext, evals: InterleavedFF3, xi_challenge: Challenge) -> bool:
     """Verify Q(xi) = C(xi) - the core STARK equation.
 
     This checks that the prover correctly computed the quotient polynomial Q
@@ -733,9 +754,19 @@ def _verify_fri_merkle_tree(jproof: JProof, si, step: int, fri_queries: List[Que
 
 # --- FRI Verification ---
 
-def _verify_fri_folding(jproof: JProof, si, challenges: np.ndarray, step: int,
+def _verify_fri_folding(jproof: JProof, si, challenges: InterleavedFF3, step: int,
                         fri_queries: List[QueryIdx]) -> bool:
-    """Verify FRI folding: P'(y) derived correctly from P(y), P(-y), etc."""
+    """Verify FRI folding: P'(y) derived correctly from P(y), P(-y), etc.
+
+    FRI soundness relies on correct folding: at each step, the prover commits
+    to a polynomial P' of half the degree, where P'(y) is computed from
+    evaluations P(x), P(-x), P(wx), P(-wx), ... using a random challenge.
+
+    For each query point, we:
+    1. Gather sibling evaluations from the proof (all coset members)
+    2. Recompute the folded value using FRI.verify_fold
+    3. Check it matches the claimed value in the next FRI layer (or final poly)
+    """
     ss = si.starkStruct
     n_queries = ss.nQueries
     n_steps = len(ss.friFoldSteps)
