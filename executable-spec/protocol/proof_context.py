@@ -33,7 +33,7 @@ class ProofContext:
     # some callers (tests, expression_evaluator) still pass np.ndarray. The goal is
     # to use FF/FF3 exclusively here, with np.ndarray only in auxTrace (which has
     # interleaved FF/FF3 sections for C++ buffer compatibility).
-    # TODO: Remove Union types, make all fields strictly FF or FF3, fix all callers
+    #*-- Remove Union types, make all fields strictly field types / aliases for these
     publicInputs: Optional[Union[FFArray, np.ndarray]] = None
 
     # --- Proof values (base field, application-specific) ---
