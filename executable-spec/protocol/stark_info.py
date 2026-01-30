@@ -470,3 +470,40 @@ class StarkInfo:
     def get_n_cols(self, section: str) -> int:
         """Get number of columns in a section."""
         return self.mapSectionsN[section]
+
+    def get_column_key(self, name: str, index: int = 0) -> Tuple[str, int]:
+        """Get the (name, index) key for a column.
+
+        Args:
+            name: Column name (e.g., 'a', 'im_cluster')
+            index: Index for array columns (default 0)
+
+        Returns:
+            Tuple (name, index) for use as dict key
+        """
+        return (name, index)
+
+    def has_challenge(self, name: str) -> bool:
+        """Check if a challenge with given name exists."""
+        return any(cm.name == name for cm in self.challengesMap)
+
+    def get_challenge_index(self, name: str) -> int:
+        """Get the index of a challenge by name."""
+        for i, cm in enumerate(self.challengesMap):
+            if cm.name == name:
+                return i
+        raise KeyError(f"Challenge '{name}' not found")
+
+    def build_column_name_map(self) -> Dict[str, List[int]]:
+        """Build mapping from column names to their polsMapId indices.
+
+        Returns:
+            Dict mapping name -> list of polsMapId values
+            e.g., {'a': [0], 'im_cluster': [16, 17, 18, 19, 20, 21]}
+        """
+        name_map: Dict[str, List[int]] = {}
+        for cm in self.cmPolsMap:
+            if cm.name not in name_map:
+                name_map[cm.name] = []
+            name_map[cm.name].append(cm.polsMapId)
+        return name_map

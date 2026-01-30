@@ -176,6 +176,35 @@ class TestStarkInfoSimple:
         assert isinstance(offset_q, int)
         assert offset_q >= 0
 
+    def test_get_column_key_by_name(self, stark_info):
+        """Test resolving column name to (name, index) key."""
+        # 'a' is the first committed polynomial
+        key = stark_info.get_column_key('a')
+        assert key == ('a', 0)
+
+        # 'im_cluster' has multiple instances
+        key = stark_info.get_column_key('im_cluster', index=3)
+        assert key == ('im_cluster', 3)
+
+    def test_get_challenge_by_name(self, stark_info):
+        """Test resolving challenge name."""
+        # Should find std_alpha in challengesMap
+        assert stark_info.has_challenge('std_alpha')
+        assert stark_info.has_challenge('std_gamma')
+        assert not stark_info.has_challenge('nonexistent')
+
+    def test_build_column_name_map(self, stark_info):
+        """Test building complete name -> indices mapping."""
+        name_map = stark_info.build_column_name_map()
+
+        # Single columns
+        assert 'a' in name_map
+        assert name_map['a'] == [0]  # Just index 0
+
+        # Array columns (im_cluster appears multiple times)
+        assert 'im_cluster' in name_map
+        assert len(name_map['im_cluster']) == 6  # 6 im_cluster columns
+
 
 class TestStarkInfoLookup:
     """Test StarkInfo parsing with Lookup AIR (if available)."""
