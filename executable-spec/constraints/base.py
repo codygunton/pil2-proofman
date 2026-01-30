@@ -77,14 +77,40 @@ class ConstraintContext(ABC):
 
     @abstractmethod
     def const(self, name: str) -> Union[FFPoly, FF]:
-        """Get constant polynomial.
+        """Get constant polynomial at current row.
 
         Args:
-            name: Constant name (e.g., 'L1' for Lagrange polynomial)
+            name: Constant name (e.g., '__L1__' for Lagrange polynomial)
 
         Returns:
             Prover: array of constant values
             Verifier: scalar evaluation at xi
+        """
+        pass
+
+    @abstractmethod
+    def next_const(self, name: str) -> Union[FFPoly, FF]:
+        """Get constant polynomial at next row (offset +1).
+
+        Args:
+            name: Constant name
+
+        Returns:
+            Prover: array shifted by -1 (circular)
+            Verifier: evaluation at xi * omega
+        """
+        pass
+
+    @abstractmethod
+    def prev_const(self, name: str) -> Union[FFPoly, FF]:
+        """Get constant polynomial at previous row (offset -1).
+
+        Args:
+            name: Constant name
+
+        Returns:
+            Prover: array shifted by +1 (circular)
+            Verifier: evaluation at xi * omega^(-1)
         """
         pass
 
@@ -126,6 +152,14 @@ class ProverConstraintContext(ConstraintContext):
     def const(self, name: str) -> FFPoly:
         return self._data.constants[name]
 
+    def next_const(self, name: str) -> FFPoly:
+        # Shift by -1: element at position i becomes element at position i+1
+        return np.roll(self.const(name), -1)
+
+    def prev_const(self, name: str) -> FFPoly:
+        # Shift by +1: element at position i becomes element at position i-1
+        return np.roll(self.const(name), 1)
+
     def challenge(self, name: str) -> FF3:
         return self._data.challenges[name]
 
@@ -155,6 +189,14 @@ class VerifierConstraintContext(ConstraintContext):
     def const(self, name: str) -> FF:
         # Constants stored in evals with index=0, offset=0
         return self._data.evals[(name, 0, 0)]
+
+    def next_const(self, name: str) -> FF:
+        # Constants at next row (offset=1)
+        return self._data.evals[(name, 0, 1)]
+
+    def prev_const(self, name: str) -> FF:
+        # Constants at previous row (offset=-1)
+        return self._data.evals[(name, 0, -1)]
 
     def challenge(self, name: str) -> FF3:
         return self._data.challenges[name]
