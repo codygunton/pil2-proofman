@@ -5,12 +5,11 @@ from poseidon2_ffi import linear_hash
 
 from primitives.field import FIELD_EXTENSION_DEGREE, ff3_from_interleaved_numpy
 from primitives.merkle_tree import HASH_SIZE, QueryProof
-from primitives.ntt import NTT
 from primitives.transcript import Transcript
 from protocol.expression_evaluator import ExpressionsPack
 from protocol.pcs import FriPcs, FriPcsConfig
 from protocol.proof_context import ProofContext
-from protocol.setup_ctx import ProverHelpers, SetupCtx
+from protocol.air_config import ProverHelpers, SetupCtx
 from protocol.stages import Starks
 from protocol.stark_info import StarkInfo
 from protocol.utils.challenge_utils import derive_global_challenge
@@ -114,28 +113,6 @@ def gen_proof(
     # The domain is the multiplicative subgroup of order N in GF(p).
     N = 1 << stark_info.starkStruct.nBits
 
-    # The extended domain N_extended is larger (2^nBitsExt) for FRI's low-degree test.
-    # FRI needs a larger domain to test low-degree-ness properly. If we only tested on the
-    # original N points, a dishonest prover could find a high-degree polynomial that happens
-    # to be low-degree on exactly those N points (pigeonhole principle).
-    # The extended domain gives us extra "random" evaluation points for verification.
-    # Typically N_extended ≈ 2*N or 4*N depending on security parameters.
-    N_extended = 1 << stark_info.starkStruct.nBitsExt
-
-    # ENGINEERING NOTE: NTT (Number Theoretic Transform) objects pre-compute FFT twiddle factors
-    # for fast polynomial operations (interpolation, evaluation, multiplication). These are lookup
-    # tables that make FFT O(N log N) instead of O(N^2). We need two instances:
-    # - ntt: for the base domain (N points, used for stages 1-2)
-    # - ntt_extended: for the extended domain (N_extended points, used for quotient stage and FRI)
-    # This is an IMPLEMENTATION DETAIL that could be hidden. The protocol doesn't care about FFT—
-    # it just needs fast polynomial evaluation. Currently NTT creation is explicit here, but it could be:
-    # (a) Moved into Starks.__init__() to hide it
-    # (b) Created lazily on first use
-    # (c) Pre-created in SetupCtx to reduce initialization complexity in gen_proof
-    # For simplification: this is a strong candidate for abstraction.
-    ntt = NTT(N)
-    ntt_extended = NTT(N_extended)
-
     # ProverHelpers contains precomputed tables derived from AIR structure. These include:
     # - Sibling maps for permutation constraints (which execution step has which sibling in permutation)
     # - Parent maps for lookup constraints (where to find elements in lookup table)
@@ -144,16 +121,11 @@ def gen_proof(
     # This is an internal data structure that expression evaluation depends on.
     prover_helpers = ProverHelpers.from_stark_info(stark_info, pil1=False)
 
-    # Starks orchestrates polynomial commitment (merkle tree construction from evaluations).
-    # It maintains:
-    # - stage_trees: dict of merkle trees, one per polynomial commitment stage
-    # - const_tree: merkle tree for constant polynomials (read-only lookup tables)
-    # When you call starks.commitStage(stage, params, ntt), it:
-    # 1. Extracts all polynomials for that stage from params.polynomials
-    # 2. Evaluates them (or extracts pre-computed evaluations)
-    # 3. Builds a merkle tree from evaluations
-    # 4. Returns the merkle root
-    # The merkle tree is stored for later query proof generation.
+    # Starks orchestrates polynomial commitment via Merkle trees. It:
+    # 1. Extends polynomials from trace domain to extended domain (via NTT, internal)
+    # 2. Builds Merkle trees from extended evaluations
+    # 3. Returns roots for transcript and stores trees for query proofs
+    # NTT instances are created internally to hide implementation details.
     starks = Starks(setup_ctx)
 
     # ExpressionsPack manages constraint polynomial evaluation by parsing and executing AIR expressions.
@@ -205,11 +177,11 @@ def gen_proof(
     # The verifier will need all of these to reconstruct the transcript and verify challenges.
     computed_roots: list[MerkleRoot] = []
 
-    # commitStage(1, params, ntt) extracts all stage-1 polynomials from params,
-    # evaluates them (using ntt for FFT efficiency), builds a merkle tree, and returns the root.
+    # commitStage(1, params) extracts all stage-1 polynomials from params,
+    # extends them to the evaluation domain, builds a Merkle tree, and returns the root.
     # The tree is stored in starks.stage_trees[1] for later query proof generation.
     # Stage 1 is the witness stage: everything about the execution trace.
-    root1 = starks.commitStage(1, params, ntt)
+    root1 = starks.commitStage(1, params)
     computed_roots.append(list(root1))
 
     # === STAGE 0: Seed Fiat-Shamir Transcript ===
@@ -320,7 +292,7 @@ def gen_proof(
     # Commit to all Stage 2 polynomials (witness, intermediate, grand products).
     # This is a second merkle tree, building on the same evaluation domain as Stage 1.
     # The root proves we've committed to all intermediate values without revealing them.
-    root2 = starks.commitStage(2, params, ntt)
+    root2 = starks.commitStage(2, params)
     computed_roots.append(list(root2))
 
     # Feed Stage 2 root into transcript for next challenge derivation.
@@ -367,7 +339,7 @@ def gen_proof(
     # Note: we use ntt_extended here because the quotient is evaluated over the extended domain.
     # This is necessary for FRI: we need evaluations on a larger domain than just the execution trace.
     # FRI will prove the quotient is low-degree by folding on this extended domain.
-    rootQ = starks.commitStage(q_stage, params, ntt_extended)
+    rootQ = starks.commitStage(q_stage, params)
     computed_roots.append(list(rootQ))
 
     # Feed quotient root into transcript.
@@ -409,7 +381,7 @@ def gen_proof(
     # - All intermediate polynomials (flags, temps, grand products)
     # - The quotient polynomial
     # - Potentially others (depends on evMap configuration)
-    _compute_all_evals(stark_info, starks, params, xi, ntt)
+    _compute_all_evals(stark_info, starks, params, xi)
 
     # Feed polynomial evaluations into the transcript (or their hash).
     # The verifier will derive the next challenge from these evaluations.
@@ -703,7 +675,7 @@ def _derive_eval_challenges(transcript: Transcript, params: ProofContext,
 # --- Polynomial Evaluations ---
 
 def _compute_all_evals(stark_info: StarkInfo, starks: Starks, params: ProofContext,
-                       xi: list[int], ntt: NTT) -> None:
+                       xi: list[int]) -> None:
     """Compute polynomial evaluations at all opening points in batches of 4.
 
     Args:
@@ -711,12 +683,11 @@ def _compute_all_evals(stark_info: StarkInfo, starks: Starks, params: ProofConte
         starks: Stage orchestrator with evaluation methods
         params: Proof context where evaluations are stored
         xi: FRI challenge point (extension field element as 3 ints)
-        ntt: NTT instance for polynomial operations
     """
     batch_size = 4
     for i in range(0, len(stark_info.openingPoints), batch_size):
         batch = stark_info.openingPoints[i:i + batch_size]
-        lagrange_evaluations = starks.computeLEv(xi, batch, ntt)
+        lagrange_evaluations = starks.computeLEv(xi, batch)
         starks.computeEvals(params, lagrange_evaluations, batch)
 
 

@@ -1,9 +1,25 @@
-"""STARK prover stage orchestration."""
+"""Polynomial commitment stage orchestration.
+
+This module provides the Starks class which manages the polynomial commitment
+phase of STARK proof generation. For each "stage" of the protocol, Starks:
+
+1. Takes polynomial evaluations from ProofContext
+2. Extends them to the evaluation domain (via NTT)
+3. Builds a Merkle tree commitment
+4. Returns the Merkle root
+
+Stages in the STARK protocol:
+- Stage 1: Witness polynomials (execution trace)
+- Stage 2: Intermediate polynomials (lookup/permutation support)
+- Stage Q (nStages+1): Quotient polynomial (constraint checking)
+
+The Merkle trees are retained for later query proof generation during FRI.
+"""
 
 from typing import Optional, Dict
 import numpy as np
 
-from protocol.setup_ctx import SetupCtx, FIELD_EXTENSION_DEGREE
+from protocol.air_config import AirConfig, FIELD_EXTENSION_DEGREE
 from primitives.ntt import NTT
 from protocol.expression_evaluator import ExpressionsPack
 from protocol.proof_context import ProofContext
@@ -15,14 +31,46 @@ from primitives.merkle_tree import MerkleTree, MerkleRoot
 BufferOffset = int
 StageIndex = int
 
+# Backward compatibility alias
+SetupCtx = AirConfig
+
 
 class Starks:
-    """STARK proof orchestrator managing polynomial operations and commitments."""
+    """Polynomial commitment orchestrator for STARK proof generation.
 
-    def __init__(self, setupCtx: SetupCtx):
+    The Starks class manages polynomial commitment via Merkle trees:
+    - Maintains one Merkle tree per polynomial commitment stage
+    - Handles polynomial extension (NTT) and tree construction
+    - Provides query proof generation for FRI verification
+
+    NTT (Number Theoretic Transform) objects are created internally to hide
+    FFT implementation details from the protocol layer. The protocol only
+    needs to know about polynomial commitment, not how it's implemented.
+
+    Attributes:
+        setupCtx: AIR configuration with domain sizes and parameters
+        stage_trees: Merkle trees for each commitment stage (1, 2, Q)
+        const_tree: Merkle tree for constant polynomials (if present)
+    """
+
+    def __init__(self, setupCtx: AirConfig):
+        """Initialize polynomial commitment orchestrator.
+
+        Args:
+            setupCtx: AIR configuration with domain sizes and parameters
+        """
         self.setupCtx = setupCtx
         self.stage_trees: Dict[StageIndex, MerkleTree] = {}
         self.const_tree: Optional[MerkleTree] = None
+
+        # Internal NTT instances for polynomial operations
+        # These precompute FFT twiddle factors for efficient polynomial
+        # interpolation, evaluation, and extension.
+        si = setupCtx.stark_info
+        N = 1 << si.starkStruct.nBits
+        N_extended = 1 << si.starkStruct.nBitsExt
+        self._ntt = NTT(N)
+        self._ntt_extended = NTT(N_extended)
 
     # --- Constant Polynomial Tree ---
 
@@ -50,7 +98,7 @@ class Starks:
     # --- Stage Commitment ---
 
     def extendAndMerkelize(self, step: int, trace: np.ndarray, auxTrace: np.ndarray,
-                          ntt: NTT, pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
+                          pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
         """Extend polynomial from N to N_ext and build Merkle tree commitment."""
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
@@ -70,7 +118,7 @@ class Starks:
 
         # Extend: INTT(pBuff) -> coeffs -> zero-pad -> NTT(coeffs_extended)
         pBuff_2d = pBuff[:N * nCols].reshape(N, nCols)
-        pBuffExtended_result = ntt.extend_pol(pBuff_2d, NExtended, N, nCols)
+        pBuffExtended_result = self._ntt.extend_pol(pBuff_2d, NExtended, N, nCols)
         pBuffExtended[:NExtended * nCols] = pBuffExtended_result.flatten()
 
         # Build Merkle tree
@@ -94,14 +142,23 @@ class Starks:
             raise KeyError(f"Stage {step} tree not found. Has commitStage been called?")
         return self.stage_trees[step]
 
-    def commitStage(self, step: int, params: ProofContext, ntt: NTT,
+    def commitStage(self, step: int, params: ProofContext,
                    pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
-        """Execute a commitment stage (witness or quotient polynomial)."""
-        if step <= self.setupCtx.stark_info.nStages:
-            return self.extendAndMerkelize(step, params.trace, params.auxTrace, ntt, pBuffHelper)
+        """Execute a commitment stage (witness or quotient polynomial).
 
-        # Quotient polynomial stage
-        self.computeFriPol(params, ntt, pBuffHelper)
+        Args:
+            step: Stage number (1 = witness, 2 = intermediate, nStages+1 = quotient)
+            params: Proof context with polynomial data
+            pBuffHelper: Optional helper buffer (unused, for API compatibility)
+
+        Returns:
+            Merkle root (HASH_SIZE integers)
+        """
+        if step <= self.setupCtx.stark_info.nStages:
+            return self.extendAndMerkelize(step, params.trace, params.auxTrace, pBuffHelper)
+
+        # Quotient polynomial stage - uses extended NTT
+        self.computeFriPol(params, pBuffHelper)
 
         NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
         section = f"cm{step}"
@@ -123,7 +180,7 @@ class Starks:
 
     # --- Quotient Polynomial ---
 
-    def computeFriPol(self, params: ProofContext, nttExtended: NTT,
+    def computeFriPol(self, params: ProofContext,
                      pBuffHelper: Optional[np.ndarray] = None):
         """Compute quotient polynomial Q for FRI commitment.
 
@@ -148,9 +205,9 @@ class Starks:
         cmQOffset = self.setupCtx.stark_info.mapOffsets[(section, True)]
         cmQ = params.auxTrace[cmQOffset:]
 
-        # Step 1: INTT constraint polynomial
+        # Step 1: INTT constraint polynomial (uses extended NTT)
         qPolReshaped = qPol[:NExtended * qDim].reshape(NExtended, qDim)
-        qCoeffs = nttExtended.intt(qPolReshaped, n_cols=qDim)
+        qCoeffs = self._ntt_extended.intt(qPolReshaped, n_cols=qDim)
         qPol[:NExtended * qDim] = qCoeffs.flatten()
 
         # Step 2: Compute shift factors S[p] = (shift^-1)^(N*p)
@@ -180,9 +237,9 @@ class Starks:
         # Step 4: Zero-pad remaining coefficients
         cmQ[N * qDeg * qDim:NExtended * qDeg * qDim] = 0
 
-        # Step 5: NTT to extended domain
+        # Step 5: NTT to extended domain (uses extended NTT)
         cmQReshaped = cmQ[:NExtended * nCols].reshape(NExtended, nCols)
-        cmQEvaluations = nttExtended.ntt(cmQReshaped, n_cols=nCols)
+        cmQEvaluations = self._ntt_extended.ntt(cmQReshaped, n_cols=nCols)
         cmQ[:NExtended * nCols] = cmQEvaluations.flatten()
 
     # --- Intermediate Polynomial Expressions ---
@@ -268,13 +325,19 @@ class Starks:
 
     # --- Polynomial Evaluations ---
 
-    def computeLEv(self, xiChallenge: np.ndarray, openingPoints: list,
-                  ntt: NTT) -> np.ndarray:
+    def computeLEv(self, xiChallenge: np.ndarray, openingPoints: list) -> np.ndarray:
         """Compute Lagrange evaluation coefficients.
 
         LEv[k, i] = ((xi * w^openingPoint[i]) * shift^-1)^k
 
         Vectorized: compute all opening points in parallel for each k.
+
+        Args:
+            xiChallenge: Challenge point (FF3 as numpy array)
+            openingPoints: List of opening point indices
+
+        Returns:
+            Lagrange evaluation coefficients in flattened numpy array
         """
         from primitives.field import FF, FF3, ff3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega, SHIFT_INV
 
@@ -311,9 +374,9 @@ class Starks:
             row_interleaved = ff3_to_interleaved_numpy(LEv_rows[k])
             LEv[k * nOpeningPoints * FIELD_EXTENSION_DEGREE:(k + 1) * nOpeningPoints * FIELD_EXTENSION_DEGREE] = row_interleaved
 
-        # INTT to coefficient form
+        # INTT to coefficient form (uses base domain NTT)
         LEvReshaped = LEv.reshape(N, nOpeningPoints * FIELD_EXTENSION_DEGREE)
-        LEvCoeffs = ntt.intt(LEvReshaped, n_cols=nOpeningPoints * FIELD_EXTENSION_DEGREE)
+        LEvCoeffs = self._ntt.intt(LEvReshaped, n_cols=nOpeningPoints * FIELD_EXTENSION_DEGREE)
         return LEvCoeffs.flatten()
 
     def computeEvals(self, params: ProofContext, LEv: np.ndarray, openingPoints: list):
