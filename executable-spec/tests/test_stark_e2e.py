@@ -15,7 +15,7 @@ from typing import Dict, Any, Optional
 
 from primitives.field import FF, ff3_to_flat_list
 from protocol.proof_context import ProofContext
-from protocol.setup_ctx import SetupCtx
+from protocol.air_config import SetupCtx
 from protocol.prover import gen_proof
 
 

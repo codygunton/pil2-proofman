@@ -22,7 +22,7 @@ from protocol.witness_generation import calculate_witness_std
 from protocol.prover import gen_proof
 
 from protocol.stark_info import StarkInfo
-from protocol.setup_ctx import SetupCtx, ProverHelpers
+from protocol.air_config import SetupCtx, AirConfig, ProverHelpers
 from protocol.proof_context import ProofContext
 from protocol.expressions_bin import ExpressionsBin
 from protocol.proof import STARKProof
@@ -46,7 +46,8 @@ __all__ = [
     "gen_proof",
     # Configuration and data structures
     "StarkInfo",
-    "SetupCtx",
+    "AirConfig",
+    "SetupCtx",  # Deprecated alias for AirConfig
     "ProverHelpers",
     "ProofContext",
     "ExpressionsBin",

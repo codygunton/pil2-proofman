@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 import numpy as np
 
-from protocol.setup_ctx import SetupCtx, ProverHelpers, FIELD_EXTENSION_DEGREE
+from protocol.air_config import SetupCtx, ProverHelpers, FIELD_EXTENSION_DEGREE
 from protocol.proof_context import ProofContext
 from protocol.expressions_bin import ParserParams
 from primitives.field import (
