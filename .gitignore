@@ -18,3 +18,6 @@ executable-spec/tests/test-data/*.bin
 __pycache__/
 *.pyc
 uv.lock
+
+# Git worktrees
+.worktrees/
