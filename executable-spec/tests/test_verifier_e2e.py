@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional
 
 from primitives.field import FF
 from protocol.proof_context import ProofContext
-from protocol.setup_ctx import SetupCtx
+from protocol.air_config import SetupCtx
 from primitives.transcript import Transcript
 from protocol.verifier import stark_verify
 
@@ -142,7 +142,7 @@ class TestVerifierE2E:
         Loads pre-generated binary proofs from test-data/*.proof.bin and verifies them.
         This tests the verifier in isolation without running the prover.
         """
-        from protocol.proof import from_bytes_full_to_jproof
+        from protocol.proof import from_bytes_full
         from protocol.stages import Starks
 
         setup_ctx = load_setup_ctx(air_name)
@@ -162,8 +162,8 @@ class TestVerifierE2E:
         with open(bin_path, 'rb') as f:
             proof_bytes = f.read()
 
-        # Deserialize binary proof to jproof format
-        jproof = from_bytes_full_to_jproof(proof_bytes, stark_info)
+        # Deserialize binary proof to STARKProof
+        proof = from_bytes_full(proof_bytes, stark_info)
 
         # Load test vectors for verkey and global_challenge
         vectors = load_test_vectors(air_name)
@@ -179,7 +179,7 @@ class TestVerifierE2E:
         # Verify the proof
         print(f"\nVerifying {air_name} proof from {bin_filename}...")
         result = stark_verify(
-            jproof=jproof,
+            proof=proof,
             setup_ctx=setup_ctx,
             verkey=verkey,
             global_challenge=global_challenge,
@@ -194,7 +194,7 @@ class TestVerifierE2E:
 
         Loads a valid binary proof, corrupts root1, and verifies it fails.
         """
-        from protocol.proof import from_bytes_full_to_jproof
+        from protocol.proof import from_bytes_full
         from protocol.stages import Starks
 
         setup_ctx = load_setup_ctx(air_name)
@@ -214,8 +214,8 @@ class TestVerifierE2E:
         with open(bin_path, 'rb') as f:
             proof_bytes = f.read()
 
-        # Deserialize binary proof to jproof format
-        jproof = from_bytes_full_to_jproof(proof_bytes, stark_info)
+        # Deserialize binary proof to STARKProof
+        proof = from_bytes_full(proof_bytes, stark_info)
 
         # Load test vectors for verkey and global_challenge
         vectors = load_test_vectors(air_name)
@@ -227,13 +227,12 @@ class TestVerifierE2E:
         verkey = starks.build_const_tree(params.constPolsExtended)
         global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
 
-        # Corrupt root1
-        jproof_corrupted = dict(jproof)
-        jproof_corrupted['root1'] = [0, 0, 0, 0]  # Invalid root
+        # Corrupt root1 (roots[0])
+        proof.roots[0] = [0, 0, 0, 0]  # Invalid root
 
         # Verify should fail
         result = stark_verify(
-            jproof=jproof_corrupted,
+            proof=proof,
             setup_ctx=setup_ctx,
             verkey=verkey,
             global_challenge=global_challenge,

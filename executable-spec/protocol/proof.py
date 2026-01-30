@@ -9,7 +9,6 @@ from typing import Any, List
 from primitives.field import ff3_coeffs, ff3_to_flat_list
 from protocol.stark_info import FIELD_EXTENSION_DEGREE, HASH_SIZE
 
-
 # --- Type Aliases ---
 Hash = List[int]  # Poseidon hash output [h0, h1, h2, h3]
 
@@ -50,16 +49,6 @@ class STARKProof:
     custom_commits: List[str] = field(default_factory=list)
     fri: FriProof = field(default_factory=FriProof)
     nonce: int = 0
-
-
-@dataclass
-class FRIProofFull:
-    """Full FRI proof with metadata."""
-    proof: STARKProof = field(default_factory=STARKProof)
-    publics: List[int] = field(default_factory=list)
-    airgroup_id: int = 0
-    air_id: int = 0
-    instance_id: int = 0
 
 
 # --- JSON Serialization ---
@@ -146,20 +135,19 @@ def load_proof_from_json(path: str) -> tuple[STARKProof, dict[str, Any]]:
     return proof, metadata
 
 
-def load_proof_from_binary(path: str) -> STARKProof:
-    """Load STARK proof from binary file (not implemented)."""
-    raise NotImplementedError("Use from_bytes_full_to_jproof() instead.")
-
-
 # --- Binary Deserialization ---
 
-def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
-    """Deserialize binary proof to jproof format expected by stark_verify."""
+def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
+    """Deserialize binary proof to STARKProof structure.
+
+    Parses the binary format produced by C++ proof2pointer() into a structured
+    STARKProof dataclass with typed fields for all proof components.
+    """
     n_vals = len(data) // 8
     values = list(struct.unpack(f'<{n_vals}Q', data))
     idx = 0
 
-    jproof: dict[str, Any] = {}
+    proof = STARKProof()
 
     # Configuration
     n_queries = stark_info.starkStruct.nQueries
@@ -173,139 +161,151 @@ def from_bytes_full_to_jproof(data: bytes, stark_info: Any) -> dict[str, Any]:
 
     # Section 1: airgroupValues
     n_airgroup_values = len(stark_info.airgroupValuesMap)
-    jproof['airgroupvalues'] = []
     for _ in range(n_airgroup_values):
-        jproof['airgroupvalues'].append(values[idx:idx + FIELD_EXTENSION_DEGREE])
+        proof.airgroup_values.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
         idx += FIELD_EXTENSION_DEGREE
 
     # Section 2: airValues
-    jproof['airvalues'] = []
     for i in range(len(stark_info.airValuesMap)):
         if stark_info.airValuesMap[i].stage == 1:
-            jproof['airvalues'].append([values[idx]])
+            proof.air_values.append([values[idx]])
             idx += 1
         else:
-            jproof['airvalues'].append(values[idx:idx + FIELD_EXTENSION_DEGREE])
+            proof.air_values.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
             idx += FIELD_EXTENSION_DEGREE
 
     # Section 3: roots
-    for stage in range(1, n_stages + 2):
-        jproof[f'root{stage}'] = values[idx:idx + HASH_SIZE]
+    for _ in range(n_stages + 1):
+        proof.roots.append(list(values[idx:idx + HASH_SIZE]))
         idx += HASH_SIZE
 
     # Section 4: evals
     n_evals = len(stark_info.evMap)
-    jproof['evals'] = []
     for _ in range(n_evals):
-        jproof['evals'].append(values[idx:idx + FIELD_EXTENSION_DEGREE])
+        proof.evals.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
         idx += FIELD_EXTENSION_DEGREE
 
-    # Sections 5-7: const tree query proofs
+    # Initialize FRI trees structure for pol_queries
+    # pol_queries[query_idx][tree_idx] = MerkleProof
+    # tree_idx: 0..(n_stages) for stages 1..(n_stages+1), then n_stages+1 for const
+    proof.fri.trees.pol_queries = [[MerkleProof() for _ in range(n_stages + 2)] for _ in range(n_queries)]
+
+    # Pre-allocate last_levels with None placeholders (n_stages+2 slots: stages 0..n_stages and const at n_stages+1)
+    proof.last_levels = [[] for _ in range(n_stages + 2)]
+    const_tree_idx = n_stages + 1
+
+    # Sections 5-7: const tree query proofs (stored at tree index n_stages + 1)
     if n_constants > 0:
         # Values
-        jproof['s0_valsC'] = []
-        for _ in range(n_queries):
-            jproof['s0_valsC'].append(values[idx:idx + n_constants])
+        for q in range(n_queries):
+            proof.fri.trees.pol_queries[q][const_tree_idx].v = [
+                [values[idx + i]] for i in range(n_constants)
+            ]
             idx += n_constants
 
         # Merkle paths
-        jproof['s0_siblingsC'] = []
-        for _ in range(n_queries):
-            siblings = []
+        for q in range(n_queries):
             for _ in range(n_siblings):
-                siblings.append(values[idx:idx + n_siblings_per_level])
+                proof.fri.trees.pol_queries[q][const_tree_idx].mp.append(
+                    list(values[idx:idx + n_siblings_per_level])
+                )
                 idx += n_siblings_per_level
-            jproof['s0_siblingsC'].append(siblings)
 
-        # Last levels
+        # Last levels (stored at const_tree_idx)
         if last_level_verification != 0:
             num_nodes = int(merkle_arity ** last_level_verification)
-            jproof['s0_last_levelsC'] = []
+            const_last_levels = []
             for _ in range(num_nodes):
-                jproof['s0_last_levelsC'].append(values[idx:idx + HASH_SIZE])
+                const_last_levels.append(list(values[idx:idx + HASH_SIZE]))
                 idx += HASH_SIZE
+            proof.last_levels[const_tree_idx] = const_last_levels
 
     # Section 8: custom commits (not used in test AIRs)
 
     # Section 9: stage tree proofs (cm1, cm2, ..., cmQ)
+    # Stored at tree indices 0..(n_stages)
     for stage_num in range(1, n_stages + 2):
+        tree_idx = stage_num - 1
         n_stage_cols = stark_info.mapSectionsN.get(f"cm{stage_num}", 0)
 
         # Values
-        jproof[f's0_vals{stage_num}'] = []
-        for _ in range(n_queries):
-            jproof[f's0_vals{stage_num}'].append(values[idx:idx + n_stage_cols])
+        for q in range(n_queries):
+            proof.fri.trees.pol_queries[q][tree_idx].v = [
+                [values[idx + i]] for i in range(n_stage_cols)
+            ]
             idx += n_stage_cols
 
         # Merkle paths
-        jproof[f's0_siblings{stage_num}'] = []
-        for _ in range(n_queries):
-            siblings = []
+        for q in range(n_queries):
             for _ in range(n_siblings):
-                siblings.append(values[idx:idx + n_siblings_per_level])
+                proof.fri.trees.pol_queries[q][tree_idx].mp.append(
+                    list(values[idx:idx + n_siblings_per_level])
+                )
                 idx += n_siblings_per_level
-            jproof[f's0_siblings{stage_num}'].append(siblings)
 
-        # Last levels
+        # Last levels (stored at tree_idx)
         if last_level_verification != 0:
             num_nodes = int(merkle_arity ** last_level_verification)
-            jproof[f's0_last_levels{stage_num}'] = []
+            stage_last_levels = []
             for _ in range(num_nodes):
-                jproof[f's0_last_levels{stage_num}'].append(values[idx:idx + HASH_SIZE])
+                stage_last_levels.append(list(values[idx:idx + HASH_SIZE]))
                 idx += HASH_SIZE
+            proof.last_levels[tree_idx] = stage_last_levels
 
     # Section 10: FRI step roots
     n_fri_round_log_sizes = len(stark_info.starkStruct.friFoldSteps) - 1
-    for step in range(1, n_fri_round_log_sizes + 1):
-        jproof[f's{step}_root'] = values[idx:idx + HASH_SIZE]
+    for _ in range(n_fri_round_log_sizes):
+        fri_tree = ProofTree()
+        fri_tree.root = list(values[idx:idx + HASH_SIZE])
+        fri_tree.pol_queries = [[MerkleProof()] for _ in range(n_queries)]
+        proof.fri.trees_fri.append(fri_tree)
         idx += HASH_SIZE
 
     # Section 11: FRI step query proofs
     for step_idx in range(n_fri_round_log_sizes):
-        step = step_idx + 1
         prev_bits = stark_info.starkStruct.friFoldSteps[step_idx].domainBits
         curr_bits = stark_info.starkStruct.friFoldSteps[step_idx + 1].domainBits
         n_fri_cols = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION_DEGREE
 
         # Values
-        jproof[f's{step}_vals'] = []
-        for _ in range(n_queries):
-            jproof[f's{step}_vals'].append(values[idx:idx + n_fri_cols])
+        for q in range(n_queries):
+            proof.fri.trees_fri[step_idx].pol_queries[q][0].v = [
+                [values[idx + i]] for i in range(n_fri_cols)
+            ]
             idx += n_fri_cols
 
         # Merkle paths
         n_siblings_fri = int(math.ceil(curr_bits / math.log2(merkle_arity))) - last_level_verification
-        jproof[f's{step}_siblings'] = []
-        for _ in range(n_queries):
-            siblings = []
+        for q in range(n_queries):
             for _ in range(n_siblings_fri):
-                siblings.append(values[idx:idx + n_siblings_per_level])
+                proof.fri.trees_fri[step_idx].pol_queries[q][0].mp.append(
+                    list(values[idx:idx + n_siblings_per_level])
+                )
                 idx += n_siblings_per_level
-            jproof[f's{step}_siblings'].append(siblings)
 
         # Last levels
         if last_level_verification != 0:
             num_nodes = int(merkle_arity ** last_level_verification)
-            jproof[f's{step}_last_levels'] = []
+            fri_last_levels = []
             for _ in range(num_nodes):
-                jproof[f's{step}_last_levels'].append(values[idx:idx + HASH_SIZE])
+                fri_last_levels.append(list(values[idx:idx + HASH_SIZE]))
                 idx += HASH_SIZE
+            proof.fri.trees_fri[step_idx].last_levels = fri_last_levels
 
     # Section 12: finalPol
     final_pol_size = 1 << stark_info.starkStruct.friFoldSteps[-1].domainBits
-    jproof['finalPol'] = []
     for _ in range(final_pol_size):
-        jproof['finalPol'].append(values[idx:idx + FIELD_EXTENSION_DEGREE])
+        proof.fri.pol.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
         idx += FIELD_EXTENSION_DEGREE
 
     # Section 13: nonce
-    jproof['nonce'] = values[idx]
+    proof.nonce = values[idx]
     idx += 1
 
     if idx != n_vals:
         raise ValueError(f"Binary proof parsing error: consumed {idx} values, expected {n_vals}")
 
-    return jproof
+    return proof
 
 
 # --- Binary Serialization ---
@@ -691,27 +691,3 @@ def validate_proof_structure(proof: STARKProof, stark_info: Any) -> list[str]:
             errors.append(f"Final polynomial degree {len(proof.fri.pol)}, expected {expected_degree}")
 
     return errors
-
-
-# --- Legacy Function (reference implementation, incomplete) ---
-
-def proof_to_pointer_layout(proof: STARKProof, stark_info: Any) -> list[int]:
-    """Convert STARK proof to pointer layout (reference implementation)."""
-    pointer: list[int] = []
-
-    for av in proof.airgroup_values:
-        pointer.extend(av)
-    for av in proof.air_values:
-        pointer.extend(av)
-    for root in proof.roots:
-        pointer.extend(root)
-    for ev in proof.evals:
-        pointer.extend(ev)
-
-    # Note: Query proofs omitted (incomplete reference implementation)
-
-    for pol_coef in proof.fri.pol:
-        pointer.extend(pol_coef)
-    pointer.append(proof.nonce)
-
-    return pointer
