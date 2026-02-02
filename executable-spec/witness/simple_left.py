@@ -22,7 +22,7 @@ degree optimization. The clustering is determined by the compiler.
 from typing import Dict, List, Tuple
 import numpy as np
 
-from primitives.field import FF, FF3, FF3Poly, batch_inverse
+from primitives.field import FF, FF3, FF3Poly, batch_inverse, ff3
 from constraints.base import ConstraintContext
 from .base import WitnessModule
 
@@ -84,15 +84,16 @@ class SimpleLeftWitness(WitnessModule):
             (2, [e, f], 1),      # permutation_assumes(2, [e, f])
             (3, [g, h], -1),     # lookup(3, [g, h], mul=-1)
             # Range check constraints
-            (100, [k[0]], 1),           # range_check(k[0], 0, 255)
-            (101, [k[1]], 1),           # range_check(k[1], 0, 65535)
-            (100, [k[2] - 1], 1),       # range_check(k[2]-1, 0, 254)
-            (100, [255 - k[2]], 1),     # range_check(255-k[2], 0, 254)
-            (101, [k[3]], 1),           # range_check(k[3], 0, 256)
-            (101, [256 - k[3]], 1),     # range_check(256-k[3], 0, 256)
-            (102, [k[4]], 1),           # range_check(k[4], 0, 255, predefined=0)
-            (103, [k[5]], 1),           # range_check(k[5], -128, -1)
-            (104, [k[6]], 1),           # range_check(k[6], -129, 127)
+            # Note: FF3 arithmetic requires field element operands
+            (100, [k[0]], 1),                                # range_check(k[0], 0, 255)
+            (101, [k[1]], 1),                                # range_check(k[1], 0, 65535)
+            (100, [k[2] - ff3([1, 0, 0])], 1),              # range_check(k[2]-1, 0, 254)
+            (100, [ff3([255, 0, 0]) - k[2]], 1),            # range_check(255-k[2], 0, 254)
+            (101, [k[3]], 1),                                # range_check(k[3], 0, 256)
+            (101, [ff3([256, 0, 0]) - k[3]], 1),            # range_check(256-k[3], 0, 256)
+            (102, [k[4]], 1),                                # range_check(k[4], 0, 255, predefined=0)
+            (103, [k[5]], 1),                                # range_check(k[5], -128, -1)
+            (104, [k[6]], 1),                                # range_check(k[6], -129, 127)
         ]
         return terms
 

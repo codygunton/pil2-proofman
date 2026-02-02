@@ -126,6 +126,18 @@ class ConstraintContext(ABC):
         """
         pass
 
+    @abstractmethod
+    def airgroup_value(self, index: int) -> FF3:
+        """Get airgroup value (accumulated result across AIR instances).
+
+        Args:
+            index: Airgroup value index
+
+        Returns:
+            Scalar airgroup value (FF3)
+        """
+        pass
+
 
 class ProverConstraintContext(ConstraintContext):
     """Prover implementation - returns polynomial arrays.
@@ -142,26 +154,33 @@ class ProverConstraintContext(ConstraintContext):
         return self._data.columns[key]
 
     def next_col(self, name: str, index: int = 0) -> FF3Poly:
-        # Shift by -1: element at position i becomes element at position i+1
-        return np.roll(self.col(name, index), -1)
+        # On extended domain, row offset is multiplied by extend factor
+        extend = self._data.extend
+        return np.roll(self.col(name, index), -extend)
 
     def prev_col(self, name: str, index: int = 0) -> FF3Poly:
-        # Shift by +1: element at position i becomes element at position i-1
-        return np.roll(self.col(name, index), 1)
+        # On extended domain, row offset is multiplied by extend factor
+        extend = self._data.extend
+        return np.roll(self.col(name, index), extend)
 
     def const(self, name: str) -> FFPoly:
         return self._data.constants[name]
 
     def next_const(self, name: str) -> FFPoly:
-        # Shift by -1: element at position i becomes element at position i+1
-        return np.roll(self.const(name), -1)
+        # On extended domain, row offset is multiplied by extend factor
+        extend = self._data.extend
+        return np.roll(self.const(name), -extend)
 
     def prev_const(self, name: str) -> FFPoly:
-        # Shift by +1: element at position i becomes element at position i-1
-        return np.roll(self.const(name), 1)
+        # On extended domain, row offset is multiplied by extend factor
+        extend = self._data.extend
+        return np.roll(self.const(name), extend)
 
     def challenge(self, name: str) -> FF3:
         return self._data.challenges[name]
+
+    def airgroup_value(self, index: int) -> FF3:
+        return self._data.airgroup_values.get(index, FF3(0))
 
 
 class VerifierConstraintContext(ConstraintContext):
@@ -200,6 +219,9 @@ class VerifierConstraintContext(ConstraintContext):
 
     def challenge(self, name: str) -> FF3:
         return self._data.challenges[name]
+
+    def airgroup_value(self, index: int) -> FF3:
+        return self._data.airgroup_values.get(index, FF3(0))
 
 
 class ConstraintModule(ABC):

@@ -28,6 +28,8 @@ from protocol.proof import MerkleProof, STARKProof
 from protocol.proof_context import ProofContext
 from protocol.air_config import ProverHelpers, SetupCtx
 from protocol.stark_info import StarkInfo
+from protocol.data import VerifierData
+# Late import: get_constraint_module, VerifierConstraintContext imported inside functions
 
 # --- Type Aliases ---
 # Challenge represents FF3 elements stored as interleaved numpy arrays for performance.
@@ -118,7 +120,7 @@ def stark_verify(
 
     # Check 1: Q(xi) = C(xi)
     print("Verifying evaluations")
-    if not _verify_evaluations(si, setup_ctx, expressions_pack, params, evals, xi):
+    if not _verify_evaluations(si, setup_ctx, expressions_pack, params, evals, xi, challenges):
         print("ERROR: Invalid evaluations")
         is_valid = False
 
@@ -406,6 +408,121 @@ def _reconstruct_transcript(proof: STARKProof, si: StarkInfo, global_challenge: 
 
 # --- Evaluation Verification ---
 
+def _build_verifier_data(
+    si: StarkInfo, evals: InterleavedFF3, challenges: InterleavedFF3,
+    airgroup_values: InterleavedFF3 = None
+) -> VerifierData:
+    """Build VerifierData from proof evaluations and challenges.
+
+    Maps evMap entries to (name, index, offset) tuples for constraint evaluation.
+
+    Args:
+        si: StarkInfo with evMap and challengesMap
+        evals: Flattened evaluation buffer from proof
+        challenges: Flattened challenges buffer
+        airgroup_values: Optional airgroup values from proof (for boundary constraints)
+
+    Returns:
+        VerifierData ready for VerifierConstraintContext
+    """
+    data_evals = {}
+    data_challenges = {}
+    data_airgroup_values = {}
+
+    # Map evMap entries to evaluations
+    for ev_idx, ev_entry in enumerate(si.evMap):
+        ev_type = ev_entry.type
+        ev_id = ev_entry.id
+        offset = ev_entry.prime  # Row offset: -1, 0, or 1
+
+        # Get polynomial name and index
+        if ev_type.name == 'cm':
+            pol_info = si.cmPolsMap[ev_id]
+            name = pol_info.name
+            # Find index by counting same-name entries before this one
+            index = 0
+            for other in si.cmPolsMap[:ev_id]:
+                if other.name == name:
+                    index += 1
+        elif ev_type.name == 'const_':
+            pol_info = si.constPolsMap[ev_id]
+            name = pol_info.name
+            index = 0  # Constants don't have indices
+        else:
+            continue  # Skip unknown types
+
+        # Extract evaluation value (FF3 from interleaved buffer)
+        eval_base = ev_idx * FIELD_EXTENSION_DEGREE
+        eval_val = ff3([
+            int(evals[eval_base]),
+            int(evals[eval_base + 1]),
+            int(evals[eval_base + 2])
+        ])
+
+        data_evals[(name, index, offset)] = eval_val
+
+    # Map challenges
+    for ch_idx, ch_info in enumerate(si.challengesMap):
+        ch_base = ch_idx * FIELD_EXTENSION_DEGREE
+        ch_val = ff3([
+            int(challenges[ch_base]),
+            int(challenges[ch_base + 1]),
+            int(challenges[ch_base + 2])
+        ])
+        data_challenges[ch_info.name] = ch_val
+
+    # Map airgroup values (for boundary constraints)
+    if airgroup_values is not None:
+        n_airgroup_values = len(si.airgroupValuesMap)
+        for i in range(n_airgroup_values):
+            idx = i * FIELD_EXTENSION_DEGREE
+            data_airgroup_values[i] = ff3([
+                int(airgroup_values[idx]),
+                int(airgroup_values[idx + 1]),
+                int(airgroup_values[idx + 2])
+            ])
+
+    return VerifierData(
+        evals=data_evals,
+        challenges=data_challenges,
+        airgroup_values=data_airgroup_values
+    )
+
+
+def _evaluate_constraint_with_module(si: StarkInfo, verifier_data: VerifierData, xi: FF3) -> InterleavedFF3:
+    """Evaluate constraint polynomial C(xi)/Z_H(xi) using per-AIR constraint module.
+
+    The constraint module returns C(xi), but we need Q(xi) = C(xi)/Z_H(xi) where
+    Z_H(x) = x^N - 1 is the vanishing polynomial on the trace domain.
+
+    Args:
+        si: StarkInfo with AIR name
+        verifier_data: VerifierData with evaluations and challenges
+        xi: The evaluation point (challenge)
+
+    Returns:
+        Buffer containing Q(xi) = C(xi)/Z_H(xi) coefficients in extension field
+    """
+    # Late import to avoid circular dependency
+    from constraints import get_constraint_module, VerifierConstraintContext
+
+    constraint_module = get_constraint_module(si.name)
+    ctx = VerifierConstraintContext(verifier_data)
+    constraint_at_xi = constraint_module.constraint_polynomial(ctx)
+
+    # Compute Z_H(xi) = xi^N - 1 where N is trace size
+    trace_size = 1 << si.starkStruct.nBits
+    xi_to_n = xi
+    for _ in range(trace_size - 1):
+        xi_to_n = xi_to_n * xi
+    zh_at_xi = xi_to_n - ff3([1, 0, 0])
+
+    # Q(xi) = C(xi) / Z_H(xi)
+    quotient_at_xi = constraint_at_xi * (zh_at_xi ** -1)
+
+    return np.array(ff3_coeffs(quotient_at_xi), dtype=np.uint64)
+
+
 def _compute_x_div_x_sub(si: StarkInfo, xi_challenge: Challenge, fri_queries: list[QueryIdx]) -> InterleavedFF3:
     """Compute 1/(x - xi*w^openingPoint) for DEEP-ALI quotient.
 
@@ -513,19 +630,36 @@ def _reconstruct_quotient_at_xi(si: StarkInfo, evals: InterleavedFF3, xi: FF3, x
 
 
 def _verify_evaluations(si: StarkInfo, setup_ctx: SetupCtx, expressions_pack: ExpressionsPack,
-                        params: ProofContext, evals: InterleavedFF3, xi_challenge: Challenge) -> bool:
+                        params: ProofContext, evals: InterleavedFF3, xi_challenge: Challenge,
+                        challenges: InterleavedFF3 = None) -> bool:
     """Verify Q(xi) = C(xi) - the core STARK equation.
 
     This checks that the prover correctly computed the quotient polynomial Q
     such that C(x) = Q(x) * Z_H(x) where C is the constraint and Z_H is the
     vanishing polynomial on the trace domain.
+
+    SimpleLeft uses the new constraint module path (verified to match expression binary).
+    Other AIRs fall back to expression binary until their modules are fixed.
     """
-    # Step 1: Evaluate constraint polynomial at xi
-    constraint_buffer = _evaluate_constraint_at_xi(si, setup_ctx, expressions_pack, params)
-    constraint_at_xi = ff3([int(constraint_buffer[k]) for k in range(FIELD_EXTENSION_DEGREE)])
+    # Convert xi challenge to FF3
+    xi = ff3([int(xi_challenge[0]), int(xi_challenge[1]), int(xi_challenge[2])])
+
+    # Choose evaluation path based on AIR
+    # To enable constraint module for a new AIR, add it here and in prover.py
+    use_constraint_module = si.name == 'SimpleLeft'
+
+    if use_constraint_module:
+        # New path: use per-AIR constraint module
+        # IMPORTANT: airgroup_values must be passed for boundary constraints that use ctx.airgroup_value()
+        verifier_data = _build_verifier_data(si, evals, challenges, params.airgroupValues)
+        constraint_buffer = _evaluate_constraint_with_module(si, verifier_data, xi)
+        constraint_at_xi = ff3([int(constraint_buffer[k]) for k in range(FIELD_EXTENSION_DEGREE)])
+    else:
+        # Old path: use expression binary (already includes Z_H division)
+        constraint_buffer = _evaluate_constraint_at_xi(si, setup_ctx, expressions_pack, params)
+        constraint_at_xi = ff3([int(constraint_buffer[k]) for k in range(FIELD_EXTENSION_DEGREE)])
 
     # Step 2: Compute powers of xi needed for reconstruction
-    xi = ff3([int(xi_challenge[0]), int(xi_challenge[1]), int(xi_challenge[2])])
     trace_size = 1 << si.starkStruct.nBits
     xi_to_n = _compute_xi_to_trace_size(xi, trace_size)
 

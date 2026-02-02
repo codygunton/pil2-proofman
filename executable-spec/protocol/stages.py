@@ -25,6 +25,12 @@ from protocol.expression_evaluator import ExpressionsPack
 from protocol.proof_context import ProofContext
 from primitives.pol_map import EvMap
 from primitives.merkle_tree import MerkleTree, MerkleRoot
+from primitives.field import FF, FF3, ff3, ff3_from_interleaved_numpy
+from protocol.data import ProverData
+# Late imports to avoid circular dependency:
+# - constraints.base imports protocol.data
+# - protocol.__init__ imports protocol.stages
+# So we import get_constraint_module and get_witness_module inside functions
 
 
 # --- Type Aliases ---
@@ -33,6 +39,293 @@ StageIndex = int
 
 # Backward compatibility alias
 SetupCtx = AirConfig
+
+
+def _build_prover_data_extended(
+    stark_info: 'StarkInfo',
+    params: ProofContext,
+    constPolsExtended: np.ndarray
+) -> ProverData:
+    """Build ProverData from extended domain buffers.
+
+    Extracts polynomial values from the extended domain buffers (after NTT)
+    for constraint polynomial evaluation.
+
+    Args:
+        stark_info: StarkInfo with polynomial mappings
+        params: ProofContext with trace buffers
+        constPolsExtended: Extended constant polynomials
+
+    Returns:
+        ProverData ready for constraint evaluation
+    """
+    N = 1 << stark_info.starkStruct.nBits
+    N_ext = 1 << stark_info.starkStruct.nBitsExt
+    extend = N_ext // N  # Blowup factor for extended domain
+    columns = {}
+    constants = {}
+    challenges = {}
+
+    # Extract committed polynomials (all stages)
+    for pol_info in stark_info.cmPolsMap:
+        name = pol_info.name
+        stage = pol_info.stage
+        dim = pol_info.dim
+        stage_pos = pol_info.stagePos
+
+        section = f"cm{stage}"
+        n_cols = stark_info.mapSectionsN.get(section, 0)
+        offset = stark_info.mapOffsets.get((section, True), 0)  # Extended offset
+
+        # Read polynomial values from buffer
+        values = np.zeros(N_ext * dim, dtype=np.uint64)
+        for j in range(N_ext):
+            src_idx = offset + j * n_cols + stage_pos
+            values[j * dim:(j + 1) * dim] = params.auxTrace[src_idx:src_idx + dim]
+
+        # Find or compute the index for this polynomial name
+        # Multiple columns may share the same name (e.g., im_cluster[0], im_cluster[1])
+        index = 0
+        for other in stark_info.cmPolsMap:
+            if other.name == name and other.stagePos < stage_pos:
+                index += 1
+
+        if dim == 1:
+            columns[(name, index)] = FF3(np.asarray(values, dtype=np.uint64))
+        else:
+            columns[(name, index)] = ff3_from_interleaved_numpy(values, N_ext)
+
+    # Extract constant polynomials
+    for pol_info in stark_info.constPolsMap:
+        name = pol_info.name
+        dim = pol_info.dim
+        stage_pos = pol_info.stagePos
+        n_cols = stark_info.nConstants
+
+        values = np.zeros(N_ext * dim, dtype=np.uint64)
+        for j in range(N_ext):
+            src_idx = j * n_cols + stage_pos
+            values[j * dim:(j + 1) * dim] = constPolsExtended[src_idx:src_idx + dim]
+
+        if dim == 1:
+            constants[name] = FF(np.asarray(values, dtype=np.uint64))
+        else:
+            # Constants are typically dim=1, but handle dim>1 if needed
+            constants[name] = ff3_from_interleaved_numpy(values, N_ext)
+
+    # Extract challenges
+    for i, chal_info in enumerate(stark_info.challengesMap):
+        name = chal_info.name
+        idx = i * FIELD_EXTENSION_DEGREE
+        coeff0 = int(params.challenges[idx])
+        coeff1 = int(params.challenges[idx + 1])
+        coeff2 = int(params.challenges[idx + 2])
+        challenges[name] = ff3([coeff0, coeff1, coeff2])
+
+    # Extract airgroup values (accumulated results across AIR instances)
+    airgroup_values = {}
+    n_airgroup_values = len(stark_info.airgroupValuesMap)
+    for i in range(n_airgroup_values):
+        idx = i * FIELD_EXTENSION_DEGREE
+        coeff0 = int(params.airgroupValues[idx])
+        coeff1 = int(params.airgroupValues[idx + 1])
+        coeff2 = int(params.airgroupValues[idx + 2])
+        airgroup_values[i] = ff3([coeff0, coeff1, coeff2])
+
+    return ProverData(columns=columns, constants=constants, challenges=challenges,
+                      airgroup_values=airgroup_values, extend=extend)
+
+
+def _build_prover_data_base(
+    stark_info: 'StarkInfo',
+    params: ProofContext,
+) -> ProverData:
+    """Build ProverData from base domain buffers.
+
+    Extracts polynomial values from the base domain buffers (before NTT extension)
+    for witness generation. Stage 1 columns come from trace, stage 2 from auxTrace.
+
+    Args:
+        stark_info: StarkInfo with polynomial mappings
+        params: ProofContext with trace buffers
+
+    Returns:
+        ProverData ready for witness computation
+    """
+    N = 1 << stark_info.starkStruct.nBits
+    columns = {}
+    constants = {}
+    challenges = {}
+
+    # Extract committed polynomials (all stages, base domain)
+    for pol_info in stark_info.cmPolsMap:
+        name = pol_info.name
+        stage = pol_info.stage
+        dim = pol_info.dim
+        stage_pos = pol_info.stagePos
+
+        section = f"cm{stage}"
+        n_cols = stark_info.mapSectionsN.get(section, 0)
+
+        if stage == 1:
+            # Stage 1: read from trace buffer
+            buffer = params.trace
+            base_offset = 0
+        else:
+            # Stage 2+: read from auxTrace at non-extended offset
+            base_offset = stark_info.mapOffsets.get((section, False), 0)
+            buffer = params.auxTrace
+
+        # Read polynomial values from buffer
+        values = np.zeros(N * dim, dtype=np.uint64)
+        for j in range(N):
+            src_idx = base_offset + j * n_cols + stage_pos
+            values[j * dim:(j + 1) * dim] = buffer[src_idx:src_idx + dim]
+
+        # Find or compute the index for this polynomial name
+        index = 0
+        for other in stark_info.cmPolsMap:
+            if other.name == name and other.stagePos < stage_pos:
+                index += 1
+
+        if dim == 1:
+            columns[(name, index)] = FF3(np.asarray(values, dtype=np.uint64))
+        else:
+            columns[(name, index)] = ff3_from_interleaved_numpy(values, N)
+
+    # Extract constant polynomials (base domain)
+    for pol_info in stark_info.constPolsMap:
+        name = pol_info.name
+        dim = pol_info.dim
+        stage_pos = pol_info.stagePos
+        n_cols = stark_info.nConstants
+
+        values = np.zeros(N * dim, dtype=np.uint64)
+        for j in range(N):
+            src_idx = j * n_cols + stage_pos
+            values[j * dim:(j + 1) * dim] = params.constPols[src_idx:src_idx + dim]
+
+        if dim == 1:
+            constants[name] = FF(np.asarray(values, dtype=np.uint64))
+        else:
+            constants[name] = ff3_from_interleaved_numpy(values, N)
+
+    # Extract challenges
+    for i, chal_info in enumerate(stark_info.challengesMap):
+        name = chal_info.name
+        idx = i * FIELD_EXTENSION_DEGREE
+        coeff0 = int(params.challenges[idx])
+        coeff1 = int(params.challenges[idx + 1])
+        coeff2 = int(params.challenges[idx + 2])
+        challenges[name] = ff3([coeff0, coeff1, coeff2])
+
+    return ProverData(columns=columns, constants=constants, challenges=challenges)
+
+
+def _write_witness_to_buffer(
+    stark_info: 'StarkInfo',
+    params: ProofContext,
+    intermediates: dict,
+    grand_sums: dict
+) -> None:
+    """Write witness module results back to auxTrace buffer.
+
+    Args:
+        stark_info: StarkInfo with polynomial mappings
+        params: ProofContext with auxTrace buffer
+        intermediates: Dict like {'im_cluster': {0: poly0, 1: poly1, ...}}
+        grand_sums: Dict like {'gsum': gsum_poly}
+    """
+    from primitives.field import ff3_to_interleaved_numpy
+
+    N = 1 << stark_info.starkStruct.nBits
+
+    # Build mapping from (name, index) to cmPolsMap entry
+    name_to_pol_info = {}
+    for pol_info in stark_info.cmPolsMap:
+        # Count index for this name
+        index = 0
+        for other in stark_info.cmPolsMap:
+            if other.name == pol_info.name and other.stagePos < pol_info.stagePos:
+                index += 1
+        name_to_pol_info[(pol_info.name, index)] = pol_info
+
+    # Write intermediate columns (im_cluster, im_single, etc.)
+    for col_name, col_dict in intermediates.items():
+        for col_idx, values in col_dict.items():
+            key = (col_name, col_idx)
+            if key not in name_to_pol_info:
+                continue
+
+            pol_info = name_to_pol_info[key]
+            stage = pol_info.stage
+            dim = pol_info.dim
+            stage_pos = pol_info.stagePos
+            section = f"cm{stage}"
+            n_cols = stark_info.mapSectionsN.get(section, 0)
+            base_offset = stark_info.mapOffsets.get((section, False), 0)
+
+            # Convert FF3 to interleaved numpy
+            interleaved = ff3_to_interleaved_numpy(values)
+
+            # Write to buffer
+            for j in range(N):
+                dst_idx = base_offset + j * n_cols + stage_pos
+                params.auxTrace[dst_idx:dst_idx + dim] = interleaved[j * dim:(j + 1) * dim]
+
+    # Write grand sum columns (gsum, gprod)
+    for col_name, values in grand_sums.items():
+        key = (col_name, 0)
+        if key not in name_to_pol_info:
+            continue
+
+        pol_info = name_to_pol_info[key]
+        stage = pol_info.stage
+        dim = pol_info.dim
+        stage_pos = pol_info.stagePos
+        section = f"cm{stage}"
+        n_cols = stark_info.mapSectionsN.get(section, 0)
+        base_offset = stark_info.mapOffsets.get((section, False), 0)
+
+        interleaved = ff3_to_interleaved_numpy(values)
+
+        for j in range(N):
+            dst_idx = base_offset + j * n_cols + stage_pos
+            params.auxTrace[dst_idx:dst_idx + dim] = interleaved[j * dim:(j + 1) * dim]
+
+
+def calculate_witness_with_module(
+    stark_info: 'StarkInfo',
+    params: ProofContext,
+) -> None:
+    """Calculate witness polynomials using per-AIR witness modules.
+
+    Replaces calculate_witness_std for computing im_cluster and gsum columns.
+
+    Args:
+        stark_info: StarkInfo with AIR name and polynomial mappings
+        params: ProofContext with trace buffers and challenges
+    """
+    from constraints import ProverConstraintContext
+    from witness import get_witness_module
+
+    air_name = stark_info.name
+
+    # Get witness module for this AIR
+    witness_module = get_witness_module(air_name)
+
+    # Build context with base domain data
+    prover_data = _build_prover_data_base(stark_info, params)
+    ctx = ProverConstraintContext(prover_data)
+
+    # Compute intermediates (im_cluster columns)
+    intermediates = witness_module.compute_intermediates(ctx)
+
+    # Compute grand sums (gsum/gprod columns)
+    grand_sums = witness_module.compute_grand_sums(ctx)
+
+    # Write results back to buffer
+    _write_witness_to_buffer(stark_info, params, intermediates, grand_sums)
 
 
 class Starks:
@@ -283,45 +576,175 @@ class Starks:
     # --- Constraint and FRI Polynomials ---
 
     def calculateQuotientPolynomial(self, params: ProofContext,
-                                   expressionsCtx: ExpressionsPack):
-        """Evaluate constraint expression across the extended domain."""
+                                   expressionsCtx: ExpressionsPack,
+                                   use_constraint_module: bool = False,
+                                   debug_compare: bool = False):
+        """Evaluate constraint expression across the extended domain.
+
+        Args:
+            params: ProofContext with trace buffers
+            expressionsCtx: Expression evaluator (used when use_constraint_module=False)
+            use_constraint_module: If True, use per-AIR constraint modules instead
+                                   of expression bytecode
+            debug_compare: If True, compute both and compare (for debugging)
+        """
+        # Late import to avoid circular dependency
+        from constraints import get_constraint_module, ProverConstraintContext
+
         qOffset = self.setupCtx.stark_info.mapOffsets[("q", True)]
         qPol = params.auxTrace[qOffset:]
-        expressionsCtx.calculate_expression(params, qPol, self.setupCtx.stark_info.cExpId)
+        stark_info = self.setupCtx.stark_info
+        N_ext = 1 << stark_info.starkStruct.nBitsExt
+
+        if use_constraint_module:
+            # New path: use per-AIR constraint modules
+            prover_data = _build_prover_data_extended(
+                stark_info, params, params.constPolsExtended
+            )
+
+            # Get constraint module for this AIR
+            air_name = stark_info.name
+            constraint_module = get_constraint_module(air_name)
+
+            # Create prover context and evaluate constraints
+            ctx = ProverConstraintContext(prover_data)
+            constraint_poly = constraint_module.constraint_polynomial(ctx)
+
+            # Multiply by zerofier 1/Z_H(x) to get the quotient polynomial
+            # zi contains 1/(x^N - 1) for "everyRow" boundary (index 0)
+            zi_np = np.asarray(expressionsCtx.prover_helpers.zi[:N_ext], dtype=np.uint64)
+            zi = FF3(zi_np.tolist())  # Embed base field in extension field
+            constraint_poly = constraint_poly * zi
+
+            # Convert FF3 result to interleaved numpy format
+            from primitives.field import ff3_to_interleaved_numpy
+            result = ff3_to_interleaved_numpy(constraint_poly)
+            qPol[:len(result)] = result
+        else:
+            # Old path: use expression bytecode evaluator
+            expressionsCtx.calculate_expression(params, qPol, stark_info.cExpId)
 
     def calculateFRIPolynomial(self, params: ProofContext,
-                              expressionsCtx: ExpressionsPack):
-        """Compute FRI polynomial F = linear combination of committed polys at xi*w^offset."""
-        from primitives.field import FF, FF3, ff3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega
+                              expressionsCtx: ExpressionsPack,
+                              use_direct_computation: bool = False,
+                              debug_compare: bool = False):
+        """Compute FRI polynomial F = linear combination of committed polys at xi*w^offset.
 
-        # Find xi challenge index (stage nStages + 2, stageId 0)
-        xiChallengeIndex = next(
-            i for i, cm in enumerate(self.setupCtx.stark_info.challengesMap)
-            if cm.stage == self.setupCtx.stark_info.nStages + 2 and cm.stageId == 0
-        )
+        Args:
+            params: ProofContext with trace buffers
+            expressionsCtx: Expression evaluator (used when use_direct_computation=False)
+            use_direct_computation: If True, use direct evMap computation instead
+                                    of expression bytecode
+            debug_compare: If True, compute both ways and compare (for debugging)
+        """
+        if debug_compare:
+            # Compute with expression binary first
+            from primitives.field import FF, FF3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega
+            import numpy as np
 
-        xiChallenge = params.challenges[xiChallengeIndex * FIELD_EXTENSION_DEGREE:]
-        xiFF3 = ff3_from_numpy_coeffs(xiChallenge)
+            stark_info = self.setupCtx.stark_info
+            N_ext = 1 << stark_info.starkStruct.nBitsExt
 
-        # Compute xis[i] = xi * w^openingPoint[i] - vectorized
-        w = FF(get_omega(self.setupCtx.stark_info.starkStruct.nBits))
-        openingPoints = self.setupCtx.stark_info.openingPoints
-        nOpeningPoints = len(openingPoints)
+            # Compute xis for expression evaluator
+            xiChallengeIndex = next(
+                i for i, cm in enumerate(stark_info.challengesMap)
+                if cm.stage == stark_info.nStages + 2 and cm.stageId == 0
+            )
+            xiChallenge = params.challenges[xiChallengeIndex * FIELD_EXTENSION_DEGREE:]
+            xiFF3 = ff3_from_numpy_coeffs(xiChallenge)
+            w = FF(get_omega(stark_info.starkStruct.nBits))
+            openingPoints = stark_info.openingPoints
+            wPowers = [w ** abs(op) if op >= 0 else (w ** abs(op)) ** -1
+                       for op in openingPoints]
+            wPowers_ff3 = FF3([int(wp) for wp in wPowers])
+            xis_ff3 = xiFF3 * wPowers_ff3
+            xis = ff3_to_interleaved_numpy(xis_ff3)
+            expressionsCtx.set_xi(xis)
 
-        # Compute w^|openingPoint| for all opening points
-        wPowers = [w ** abs(op) if op >= 0 else (w ** abs(op)) ** -1
-                   for op in openingPoints]
-        wPowers_ff3 = FF3([int(wp) for wp in wPowers])  # Embed in extension field
+            # Compute with expression binary
+            fOffset = stark_info.mapOffsets[("f", True)]
+            old_result = np.zeros(N_ext * 3, dtype=np.uint64)
+            expressionsCtx.calculate_expression(params, old_result, stark_info.friExpId)
 
-        # Batch multiply: xis = xi * wPowers (broadcasts scalar xi over array)
-        xis_ff3 = xiFF3 * wPowers_ff3
-        xis = ff3_to_interleaved_numpy(xis_ff3)
+            # Compute with direct computation
+            from protocol.fri_polynomial import compute_fri_polynomial
+            new_result = compute_fri_polynomial(
+                stark_info, params, N_ext, extended=True,
+                prover_helpers=expressionsCtx.prover_helpers
+            )
 
-        expressionsCtx.set_xi(xis)
+            # Compare
+            air_name = stark_info.name
+            n_match = sum(1 for i in range(len(old_result)) if old_result[i] == new_result[i])
+            print(f"\n=== DEBUG {air_name} FRI polynomial comparison ===")
+            if n_match != len(old_result):
+                for i in range(len(old_result)):
+                    if old_result[i] != new_result[i]:
+                        print(f"FRI MISMATCH at index {i} (row {i//3}, coeff {i%3}):")
+                        print(f"  Expression binary: {old_result[i]}")
+                        print(f"  Direct computation: {new_result[i]}")
+                        for j in range(i, min(i+12, len(old_result))):
+                            if old_result[j] != new_result[j]:
+                                print(f"  [{j}] old={old_result[j]} new={new_result[j]}")
+                        break
+                print(f"Total: {n_match}/{len(old_result)} matching ({100*n_match/len(old_result):.1f}%)")
+            else:
+                print(f"FRI polynomial MATCH: {n_match}/{len(old_result)} (100%)")
 
-        fOffset = self.setupCtx.stark_info.mapOffsets[("f", True)]
-        fPol = params.auxTrace[fOffset:]
-        expressionsCtx.calculate_expression(params, fPol, self.setupCtx.stark_info.friExpId)
+            # Use old result for correctness
+            fPol = params.auxTrace[fOffset:]
+            fPol[:len(old_result)] = old_result
+            return
+
+        if use_direct_computation:
+            # New path: direct computation from evMap
+            from protocol.fri_polynomial import compute_fri_polynomial
+
+            stark_info = self.setupCtx.stark_info
+            N_ext = 1 << stark_info.starkStruct.nBitsExt
+
+            # Compute FRI polynomial on extended domain
+            fri_result = compute_fri_polynomial(
+                stark_info, params, N_ext, extended=True,
+                prover_helpers=expressionsCtx.prover_helpers
+            )
+
+            # Write result to FRI polynomial buffer
+            fOffset = stark_info.mapOffsets[("f", True)]
+            fPol = params.auxTrace[fOffset:]
+            fPol[:len(fri_result)] = fri_result
+        else:
+            # Old path: use expression bytecode evaluator
+            from primitives.field import FF, FF3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega
+
+            # Find xi challenge index (stage nStages + 2, stageId 0)
+            xiChallengeIndex = next(
+                i for i, cm in enumerate(self.setupCtx.stark_info.challengesMap)
+                if cm.stage == self.setupCtx.stark_info.nStages + 2 and cm.stageId == 0
+            )
+
+            xiChallenge = params.challenges[xiChallengeIndex * FIELD_EXTENSION_DEGREE:]
+            xiFF3 = ff3_from_numpy_coeffs(xiChallenge)
+
+            # Compute xis[i] = xi * w^openingPoint[i] - vectorized
+            w = FF(get_omega(self.setupCtx.stark_info.starkStruct.nBits))
+            openingPoints = self.setupCtx.stark_info.openingPoints
+            nOpeningPoints = len(openingPoints)
+
+            # Compute w^|openingPoint| for all opening points
+            wPowers = [w ** abs(op) if op >= 0 else (w ** abs(op)) ** -1
+                       for op in openingPoints]
+            wPowers_ff3 = FF3([int(wp) for wp in wPowers])  # Embed in extension field
+
+            # Batch multiply: xis = xi * wPowers (broadcasts scalar xi over array)
+            xis_ff3 = xiFF3 * wPowers_ff3
+            xis = ff3_to_interleaved_numpy(xis_ff3)
+
+            expressionsCtx.set_xi(xis)
+
+            fOffset = self.setupCtx.stark_info.mapOffsets[("f", True)]
+            fPol = params.auxTrace[fOffset:]
+            expressionsCtx.calculate_expression(params, fPol, self.setupCtx.stark_info.friExpId)
 
     # --- Polynomial Evaluations ---
 

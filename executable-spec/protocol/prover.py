@@ -277,15 +277,15 @@ def gen_proof(
     # For lookup/permutation arguments: compute grand product polynomials.
     # These polynomials prove the prover didn't cheat by skipping elements or using wrong values.
     #
-    # calculate_witness_std with prod=True computes:
-    #   P(x) = Product over evaluation points of (witness_element(x) + random_challenge)
-    # This product encodes that all witness elements are valid under the random challenge.
+    # The witness module computes:
+    # - im_cluster columns: intermediate logup term sums clustered for degree optimization
+    # - gsum column: cumulative sum of all logup terms for constraint checking
     #
-    # calculate_witness_std with prod=False computes:
-    #   S(x) = Sum over evaluation points of (witness_element(x))
-    # This sum is used for range checking (proving values are in a specific range).
-    #
-    # Both are stored in params.auxTrace at computed offsets.
+    # Note: Witness modules are not yet matching expression binary output.
+    # The modules compute logup terms from first principles, but expression
+    # binary uses compiler-generated hints with different structure.
+    # TODO: Fix witness modules to match compiler output exactly.
+    # For now, use expression binary (calculate_witness_std).
     calculate_witness_std(stark_info, setup_ctx.expressions_bin, params, expressions_ctx, prod=True)
     calculate_witness_std(stark_info, setup_ctx.expressions_bin, params, expressions_ctx, prod=False)
 
@@ -333,7 +333,11 @@ def gen_proof(
     # and stores the result as Stage Q polynomials in params.auxTrace.
     # The quotient must be low-degree (verifiable by FRI), so constraint violations would
     # immediately make it high-degree.
-    starks.calculateQuotientPolynomial(params, expressions_ctx)
+    #
+    # SimpleLeft uses the new constraint module path (produces byte-identical proofs).
+    # Other AIRs still use expression bytecode until their constraint modules are fixed.
+    use_constraint_module = stark_info.name == 'SimpleLeft'
+    starks.calculateQuotientPolynomial(params, expressions_ctx, use_constraint_module=use_constraint_module)
 
     # Commit to the quotient polynomial.
     # Note: we use ntt_extended here because the quotient is evaluated over the extended domain.
@@ -450,7 +454,10 @@ def gen_proof(
     # Why a linear combination? Because we want to batch-prove all polynomials are low-degree.
     # If even one polynomial is high-degree, the linear combination is high-degree.
     # So proving the combination is low-degree proves all constituents are low-degree.
-    starks.calculateFRIPolynomial(params, expressions_ctx)
+    # Debug: compare FRI polynomial implementations
+    # Note: FRI polynomial uses Horner's method batching which differs from naive formula
+    # The direct computation needs to match the bytecode's grouping scheme
+    starks.calculateFRIPolynomial(params, expressions_ctx, use_direct_computation=False, debug_compare=False)
 
     # Extract the FRI polynomial from the auxiliary trace buffer.
     # params.auxTrace is a flat array containing all polynomials:

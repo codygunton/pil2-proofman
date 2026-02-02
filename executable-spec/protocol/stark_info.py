@@ -47,6 +47,7 @@ class StarkInfo:
     def __init__(self):
         # Core parameters
         self.starkStruct = StarkStruct(0, 0, 0, "GL")
+        self.name = ""
         self.airgroupId = 0
         self.airId = 0
 
@@ -169,6 +170,7 @@ class StarkInfo:
 
     def _parse_basic_params(self, j: dict) -> None:
         """Parse basic polynomial parameters."""
+        self.name = j["name"]
         self.nPublics = j["nPublics"]
         self.nConstants = j["nConstants"]
         self.nStages = j["nStages"]

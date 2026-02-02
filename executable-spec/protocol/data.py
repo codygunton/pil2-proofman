@@ -16,6 +16,8 @@ class ProverData:
     constants: dict[str, FFPoly] = field(default_factory=dict)
     challenges: dict[str, FF3] = field(default_factory=dict)
     public_inputs: dict[str, FF] = field(default_factory=dict)
+    airgroup_values: dict[int, FF3] = field(default_factory=dict)
+    extend: int = 1  # Blowup factor for extended domain (N_ext / N)
 
     def update_columns(self, new_columns: dict[tuple[str, int], FF3Poly]) -> None:
         """Add new columns (e.g., intermediates from witness generation)."""
@@ -28,3 +30,4 @@ class VerifierData:
     evals: dict[tuple[str, int, int], FF3] = field(default_factory=dict)  # (name, index, offset) -> value
     challenges: dict[str, FF3] = field(default_factory=dict)
     public_inputs: dict[str, FF] = field(default_factory=dict)
+    airgroup_values: dict[int, FF3] = field(default_factory=dict)
