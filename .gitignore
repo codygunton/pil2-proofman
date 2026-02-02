@@ -2,6 +2,7 @@ target
 tmp
 pil_helpers
 build*/
+**/build/
 *.pilout
 pil2-stark/lib/
 vendor
