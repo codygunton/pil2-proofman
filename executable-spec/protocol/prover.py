@@ -334,9 +334,8 @@ def gen_proof(
     # The quotient must be low-degree (verifiable by FRI), so constraint violations would
     # immediately make it high-degree.
     #
-    # SimpleLeft uses the new constraint module path (produces byte-identical proofs).
-    # Other AIRs still use expression bytecode until their constraint modules are fixed.
-    use_constraint_module = stark_info.name == 'SimpleLeft'
+    # All supported AIRs now use the constraint module path (byte-identical proofs).
+    use_constraint_module = stark_info.name in ('SimpleLeft', 'Permutation1_6', 'Lookup2_12')
     starks.calculateQuotientPolynomial(params, expressions_ctx, use_constraint_module=use_constraint_module)
 
     # Commit to the quotient polynomial.

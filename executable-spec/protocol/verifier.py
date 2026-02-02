@@ -646,7 +646,7 @@ def _verify_evaluations(si: StarkInfo, setup_ctx: SetupCtx, expressions_pack: Ex
 
     # Choose evaluation path based on AIR
     # To enable constraint module for a new AIR, add it here and in prover.py
-    use_constraint_module = si.name == 'SimpleLeft'
+    use_constraint_module = si.name in ('SimpleLeft', 'Permutation1_6', 'Lookup2_12')
 
     if use_constraint_module:
         # New path: use per-AIR constraint module

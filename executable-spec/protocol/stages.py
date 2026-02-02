@@ -595,6 +595,7 @@ class Starks:
         qPol = params.auxTrace[qOffset:]
         stark_info = self.setupCtx.stark_info
         N_ext = 1 << stark_info.starkStruct.nBitsExt
+        air_name = stark_info.name
 
         if use_constraint_module:
             # New path: use per-AIR constraint modules
@@ -603,7 +604,6 @@ class Starks:
             )
 
             # Get constraint module for this AIR
-            air_name = stark_info.name
             constraint_module = get_constraint_module(air_name)
 
             # Create prover context and evaluate constraints

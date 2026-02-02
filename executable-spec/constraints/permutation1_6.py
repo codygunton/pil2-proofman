@@ -4,47 +4,58 @@ Permutation1_6 uses both sum-based (logup) and product-based permutation argumen
 
 Sum-based logup terms (5 terms clustered into 2 im_cluster columns):
 1. Permutation assumes, busid=1, sel=1, cols=[a1, b1]
-2. Permutation proves, busid=1, sel=1, cols=[c1, d1]
+2. Permutation proves, busid=1, sel=-1, cols=[c1, d1]
 3. Permutation assumes, busid=2, sel=1, cols=[a2, b2]
 4. Permutation assumes, busid=3, sel=sel1, cols=[a3, b3]
-5. Permutation proves, busid=3, sel=sel2, cols=[c2, d2]
+5. Permutation proves, busid=3, sel=-sel2, cols=[c2, d2]
 
 Product-based permutation term (1 term using gprod):
 6. Permutation assumes, busid=4, sel=sel3, cols=[a4, b4]
 
 Clustering:
-- im_cluster[0]: terms 0,1 (busid=1)
-- im_cluster[1]: terms 2,3,4 (busid=2,3)
+- im_cluster[0]: terms 1,2 (busid=1,2)  -- NOT 0,1!
+- im_cluster[1]: terms 3,4,5 (busid=3)
 
 6 constraints combined with std_vc powers.
 """
 
-from typing import Union, List
+from typing import Union
 import numpy as np
 
-from primitives.field import FF3, FF3Poly, ff3
+from primitives.field import FF3, FF3Poly, ff3, GOLDILOCKS_PRIME
 from .base import ConstraintModule, ConstraintContext
 
 
-def _ff3_scalar_to_array(scalar: int, n: int) -> FF3:
-    """Create FF3 array of size n filled with scalar value (handles negatives)."""
-    val = scalar % (2**64) if scalar >= 0 else (2**64 + scalar)
+def _ff3_scalar(scalar: int, n: int = None) -> FF3:
+    """Create FF3 scalar or array filled with scalar value (handles negatives).
+
+    Args:
+        scalar: Integer value to convert
+        n: If None, create scalar. If int, create array of size n.
+    """
+    # Handle negative values as field elements
+    val = scalar % GOLDILOCKS_PRIME
+
+    if n is None:
+        return ff3([val, 0, 0])
     return FF3(np.full(n, val, dtype=np.uint64))
 
 
 def _ff_to_ff3(arr) -> FF3:
-    """Convert FF array to FF3 array (embed base field in extension field)."""
+    """Convert FF array to FF3 array (embed base field in extension field).
+
+    Handles both prover context (FF arrays) and verifier context (FF3 scalars).
+    """
+    # If already FF3 (verifier context), return as-is
+    if type(arr) == FF3:
+        return arr
+    # FF3 can be constructed from base field values directly
     return FF3(np.asarray(arr, dtype=np.uint64))
 
 
-def _compress_exprs(busid: int, cols: List, alpha: FF3, gamma: FF3, n: int) -> Union[FF3Poly, FF3]:
-    """Compute denominator: busid + col1*α + col2*α² + ... + γ."""
-    result = _ff3_scalar_to_array(busid, n)
-    alpha_power = alpha
-    for col in cols:
-        result = result + col * alpha_power
-        alpha_power = alpha_power * alpha
-    return result + gamma
+def _compress_2col(busid: int, col1, col2, alpha: FF3, gamma: FF3, n: int) -> Union[FF3Poly, FF3]:
+    """Compress 2-column expression: ((col2*alpha + col1)*alpha + busid) + gamma."""
+    return (col2 * alpha + col1) * alpha + _ff3_scalar(busid, n) + gamma
 
 
 class Permutation1_6Constraints(ConstraintModule):
@@ -54,8 +65,8 @@ class Permutation1_6Constraints(ConstraintModule):
     and product-based permutation arguments.
 
     The 6 constraints are:
-    - C0: im_cluster[0] verification (busid=1 terms)
-    - C1: im_cluster[1] verification (busid=2,3 terms)
+    - C0: im_cluster[0] verification (busid=1,2)
+    - C1: im_cluster[1] verification (busid=3)
     - C2: gsum recurrence
     - C3: gsum boundary constraint
     - C4: gprod recurrence
@@ -69,24 +80,24 @@ class Permutation1_6Constraints(ConstraintModule):
         gamma = ctx.challenge('std_gamma')
         vc = ctx.challenge('std_vc')
 
-        # Get witness columns
-        a1 = ctx.col('a1')
-        b1 = ctx.col('b1')
-        a2 = ctx.col('a2')
-        b2 = ctx.col('b2')
-        a3 = ctx.col('a3')
-        b3 = ctx.col('b3')
-        a4 = ctx.col('a4')
-        b4 = ctx.col('b4')
-        c1 = ctx.col('c1')
-        d1 = ctx.col('d1')
-        c2 = ctx.col('c2')
-        d2 = ctx.col('d2')
-        sel1 = ctx.col('sel1')
-        sel2 = ctx.col('sel2')
-        sel3 = ctx.col('sel3')
+        # Get witness columns - stage 1
+        a1 = _ff_to_ff3(ctx.col('a1'))
+        b1 = _ff_to_ff3(ctx.col('b1'))
+        a2 = _ff_to_ff3(ctx.col('a2'))
+        b2 = _ff_to_ff3(ctx.col('b2'))
+        a3 = _ff_to_ff3(ctx.col('a3'))
+        b3 = _ff_to_ff3(ctx.col('b3'))
+        a4 = _ff_to_ff3(ctx.col('a4'))
+        b4 = _ff_to_ff3(ctx.col('b4'))
+        c1 = _ff_to_ff3(ctx.col('c1'))
+        d1 = _ff_to_ff3(ctx.col('d1'))
+        c2 = _ff_to_ff3(ctx.col('c2'))
+        d2 = _ff_to_ff3(ctx.col('d2'))
+        sel1 = _ff_to_ff3(ctx.col('sel1'))
+        sel2 = _ff_to_ff3(ctx.col('sel2'))
+        sel3 = _ff_to_ff3(ctx.col('sel3'))
 
-        # Get intermediate columns
+        # Get intermediate columns - stage 2 (already FF3)
         gsum = ctx.col('gsum')
         prev_gsum = ctx.prev_col('gsum')
         im_cluster_0 = ctx.col('im_cluster', 0)
@@ -98,106 +109,95 @@ class Permutation1_6Constraints(ConstraintModule):
         L1 = _ff_to_ff3(ctx.const('__L1__'))
         next_L1 = _ff_to_ff3(ctx.next_const('__L1__'))
 
-        # Get domain size from first column
-        n = len(a1)
+        # Get airgroup values (accumulated results)
+        gsum_result = ctx.airgroup_value(0)
+        gprod_result = ctx.airgroup_value(1)
 
-        # Define sum-based logup terms: (busid, cols, selector)
-        # selector: positive for assumes, negative for proves
-        sum_terms = [
-            (1, [a1, b1], 1),        # assumes busid=1, sel=1
-            (1, [c1, d1], -1),       # proves busid=1, sel=1 (negated)
-            (2, [a2, b2], 1),        # assumes busid=2, sel=1
-            (3, [a3, b3], sel1),     # assumes busid=3, sel=sel1
-            (3, [c2, d2], -sel2),    # proves busid=3, sel=sel2 (negated)
-        ]
-
-        # Clustering for sum-based terms
-        clusters = [
-            ([0, 1], im_cluster_0),     # busid=1
-            ([2, 3, 4], im_cluster_1),  # busid=2,3
-        ]
+        # Detect prover vs verifier mode
+        try:
+            n = len(a1)  # Prover mode: a1 is an array
+        except TypeError:
+            n = None  # Verifier mode: a1 is a scalar
 
         constraints = []
-        vc_power = ff3([1, 0, 0])  # Scalar one
 
-        # Build constraints for each sum-based cluster
-        for term_indices, im_col in clusters:
-            if len(term_indices) == 1:
-                # Single term: im * denom = num
-                busid, cols, sel = sum_terms[term_indices[0]]
-                denom = _compress_exprs(busid, cols, alpha, gamma, n)
-                # Convert selector to array (handle both int and column selectors)
-                if isinstance(sel, int):
-                    sel_arr = _ff3_scalar_to_array(sel, n)
-                else:
-                    sel_arr = sel
-                constraint = im_col * denom - sel_arr
-            else:
-                # Multiple terms: im * prod(denoms) = sum(nums * other_denoms)
-                denoms = []
-                nums = []
-                for idx in term_indices:
-                    busid, cols, sel = sum_terms[idx]
-                    denoms.append(_compress_exprs(busid, cols, alpha, gamma, n))
-                    nums.append(sel)
+        # ===================================================================
+        # Constraint 0: im_cluster[0] verification
+        # Formula from expressionsinfo.json (std_sum.pil:587):
+        # (im_cluster*D1*D2) - (D2 + (-1)*D1) = 0
+        # D1 = compress(1, [c1, d1])
+        # D2 = compress(2, [a2, b2])
+        # ===================================================================
+        D1 = _compress_2col(1, c1, d1, alpha, gamma, n)
+        D2 = _compress_2col(2, a2, b2, alpha, gamma, n)
+        constraint_0 = im_cluster_0 * D1 * D2 - (D2 + _ff3_scalar(-1, n) * D1)
+        constraints.append(constraint_0)
 
-                prod_denoms = denoms[0]
-                for d in denoms[1:]:
-                    prod_denoms = prod_denoms * d
+        # ===================================================================
+        # Constraint 1: im_cluster[1] verification
+        # Formula from expressionsinfo.json (std_sum.pil:587):
+        # (im_cluster*D1*D2) - ((-sel1)*D2 + sel2*D1) = 0
+        # D1 = compress(3, [a3, b3])
+        # D2 = compress(3, [c2, d2])
+        # Note: (0 - sel1) = -sel1
+        # ===================================================================
+        D1 = _compress_2col(3, a3, b3, alpha, gamma, n)
+        D2 = _compress_2col(3, c2, d2, alpha, gamma, n)
+        neg_sel1 = _ff3_scalar(0, n) - sel1
+        constraint_1 = im_cluster_1 * D1 * D2 - (neg_sel1 * D2 + sel2 * D1)
+        constraints.append(constraint_1)
 
-                sum_cross = FF3(np.zeros(n, dtype=np.uint64))
-                for i, num in enumerate(nums):
-                    # Handle both int and column selectors
-                    if isinstance(num, int):
-                        cross_term = _ff3_scalar_to_array(num, n)
-                    else:
-                        cross_term = num
-                    for j, d in enumerate(denoms):
-                        if j != i:
-                            cross_term = cross_term * d
-                    sum_cross = sum_cross + cross_term
-
-                constraint = im_col * prod_denoms - sum_cross
-
-            constraints.append(constraint * vc_power)
-            vc_power = vc_power * vc
-
-        # Gsum recurrence: gsum - prev_gsum*(1-L1) - sum(ims) = 0
+        # ===================================================================
+        # Constraint 2: gsum recurrence
+        # Formula from expressionsinfo.json (std_sum.pil:596):
+        # (gsum - prev_gsum*(1-L1) - (im_cluster[0] + im_cluster[1])) * compress(1,[a1,b1]) + 1 = 0
+        # ===================================================================
+        one_minus_L1 = _ff3_scalar(1, n) - L1
         sum_im = im_cluster_0 + im_cluster_1
-        one_minus_L1 = _ff3_scalar_to_array(1, n) - L1
-        gsum_constraint = gsum - prev_gsum * one_minus_L1 - sum_im
-        constraints.append(gsum_constraint * vc_power)
-        vc_power = vc_power * vc
+        direct_den = _compress_2col(1, a1, b1, alpha, gamma, n)
+        gsum_recurrence = (gsum - prev_gsum * one_minus_L1 - sum_im) * direct_den + _ff3_scalar(1, n)
+        constraints.append(gsum_recurrence)
 
-        # Gsum boundary: next_L1 * gsum = 0 (balanced sum at last row)
-        gsum_boundary = next_L1 * gsum
-        constraints.append(gsum_boundary * vc_power)
-        vc_power = vc_power * vc
+        # ===================================================================
+        # Constraint 3: gsum boundary at last row
+        # Formula from expressionsinfo.json (std_sum.pil:693):
+        # L1' * (gsum_result - gsum) = 0
+        # ===================================================================
+        gsum_boundary = next_L1 * (gsum_result - gsum)
+        constraints.append(gsum_boundary)
 
-        # Product-based permutation constraint for gprod
-        # Formula from std_prod.pil:
-        # gprod * denominator = ('gprod * (1-L1) + L1) * numerator
-        #
-        # For busid=4 assumes (type=0): denominator = sel3 * (compress + gamma - 1) + 1
-        # (numerator = 1 since no proves in this AIR)
-        compress_4 = _compress_exprs(4, [a4, b4], alpha, gamma, n)
-        one_arr = _ff3_scalar_to_array(1, n)
-        gprod_denominator = sel3 * (compress_4 + gamma - one_arr) + one_arr
-        gprod_numerator = one_arr  # No proves for busid=4 in this AIR
+        # ===================================================================
+        # Constraint 4: gprod recurrence
+        # Formula from expressionsinfo.json (std_prod.pil:817):
+        # (gprod * denom) - (prev_gprod*(1-L1) + L1) = 0
+        # denom = sel3 * (compress(4,[a4,b4]) + gamma - 1) + 1
+        # Note: The expression shows: (gprod*((sel3*(e+gamma-1))+1)) - ('gprod*(1-L1)+L1)
+        # where e = compress(4,[a4,b4]) without gamma
+        # ===================================================================
+        # e = ((b4*alpha + a4)*alpha + 4) -- compress without gamma
+        e = (b4 * alpha + a4) * alpha + _ff3_scalar(4, n)
+        gprod_denom = sel3 * (e + gamma - _ff3_scalar(1, n)) + _ff3_scalar(1, n)
+        gprod_recurrence = gprod * gprod_denom - (prev_gprod * one_minus_L1 + L1)
+        constraints.append(gprod_recurrence)
 
-        # Recurrence: gprod * denom = (prev_gprod * (1-L1) + L1) * num
-        gprod_constraint = gprod * gprod_denominator - (prev_gprod * one_minus_L1 + L1) * gprod_numerator
-        constraints.append(gprod_constraint * vc_power)
-        vc_power = vc_power * vc
+        # ===================================================================
+        # Constraint 5: gprod boundary at last row
+        # Formula from expressionsinfo.json (std_prod.pil:858):
+        # L1' * (gprod_result - gprod) = 0
+        # ===================================================================
+        gprod_boundary = next_L1 * (gprod_result - gprod)
+        constraints.append(gprod_boundary)
 
-        # Gprod boundary: next_L1 * (result - gprod) = 0
-        # For single-instance mode, result = 1 (product must balance to 1)
-        gprod_boundary = next_L1 * (one_arr - gprod)
-        constraints.append(gprod_boundary * vc_power)
+        # Combine constraints using the expression binary's accumulation pattern:
+        # acc = C0 * vc
+        # acc = (acc + C1) * vc
+        # ...
+        # acc = (acc + C4) * vc
+        # acc = acc + C5
+        # Result: C0*vc^5 + C1*vc^4 + C2*vc^3 + C3*vc^2 + C4*vc + C5
+        acc = constraints[0] * vc
+        for i in range(1, len(constraints) - 1):
+            acc = (acc + constraints[i]) * vc
+        acc = acc + constraints[-1]
 
-        # Sum all constraints
-        result = constraints[0]
-        for c in constraints[1:]:
-            result = result + c
-
-        return result
+        return acc
