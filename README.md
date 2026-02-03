@@ -22,30 +22,32 @@ A complete Python executable specification of the STARK proving system in `execu
 
 | Module | Description |
 |--------|-------------|
+| `prover.py` | Top-level proof generation |
+| `verifier.py` | Top-level verification |
+| `stages.py` | Proof stage orchestrator |
+| `fri.py`, `pcs.py` | FRI polynomial commitment scheme |
 | `stark_info.py` | STARK configuration parser |
-| `setup_ctx.py` | Setup context and prover helpers |
-| `ntt.py` | NTT/INTT polynomial operations |
-| `expressions.py` | Constraint expression evaluation |
-| `starks.py` | Proof stage orchestrator |
-| `gen_proof.py` | Top-level prover |
-| `stark_verify.py` | Top-level verifier |
-| `fri.py`, `fri_pcs.py` | FRI polynomial commitment scheme |
+| `air_config.py` | AIR config and prover helpers |
+| `constraints/*.py` | Per-AIR constraint modules |
+| `witness/*.py` | Per-AIR witness modules |
+
+### Setup
+
+```bash
+cd executable-spec
+./setup.sh                        # install deps + build poseidon2-ffi
+```
 
 ### Running Python Tests
 
 ```bash
-cd executable-spec
-uv sync                            # install dependencies
-uv run python -m pytest -v         # run all 269 tests
-```
-
-Test categories:
-```bash
-uv run python -m pytest test_fri.py -v              # FRI tests (22)
-uv run python -m pytest test_ntt.py -v              # NTT tests (41)
-uv run python -m pytest test_stark_info.py -v       # Config tests (22)
-uv run python -m pytest test_starks.py -v           # Orchestrator tests (18)
-uv run python -m pytest test_stark_integration.py -v # Integration tests (27)
+./run-tests.sh                    # all 164 tests
+./run-tests.sh e2e                # E2E tests (prover + verifier vs C++)
+./run-tests.sh unit               # fast unit tests
+./run-tests.sh simple             # SimpleLeft AIR tests
+./run-tests.sh lookup             # Lookup2_12 AIR tests
+./run-tests.sh permutation        # Permutation1_6 AIR tests
+./run-tests.sh -k "pattern"       # custom pytest filter
 ```
 
 See `executable-spec/README.md` for full documentation.
