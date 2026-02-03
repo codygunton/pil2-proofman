@@ -60,11 +60,6 @@ def _regenerate_ff3_cache():
 # Galois uses descending order [a2, a1, a0], we use ascending [a0, a1, a2].
 
 
-def ff3(coeffs: List[int]) -> FF3:
-    """Construct FF3 element from ascending-order coefficients [a0, a1, a2]."""
-    return FF3.Vector(coeffs[::-1])
-
-
 def ff3_coeffs(elem: FF3) -> List[int]:
     """Extract ascending-order coefficients [a0, a1, a2] from FF3 element."""
     return [int(c) for c in elem.vector()[::-1]]
@@ -143,12 +138,12 @@ def ff3_to_interleaved_numpy(arr: FF3) -> np.ndarray:
 
 def ff3_from_base(val: int) -> FF3:
     """Embed base field element into FF3 as (val, 0, 0)."""
-    return ff3([val, 0, 0])
+    return FF3(val)
 
 
 def ff3_from_numpy_coeffs(arr: np.ndarray) -> FF3:
     """Convert numpy [c0, c1, c2] to FF3 scalar."""
-    return ff3([int(arr[0]), int(arr[1]), int(arr[2])])
+    return FF3.Vector([int(arr[2]), int(arr[1]), int(arr[0])])
 
 
 def ff3_to_numpy_coeffs(elem: FF3) -> np.ndarray:

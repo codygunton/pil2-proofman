@@ -11,7 +11,6 @@ from primitives import (
     # Field
     FF,
     FF3,
-    ff3,
     ff3_coeffs,
     GOLDILOCKS_PRIME,
     W,
@@ -75,7 +74,6 @@ __all__ = [
     # Field
     "FF",
     "FF3",
-    "ff3",
     "ff3_coeffs",
     "GOLDILOCKS_PRIME",
     "W",
