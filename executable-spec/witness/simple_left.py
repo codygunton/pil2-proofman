@@ -1,22 +1,30 @@
 """SimpleLeft AIR witness generation.
 
-SimpleLeft logup terms (from gsum_debug_data hints):
-1. Permutation assumes (busid=1, [a,b]) - selector=+1
-2. Permutation proves (busid=1, [c,d]) - selector=-1
-3. Permutation assumes (busid=2, [e,f]) - selector=+1
-4. Lookup free (busid=3, [g,h], mul=-1) - selector=-1
-5. Range Check (busid=100, k[0]) - selector=+1
-6. Range Check (busid=101, k[1]) - selector=+1
-7. Range Check (busid=100, k[2]-1) - selector=+1
-8. Range Check (busid=100, 255-k[2]) - selector=+1
-9. Range Check (busid=101, k[3]) - selector=+1
-10. Range Check (busid=101, 256-k[3]) - selector=+1
-11. Range Check (busid=102, k[4]) - selector=+1
-12. Range Check (busid=103, k[5]) - selector=+1
-13. Range Check (busid=104, k[6]) - selector=+1
+SimpleLeft logup terms (from constraint module analysis):
 
-These 13 terms are clustered into 6 im_cluster columns for constraint
-degree optimization. The clustering is determined by the compiler.
+Term 0: busid=1, [a,b] - assumes, selector=-1 (goes directly to gsum)
+Term 1: busid=1, [c,d] - proves, selector=+1
+Term 2: busid=2, [e,f] - assumes, selector=-1
+Term 3: busid=3, [g,h] - lookup, selector=-1
+Term 4: busid=100, k[0] - range, selector=-1
+Term 5: busid=101, k[1] - range, selector=-1
+Term 6: busid=100, k[2]-1 - range, selector=-1
+Term 7: busid=100, 255-k[2] - range, selector=-1
+Term 8: busid=101, k[3] - range, selector=-1
+Term 9: busid=101, 256-k[3] - range, selector=-1
+Term 10: busid=102, k[4] - range, selector=-1
+Term 11: busid=103, k[5] - range, selector=-1
+Term 12: busid=104, k[6] - range, selector=-1
+
+Intermediate columns clustering (from constraint equations):
+- im_cluster[0]: term1 + term2 (proves busid=1 + assumes busid=2)
+- im_cluster[1]: term3 + term4 (lookup busid=3 + range busid=100,k[0])
+- im_cluster[2]: term5 + term6 (range busid=101,k[1] + range busid=100,k[2]-1)
+- im_cluster[3]: term7 + term8 (range busid=100,255-k[2] + range busid=101,k[3])
+- im_cluster[4]: term9 + term10 (range busid=101,256-k[3] + range busid=102,k[4])
+- im_cluster[5]: term11 + term12 (range busid=103,k[5] + range busid=104,k[6])
+
+Term 0 is added directly to gsum, not via intermediate columns.
 """
 
 from typing import Dict, List, Tuple
@@ -63,7 +71,12 @@ class SimpleLeftWitness(WitnessModule):
     def _get_all_logup_terms(
         self, ctx: ConstraintContext
     ) -> List[Tuple[int, List[FF3Poly], int]]:
-        """Return all logup terms as (busid, cols, selector) tuples."""
+        """Return all logup terms as (busid, cols, selector) tuples.
+
+        Selector convention (from constraint analysis):
+        - "proves" terms: selector = +1
+        - "assumes" terms: selector = -1
+        """
         # Get witness columns
         a = ctx.col('a')
         b = ctx.col('b')
@@ -75,38 +88,44 @@ class SimpleLeftWitness(WitnessModule):
         h = ctx.col('h')
         k = [ctx.col('k', i) for i in range(7)]
 
-        # Define all 13 logup terms from gsum_debug_data hints
-        # (busid, cols_list, selector)
+        # Define all 13 logup terms with constraint-derived selectors
+        # Term 0: goes directly to gsum (not in intermediate columns)
+        # Terms 1-12: grouped into 6 im_cluster columns
         terms = [
-            # Permutation/lookup constraints
-            (1, [a, b], 1),      # permutation_assumes(1, [a, b])
-            (1, [c, d], -1),     # permutation_proves(1, [c, d])
-            (2, [e, f], 1),      # permutation_assumes(2, [e, f])
-            (3, [g, h], -1),     # lookup(3, [g, h], mul=-1)
-            # Range check constraints
-            # Note: FF3 arithmetic requires field element operands
-            (100, [k[0]], 1),                                # range_check(k[0], 0, 255)
-            (101, [k[1]], 1),                                # range_check(k[1], 0, 65535)
-            (100, [k[2] - ff3([1, 0, 0])], 1),              # range_check(k[2]-1, 0, 254)
-            (100, [ff3([255, 0, 0]) - k[2]], 1),            # range_check(255-k[2], 0, 254)
-            (101, [k[3]], 1),                                # range_check(k[3], 0, 256)
-            (101, [ff3([256, 0, 0]) - k[3]], 1),            # range_check(256-k[3], 0, 256)
-            (102, [k[4]], 1),                                # range_check(k[4], 0, 255, predefined=0)
-            (103, [k[5]], 1),                                # range_check(k[5], -128, -1)
-            (104, [k[6]], 1),                                # range_check(k[6], -129, 127)
+            # Term 0: permutation assumes (direct to gsum)
+            (1, [a, b], -1),
+            # Term 1: permutation proves
+            (1, [c, d], 1),
+            # Term 2: permutation assumes
+            (2, [e, f], -1),
+            # Term 3: lookup
+            (3, [g, h], -1),
+            # Terms 4-12: range checks (all assumes, so selector=-1)
+            (100, [k[0]], -1),
+            (101, [k[1]], -1),
+            (100, [k[2] - ff3([1, 0, 0])], -1),
+            (100, [ff3([255, 0, 0]) - k[2]], -1),
+            (101, [k[3]], -1),
+            (101, [ff3([256, 0, 0]) - k[3]], -1),
+            (102, [k[4]], -1),
+            (103, [k[5]], -1),
+            (104, [k[6]], -1),
         ]
         return terms
 
     def compute_intermediates(self, ctx: ConstraintContext) -> Dict[str, Dict[int, FF3Poly]]:
-        """Compute im_cluster polynomials for logup terms.
+        """Compute im_cluster polynomials directly from constraint equations.
 
-        The compiler clusters 13 terms into 6 im_cluster columns.
-        Each im_cluster is a sum of sel_j / denom_j for its cluster.
+        Each im_cluster satisfies: im[i] * D1 * D2 = (coeff2*D2 + coeff1*D1)
+        So: im[i] = (coeff2*D2 + coeff1*D1) / (D1 * D2)
 
-        Note: This is a simplified implementation that computes individual
-        terms. The actual compiler clusters multiple terms into each
-        im_cluster column. For exact matching with C++, we would need
-        to replicate the clustering algorithm or read from the hints.
+        From constraint module:
+        - im[0]: D1=compress(1,[c,d]), D2=compress(2,[e,f]), coeffs=(+1,-1) -> (D2-D1)/(D1*D2)
+        - im[1]: D1=compress(3,[g,h]), D2=compress(100,k[0]), coeffs=(-1,-1) -> -(D1+D2)/(D1*D2)
+        - im[2]: D1=compress(101,k[1]), D2=compress(100,k[2]-1), coeffs=(-1,-1)
+        - im[3]: D1=compress(100,255-k[2]), D2=compress(101,k[3]), coeffs=(-1,-1)
+        - im[4]: D1=compress(101,256-k[3]), D2=compress(102,k[4]), coeffs=(-1,-1)
+        - im[5]: D1=compress(103,k[5]), D2=compress(104,k[6]), coeffs=(-1,-1)
 
         Returns:
             {'im_cluster': {0: poly0, 1: poly1, ..., 5: poly5}}
@@ -114,88 +133,117 @@ class SimpleLeftWitness(WitnessModule):
         alpha = ctx.challenge('std_alpha')
         gamma = ctx.challenge('std_gamma')
 
-        terms = self._get_all_logup_terms(ctx)
-        n = len(terms[0][1][0])  # Number of rows
+        # Get all columns
+        c = ctx.col('c')
+        d = ctx.col('d')
+        e = ctx.col('e')
+        f = ctx.col('f')
+        g = ctx.col('g')
+        h = ctx.col('h')
+        k = [ctx.col('k', i) for i in range(7)]
 
-        # Compute all 13 individual terms
-        all_terms = []
-        for busid, cols, sel in terms:
-            term = _compute_logup_term(busid, cols, sel, alpha, gamma)
-            all_terms.append(term)
+        n = len(c)
 
-        # Cluster into 6 im_cluster columns
-        # The clustering matches the compiler's degree optimization
-        # For SimpleLeft, the clustering is roughly:
-        # - im_cluster[0]: terms 0,1 (permutation for busid=1)
-        # - im_cluster[1]: terms 2 (permutation for busid=2)
-        # - im_cluster[2]: term 3 (lookup for busid=3)
-        # - im_cluster[3]: terms 4,6,7 (range checks busid=100)
-        # - im_cluster[4]: terms 5,8,9 (range checks busid=101)
-        # - im_cluster[5]: terms 10,11,12 (range checks busids 102-104)
+        def compress_1(busid, col):
+            return col * alpha + FF3(np.full(n, busid, dtype=np.uint64)) + gamma
+
+        def compress_2(busid, col1, col2):
+            return (col2 * alpha + col1) * alpha + FF3(np.full(n, busid, dtype=np.uint64)) + gamma
 
         im_cluster = {}
-        clusters = [
-            [0, 1],           # Permutation busid=1: assumes + proves
-            [2],              # Permutation busid=2
-            [3],              # Lookup busid=3
-            [4, 6, 7],        # Range checks busid=100
-            [5, 8, 9],        # Range checks busid=101
-            [10, 11, 12],     # Range checks busids 102-104
-        ]
 
-        for i, cluster in enumerate(clusters):
-            cluster_sum = FF3(np.zeros(n, dtype=np.uint64))
-            for term_idx in cluster:
-                cluster_sum = cluster_sum + all_terms[term_idx]
-            im_cluster[i] = cluster_sum
+        # im_cluster[0]: (D2 - D1) / (D1 * D2) where D1=compress(1,[c,d]), D2=compress(2,[e,f])
+        D1 = compress_2(1, c, d)
+        D2 = compress_2(2, e, f)
+        numerator = D2 + FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64)) * D1  # D2 - D1
+        denominator = D1 * D2
+        im_cluster[0] = numerator * batch_inverse(denominator)
+
+        # im_cluster[1]: -(D1 + D2) / (D1 * D2) where D1=compress(3,[g,h]), D2=compress(100,k[0])
+        D1 = compress_2(3, g, h)
+        D2 = compress_1(100, k[0])
+        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
+        numerator = neg_one * D2 + neg_one * D1  # -D1 - D2
+        denominator = D1 * D2
+        im_cluster[1] = numerator * batch_inverse(denominator)
+
+        # im_cluster[2]: -(D1 + D2) / (D1 * D2) where D1=compress(101,k[1]), D2=compress(100,k[2]-1)
+        one = FF3(np.full(n, 1, dtype=np.uint64))
+        D1 = compress_1(101, k[1])
+        D2 = compress_1(100, k[2] - one)
+        numerator = neg_one * D2 + neg_one * D1
+        denominator = D1 * D2
+        im_cluster[2] = numerator * batch_inverse(denominator)
+
+        # im_cluster[3]: -(D1 + D2) / (D1 * D2) where D1=compress(100,255-k[2]), D2=compress(101,k[3])
+        v255 = FF3(np.full(n, 255, dtype=np.uint64))
+        D1 = compress_1(100, v255 - k[2])
+        D2 = compress_1(101, k[3])
+        numerator = neg_one * D2 + neg_one * D1
+        denominator = D1 * D2
+        im_cluster[3] = numerator * batch_inverse(denominator)
+
+        # im_cluster[4]: -(D1 + D2) / (D1 * D2) where D1=compress(101,256-k[3]), D2=compress(102,k[4])
+        v256 = FF3(np.full(n, 256, dtype=np.uint64))
+        D1 = compress_1(101, v256 - k[3])
+        D2 = compress_1(102, k[4])
+        numerator = neg_one * D2 + neg_one * D1
+        denominator = D1 * D2
+        im_cluster[4] = numerator * batch_inverse(denominator)
+
+        # im_cluster[5]: -(D1 + D2) / (D1 * D2) where D1=compress(103,k[5]), D2=compress(104,k[6])
+        D1 = compress_1(103, k[5])
+        D2 = compress_1(104, k[6])
+        numerator = neg_one * D2 + neg_one * D1
+        denominator = D1 * D2
+        im_cluster[5] = numerator * batch_inverse(denominator)
 
         return {'im_cluster': im_cluster}
 
     def compute_grand_sums(self, ctx: ConstraintContext) -> Dict[str, FF3Poly]:
         """Compute gsum running sum polynomial.
 
-        gsum[i] = gsum[i-1] + sum(im_cluster[row i])
-        with gsum[-1] = 0 (boundary condition)
+        From constraint 6:
+        (gsum - prev_gsum*(1-L1) - sum_ims) * direct_den + 1 = 0
+
+        This means:
+        gsum[i] = prev_gsum[i] * (1-L1[i]) + sum_ims[i] - 1/direct_den[i]
+
+        Where direct_den = compress(1, [a, b]).
 
         Returns:
             {'gsum': gsum_polynomial}
         """
-        # First compute intermediates
+        alpha = ctx.challenge('std_alpha')
+        gamma = ctx.challenge('std_gamma')
+
+        # Get columns for term0
+        a = ctx.col('a')
+        b = ctx.col('b')
+
+        # Compute intermediates
         intermediates = self.compute_intermediates(ctx)
         im_clusters = intermediates['im_cluster']
 
-        # Sum all im_cluster contributions at each row
         n = len(list(im_clusters.values())[0])
+
+        # Compute direct_den = compress(1, [a, b]) = (b*α + a)*α + 1 + γ
+        direct_den = (b * alpha + a) * alpha + FF3(np.full(n, 1, dtype=np.uint64)) + gamma
+
+        # term0 contribution = -1 / direct_den
+        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
+        term0 = neg_one * batch_inverse(direct_den)
+
+        # Sum all contributions: im_clusters + term0
         row_sum = im_clusters[0]
         for i in range(1, 6):
             row_sum = row_sum + im_clusters[i]
+        row_sum = row_sum + term0
 
-        # Compute cumulative sum using FF3 arithmetic
-        # gsum[0] = row_sum[0]
-        # gsum[i] = gsum[i-1] + row_sum[i]
-        from primitives.field import ff3_to_interleaved_numpy, ff3_from_interleaved_numpy
-
-        # Extract row_sum values
-        row_vecs = row_sum.vector()  # (n, 3) in descending order [c2, c1, c0]
-
-        # Build gsum with cumulative sum
-        gsum_values = np.zeros((n, 3), dtype=np.uint64)
-        running = FF3([0, 0, 0])
-
-        for i in range(n):
-            # Current row contribution
-            c0, c1, c2 = int(row_vecs[i, 2]), int(row_vecs[i, 1]), int(row_vecs[i, 0])
-            current = FF3([c0, c1, c2])
-
-            # Add to running sum
-            running = running + current
-
-            # Extract coefficients for this row
-            r_vec = running.vector()[0]  # scalar extraction
-            gsum_values[i] = [int(r_vec[2]), int(r_vec[1]), int(r_vec[0])]
-
-        # Convert to FF3Poly
-        gsum_interleaved = gsum_values.flatten()
-        gsum = ff3_from_interleaved_numpy(gsum_interleaved, n)
+        # Compute cumulative sum directly on FF3 array
+        # gsum[i] = sum(row_sum[0:i+1])
+        gsum = row_sum.copy()
+        for i in range(1, n):
+            gsum[i] = gsum[i - 1] + row_sum[i]
 
         return {'gsum': gsum}

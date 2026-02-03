@@ -293,6 +293,211 @@ def _write_witness_to_buffer(
             dst_idx = base_offset + j * n_cols + stage_pos
             params.auxTrace[dst_idx:dst_idx + dim] = interleaved[j * dim:(j + 1) * dim]
 
+    # Write final gsum/gprod values to airgroupValues
+    # These are the running sum/product result used in constraint checking
+    from primitives.field import ff3_to_numpy_coeffs, FIELD_EXTENSION_DEGREE
+    for i, av in enumerate(stark_info.airgroupValuesMap):
+        # airgroupValues names are like "Simple.gsum_result" or "Permutation.gprod_result"
+        # Extract the column name (gsum or gprod) from the name
+        if '_result' in av.name:
+            parts = av.name.rsplit('.', 1)
+            if len(parts) == 2:
+                col_type = parts[1].replace('_result', '')  # 'gsum' or 'gprod'
+                if col_type in grand_sums:
+                    values = grand_sums[col_type]
+                    # Get the final value (last row)
+                    final_val = values[N - 1]
+                    # Convert FF3 scalar to numpy coefficients
+                    coeffs = ff3_to_numpy_coeffs(final_val)
+                    # Write to airgroupValues
+                    idx = i * FIELD_EXTENSION_DEGREE
+                    params.airgroupValues[idx:idx + FIELD_EXTENSION_DEGREE] = coeffs
+
+
+def _read_witness_columns(
+    stark_info: 'StarkInfo',
+    params: ProofContext,
+) -> dict:
+    """Read im_cluster and gsum/gprod columns from auxTrace buffer.
+
+    Returns dict mapping (column_name, index) to numpy array of values.
+    """
+    from primitives.field import FIELD_EXTENSION_DEGREE
+
+    N = 1 << stark_info.starkStruct.nBits
+    result = {}
+
+    # Find witness columns (im_cluster, gsum, gprod, im_single)
+    witness_col_names = {'im_cluster', 'gsum', 'gprod', 'im_single'}
+
+    for pol_info in stark_info.cmPolsMap:
+        if pol_info.name not in witness_col_names:
+            continue
+
+        # Count index for this column name
+        index = 0
+        for other in stark_info.cmPolsMap:
+            if other.name == pol_info.name and other.stagePos < pol_info.stagePos:
+                index += 1
+
+        stage = pol_info.stage
+        dim = pol_info.dim
+        stage_pos = pol_info.stagePos
+        section = f"cm{stage}"
+        n_cols = stark_info.mapSectionsN.get(section, 0)
+        base_offset = stark_info.mapOffsets.get((section, False), 0)
+
+        # Read column values
+        values = np.zeros(N * dim, dtype=np.uint64)
+        for j in range(N):
+            src_idx = base_offset + j * n_cols + stage_pos
+            values[j * dim:(j + 1) * dim] = params.auxTrace[src_idx:src_idx + dim]
+
+        result[(pol_info.name, index)] = values.copy()
+
+    return result
+
+
+def _clear_witness_columns(
+    stark_info: 'StarkInfo',
+    params: ProofContext,
+) -> None:
+    """Clear im_cluster and gsum/gprod columns in auxTrace buffer."""
+    N = 1 << stark_info.starkStruct.nBits
+
+    witness_col_names = {'im_cluster', 'gsum', 'gprod', 'im_single'}
+
+    for pol_info in stark_info.cmPolsMap:
+        if pol_info.name not in witness_col_names:
+            continue
+
+        stage = pol_info.stage
+        dim = pol_info.dim
+        stage_pos = pol_info.stagePos
+        section = f"cm{stage}"
+        n_cols = stark_info.mapSectionsN.get(section, 0)
+        base_offset = stark_info.mapOffsets.get((section, False), 0)
+
+        for j in range(N):
+            dst_idx = base_offset + j * n_cols + stage_pos
+            params.auxTrace[dst_idx:dst_idx + dim] = 0
+
+
+def compare_witness_outputs(
+    stark_info: 'StarkInfo',
+    params: ProofContext,
+    expressions_bin: 'ExpressionsBin',
+    expressions_ctx: 'ExpressionsPack',
+) -> dict:
+    """Compare witness module output against expression binary output.
+
+    Runs both paths and returns comparison results.
+
+    Args:
+        stark_info: StarkInfo with AIR name and polynomial mappings
+        params: ProofContext with trace buffers and challenges
+        expressions_bin: Expression binary for calculate_witness_std
+        expressions_ctx: Expression context for calculate_witness_std
+
+    Returns:
+        dict with comparison results:
+        - 'match': bool, True if outputs are identical
+        - 'differences': list of dicts describing each difference
+        - 'expected': dict of expected column values (from expression binary)
+        - 'actual': dict of actual column values (from witness module)
+    """
+    from protocol.witness_generation import calculate_witness_std
+    from constraints import ProverConstraintContext
+    from witness import get_witness_module
+
+    N = 1 << stark_info.starkStruct.nBits
+    air_name = stark_info.name
+
+    # Step 1: Run expression binary to get expected values
+    _clear_witness_columns(stark_info, params)
+    calculate_witness_std(stark_info, expressions_bin, params, expressions_ctx, prod=True)
+    calculate_witness_std(stark_info, expressions_bin, params, expressions_ctx, prod=False)
+    expected = _read_witness_columns(stark_info, params)
+
+    # Step 2: Clear and run witness module
+    _clear_witness_columns(stark_info, params)
+
+    witness_module = get_witness_module(air_name)
+    prover_data = _build_prover_data_base(stark_info, params)
+    ctx = ProverConstraintContext(prover_data)
+
+    intermediates = witness_module.compute_intermediates(ctx)
+    grand_sums = witness_module.compute_grand_sums(ctx)
+    _write_witness_to_buffer(stark_info, params, intermediates, grand_sums)
+
+    actual = _read_witness_columns(stark_info, params)
+
+    # Step 3: Compare
+    differences = []
+    all_keys = set(expected.keys()) | set(actual.keys())
+
+    for key in sorted(all_keys):
+        col_name, col_idx = key
+        exp_vals = expected.get(key)
+        act_vals = actual.get(key)
+
+        if exp_vals is None:
+            differences.append({
+                'column': col_name,
+                'index': col_idx,
+                'type': 'missing_expected',
+                'message': f'{col_name}[{col_idx}] missing in expected'
+            })
+            continue
+
+        if act_vals is None:
+            differences.append({
+                'column': col_name,
+                'index': col_idx,
+                'type': 'missing_actual',
+                'message': f'{col_name}[{col_idx}] missing in actual'
+            })
+            continue
+
+        if len(exp_vals) != len(act_vals):
+            differences.append({
+                'column': col_name,
+                'index': col_idx,
+                'type': 'size_mismatch',
+                'expected_size': len(exp_vals),
+                'actual_size': len(act_vals),
+            })
+            continue
+
+        # Find first difference
+        dim = 3  # FF3 extension degree
+        for row in range(N):
+            for d in range(dim):
+                flat_idx = row * dim + d
+                if flat_idx >= len(exp_vals):
+                    break
+                if exp_vals[flat_idx] != act_vals[flat_idx]:
+                    differences.append({
+                        'column': col_name,
+                        'index': col_idx,
+                        'type': 'value_mismatch',
+                        'row': row,
+                        'coeff': d,
+                        'expected': int(exp_vals[flat_idx]),
+                        'actual': int(act_vals[flat_idx]),
+                    })
+                    break  # Only report first difference per column
+            else:
+                continue
+            break
+
+    return {
+        'match': len(differences) == 0,
+        'differences': differences,
+        'expected': expected,
+        'actual': actual,
+    }
+
 
 def calculate_witness_with_module(
     stark_info: 'StarkInfo',

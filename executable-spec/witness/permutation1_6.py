@@ -2,19 +2,20 @@
 
 Permutation1_6 uses both sum-based (logup) and product-based permutation:
 
-Sum-based logup terms (5 terms):
-1. Permutation assumes, busid=1, sel=1, cols=[a1, b1]
-2. Permutation proves, busid=1, mul=1, cols=[c1, d1]
-3. Permutation assumes, busid=2, sel=1, cols=[a2, b2]
-4. Permutation assumes, busid=3, sel=sel1, cols=[a3, b3]
-5. Permutation proves, busid=3, mul=sel2, cols=[c2, d2]
+Sum-based logup terms (5 terms, 0-indexed):
+0. Permutation assumes, busid=1, sel=1, cols=[a1, b1] -> goes to gsum direct
+1. Permutation proves, busid=1, sel=-1, cols=[c1, d1]
+2. Permutation assumes, busid=2, sel=1, cols=[a2, b2]
+3. Permutation assumes, busid=3, sel=sel1, cols=[a3, b3]
+4. Permutation proves, busid=3, sel=-sel2, cols=[c2, d2]
 
-Clustered into:
-- im_cluster[0]: terms 0,1 (busid=1)
-- im_cluster[1]: terms 2,3,4 (busid=2,3)
+Intermediate columns clustering (from constraint module):
+- im_cluster[0]: terms 1,2 (proves busid=1 + assumes busid=2)
+- im_cluster[1]: terms 3,4 (assumes busid=3 + proves busid=3)
+- Term 0 goes directly to gsum, not into im_cluster
 
-Product-based term (1 term):
-6. Permutation assumes, busid=4, sel=sel3, cols=[a4, b4]
+Product-based term (for gprod):
+Permutation assumes, busid=4, sel=sel3, cols=[a4, b4]
 """
 
 from typing import Dict, List, Tuple, Union
@@ -94,7 +95,11 @@ class Permutation1_6Witness(WitnessModule):
         return terms
 
     def compute_intermediates(self, ctx: ConstraintContext) -> Dict[str, Dict[int, FF3Poly]]:
-        """Compute intermediate polynomials for logup terms.
+        """Compute intermediate polynomials directly from constraint equations.
+
+        From constraint module:
+        - im_cluster[0]: (D2 - D1)/(D1*D2) where D1=compress(1,[c1,d1]), D2=compress(2,[a2,b2])
+        - im_cluster[1]: ((-sel1)*D2 + sel2*D1)/(D1*D2) where D1=compress(3,[a3,b3]), D2=compress(3,[c2,d2])
 
         Returns:
             {
@@ -104,37 +109,56 @@ class Permutation1_6Witness(WitnessModule):
         alpha = ctx.challenge('std_alpha')
         gamma = ctx.challenge('std_gamma')
 
-        terms = self._get_sum_logup_terms(ctx)
-        n = len(terms[0][1][0])
+        # Get all columns
+        a2 = ctx.col('a2')
+        b2 = ctx.col('b2')
+        a3 = ctx.col('a3')
+        b3 = ctx.col('b3')
+        c1 = ctx.col('c1')
+        d1 = ctx.col('d1')
+        c2 = ctx.col('c2')
+        d2 = ctx.col('d2')
+        sel1 = ctx.col('sel1')
+        sel2 = ctx.col('sel2')
 
-        # Compute all 5 individual logup terms
-        all_terms = []
-        for busid, cols, sel in terms:
-            term = _compute_logup_term(busid, cols, sel, alpha, gamma)
-            all_terms.append(term)
+        n = len(a2)
+        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
 
-        # Cluster into intermediate columns
-        # - im_cluster[0]: terms 0,1 (busid=1)
-        # - im_cluster[1]: terms 2,3,4 (busid=2,3)
-        clusters = [
-            [0, 1],      # busid=1
-            [2, 3, 4],   # busid=2,3
-        ]
+        def compress_2(busid, col1, col2):
+            return (col2 * alpha + col1) * alpha + FF3(np.full(n, busid, dtype=np.uint64)) + gamma
 
         im_cluster = {}
-        for i, cluster in enumerate(clusters):
-            cluster_sum = FF3(np.zeros(n, dtype=np.uint64))
-            for term_idx in cluster:
-                cluster_sum = cluster_sum + all_terms[term_idx]
-            im_cluster[i] = cluster_sum
+
+        # im_cluster[0]: (D2 - D1)/(D1*D2) where D1=compress(1,[c1,d1]), D2=compress(2,[a2,b2])
+        D1 = compress_2(1, c1, d1)
+        D2 = compress_2(2, a2, b2)
+        numerator = D2 + neg_one * D1  # D2 - D1
+        denominator = D1 * D2
+        im_cluster[0] = numerator * batch_inverse(denominator)
+
+        # im_cluster[1]: ((-sel1)*D2 + sel2*D1)/(D1*D2) where D1=compress(3,[a3,b3]), D2=compress(3,[c2,d2])
+        D1 = compress_2(3, a3, b3)
+        D2 = compress_2(3, c2, d2)
+        neg_sel1 = neg_one * sel1
+        numerator = neg_sel1 * D2 + sel2 * D1
+        denominator = D1 * D2
+        im_cluster[1] = numerator * batch_inverse(denominator)
 
         return {'im_cluster': im_cluster}
 
     def compute_grand_sums(self, ctx: ConstraintContext) -> Dict[str, FF3Poly]:
         """Compute gsum and gprod polynomials.
 
-        gsum[i] = gsum[i-1] + sum(im_cluster columns at row i)
-        gprod[i] = gprod[i-1] * (sel * (compress + gamma - 1) + 1)
+        From constraint 2: gsum recurrence
+        (gsum - prev_gsum*(1-L1) - sum_im) * direct_den + 1 = 0
+        So gsum[i] = gsum[i-1] + sum_im[i] - 1/direct_den[i]
+        where direct_den = compress(1,[a1,b1])
+
+        From constraint 4: gprod recurrence
+        gprod * denom = prev_gprod * (1-L1) + L1
+        where denom = sel3 * (e + gamma - 1) + 1, e = (b4*alpha + a4)*alpha + 4
+        For i>0: gprod[i] = gprod[i-1] / denom[i]
+        For i=0: gprod[0] = 1 / denom[0]
 
         Returns:
             {'gsum': gsum_polynomial, 'gprod': gprod_polynomial}
@@ -142,7 +166,9 @@ class Permutation1_6Witness(WitnessModule):
         alpha = ctx.challenge('std_alpha')
         gamma = ctx.challenge('std_gamma')
 
-        # Get columns for gprod
+        # Get columns
+        a1 = ctx.col('a1')
+        b1 = ctx.col('b1')
         a4 = ctx.col('a4')
         b4 = ctx.col('b4')
         sel3 = ctx.col('sel3')
@@ -150,50 +176,37 @@ class Permutation1_6Witness(WitnessModule):
         intermediates = self.compute_intermediates(ctx)
         im_clusters = intermediates['im_cluster']
 
-        # Sum all intermediate contributions for gsum
         n = len(im_clusters[0])
-        row_sum = im_clusters[0] + im_clusters[1]
+        one = FF3(np.full(n, 1, dtype=np.uint64))
+        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
+
+        # ---- GSUM ----
+        # direct_den = compress(1, [a1, b1])
+        direct_den = (b1 * alpha + a1) * alpha + one + gamma
+
+        # term0 contribution = -1 / direct_den
+        term0 = neg_one * batch_inverse(direct_den)
+
+        # Sum all contributions for gsum: im_clusters + term0
+        sum_im = im_clusters[0] + im_clusters[1]
+        row_sum = sum_im + term0
 
         # Compute gsum cumulative sum
-        from primitives.field import ff3_from_interleaved_numpy
+        gsum = row_sum.copy()
+        for i in range(1, n):
+            gsum[i] = gsum[i - 1] + row_sum[i]
 
-        row_vecs = row_sum.vector()  # (n, 3) in descending order [c2, c1, c0]
-        gsum_values = np.zeros((n, 3), dtype=np.uint64)
-        running_sum = FF3([0, 0, 0])
+        # ---- GPROD ----
+        # e = (b4*alpha + a4)*alpha + 4 (compress without gamma)
+        e = (b4 * alpha + a4) * alpha + FF3(np.full(n, 4, dtype=np.uint64))
+        # denom = sel3 * (e + gamma - 1) + 1
+        denom = sel3 * (e + gamma - one) + one
 
-        for i in range(n):
-            c0, c1, c2 = int(row_vecs[i, 2]), int(row_vecs[i, 1]), int(row_vecs[i, 0])
-            current = FF3([c0, c1, c2])
-            running_sum = running_sum + current
-
-            r_vec = running_sum.vector()[0]
-            gsum_values[i] = [int(r_vec[2]), int(r_vec[1]), int(r_vec[0])]
-
-        gsum_interleaved = gsum_values.flatten()
-        gsum = ff3_from_interleaved_numpy(gsum_interleaved, n)
-
-        # Compute gprod running product
-        # Formula: gprod[i] = gprod[i-1] * factor[i]
-        # where factor = sel3 * (compress + gamma - 1) + 1
-        # At row 0: gprod[0] = 1 * factor[0]
-
-        compress_4 = _compress_exprs(4, [a4, b4], alpha, gamma)
-        # factor = sel3 * (compress_4 + gamma - 1) + 1
-        factor = sel3 * (compress_4 + gamma - 1) + 1
-
-        factor_vecs = factor.vector()  # (n, 3) in descending order [c2, c1, c0]
-        gprod_values = np.zeros((n, 3), dtype=np.uint64)
-        running_prod = FF3([1, 0, 0])  # Start with 1
-
-        for i in range(n):
-            c0, c1, c2 = int(factor_vecs[i, 2]), int(factor_vecs[i, 1]), int(factor_vecs[i, 0])
-            current_factor = FF3([c0, c1, c2])
-            running_prod = running_prod * current_factor
-
-            r_vec = running_prod.vector()[0]
-            gprod_values[i] = [int(r_vec[2]), int(r_vec[1]), int(r_vec[0])]
-
-        gprod_interleaved = gprod_values.flatten()
-        gprod = ff3_from_interleaved_numpy(gprod_interleaved, n)
+        # gprod[i] = prod(1/denom[j] for j in 0..i)
+        # = 1 / prod(denom[j] for j in 0..i)
+        inv_denom = batch_inverse(denom)
+        gprod = inv_denom.copy()
+        for i in range(1, n):
+            gprod[i] = gprod[i - 1] * inv_denom[i]
 
         return {'gsum': gsum, 'gprod': gprod}

@@ -10,10 +10,9 @@ from protocol.expression_evaluator import ExpressionsPack
 from protocol.pcs import FriPcs, FriPcsConfig
 from protocol.proof_context import ProofContext
 from protocol.air_config import ProverHelpers, SetupCtx
-from protocol.stages import Starks
+from protocol.stages import Starks, calculate_witness_with_module
 from protocol.stark_info import StarkInfo
 from protocol.utils.challenge_utils import derive_global_challenge
-from protocol.witness_generation import calculate_witness_std
 
 # --- Type Aliases ---
 MerkleRoot = list[int]
@@ -279,15 +278,8 @@ def gen_proof(
     #
     # The witness module computes:
     # - im_cluster columns: intermediate logup term sums clustered for degree optimization
-    # - gsum column: cumulative sum of all logup terms for constraint checking
-    #
-    # Note: Witness modules are not yet matching expression binary output.
-    # The modules compute logup terms from first principles, but expression
-    # binary uses compiler-generated hints with different structure.
-    # TODO: Fix witness modules to match compiler output exactly.
-    # For now, use expression binary (calculate_witness_std).
-    calculate_witness_std(stark_info, setup_ctx.expressions_bin, params, expressions_ctx, prod=True)
-    calculate_witness_std(stark_info, setup_ctx.expressions_bin, params, expressions_ctx, prod=False)
+    # - gsum/gprod columns: cumulative sum/product for constraint checking
+    calculate_witness_with_module(stark_info, params)
 
     # Commit to all Stage 2 polynomials (witness, intermediate, grand products).
     # This is a second merkle tree, building on the same evaluation domain as Stage 1.

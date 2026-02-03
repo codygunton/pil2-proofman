@@ -1,17 +1,20 @@
 """Lookup2_12 AIR witness generation.
 
 Lookup2_12 logup terms (from gsum_debug_data hints):
-1. Lookup assumes, busid=4, sel=1, cols=[a1, b1]
-2. Lookup proves, busid=4, mul=1, cols=[c1, d1]
-3. Lookup assumes, busid=5, sel=1, cols=[a2, b2]
-4. Lookup assumes, busid=6, sel=sel1, cols=[a3, b3]
-5. Lookup proves, busid=6, mul=mul, cols=[c2, d2]
-6. Lookup assumes, busid=7, sel=sel2, cols=[a4, b4]
+0. Lookup assumes, busid=4, sel=1, cols=[a1, b1]  -- direct term in gsum
+1. Lookup proves, busid=4, mul=1, cols=[c1, d1]   -- stored_num = +1
+2. Lookup assumes, busid=5, sel=1, cols=[a2, b2]  -- stored_num = -1
+3. Lookup assumes, busid=6, sel=sel1, cols=[a3, b3]  -- stored_num = -sel1
+4. Lookup proves, busid=6, mul=mul, cols=[c2, d2]    -- stored_num = +mul
+5. Lookup assumes, busid=7, sel=sel2, cols=[a4, b4]  -- stored_num = -sel2
 
-Clustered into:
-- im_cluster[0]: terms 0,1 (busid=4)
-- im_cluster[1]: terms 2,3,4 (busid=5,6)
-- im_single: term 5 (busid=7)
+Intermediate columns clustering (from expressionsinfo constraint lines):
+- im_cluster[0]: busid=4 proves [c1,d1] + busid=5 assumes [a2,b2] = terms 1,2
+- im_cluster[1]: busid=6 assumes [a3,b3] + busid=6 proves [c2,d2] = terms 3,4
+- im_single: busid=7 assumes [a4,b4] = term 5
+
+Convention: stored_num = -selector for assumes, +multiplicity for proves.
+Term 0 (busid=4 assumes) is used directly in gsum, not in intermediate columns.
 """
 
 from typing import Dict, List, Tuple, Union
@@ -82,20 +85,25 @@ class Lookup2_12Witness(WitnessModule):
         sel2 = ctx.col('sel2')
         mul = ctx.col('mul')
 
-        # Define all 6 logup terms
-        # selector: +1 for assumes, -1 for proves (or the actual mul column negated)
+        # Define all 6 logup terms with stored_num convention:
+        # stored_num = -selector for assumes, +multiplicity for proves
         terms = [
-            (4, [a1, b1], 1),        # assumes busid=4
-            (4, [c1, d1], -1),       # proves busid=4 (negated)
-            (5, [a2, b2], 1),        # assumes busid=5
-            (6, [a3, b3], sel1),     # assumes busid=6, sel=sel1
-            (6, [c2, d2], -mul),     # proves busid=6, mul negated
-            (7, [a4, b4], sel2),     # assumes busid=7, sel=sel2
+            (4, [a1, b1], 1),        # term 0: assumes busid=4, used direct (selector=+1)
+            (4, [c1, d1], 1),        # term 1: proves busid=4, stored_num = +1
+            (5, [a2, b2], -1),       # term 2: assumes busid=5, stored_num = -1
+            (6, [a3, b3], -sel1),    # term 3: assumes busid=6, stored_num = -sel1
+            (6, [c2, d2], mul),      # term 4: proves busid=6, stored_num = +mul
+            (7, [a4, b4], -sel2),    # term 5: assumes busid=7, stored_num = -sel2
         ]
         return terms
 
     def compute_intermediates(self, ctx: ConstraintContext) -> Dict[str, Dict[int, FF3Poly]]:
-        """Compute intermediate polynomials for logup terms.
+        """Compute intermediate polynomials directly from constraint equations.
+
+        From constraint module:
+        - im_cluster[0]: (D2 - D1)/(D1*D2) where D1=compress(4,[c1,d1]), D2=compress(5,[a2,b2])
+        - im_cluster[1]: ((-sel1)*D2 + mul*D1)/(D1*D2) where D1=compress(6,[a3,b3]), D2=compress(6,[c2,d2])
+        - im_single: (-sel2)/D where D=compress(7,[a4,b4])
 
         Returns:
             {
@@ -106,68 +114,92 @@ class Lookup2_12Witness(WitnessModule):
         alpha = ctx.challenge('std_alpha')
         gamma = ctx.challenge('std_gamma')
 
-        terms = self._get_all_logup_terms(ctx)
-        n = len(terms[0][1][0])
+        # Get all columns
+        a2 = ctx.col('a2')
+        b2 = ctx.col('b2')
+        a3 = ctx.col('a3')
+        b3 = ctx.col('b3')
+        a4 = ctx.col('a4')
+        b4 = ctx.col('b4')
+        c1 = ctx.col('c1')
+        d1 = ctx.col('d1')
+        c2 = ctx.col('c2')
+        d2 = ctx.col('d2')
+        sel1 = ctx.col('sel1')
+        sel2 = ctx.col('sel2')
+        mul = ctx.col('mul')
 
-        # Compute all 6 individual logup terms
-        all_terms = []
-        for busid, cols, sel in terms:
-            term = _compute_logup_term(busid, cols, sel, alpha, gamma)
-            all_terms.append(term)
+        n = len(a2)
+        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
 
-        # Cluster into intermediate columns
-        # - im_cluster[0]: terms 0,1 (busid=4)
-        # - im_cluster[1]: terms 2,3,4 (busid=5,6)
-        # - im_single: term 5 (busid=7)
-        clusters = [
-            [0, 1],      # busid=4
-            [2, 3, 4],   # busid=5,6
-        ]
+        def compress_2(busid, col1, col2):
+            return (col2 * alpha + col1) * alpha + FF3(np.full(n, busid, dtype=np.uint64)) + gamma
 
         im_cluster = {}
-        for i, cluster in enumerate(clusters):
-            cluster_sum = FF3(np.zeros(n, dtype=np.uint64))
-            for term_idx in cluster:
-                cluster_sum = cluster_sum + all_terms[term_idx]
-            im_cluster[i] = cluster_sum
 
-        # im_single is just term 5
-        im_single = {0: all_terms[5]}
+        # im_cluster[0]: (D2 - D1)/(D1*D2) where D1=compress(4,[c1,d1]), D2=compress(5,[a2,b2])
+        D1 = compress_2(4, c1, d1)
+        D2 = compress_2(5, a2, b2)
+        numerator = D2 + neg_one * D1  # D2 - D1
+        denominator = D1 * D2
+        im_cluster[0] = numerator * batch_inverse(denominator)
+
+        # im_cluster[1]: ((-sel1)*D2 + mul*D1)/(D1*D2) where D1=compress(6,[a3,b3]), D2=compress(6,[c2,d2])
+        D1 = compress_2(6, a3, b3)
+        D2 = compress_2(6, c2, d2)
+        neg_sel1 = neg_one * sel1
+        numerator = neg_sel1 * D2 + mul * D1
+        denominator = D1 * D2
+        im_cluster[1] = numerator * batch_inverse(denominator)
+
+        # im_single: (-sel2)/D where D=compress(7,[a4,b4])
+        D = compress_2(7, a4, b4)
+        neg_sel2 = neg_one * sel2
+        im_single = {0: neg_sel2 * batch_inverse(D)}
 
         return {'im_cluster': im_cluster, 'im_single': im_single}
 
     def compute_grand_sums(self, ctx: ConstraintContext) -> Dict[str, FF3Poly]:
         """Compute gsum running sum polynomial.
 
-        gsum[i] = gsum[i-1] + sum(intermediate columns at row i)
+        From constraint 3:
+        (gsum - prev_gsum*(1-L1) - sum_ims) * direct_den + 1 = 0
+
+        This means:
+        gsum[i] = prev_gsum[i] * (1-L1[i]) + sum_ims[i] - 1/direct_den[i]
+
+        Where direct_den = compress(4, [a1, b1]).
 
         Returns:
             {'gsum': gsum_polynomial}
         """
+        alpha = ctx.challenge('std_alpha')
+        gamma = ctx.challenge('std_gamma')
+
+        # Get columns for direct_den
+        a1 = ctx.col('a1')
+        b1 = ctx.col('b1')
+
         intermediates = self.compute_intermediates(ctx)
         im_clusters = intermediates['im_cluster']
         im_single = intermediates['im_single']
 
-        # Sum all intermediate contributions
         n = len(im_clusters[0])
-        row_sum = im_clusters[0] + im_clusters[1] + im_single[0]
+        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
 
-        # Compute cumulative sum
-        from primitives.field import ff3_from_interleaved_numpy
+        # Compute direct_den = compress(4, [a1, b1])
+        direct_den = (b1 * alpha + a1) * alpha + FF3(np.full(n, 4, dtype=np.uint64)) + gamma
 
-        row_vecs = row_sum.vector()  # (n, 3) in descending order [c2, c1, c0]
-        gsum_values = np.zeros((n, 3), dtype=np.uint64)
-        running = FF3([0, 0, 0])
+        # term0 contribution = -1 / direct_den
+        term0 = neg_one * batch_inverse(direct_den)
 
-        for i in range(n):
-            c0, c1, c2 = int(row_vecs[i, 2]), int(row_vecs[i, 1]), int(row_vecs[i, 0])
-            current = FF3([c0, c1, c2])
-            running = running + current
+        # Sum all contributions: im_clusters + im_single + term0
+        sum_ims = im_clusters[0] + im_clusters[1] + im_single[0]
+        row_sum = sum_ims + term0
 
-            r_vec = running.vector()[0]
-            gsum_values[i] = [int(r_vec[2]), int(r_vec[1]), int(r_vec[0])]
-
-        gsum_interleaved = gsum_values.flatten()
-        gsum = ff3_from_interleaved_numpy(gsum_interleaved, n)
+        # Compute cumulative sum directly on FF3 array
+        gsum = row_sum.copy()
+        for i in range(1, n):
+            gsum[i] = gsum[i - 1] + row_sum[i]
 
         return {'gsum': gsum}
