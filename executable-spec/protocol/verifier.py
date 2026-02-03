@@ -22,11 +22,10 @@ from primitives.merkle_tree import HASH_SIZE, MerkleRoot, MerkleTree
 from primitives.pol_map import EvMap
 from primitives.polynomial import to_coefficients
 from primitives.transcript import Transcript
-from protocol.expression_evaluator import Dest, ExpressionsPack, Params
 from protocol.fri import FRI
 from protocol.proof import MerkleProof, STARKProof
 from protocol.proof_context import ProofContext
-from protocol.air_config import ProverHelpers, SetupCtx
+from protocol.air_config import SetupCtx
 from protocol.stark_info import StarkInfo
 from protocol.data import VerifierData
 # Late import: get_constraint_module, VerifierConstraintContext imported inside functions
@@ -96,8 +95,6 @@ def stark_verify(
 
     # --- Build verifier context ---
     xi = _find_xi_challenge(si, challenges)
-    prover_helpers = ProverHelpers.from_challenge(si, xi)
-    expressions_pack = ExpressionsPack(setup_ctx, prover_helpers, 1, ss.nQueries)
     x_div_x_sub = _compute_x_div_x_sub(si, xi, fri_queries)
 
     params = ProofContext(
@@ -120,13 +117,13 @@ def stark_verify(
 
     # Check 1: Q(xi) = C(xi)
     print("Verifying evaluations")
-    if not _verify_evaluations(si, setup_ctx, expressions_pack, params, evals, xi, challenges):
+    if not _verify_evaluations(si, params, evals, xi, challenges):
         print("ERROR: Invalid evaluations")
         is_valid = False
 
     # Check 2: FRI polynomial consistency at query points
     print("Verifying FRI queries consistency")
-    if not _verify_fri_consistency(proof, si, setup_ctx, expressions_pack, params, fri_queries):
+    if not _verify_fri_consistency(proof, si, params, fri_queries):
         print("ERROR: Verify FRI query consistency failed")
         is_valid = False
 
@@ -565,22 +562,6 @@ def _compute_x_div_x_sub(si: StarkInfo, xi_challenge: Challenge, fri_queries: li
     return x_div_x_sub
 
 
-def _evaluate_constraint_at_xi(si: StarkInfo, setup_ctx: SetupCtx, expressions_pack: ExpressionsPack,
-                               params: ProofContext) -> InterleavedFF3:
-    """Evaluate the constraint polynomial C(xi) using the expression evaluator.
-
-    Returns:
-        Buffer containing C(xi) coefficients in extension field
-    """
-    buff = np.zeros(FIELD_EXTENSION_DEGREE, dtype=np.uint64)
-    dest = Dest(dest=buff, domain_size=1, offset=0)
-    dest.exp_id = si.cExpId
-    dest.dim = setup_ctx.expressions_bin.expressions_info[si.cExpId].dest_dim
-    dest.params.append(Params(exp_id=si.cExpId, dim=dest.dim, batch=True, op="tmp"))
-    expressions_pack.calculate_expressions(params, dest, 1, False, False)
-    return buff
-
-
 def _compute_xi_to_trace_size(xi: FF3, trace_size: int) -> FF3:
     """Compute xi^N where N is the trace size.
 
@@ -629,35 +610,21 @@ def _reconstruct_quotient_at_xi(si: StarkInfo, evals: InterleavedFF3, xi: FF3, x
     return reconstructed_quotient
 
 
-def _verify_evaluations(si: StarkInfo, setup_ctx: SetupCtx, expressions_pack: ExpressionsPack,
-                        params: ProofContext, evals: InterleavedFF3, xi_challenge: Challenge,
-                        challenges: InterleavedFF3 = None) -> bool:
+def _verify_evaluations(si: StarkInfo, params: ProofContext, evals: InterleavedFF3,
+                        xi_challenge: Challenge, challenges: InterleavedFF3 = None) -> bool:
     """Verify Q(xi) = C(xi) - the core STARK equation.
 
     This checks that the prover correctly computed the quotient polynomial Q
     such that C(x) = Q(x) * Z_H(x) where C is the constraint and Z_H is the
     vanishing polynomial on the trace domain.
-
-    SimpleLeft uses the new constraint module path (verified to match expression binary).
-    Other AIRs fall back to expression binary until their modules are fixed.
     """
     # Convert xi challenge to FF3
     xi = ff3([int(xi_challenge[0]), int(xi_challenge[1]), int(xi_challenge[2])])
 
-    # Choose evaluation path based on AIR
-    # To enable constraint module for a new AIR, add it here and in prover.py
-    use_constraint_module = si.name in ('SimpleLeft', 'Permutation1_6', 'Lookup2_12')
-
-    if use_constraint_module:
-        # New path: use per-AIR constraint module
-        # IMPORTANT: airgroup_values must be passed for boundary constraints that use ctx.airgroup_value()
-        verifier_data = _build_verifier_data(si, evals, challenges, params.airgroupValues)
-        constraint_buffer = _evaluate_constraint_with_module(si, verifier_data, xi)
-        constraint_at_xi = ff3([int(constraint_buffer[k]) for k in range(FIELD_EXTENSION_DEGREE)])
-    else:
-        # Old path: use expression binary (already includes Z_H division)
-        constraint_buffer = _evaluate_constraint_at_xi(si, setup_ctx, expressions_pack, params)
-        constraint_at_xi = ff3([int(constraint_buffer[k]) for k in range(FIELD_EXTENSION_DEGREE)])
+    # Evaluate constraint polynomial using per-AIR constraint module
+    verifier_data = _build_verifier_data(si, evals, challenges, params.airgroupValues)
+    constraint_buffer = _evaluate_constraint_with_module(si, verifier_data, xi)
+    constraint_at_xi = ff3([int(constraint_buffer[k]) for k in range(FIELD_EXTENSION_DEGREE)])
 
     # Step 2: Compute powers of xi needed for reconstruction
     trace_size = 1 << si.starkStruct.nBits
@@ -678,20 +645,16 @@ def _verify_evaluations(si: StarkInfo, setup_ctx: SetupCtx, expressions_pack: Ex
     return True
 
 
-def _verify_fri_consistency(proof: STARKProof, si: StarkInfo, setup_ctx: SetupCtx,
-                            expressions_pack: ExpressionsPack, params: ProofContext,
+def _verify_fri_consistency(proof: STARKProof, si: StarkInfo, params: ProofContext,
                             fri_queries: list[QueryIdx]) -> bool:
     """Verify FRI polynomial matches constraint evaluation at query points."""
+    from protocol.fri_polynomial import compute_fri_polynomial_verifier
+
     n_queries = si.starkStruct.nQueries
     n_steps = len(si.starkStruct.friFoldSteps)
 
-    # Evaluate FRI polynomial at query points
-    buff = np.zeros(FIELD_EXTENSION_DEGREE * n_queries, dtype=np.uint64)
-    dest = Dest(dest=buff, domain_size=n_queries, offset=0)
-    dest.exp_id = si.friExpId
-    dest.dim = setup_ctx.expressions_bin.expressions_info[si.friExpId].dest_dim
-    dest.params.append(Params(exp_id=si.friExpId, dim=dest.dim, batch=True, op="tmp"))
-    expressions_pack.calculate_expressions(params, dest, n_queries, False, False)
+    # Compute FRI polynomial at query points using direct computation
+    buff = compute_fri_polynomial_verifier(si, params, n_queries)
 
     for q in range(n_queries):
         idx = fri_queries[q] % (1 << si.starkStruct.friFoldSteps[0].domainBits)

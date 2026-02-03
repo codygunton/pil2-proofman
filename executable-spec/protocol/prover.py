@@ -448,7 +448,7 @@ def gen_proof(
     # Debug: compare FRI polynomial implementations
     # Note: FRI polynomial uses Horner's method batching which differs from naive formula
     # The direct computation needs to match the bytecode's grouping scheme
-    starks.calculateFRIPolynomial(params, expressions_ctx, use_direct_computation=False, debug_compare=False)
+    starks.calculateFRIPolynomial(params, expressions_ctx, use_direct_computation=True, debug_compare=False)
 
     # Extract the FRI polynomial from the auxiliary trace buffer.
     # params.auxTrace is a flat array containing all polynomials:

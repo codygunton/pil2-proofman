@@ -246,7 +246,6 @@ class TestWitnessComparisonStrict:
     Enable these tests after fixing witness modules.
     """
 
-    @pytest.mark.skip(reason="Enable after fixing SimpleLeft witness module")
     def test_simple_left_strict(self):
         """SimpleLeft witness module must match expression binary exactly."""
         vectors = load_test_vectors('simple')
@@ -268,7 +267,6 @@ class TestWitnessComparisonStrict:
 
         assert result['match'], f"Witness outputs differ: {result['differences']}"
 
-    @pytest.mark.skip(reason="Enable after fixing Lookup2_12 witness module")
     def test_lookup2_12_strict(self):
         """Lookup2_12 witness module must match expression binary exactly."""
         vectors = load_test_vectors('lookup')
@@ -290,7 +288,6 @@ class TestWitnessComparisonStrict:
 
         assert result['match'], f"Witness outputs differ: {result['differences']}"
 
-    @pytest.mark.skip(reason="Enable after fixing Permutation1_6 witness module")
     def test_permutation1_6_strict(self):
         """Permutation1_6 witness module must match expression binary exactly."""
         vectors = load_test_vectors('permutation')

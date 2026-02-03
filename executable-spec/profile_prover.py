@@ -32,7 +32,6 @@ def patch_prover():
     """Patch prover functions with timing instrumentation."""
     import protocol.prover as prover_module
     import protocol.stages as stages_module
-    import protocol.witness_generation as witness_module
     import protocol.expression_evaluator as expr_module
     import protocol.pcs as pcs_module
     import primitives.merkle_tree as merkle_module
@@ -104,26 +103,14 @@ def patch_prover():
     stages_module.Starks.computeEvals = timed_computeEvals
     stages_module.Starks.evmap = timed_evmap
 
-    # Patch witness generation
-    original_calculate_witness_std = witness_module.calculate_witness_std
-    original_field_inverse_column = witness_module._field_inverse_column
-    original_multiply_hint_fields = witness_module.multiply_hint_fields
+    # Patch witness generation (now uses witness modules)
+    original_calculate_witness_with_module = stages_module.calculate_witness_with_module
 
-    @timed("calculate_witness_std")
-    def timed_calculate_witness_std(*args, **kwargs):
-        return original_calculate_witness_std(*args, **kwargs)
+    @timed("calculate_witness_with_module")
+    def timed_calculate_witness_with_module(*args, **kwargs):
+        return original_calculate_witness_with_module(*args, **kwargs)
 
-    @timed("_field_inverse_column")
-    def timed_field_inverse_column(*args, **kwargs):
-        return original_field_inverse_column(*args, **kwargs)
-
-    @timed("multiply_hint_fields")
-    def timed_multiply_hint_fields(*args, **kwargs):
-        return original_multiply_hint_fields(*args, **kwargs)
-
-    witness_module.calculate_witness_std = timed_calculate_witness_std
-    witness_module._field_inverse_column = timed_field_inverse_column
-    witness_module.multiply_hint_fields = timed_multiply_hint_fields
+    stages_module.calculate_witness_with_module = timed_calculate_witness_with_module
 
     # Patch expression evaluator
     original_calculate_expressions = expr_module.ExpressionsPack.calculate_expressions

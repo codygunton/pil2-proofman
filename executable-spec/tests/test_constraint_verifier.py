@@ -15,11 +15,8 @@ from protocol.proof import from_bytes_full
 from protocol.verifier import (
     _build_verifier_data,
     _reconstruct_transcript,
-    _evaluate_constraint_at_xi,
 )
-from protocol.expression_evaluator import ExpressionsPack
 from protocol.proof_context import ProofContext
-from protocol.air_config import ProverHelpers
 from protocol.data import VerifierData
 from constraints import get_constraint_module, VerifierConstraintContext
 

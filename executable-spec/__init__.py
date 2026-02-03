@@ -58,7 +58,6 @@ from protocol import (
     Starks,
     ExpressionsPack,
     stark_verify,
-    calculate_witness_std,
 )
 
 # Poseidon2 is in a separate FFI package
@@ -128,5 +127,4 @@ __all__ = [
     "Starks",
     "ExpressionsPack",
     "stark_verify",
-    "calculate_witness_std",
 ]

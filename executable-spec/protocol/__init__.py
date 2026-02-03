@@ -17,8 +17,6 @@ from protocol.expression_evaluator import ExpressionsPack
 
 from protocol.verifier import stark_verify
 
-from protocol.witness_generation import calculate_witness_std
-
 from protocol.prover import gen_proof
 
 from protocol.stark_info import StarkInfo
@@ -42,7 +40,6 @@ __all__ = [
     "Starks",
     "ExpressionsPack",
     "stark_verify",
-    "calculate_witness_std",
     "gen_proof",
     # Configuration and data structures
     "StarkInfo",

@@ -3,26 +3,21 @@
 The FRI polynomial F combines all committed polynomial evaluations into a single
 polynomial for the FRI proximity test using polynomial batching.
 
-**Naive formula (NOT USED BY BYTECODE):**
-    F(x) = Σ_i (vf1^i * vf2^openingPos[i]) * (poly_i(x) - eval_i) / (x - xi_i)
+**Batching formula (matching C++ bytecode):**
 
-**Actual bytecode formula (Horner's method grouped by opening position):**
-The bytecode groups evaluations by opening position and uses Horner's method:
+Within each opening position group g (with entries [e0, e1, ..., en] in evMap order):
+    group_g = (vf2^n * (p0 - ev0) + vf2^{n-1} * (p1 - ev1) + ... + (pn - evn)) * xDivXSubXi[g]
 
-    For each openingPos group g:
-        group_g = Σ_i (poly_i - eval_i) * vf2^(rank within group in reverse order)
-        group_g = group_g * xDivXSubXi[g]
+First entry in group gets highest vf2 power, last entry gets vf2^0.
 
-    F(x) = (group_0 + group_1) * vf1 + group_2
+Between groups (with n_groups opening positions):
+    F = vf1^{n_groups-1} * group_0 + vf1^{n_groups-2} * group_1 + ... + group_{n_groups-1}
+
+First group gets highest vf1 power, last group gets vf1^0.
 
 Where:
 - vf1, vf2 are FRI verification challenges (std_vf1, std_vf2)
 - xDivXSubXi[g] = 1/(x - xi * ω^openingPoints[g])
-- Groups are combined with vf1 multiplier between them
-
-Note: The compute_fri_polynomial function below implements the naive formula,
-which produces different results from the bytecode. For correctness, use the
-expression binary evaluator (expressionsCtx.calculate_expression with friExpId).
 """
 
 import numpy as np
@@ -202,72 +197,86 @@ def compute_fri_polynomial(
         inv_diff = batch_inverse(diff)
         x_div_x_sub_xi.append(inv_diff)
 
-    # Precompute powers of vf2 for each openingPos
-    vf2_powers = [ff3([1, 0, 0])]  # vf2^0
-    for i in range(1, n_opening_points):
-        vf2_powers.append(vf2_powers[-1] * vf2)
-
-    # Initialize result to zero
-    result = FF3(np.zeros(domain_size, dtype=np.uint64))
-
-    # Process each evMap entry
-    vf1_power = ff3([1, 0, 0])  # vf1^0
-
+    # Group evMap entries by opening position index
+    # evMap[i].openingPos is the INDEX into openingPoints, not the actual value
+    # Each group contains (ev_idx, ev_entry) pairs in evMap order
+    groups_by_opening_idx = {}
     for ev_idx, ev_entry in enumerate(stark_info.evMap):
-        opening_pos = ev_entry.openingPos
+        opening_idx = ev_entry.openingPos  # This is already an index
+        if opening_idx not in groups_by_opening_idx:
+            groups_by_opening_idx[opening_idx] = []
+        groups_by_opening_idx[opening_idx].append((ev_idx, ev_entry))
 
-        # Get polynomial values on domain
-        poly_vals = _get_polynomial_on_domain(
-            stark_info, params, ev_entry, domain_size, extended
-        )
+    # Get ordered list of opening indices (sorted numerically)
+    ordered_opening_indices = sorted(groups_by_opening_idx.keys())
 
-        # Get claimed evaluation for this polynomial
-        eval_base = ev_idx * FIELD_EXTENSION_DEGREE
-        eval_coeffs = [
-            int(params.evals[eval_base]),
-            int(params.evals[eval_base + 1]),
-            int(params.evals[eval_base + 2])
-        ]
-        eval_val = ff3(eval_coeffs)
+    # Compute each group using Horner's method (first entry gets highest vf2 power)
+    group_results = []
+    for opening_idx in ordered_opening_indices:
+        entries = groups_by_opening_idx[opening_idx]
 
-        # Compute (poly_vals - eval) * 1/(x - xi)
-        diff = poly_vals - eval_val
-        batched = diff * x_div_x_sub_xi[opening_pos]
+        # Horner accumulation: result = 0
+        # For each entry: result = result * vf2 + (poly - eval)
+        # This gives first entry highest vf2 power
+        group_acc = FF3(np.zeros(domain_size, dtype=np.uint64))
 
-        # Compute coefficient: vf1^i * vf2^openingPos
-        coeff = vf1_power * vf2_powers[opening_pos]
+        for ev_idx, ev_entry in entries:
+            # Get polynomial values on domain
+            poly_vals = _get_polynomial_on_domain(
+                stark_info, params, ev_entry, domain_size, extended
+            )
 
-        # Add to result: result += coeff * batched
-        result = result + coeff * batched
+            # Get claimed evaluation for this polynomial
+            eval_base = ev_idx * FIELD_EXTENSION_DEGREE
+            eval_coeffs = [
+                int(params.evals[eval_base]),
+                int(params.evals[eval_base + 1]),
+                int(params.evals[eval_base + 2])
+            ]
+            eval_val = ff3(eval_coeffs)
 
-        # Update vf1 power for next entry
-        vf1_power = vf1_power * vf1
+            # Horner step: acc = acc * vf2 + (poly - eval)
+            diff = poly_vals - eval_val
+            group_acc = group_acc * vf2 + diff
+
+        # Multiply by xDivXSubXi for this opening position
+        group_acc = group_acc * x_div_x_sub_xi[opening_idx]
+        group_results.append(group_acc)
+
+    # Combine groups with vf1 powers (first group gets highest vf1 power)
+    # Horner accumulation: result = 0
+    # For each group: result = result * vf1 + group
+    result = FF3(np.zeros(domain_size, dtype=np.uint64))
+    for group_acc in group_results:
+        result = result * vf1 + group_acc
 
     return ff3_to_interleaved_numpy(result)
 
 
-def compute_fri_polynomial_at_queries(
+def compute_fri_polynomial_verifier(
     stark_info: 'StarkInfo',
     params: 'ProofContext',
-    query_indices: list[int],
-    evals: np.ndarray
+    n_queries: int
 ) -> np.ndarray:
-    """Compute FRI polynomial at specific query points for verifier.
+    """Compute FRI polynomial at query points for verifier.
 
-    Unlike the prover which computes on the full domain, the verifier only
-    needs values at specific query indices. The polynomial evaluations at
-    these points come from the proof (evals buffer).
+    The verifier computes:
+    F(q) = Σ_i (vf1^i * vf2^openingPos[i]) * (poly_i(q) - eval_i) * xDivXSub[q][openingPos[i]]
+
+    Where:
+    - poly_i(q) are polynomial values at query point q (from trace/auxTrace)
+    - eval_i are claimed evaluations at xi (from params.evals)
+    - xDivXSub[q][i] = 1/(x_q - xi * ω^openingPoints[i])
 
     Args:
-        stark_info: StarkInfo with evMap
-        params: ProofContext with challenges
-        query_indices: List of query point indices
-        evals: Evaluation buffer from proof
+        stark_info: StarkInfo with evMap and polynomial mappings
+        params: ProofContext with trace, auxTrace, evals, xDivXSub, challenges
+        n_queries: Number of query points
 
     Returns:
-        FRI polynomial values at query points as interleaved array
+        FRI polynomial values at query points as interleaved array (n_queries * 3)
     """
-    n_queries = len(query_indices)
+    from primitives.field import batch_inverse
 
     # Get vf1, vf2 challenges
     vf1_idx = next(
@@ -286,35 +295,113 @@ def compute_fri_polynomial_at_queries(
         params.challenges[vf2_idx * FIELD_EXTENSION_DEGREE:(vf2_idx + 1) * FIELD_EXTENSION_DEGREE]
     )
 
-    # Initialize result
-    result = FF3(np.zeros(n_queries, dtype=np.uint64))
-
-    # Precompute powers of vf2
     n_opening_points = len(stark_info.openingPoints)
-    vf2_powers = [ff3([1, 0, 0])]
-    for i in range(1, n_opening_points):
-        vf2_powers.append(vf2_powers[-1] * vf2)
 
-    # Process each evMap entry
-    vf1_power = ff3([1, 0, 0])
+    # Helper to get polynomial values at query points
+    def get_poly_vals_at_queries(ev_entry):
+        ev_type = ev_entry.type
+        ev_id = ev_entry.id
 
-    for ev_idx, ev_entry in enumerate(stark_info.evMap):
-        opening_pos = ev_entry.openingPos
+        if ev_type == EvMap.Type.cm:
+            pol_info = stark_info.cmPolsMap[ev_id]
+            stage = pol_info.stage
+            dim = pol_info.dim
+            stage_pos = pol_info.stagePos
+            section = f"cm{stage}"
+            n_cols = stark_info.mapSectionsN.get(section, 0)
 
-        # Get evaluations at query points from evals buffer
-        # evals layout: [eval0_coeff0, eval0_coeff1, eval0_coeff2, eval1_coeff0, ...]
-        eval_vals = np.zeros(n_queries * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
+            if stage == 1:
+                buffer = params.trace
+                base_offset = 0
+            else:
+                base_offset = 0
+                for s in range(2, stage):
+                    sec = f"cm{s}"
+                    if sec in stark_info.mapSectionsN:
+                        base_offset += n_queries * stark_info.mapSectionsN[sec]
+                buffer = params.auxTrace
+
+            poly_raw = np.zeros(n_queries * dim, dtype=np.uint64)
+            for q in range(n_queries):
+                src_idx = base_offset + q * n_cols + stage_pos
+                poly_raw[q * dim:(q + 1) * dim] = buffer[src_idx:src_idx + dim]
+
+            if dim == 1:
+                return FF3(np.asarray(poly_raw, dtype=np.uint64))
+            else:
+                return ff3_from_interleaved_numpy(poly_raw, n_queries)
+
+        elif ev_type == EvMap.Type.const_:
+            pol_info = stark_info.constPolsMap[ev_id]
+            dim = pol_info.dim
+            stage_pos = pol_info.stagePos
+            n_cols = stark_info.nConstants
+
+            poly_raw = np.zeros(n_queries * dim, dtype=np.uint64)
+            for q in range(n_queries):
+                src_idx = q * n_cols + stage_pos
+                poly_raw[q * dim:(q + 1) * dim] = params.constPols[src_idx:src_idx + dim]
+
+            if dim == 1:
+                return FF3(np.asarray(poly_raw, dtype=np.uint64))
+            else:
+                return ff3_from_interleaved_numpy(poly_raw, n_queries)
+        else:
+            return None
+
+    # Helper to get xDivXSub for opening position at all queries
+    def get_x_div_x_sub(opening_idx):
+        x_div_raw = np.zeros(n_queries * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
         for q in range(n_queries):
-            base_idx = ev_idx * FIELD_EXTENSION_DEGREE
-            for k in range(FIELD_EXTENSION_DEGREE):
-                eval_vals[q * FIELD_EXTENSION_DEGREE + k] = evals[base_idx + k]
+            base = (q * n_opening_points + opening_idx) * FIELD_EXTENSION_DEGREE
+            x_div_raw[q * FIELD_EXTENSION_DEGREE:(q + 1) * FIELD_EXTENSION_DEGREE] = \
+                params.xDivXSub[base:base + FIELD_EXTENSION_DEGREE]
+        return ff3_from_interleaved_numpy(x_div_raw, n_queries)
 
-        poly_vals = ff3_from_interleaved_numpy(eval_vals, n_queries)
+    # Group evMap entries by opening position index
+    # evMap[i].openingPos is the INDEX into openingPoints, not the actual value
+    groups_by_opening_idx = {}
+    for ev_idx, ev_entry in enumerate(stark_info.evMap):
+        opening_idx = ev_entry.openingPos  # This is already an index
+        if opening_idx not in groups_by_opening_idx:
+            groups_by_opening_idx[opening_idx] = []
+        groups_by_opening_idx[opening_idx].append((ev_idx, ev_entry))
 
-        # Compute coefficient and add to result
-        coeff = vf1_power * vf2_powers[opening_pos]
-        result = result + coeff * poly_vals
+    # Get ordered list of opening indices
+    ordered_opening_indices = sorted(groups_by_opening_idx.keys())
 
-        vf1_power = vf1_power * vf1
+    # Compute each group using Horner's method
+    group_results = []
+    for opening_idx in ordered_opening_indices:
+        entries = groups_by_opening_idx[opening_idx]
+
+        # Horner accumulation within group
+        group_acc = FF3(np.zeros(n_queries, dtype=np.uint64))
+
+        for ev_idx, ev_entry in entries:
+            poly_vals = get_poly_vals_at_queries(ev_entry)
+            if poly_vals is None:
+                continue
+
+            eval_base = ev_idx * FIELD_EXTENSION_DEGREE
+            eval_coeffs = [
+                int(params.evals[eval_base]),
+                int(params.evals[eval_base + 1]),
+                int(params.evals[eval_base + 2])
+            ]
+            eval_val = ff3(eval_coeffs)
+
+            diff = poly_vals - eval_val
+            group_acc = group_acc * vf2 + diff
+
+        # Multiply by xDivXSubXi for this opening position
+        x_div_x_sub = get_x_div_x_sub(opening_idx)
+        group_acc = group_acc * x_div_x_sub
+        group_results.append(group_acc)
+
+    # Combine groups with vf1 powers (Horner accumulation)
+    result = FF3(np.zeros(n_queries, dtype=np.uint64))
+    for group_acc in group_results:
+        result = result * vf1 + group_acc
 
     return ff3_to_interleaved_numpy(result)
