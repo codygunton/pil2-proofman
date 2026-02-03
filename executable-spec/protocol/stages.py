@@ -781,9 +781,10 @@ class Starks:
     # --- Constraint and FRI Polynomials ---
 
     def calculateQuotientPolynomial(self, params: ProofContext,
-                                   expressionsCtx: ExpressionsPack,
+                                   expressionsCtx: 'ExpressionsPack' = None,
                                    use_constraint_module: bool = False,
-                                   debug_compare: bool = False):
+                                   debug_compare: bool = False,
+                                   prover_helpers: 'ProverHelpers' = None):
         """Evaluate constraint expression across the extended domain.
 
         Args:
@@ -792,6 +793,7 @@ class Starks:
             use_constraint_module: If True, use per-AIR constraint modules instead
                                    of expression bytecode
             debug_compare: If True, compute both and compare (for debugging)
+            prover_helpers: ProverHelpers with zerofiers (used when use_constraint_module=True)
         """
         # Late import to avoid circular dependency
         from constraints import get_constraint_module, ProverConstraintContext
@@ -817,7 +819,8 @@ class Starks:
 
             # Multiply by zerofier 1/Z_H(x) to get the quotient polynomial
             # zi contains 1/(x^N - 1) for "everyRow" boundary (index 0)
-            zi_np = np.asarray(expressionsCtx.prover_helpers.zi[:N_ext], dtype=np.uint64)
+            helpers = prover_helpers if prover_helpers else expressionsCtx.prover_helpers
+            zi_np = np.asarray(helpers.zi[:N_ext], dtype=np.uint64)
             zi = FF3(zi_np.tolist())  # Embed base field in extension field
             constraint_poly = constraint_poly * zi
 
@@ -830,9 +833,10 @@ class Starks:
             expressionsCtx.calculate_expression(params, qPol, stark_info.cExpId)
 
     def calculateFRIPolynomial(self, params: ProofContext,
-                              expressionsCtx: ExpressionsPack,
+                              expressionsCtx: 'ExpressionsPack' = None,
                               use_direct_computation: bool = False,
-                              debug_compare: bool = False):
+                              debug_compare: bool = False,
+                              prover_helpers: 'ProverHelpers' = None):
         """Compute FRI polynomial F = linear combination of committed polys at xi*w^offset.
 
         Args:
@@ -841,6 +845,7 @@ class Starks:
             use_direct_computation: If True, use direct evMap computation instead
                                     of expression bytecode
             debug_compare: If True, compute both ways and compare (for debugging)
+            prover_helpers: ProverHelpers with zerofiers (used when use_direct_computation=True)
         """
         if debug_compare:
             # Compute with expression binary first
@@ -873,9 +878,10 @@ class Starks:
 
             # Compute with direct computation
             from protocol.fri_polynomial import compute_fri_polynomial
+            helpers = prover_helpers if prover_helpers else expressionsCtx.prover_helpers
             new_result = compute_fri_polynomial(
                 stark_info, params, N_ext, extended=True,
-                prover_helpers=expressionsCtx.prover_helpers
+                prover_helpers=helpers
             )
 
             # Compare
@@ -909,9 +915,10 @@ class Starks:
             N_ext = 1 << stark_info.starkStruct.nBitsExt
 
             # Compute FRI polynomial on extended domain
+            helpers = prover_helpers if prover_helpers else expressionsCtx.prover_helpers
             fri_result = compute_fri_polynomial(
                 stark_info, params, N_ext, extended=True,
-                prover_helpers=expressionsCtx.prover_helpers
+                prover_helpers=helpers
             )
 
             # Write result to FRI polynomial buffer

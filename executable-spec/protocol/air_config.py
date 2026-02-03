@@ -263,35 +263,55 @@ class AirConfig:
     Attributes:
         stark_info: The AIR specification containing domain sizes, stage counts,
             constraint definitions, polynomial mappings, and FRI parameters.
-        expressions_bin: Compiled constraint expressions in binary format,
-            used by the expression evaluator to compute constraints efficiently.
+        expressions_bin: Optional compiled constraint expressions in binary format.
+            Only needed when using the legacy expression evaluator path.
         global_info: Optional cross-AIR coordination data for VADCOP (Virtual
             Algebraic Distributed Computation Over Provers) mode.
 
     Usage:
-        # Load from files
+        # Load from files (with expressions_bin for backward compatibility)
         config = AirConfig.from_files(
             starkinfo_path="path/to/starkinfo.json",
             expressions_bin_path="path/to/expressions.bin",
-            global_info_path="path/to/globalInfo.json",  # optional
         )
 
-        # Use in proof generation
-        proof = gen_proof(config, params)
-
-        # Use in verification
-        is_valid = stark_verify(proof, config, verkey, challenge)
+        # Load without expressions_bin (for constraint module path)
+        config = AirConfig.from_starkinfo(starkinfo_path)
     """
 
     def __init__(
         self,
         stark_info: 'StarkInfo',
-        expressions_bin: 'ExpressionsBin',
+        expressions_bin: Optional['ExpressionsBin'] = None,
         global_info: Optional['GlobalInfo'] = None
     ):
         self.stark_info = stark_info
         self.expressions_bin = expressions_bin
         self.global_info = global_info
+
+    @classmethod
+    def from_starkinfo(cls, starkinfo_path: str, global_info_path: Optional[str] = None) -> 'AirConfig':
+        """Load AIR configuration from starkinfo only (no expressions_bin needed).
+
+        Use this factory when using constraint modules instead of expression bytecode.
+
+        Args:
+            starkinfo_path: Path to starkinfo.json (AIR specification)
+            global_info_path: Optional path to pilout.globalInfo.json (VADCOP)
+
+        Returns:
+            AirConfig instance with loaded configuration
+        """
+        from protocol.stark_info import StarkInfo
+        from protocol.global_info import GlobalInfo
+
+        stark_info = StarkInfo.from_json(starkinfo_path)
+
+        global_info = None
+        if global_info_path:
+            global_info = GlobalInfo.from_json(global_info_path)
+
+        return cls(stark_info, None, global_info)
 
     @classmethod
     def from_files(
@@ -300,7 +320,7 @@ class AirConfig:
         expressions_bin_path: str,
         global_info_path: Optional[str] = None
     ) -> 'AirConfig':
-        """Load AIR configuration from files.
+        """Load AIR configuration from files (legacy, includes expressions_bin).
 
         Args:
             starkinfo_path: Path to starkinfo.json (AIR specification)

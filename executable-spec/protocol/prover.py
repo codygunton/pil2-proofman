@@ -328,7 +328,8 @@ def gen_proof(
     #
     # All supported AIRs now use the constraint module path (byte-identical proofs).
     use_constraint_module = stark_info.name in ('SimpleLeft', 'Permutation1_6', 'Lookup2_12')
-    starks.calculateQuotientPolynomial(params, expressions_ctx, use_constraint_module=use_constraint_module)
+    starks.calculateQuotientPolynomial(params, expressions_ctx, use_constraint_module=use_constraint_module,
+                                       prover_helpers=prover_helpers)
 
     # Commit to the quotient polynomial.
     # Note: we use ntt_extended here because the quotient is evaluated over the extended domain.
@@ -448,7 +449,8 @@ def gen_proof(
     # Debug: compare FRI polynomial implementations
     # Note: FRI polynomial uses Horner's method batching which differs from naive formula
     # The direct computation needs to match the bytecode's grouping scheme
-    starks.calculateFRIPolynomial(params, expressions_ctx, use_direct_computation=True, debug_compare=False)
+    starks.calculateFRIPolynomial(params, expressions_ctx, use_direct_computation=True, debug_compare=False,
+                                   prover_helpers=prover_helpers)
 
     # Extract the FRI polynomial from the auxiliary trace buffer.
     # params.auxTrace is a flat array containing all polynomials:
