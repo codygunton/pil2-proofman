@@ -41,3 +41,17 @@ class WitnessModule(ABC):
             Example: {'gsum': gsum_poly}
         """
         pass
+
+    def _compute_cumulative_sum(self, row_values: FF3Poly) -> FF3Poly:
+        """Compute cumulative sum: result[i] = sum(row_values[0:i+1])."""
+        result = row_values.copy()
+        for i in range(1, len(row_values)):
+            result[i] = result[i - 1] + row_values[i]
+        return result
+
+    def _compute_cumulative_product(self, row_values: FF3Poly) -> FF3Poly:
+        """Compute cumulative product: result[i] = prod(row_values[0:i+1])."""
+        result = row_values.copy()
+        for i in range(1, len(row_values)):
+            result[i] = result[i - 1] * row_values[i]
+        return result
