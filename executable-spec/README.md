@@ -6,18 +6,29 @@ A Python implementation of the STARK proving system from pil2-proofman. This ser
 
 ```
 executable-spec/
+├── constraints/                 # Per-AIR constraint polynomial modules
+│   ├── base.py                 # ConstraintModule ABC, ProverConstraintContext
+│   ├── simple_left.py          # SimpleLeft constraint implementation
+│   ├── lookup2_12.py           # Lookup2_12 constraint implementation
+│   └── permutation1_6.py       # Permutation1_6 constraint implementation
+│
+├── witness/                     # Per-AIR witness generation modules
+│   ├── base.py                 # WitnessModule ABC
+│   ├── simple_left.py          # SimpleLeft witness (im_cluster, gsum)
+│   ├── lookup2_12.py           # Lookup2_12 witness
+│   └── permutation1_6.py       # Permutation1_6 witness
+│
 ├── protocol/                    # Core STARK protocol implementation
 │   ├── prover.py               # Top-level proof generation (gen_proof)
 │   ├── verifier.py             # Top-level verification (stark_verify)
 │   ├── stages.py               # Stage computations (Starks class)
 │   ├── fri.py                  # FRI folding and query generation
 │   ├── pcs.py                  # FRI polynomial commitment scheme
-│   ├── expression_evaluator.py # Constraint/expression evaluation engine
-│   ├── witness_generation.py   # Witness polynomial computation
+│   ├── fri_polynomial.py       # FRI polynomial computation
 │   ├── stark_info.py           # STARK configuration parser
-│   ├── setup_ctx.py            # Setup context and ProverHelpers
-│   ├── steps_params.py         # Runtime parameter container
-│   ├── expressions_bin.py      # Expression bytecode parser
+│   ├── air_config.py           # AIR config and ProverHelpers
+│   ├── proof_context.py        # Buffer-based prover/verifier state
+│   ├── data.py                 # ProverData/VerifierData for modules
 │   └── proof.py                # Proof data structures
 │
 ├── primitives/                  # Low-level cryptographic primitives
@@ -25,17 +36,20 @@ executable-spec/
 │   ├── ntt.py                  # NTT/INTT polynomial operations
 │   ├── transcript.py           # Fiat-Shamir transcript (Poseidon2)
 │   ├── merkle_tree.py          # Poseidon2 Merkle trees
-│   ├── pol_map.py              # Polynomial mapping structures
 │   └── poseidon2-ffi/          # Rust FFI for Poseidon2 hash
 │
-├── tests/                       # Test suite (121 tests)
+├── tests/                       # Test suite (164 tests)
 │   ├── test_stark_e2e.py       # Full STARK proof vs C++ golden values
+│   ├── test_verifier_e2e.py    # Verifier vs C++ proofs
 │   ├── test_fri.py             # FRI folding vs C++ golden values
-│   ├── test_ntt.py             # NTT mathematical properties
+│   ├── test_constraint_*.py    # Constraint module tests
+│   ├── test_*_witness.py       # Witness module tests
 │   ├── test_stark_info.py      # Config parsing validation
 │   ├── test_proof.py           # Proof JSON serialization
+│   ├── test_ntt.py             # NTT mathematical properties
 │   └── test-data/              # Golden test vectors (gitignored)
 │
+├── run-tests.sh                 # Test runner with filters
 └── pyproject.toml
 ```
 
@@ -54,10 +68,24 @@ executable-spec/
 
 | File | Purpose |
 |------|---------|
-| `protocol/expression_evaluator.py` | Evaluates constraint expressions from bytecode |
+| `constraints/*.py` | Per-AIR constraint polynomial evaluation |
+| `witness/*.py` | Per-AIR witness generation (im_cluster, gsum) |
 | `protocol/pcs.py` | FRI polynomial commitment scheme |
-| `protocol/setup_ctx.py` | `SetupCtx` bundles config, `ProverHelpers` manages buffers |
-| `protocol/steps_params.py` | `StepsParams` holds runtime state (trace, challenges, evals) |
+| `protocol/air_config.py` | `AirConfig` bundles config, `ProverHelpers` manages buffers |
+| `protocol/proof_context.py` | `ProofContext` holds buffer-based runtime state |
+| `protocol/data.py` | `ProverData`/`VerifierData` for constraint/witness modules |
+
+### Data Model
+
+The codebase uses a two-layer data model:
+
+1. **ProofContext** - Buffer-based storage (C++ compatible layout)
+   - Used by: Merkle tree building, NTT, FRI polynomial computation
+   - Efficient for bulk protocol operations
+
+2. **ProverData / VerifierData** - Dict-based storage (named columns)
+   - Used by: Constraint modules, witness modules
+   - Readable for AIR-specific code
 
 ### Primitives
 
@@ -83,17 +111,19 @@ Generate test vectors (from repo root):
 
 ## Running Tests
 
-From repo root:
 ```bash
-./run-all-tests.sh              # Full test suite (121 tests)
-./run-e2e-tests.sh              # E2E tests only (vs C++ golden values)
-```
-
-From executable-spec/:
-```bash
-uv run python -m pytest tests/ -v                    # All tests
-uv run python -m pytest tests/test_fri.py -v         # FRI validation
-uv run python -m pytest tests/test_stark_e2e.py -v   # STARK e2e validation
+./run-tests.sh                # all 164 tests
+./run-tests.sh e2e            # E2E tests (prover + verifier vs C++)
+./run-tests.sh prover         # prover E2E only
+./run-tests.sh verifier       # verifier E2E only
+./run-tests.sh fri            # FRI protocol tests
+./run-tests.sh constraints    # constraint module tests
+./run-tests.sh witness        # witness module tests
+./run-tests.sh simple         # SimpleLeft AIR tests
+./run-tests.sh lookup         # Lookup2_12 AIR tests
+./run-tests.sh permutation    # Permutation1_6 AIR tests
+./run-tests.sh unit           # unit tests (non-E2E, fast)
+./run-tests.sh -k "pattern"   # pytest -k filter
 ```
 
 ## Supported AIRs

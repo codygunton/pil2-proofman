@@ -37,19 +37,34 @@ The Python implementation in `executable-spec/` is a complete STARK prover and v
 
 **Run Python tests:**
 ```bash
-cd executable-spec && uv run python -m pytest tests/ -v
+cd executable-spec
+./run-tests.sh                # all 164 tests
+./run-tests.sh e2e            # E2E tests (prover + verifier vs C++)
+./run-tests.sh prover         # prover E2E only
+./run-tests.sh verifier       # verifier E2E only
+./run-tests.sh fri            # FRI protocol tests
+./run-tests.sh constraints    # constraint module tests
+./run-tests.sh witness        # witness module tests
+./run-tests.sh simple         # SimpleLeft AIR tests
+./run-tests.sh lookup         # Lookup2_12 AIR tests
+./run-tests.sh permutation    # Permutation1_6 AIR tests
+./run-tests.sh unit           # unit tests (non-E2E, fast)
+./run-tests.sh -k "pattern"   # pytest -k filter
 ```
 
-**Test suite overview (142 tests):**
+**Test suite overview (164 tests):**
 
 | Test File | Description |
 |-----------|-------------|
 | `test_stark_e2e.py` | Full prover E2E tests with byte-level binary proof comparison against C++ |
 | `test_verifier_e2e.py` | Verifier tests against C++ proof fixtures (*.proof.bin) |
 | `test_fri.py` | FRI layer tests - folding, commitment, query generation |
+| `test_constraint_context.py` | Constraint context ABC and implementations |
+| `test_constraint_verifier.py` | Verifier constraint evaluation |
+| `test_*_constraints.py` | Per-AIR constraint module tests |
+| `test_*_witness.py` | Per-AIR witness module tests |
 | `test_stark_info.py` | StarkInfo JSON parsing validation |
 | `test_proof.py` | Proof serialization/deserialization |
-| `test_expressions_bin.py` | Expression bytecode parsing |
 | `test_ntt.py` | NTT/INTT operations |
 | `test_batch_inverse.py` | Montgomery batch inversion |
 
@@ -79,12 +94,24 @@ To regenerate C++ FRI pinning vectors (for `pil2-stark/tests/fri-pinning/fri_pin
 
 ```
 executable-spec/
+├── constraints/         # Per-AIR constraint polynomial modules
+│   ├── base.py          # ConstraintModule ABC, ProverConstraintContext
+│   ├── simple_left.py   # SimpleLeft constraint implementation
+│   ├── lookup2_12.py    # Lookup2_12 constraint implementation
+│   └── permutation1_6.py # Permutation1_6 constraint implementation
+│
+├── witness/             # Per-AIR witness generation modules
+│   ├── base.py          # WitnessModule ABC
+│   ├── simple_left.py   # SimpleLeft witness (im_cluster, gsum)
+│   ├── lookup2_12.py    # Lookup2_12 witness
+│   └── permutation1_6.py # Permutation1_6 witness
+│
 ├── primitives/          # Low-level cryptographic building blocks
 │   ├── field.py         # Goldilocks field FF and cubic extension FF3
 │   ├── ntt.py           # Number Theoretic Transform
 │   ├── merkle_tree.py   # Merkle tree construction and proofs
 │   ├── transcript.py    # Fiat-Shamir transcript (Poseidon2)
-│   └── pol_map.py       # Polynomial mapping data structures
+│   └── poseidon2-ffi/   # Rust FFI for Poseidon2 hash
 │
 ├── protocol/            # STARK protocol implementation
 │   ├── prover.py        # Main proof generation entry point
@@ -92,15 +119,29 @@ executable-spec/
 │   ├── fri.py           # FRI folding protocol
 │   ├── pcs.py           # FRI polynomial commitment scheme
 │   ├── stages.py        # Prover stage orchestration
-│   ├── expression_evaluator.py  # Constraint polynomial evaluation
-│   ├── witness_generation.py    # Lookup/permutation witness
+│   ├── fri_polynomial.py # FRI polynomial computation
 │   ├── stark_info.py    # StarkInfo JSON parser
-│   ├── setup_ctx.py     # Setup context and prover helpers
-│   ├── proof.py         # Proof data structures and serialization
-│   └── steps_params.py  # Prover/verifier working data container
+│   ├── air_config.py    # AIR configuration and ProverHelpers
+│   ├── proof_context.py # Buffer-based prover/verifier state
+│   ├── data.py          # ProverData/VerifierData for constraint modules
+│   └── proof.py         # Proof data structures and serialization
 │
-└── tests/               # Test suite
+└── tests/               # Test suite (164 tests)
 ```
+
+### Data Model
+
+The codebase uses a two-layer data model:
+
+1. **ProofContext** (protocol/proof_context.py)
+   - Buffer-based storage with C++ compatible layout
+   - Used by: Merkle tree building, NTT, FRI polynomial computation
+   - Efficient for bulk protocol operations
+
+2. **ProverData / VerifierData** (protocol/data.py)
+   - Dict-based storage with named columns
+   - Used by: Constraint modules, witness modules
+   - Readable for AIR-specific code
 
 ### Type System
 
