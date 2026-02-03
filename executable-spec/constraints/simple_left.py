@@ -13,48 +13,12 @@ The compress formula is: ((col2*α + col1)*α + busid) + γ for 2 columns,
 or (col1*α + busid) + γ for 1 column.
 """
 
-from typing import Union, List
+from typing import Union
+
 import numpy as np
 
-from primitives.field import FF3, FF3Poly, ff3, GOLDILOCKS_PRIME
-from .base import ConstraintModule, ConstraintContext
-
-
-def _ff3_scalar(scalar: int, n: int = None) -> FF3:
-    """Create FF3 scalar or array filled with scalar value (handles negatives).
-
-    Args:
-        scalar: Integer value to convert
-        n: If None, create scalar. If int, create array of size n.
-    """
-    # Handle negative values as field elements
-    val = scalar % GOLDILOCKS_PRIME
-
-    if n is None:
-        return ff3([val, 0, 0])
-    return FF3(np.full(n, val, dtype=np.uint64))
-
-
-def _ff_to_ff3(arr) -> FF3:
-    """Convert FF array to FF3 array (embed base field in extension field).
-
-    Handles both prover context (FF arrays) and verifier context (FF3 scalars).
-    """
-    # If already FF3 (verifier context), return as-is
-    if type(arr) == FF3:
-        return arr
-    # FF3 can be constructed from base field values directly
-    return FF3(np.asarray(arr, dtype=np.uint64))
-
-
-def _compress_1col(busid: int, col, alpha: FF3, gamma: FF3) -> Union[FF3Poly, FF3]:
-    """Compress 1-column expression: (col*α + busid) + γ."""
-    return col * alpha + _ff3_scalar(busid) + gamma
-
-
-def _compress_2col(busid: int, col1, col2, alpha: FF3, gamma: FF3) -> Union[FF3Poly, FF3]:
-    """Compress 2-column expression: ((col2*α + col1)*α + busid) + γ."""
-    return (col2 * alpha + col1) * alpha + _ff3_scalar(busid) + gamma
+from primitives.field import FF3, FF3Poly, GOLDILOCKS_PRIME
+from .base import ConstraintModule, ConstraintContext, compress_2col
 
 
 class SimpleLeftConstraints(ConstraintModule):
@@ -75,16 +39,16 @@ class SimpleLeftConstraints(ConstraintModule):
         gamma = ctx.challenge('std_gamma')
         vc = ctx.challenge('std_vc')
 
-        # Get witness columns (stage 1)
-        a = _ff_to_ff3(ctx.col('a'))
-        b = _ff_to_ff3(ctx.col('b'))
-        c = _ff_to_ff3(ctx.col('c'))
-        d = _ff_to_ff3(ctx.col('d'))
-        e = _ff_to_ff3(ctx.col('e'))
-        f = _ff_to_ff3(ctx.col('f'))
-        g = _ff_to_ff3(ctx.col('g'))
-        h = _ff_to_ff3(ctx.col('h'))
-        k = [_ff_to_ff3(ctx.col('k', i)) for i in range(7)]
+        # Get witness columns (stage 1) - need conversion for prover/verifier compat
+        a = ctx.col('a')
+        b = ctx.col('b')
+        c = ctx.col('c')
+        d = ctx.col('d')
+        e = ctx.col('e')
+        f = ctx.col('f')
+        g = ctx.col('g')
+        h = ctx.col('h')
+        k = [ctx.col('k', i) for i in range(7)]
 
         # Get intermediate columns (stage 2)
         gsum = ctx.col('gsum')
@@ -92,8 +56,8 @@ class SimpleLeftConstraints(ConstraintModule):
         im = [ctx.col('im_cluster', i) for i in range(6)]
 
         # Get constant L1 (selector for first row: [1,0,0,...])
-        L1 = _ff_to_ff3(ctx.const('__L1__'))
-        next_L1 = _ff_to_ff3(ctx.next_const('__L1__'))  # L1 at row+1
+        L1 = ctx.const('__L1__')
+        next_L1 = ctx.next_const('__L1__')  # L1 at row+1
 
         # Get airgroup value (result)
         gsum_result = ctx.airgroup_value(0)
@@ -104,62 +68,75 @@ class SimpleLeftConstraints(ConstraintModule):
         except TypeError:
             n = None  # Verifier mode: a is a scalar
 
+        # Helper for creating scalar/array constants
+        def const(value):
+            if n is None:
+                return FF3(value % GOLDILOCKS_PRIME)
+            return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
+
+        # Helper for 1-column compress
+        def compress_1col(busid, col):
+            return col * alpha + const(busid) + gamma
+
         # Build constraint polynomials (unweighted)
         constraints = []
+
+        neg_one = const(-1)
+        one = const(1)
 
         # ===================================================================
         # Constraint 0: im_cluster[0] for (c,d busid=1) + (e,f busid=2)
         # im * D1 * D2 - (D2 + (-1)*D1) = 0
         # Where D1 = compress(1, [c,d]), D2 = compress(2, [e,f])
         # ===================================================================
-        D1 = _compress_2col(1, c, d, alpha, gamma)
-        D2 = _compress_2col(2, e, f, alpha, gamma)
-        constraint_0 = im[0] * D1 * D2 - (D2 + _ff3_scalar(-1, n) * D1)
+        D1 = compress_2col(1, c, d, alpha, gamma, n)
+        D2 = compress_2col(2, e, f, alpha, gamma, n)
+        constraint_0 = im[0] * D1 * D2 - (D2 + neg_one * D1)
         constraints.append(constraint_0)
 
         # ===================================================================
         # Constraint 1: im_cluster[1] for (g,h busid=3) + (k[0] busid=100)
         # im * D1 * D2 - ((-1)*D2 + (-1)*D1) = 0
         # ===================================================================
-        D1 = _compress_2col(3, g, h, alpha, gamma)
-        D2 = _compress_1col(100, k[0], alpha, gamma)
-        constraint_1 = im[1] * D1 * D2 - (_ff3_scalar(-1, n) * D2 + _ff3_scalar(-1, n) * D1)
+        D1 = compress_2col(3, g, h, alpha, gamma, n)
+        D2 = compress_1col(100, k[0])
+        constraint_1 = im[1] * D1 * D2 - (neg_one * D2 + neg_one * D1)
         constraints.append(constraint_1)
 
         # ===================================================================
         # Constraint 2: im_cluster[2] for (k[1] busid=101) + (k[2]-1 busid=100)
         # im * D1 * D2 - ((-1)*D2 + (-1)*D1) = 0
         # ===================================================================
-        D1 = _compress_1col(101, k[1], alpha, gamma)
-        D2 = _compress_1col(100, k[2] - _ff3_scalar(1, n), alpha, gamma)
-        constraint_2 = im[2] * D1 * D2 - (_ff3_scalar(-1, n) * D2 + _ff3_scalar(-1, n) * D1)
+        D1 = compress_1col(101, k[1])
+        D2 = compress_1col(100, k[2] - one)
+        constraint_2 = im[2] * D1 * D2 - (neg_one * D2 + neg_one * D1)
         constraints.append(constraint_2)
 
         # ===================================================================
         # Constraint 3: im_cluster[3] for (255-k[2] busid=100) + (k[3] busid=101)
         # im * D1 * D2 - ((-1)*D2 + (-1)*D1) = 0
         # ===================================================================
-        D1 = _compress_1col(100, _ff3_scalar(255, n) - k[2], alpha, gamma)
-        D2 = _compress_1col(101, k[3], alpha, gamma)
-        constraint_3 = im[3] * D1 * D2 - (_ff3_scalar(-1, n) * D2 + _ff3_scalar(-1, n) * D1)
+        D1 = compress_1col(100, const(255) - k[2])
+        D2 = compress_1col(101, k[3])
+        constraint_3 = im[3] * D1 * D2 - (neg_one * D2 + neg_one * D1)
         constraints.append(constraint_3)
 
         # ===================================================================
         # Constraint 4: im_cluster[4] for (256-k[3] busid=101) + (k[4] busid=102)
         # im * D1 * D2 - ((-1)*D2 + (-1)*D1) = 0
         # ===================================================================
-        D1 = _compress_1col(101, _ff3_scalar(256, n) - k[3], alpha, gamma)
-        D2 = _compress_1col(102, k[4], alpha, gamma)
-        constraint_4 = im[4] * D1 * D2 - (_ff3_scalar(-1, n) * D2 + _ff3_scalar(-1, n) * D1)
+        D1 = compress_1col(101, const(256) - k[3])
+        D2 = compress_1col(102, k[4])
+        constraint_4 = im[4] * D1 * D2 - (neg_one * D2 + neg_one * D1)
         constraints.append(constraint_4)
 
         # ===================================================================
         # Constraint 5: im_cluster[5] for (k[5] busid=103) + (k[6] busid=104)
         # im * D1 * D2 - ((-1)*D2 + (-1)*D1) = 0
         # ===================================================================
-        D1 = _compress_1col(103, k[5], alpha, gamma)
-        D2 = _compress_1col(104, k[6], alpha, gamma)
-        constraint_5 = im[5] * D1 * D2 - (_ff3_scalar(-1, n) * D2 + _ff3_scalar(-1, n) * D1)
+        D1 = compress_1col(103, k[5])
+        D2 = compress_1col(104, k[6])
+        constraint_5 = im[5] * D1 * D2 - (neg_one * D2 + neg_one * D1)
         constraints.append(constraint_5)
 
         # ===================================================================
@@ -171,10 +148,10 @@ class SimpleLeftConstraints(ConstraintModule):
         for i in range(1, 6):
             sum_ims = sum_ims + im[i]
 
-        one_minus_L1 = _ff3_scalar(1, n) - L1
-        direct_den = _compress_2col(1, a, b, alpha, gamma)
+        one_minus_L1 = one - L1
+        direct_den = compress_2col(1, a, b, alpha, gamma, n)
 
-        gsum_recurrence = (gsum - prev_gsum * one_minus_L1 - sum_ims) * direct_den + _ff3_scalar(1, n)
+        gsum_recurrence = (gsum - prev_gsum * one_minus_L1 - sum_ims) * direct_den + one
         constraints.append(gsum_recurrence)
 
         # ===================================================================
@@ -184,16 +161,5 @@ class SimpleLeftConstraints(ConstraintModule):
         boundary = next_L1 * (gsum_result - gsum)
         constraints.append(boundary)
 
-        # Combine constraints using the expression binary's accumulation pattern:
-        # acc = C0 * vc
-        # acc = (acc + C1) * vc
-        # ...
-        # acc = (acc + C6) * vc
-        # acc = acc + C7
-        # Result: C0*vc^7 + C1*vc^6 + C2*vc^5 + C3*vc^4 + C4*vc^3 + C5*vc^2 + C6*vc + C7
-        acc = constraints[0] * vc
-        for i in range(1, 7):  # Constraints 1-6
-            acc = (acc + constraints[i]) * vc
-        acc = acc + constraints[7]  # Add constraint 7 without vc multiplication
-
-        return acc
+        # Combine constraints using std_vc powers
+        return self._combine_constraints(constraints, vc)

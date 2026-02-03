@@ -20,42 +20,11 @@ Clustering:
 """
 
 from typing import Union
+
 import numpy as np
 
-from primitives.field import FF3, FF3Poly, ff3, GOLDILOCKS_PRIME
-from .base import ConstraintModule, ConstraintContext
-
-
-def _ff3_scalar(scalar: int, n: int = None) -> FF3:
-    """Create FF3 scalar or array filled with scalar value (handles negatives).
-
-    Args:
-        scalar: Integer value to convert
-        n: If None, create scalar. If int, create array of size n.
-    """
-    # Handle negative values as field elements
-    val = scalar % GOLDILOCKS_PRIME
-
-    if n is None:
-        return ff3([val, 0, 0])
-    return FF3(np.full(n, val, dtype=np.uint64))
-
-
-def _ff_to_ff3(arr) -> FF3:
-    """Convert FF array to FF3 array (embed base field in extension field).
-
-    Handles both prover context (FF arrays) and verifier context (FF3 scalars).
-    """
-    # If already FF3 (verifier context), return as-is
-    if type(arr) == FF3:
-        return arr
-    # FF3 can be constructed from base field values directly
-    return FF3(np.asarray(arr, dtype=np.uint64))
-
-
-def _compress_2col(busid: int, col1, col2, alpha: FF3, gamma: FF3, n: int) -> Union[FF3Poly, FF3]:
-    """Compress 2-column expression: ((col2*alpha + col1)*alpha + busid) + gamma."""
-    return (col2 * alpha + col1) * alpha + _ff3_scalar(busid, n) + gamma
+from primitives.field import FF3, FF3Poly, GOLDILOCKS_PRIME
+from .base import ConstraintModule, ConstraintContext, compress_2col
 
 
 class Permutation1_6Constraints(ConstraintModule):
@@ -81,21 +50,21 @@ class Permutation1_6Constraints(ConstraintModule):
         vc = ctx.challenge('std_vc')
 
         # Get witness columns - stage 1
-        a1 = _ff_to_ff3(ctx.col('a1'))
-        b1 = _ff_to_ff3(ctx.col('b1'))
-        a2 = _ff_to_ff3(ctx.col('a2'))
-        b2 = _ff_to_ff3(ctx.col('b2'))
-        a3 = _ff_to_ff3(ctx.col('a3'))
-        b3 = _ff_to_ff3(ctx.col('b3'))
-        a4 = _ff_to_ff3(ctx.col('a4'))
-        b4 = _ff_to_ff3(ctx.col('b4'))
-        c1 = _ff_to_ff3(ctx.col('c1'))
-        d1 = _ff_to_ff3(ctx.col('d1'))
-        c2 = _ff_to_ff3(ctx.col('c2'))
-        d2 = _ff_to_ff3(ctx.col('d2'))
-        sel1 = _ff_to_ff3(ctx.col('sel1'))
-        sel2 = _ff_to_ff3(ctx.col('sel2'))
-        sel3 = _ff_to_ff3(ctx.col('sel3'))
+        a1 = ctx.col('a1')
+        b1 = ctx.col('b1')
+        a2 = ctx.col('a2')
+        b2 = ctx.col('b2')
+        a3 = ctx.col('a3')
+        b3 = ctx.col('b3')
+        a4 = ctx.col('a4')
+        b4 = ctx.col('b4')
+        c1 = ctx.col('c1')
+        d1 = ctx.col('d1')
+        c2 = ctx.col('c2')
+        d2 = ctx.col('d2')
+        sel1 = ctx.col('sel1')
+        sel2 = ctx.col('sel2')
+        sel3 = ctx.col('sel3')
 
         # Get intermediate columns - stage 2 (already FF3)
         gsum = ctx.col('gsum')
@@ -106,8 +75,8 @@ class Permutation1_6Constraints(ConstraintModule):
         prev_gprod = ctx.prev_col('gprod')
 
         # Get constant L1 - convert from FF to FF3
-        L1 = _ff_to_ff3(ctx.const('__L1__'))
-        next_L1 = _ff_to_ff3(ctx.next_const('__L1__'))
+        L1 = ctx.const('__L1__')
+        next_L1 = ctx.next_const('__L1__')
 
         # Get airgroup values (accumulated results)
         gsum_result = ctx.airgroup_value(0)
@@ -119,6 +88,15 @@ class Permutation1_6Constraints(ConstraintModule):
         except TypeError:
             n = None  # Verifier mode: a1 is a scalar
 
+        # Helper for creating scalar/array constants
+        def const(value):
+            if n is None:
+                return FF3(value % GOLDILOCKS_PRIME)
+            return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
+
+        neg_one = const(-1)
+        one = const(1)
+
         constraints = []
 
         # ===================================================================
@@ -128,9 +106,9 @@ class Permutation1_6Constraints(ConstraintModule):
         # D1 = compress(1, [c1, d1])
         # D2 = compress(2, [a2, b2])
         # ===================================================================
-        D1 = _compress_2col(1, c1, d1, alpha, gamma, n)
-        D2 = _compress_2col(2, a2, b2, alpha, gamma, n)
-        constraint_0 = im_cluster_0 * D1 * D2 - (D2 + _ff3_scalar(-1, n) * D1)
+        D1 = compress_2col(1, c1, d1, alpha, gamma, n)
+        D2 = compress_2col(2, a2, b2, alpha, gamma, n)
+        constraint_0 = im_cluster_0 * D1 * D2 - (D2 + neg_one * D1)
         constraints.append(constraint_0)
 
         # ===================================================================
@@ -141,21 +119,21 @@ class Permutation1_6Constraints(ConstraintModule):
         # D2 = compress(3, [c2, d2])
         # Note: (0 - sel1) = -sel1
         # ===================================================================
-        D1 = _compress_2col(3, a3, b3, alpha, gamma, n)
-        D2 = _compress_2col(3, c2, d2, alpha, gamma, n)
-        neg_sel1 = _ff3_scalar(0, n) - sel1
+        D1 = compress_2col(3, a3, b3, alpha, gamma, n)
+        D2 = compress_2col(3, c2, d2, alpha, gamma, n)
+        neg_sel1 = neg_one * sel1
         constraint_1 = im_cluster_1 * D1 * D2 - (neg_sel1 * D2 + sel2 * D1)
         constraints.append(constraint_1)
 
         # ===================================================================
         # Constraint 2: gsum recurrence
         # Formula from expressionsinfo.json (std_sum.pil:596):
-        # (gsum - prev_gsum*(1-L1) - (im_cluster[0] + im_cluster[1])) * compress(1,[a1,b1]) + 1 = 0
+        # (gsum - prev_gsum*(1-L1) - (im_cluster[0] + im_cluster[1]) * compress(1,[a1,b1]) + 1 = 0
         # ===================================================================
-        one_minus_L1 = _ff3_scalar(1, n) - L1
+        one_minus_L1 = one - L1
         sum_im = im_cluster_0 + im_cluster_1
-        direct_den = _compress_2col(1, a1, b1, alpha, gamma, n)
-        gsum_recurrence = (gsum - prev_gsum * one_minus_L1 - sum_im) * direct_den + _ff3_scalar(1, n)
+        direct_den = compress_2col(1, a1, b1, alpha, gamma, n)
+        gsum_recurrence = (gsum - prev_gsum * one_minus_L1 - sum_im) * direct_den + one
         constraints.append(gsum_recurrence)
 
         # ===================================================================
@@ -171,12 +149,12 @@ class Permutation1_6Constraints(ConstraintModule):
         # Formula from expressionsinfo.json (std_prod.pil:817):
         # (gprod * denom) - (prev_gprod*(1-L1) + L1) = 0
         # denom = sel3 * (compress(4,[a4,b4]) + gamma - 1) + 1
-        # Note: The expression shows: (gprod*((sel3*(e+gamma-1))+1)) - ('gprod*(1-L1)+L1)
+        # Note: The expression shows: (gprod*((sel3*(e+gamma-1)+1) - ('gprod*(1-L1)+L1)
         # where e = compress(4,[a4,b4]) without gamma
         # ===================================================================
         # e = ((b4*alpha + a4)*alpha + 4) -- compress without gamma
-        e = (b4 * alpha + a4) * alpha + _ff3_scalar(4, n)
-        gprod_denom = sel3 * (e + gamma - _ff3_scalar(1, n)) + _ff3_scalar(1, n)
+        e = (b4 * alpha + a4) * alpha + const(4)
+        gprod_denom = sel3 * (e + gamma - one) + one
         gprod_recurrence = gprod * gprod_denom - (prev_gprod * one_minus_L1 + L1)
         constraints.append(gprod_recurrence)
 
@@ -188,16 +166,5 @@ class Permutation1_6Constraints(ConstraintModule):
         gprod_boundary = next_L1 * (gprod_result - gprod)
         constraints.append(gprod_boundary)
 
-        # Combine constraints using the expression binary's accumulation pattern:
-        # acc = C0 * vc
-        # acc = (acc + C1) * vc
-        # ...
-        # acc = (acc + C4) * vc
-        # acc = acc + C5
-        # Result: C0*vc^5 + C1*vc^4 + C2*vc^3 + C3*vc^2 + C4*vc + C5
-        acc = constraints[0] * vc
-        for i in range(1, len(constraints) - 1):
-            acc = (acc + constraints[i]) * vc
-        acc = acc + constraints[-1]
-
-        return acc
+        # Combine constraints using std_vc powers
+        return self._combine_constraints(constraints, vc)
