@@ -12,7 +12,7 @@ import numpy as np
 from typing import List
 
 import galois
-from primitives.field import FF, FF3, ff3, ff3_coeffs, FIELD_EXTENSION_DEGREE, get_omega_inv
+from primitives.field import FF, FF3, ff3_coeffs, FIELD_EXTENSION_DEGREE, get_omega_inv
 from primitives.ntt import NTT
 
 
@@ -117,8 +117,8 @@ def to_coefficients_cubic(
     components = [FF([c[i] for c in coeffs]) for i in range(FIELD_EXTENSION_DEGREE)]
     results = [galois.intt(comp, omega=w_inv) for comp in components]
 
-    # Recombine into FF3 elements
-    return [ff3([int(r[i]) for r in results]) for i in range(n)]
+    # Recombine into FF3 elements (galois uses descending order [c2,c1,c0])
+    return [FF3.Vector([int(results[2][i]), int(results[1][i]), int(results[0][i])]) for i in range(n)]
 
 
 def _log2(size: int) -> int:

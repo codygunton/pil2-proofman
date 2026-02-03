@@ -12,7 +12,6 @@ from primitives.field import (
     SHIFT,
     FFArray,
     InterleavedFF3,
-    ff3,
     ff3_coeffs,
     ff3_from_json,
     ff3_to_interleaved_numpy,
@@ -450,10 +449,10 @@ def _build_verifier_data(
 
         # Extract evaluation value (FF3 from interleaved buffer)
         eval_base = ev_idx * FIELD_EXTENSION_DEGREE
-        eval_val = ff3([
-            int(evals[eval_base]),
+        eval_val = FF3.Vector([
+            int(evals[eval_base + 2]),
             int(evals[eval_base + 1]),
-            int(evals[eval_base + 2])
+            int(evals[eval_base])
         ])
 
         data_evals[(name, index, offset)] = eval_val
@@ -461,10 +460,10 @@ def _build_verifier_data(
     # Map challenges
     for ch_idx, ch_info in enumerate(si.challengesMap):
         ch_base = ch_idx * FIELD_EXTENSION_DEGREE
-        ch_val = ff3([
-            int(challenges[ch_base]),
+        ch_val = FF3.Vector([
+            int(challenges[ch_base + 2]),
             int(challenges[ch_base + 1]),
-            int(challenges[ch_base + 2])
+            int(challenges[ch_base])
         ])
         data_challenges[ch_info.name] = ch_val
 
@@ -473,10 +472,10 @@ def _build_verifier_data(
         n_airgroup_values = len(si.airgroupValuesMap)
         for i in range(n_airgroup_values):
             idx = i * FIELD_EXTENSION_DEGREE
-            data_airgroup_values[i] = ff3([
-                int(airgroup_values[idx]),
+            data_airgroup_values[i] = FF3.Vector([
+                int(airgroup_values[idx + 2]),
                 int(airgroup_values[idx + 1]),
-                int(airgroup_values[idx + 2])
+                int(airgroup_values[idx])
             ])
 
     return VerifierData(
@@ -512,7 +511,7 @@ def _evaluate_constraint_with_module(si: StarkInfo, verifier_data: VerifierData,
     xi_to_n = xi
     for _ in range(trace_size - 1):
         xi_to_n = xi_to_n * xi
-    zh_at_xi = xi_to_n - ff3([1, 0, 0])
+    zh_at_xi = xi_to_n - FF3(1)
 
     # Q(xi) = C(xi) / Z_H(xi)
     quotient_at_xi = constraint_at_xi * (zh_at_xi ** -1)
@@ -533,7 +532,7 @@ def _compute_x_div_x_sub(si: StarkInfo, xi_challenge: Challenge, fri_queries: li
     x_div_x_sub = np.zeros(n_queries * n_opening_points * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
     # Convert challenge to extension field element
-    xi = ff3([int(xi_challenge[0]), int(xi_challenge[1]), int(xi_challenge[2])])
+    xi = FF3.Vector([int(xi_challenge[2]), int(xi_challenge[1]), int(xi_challenge[0])])
 
     # Domain generators
     omega_extended = FF(get_omega(si.starkStruct.nBitsExt))  # Extended domain
@@ -543,7 +542,7 @@ def _compute_x_div_x_sub(si: StarkInfo, xi_challenge: Challenge, fri_queries: li
     for query_idx in range(n_queries):
         # Evaluation point: x = shift * omega_extended^query_position
         query_position = fri_queries[query_idx]
-        x = ff3([int(shift * (omega_extended ** query_position)), 0, 0])
+        x = FF3(int(shift * (omega_extended ** query_position)))
 
         for opening_idx, opening_point in enumerate(si.openingPoints):
             # Compute omega_trace^opening_point (handle negative exponents)
@@ -552,7 +551,7 @@ def _compute_x_div_x_sub(si: StarkInfo, xi_challenge: Challenge, fri_queries: li
                 omega_power = omega_power ** -1
 
             # Compute 1/(x - xi * omega^opening_point)
-            shifted_challenge = xi * ff3([int(omega_power), 0, 0])
+            shifted_challenge = xi * FF3(int(omega_power))
             inv_difference = (x - shifted_challenge) ** -1
 
             # Store in flattened buffer
@@ -567,7 +566,7 @@ def _compute_xi_to_trace_size(xi: FF3, trace_size: int) -> FF3:
 
     This is needed to reconstruct the full quotient polynomial from its split pieces.
     """
-    x_power = ff3([1, 0, 0])
+    x_power = FF3(1)
     for _ in range(trace_size):
         x_power = x_power * xi
     return x_power
@@ -587,8 +586,8 @@ def _reconstruct_quotient_at_xi(si: StarkInfo, evals: InterleavedFF3, xi: FF3, x
         if p.stage == quotient_stage and p.stageId == 0
     )
 
-    reconstructed_quotient = ff3([0, 0, 0])
-    xi_power_accumulator = ff3([1, 0, 0])
+    reconstructed_quotient = FF3(0)
+    xi_power_accumulator = FF3(1)
 
     for piece_idx in range(si.qDeg):
         # Find evaluation of Q_i(xi) in the evals array
@@ -597,10 +596,11 @@ def _reconstruct_quotient_at_xi(si: StarkInfo, evals: InterleavedFF3, xi: FF3, x
             if e.type == EvMap.Type.cm and e.id == quotient_start_idx + piece_idx
         )
 
-        # Extract the FF3 value from interleaved buffer
-        q_piece_eval = ff3([
-            int(evals[eval_map_idx * FIELD_EXTENSION_DEGREE + k])
-            for k in range(FIELD_EXTENSION_DEGREE)
+        # Extract the FF3 value from interleaved buffer (galois uses descending order)
+        q_piece_eval = FF3.Vector([
+            int(evals[eval_map_idx * FIELD_EXTENSION_DEGREE + 2]),
+            int(evals[eval_map_idx * FIELD_EXTENSION_DEGREE + 1]),
+            int(evals[eval_map_idx * FIELD_EXTENSION_DEGREE])
         ])
 
         # Accumulate: Q += xi^(i*N) * Q_i(xi)
@@ -619,12 +619,12 @@ def _verify_evaluations(si: StarkInfo, params: ProofContext, evals: InterleavedF
     vanishing polynomial on the trace domain.
     """
     # Convert xi challenge to FF3
-    xi = ff3([int(xi_challenge[0]), int(xi_challenge[1]), int(xi_challenge[2])])
+    xi = FF3.Vector([int(xi_challenge[2]), int(xi_challenge[1]), int(xi_challenge[0])])
 
     # Evaluate constraint polynomial using per-AIR constraint module
     verifier_data = _build_verifier_data(si, evals, challenges, params.airgroupValues)
     constraint_buffer = _evaluate_constraint_with_module(si, verifier_data, xi)
-    constraint_at_xi = ff3([int(constraint_buffer[k]) for k in range(FIELD_EXTENSION_DEGREE)])
+    constraint_at_xi = FF3.Vector([int(constraint_buffer[2]), int(constraint_buffer[1]), int(constraint_buffer[0])])
 
     # Step 2: Compute powers of xi needed for reconstruction
     trace_size = 1 << si.starkStruct.nBits
@@ -916,7 +916,7 @@ def _verify_fri_folding(proof: STARKProof, si: StarkInfo, challenges: Interleave
         else:
             expected = proof.fri.pol[idx]
 
-        if value != ff3([int(v) for v in expected]):
+        if value != FF3.Vector([int(expected[2]), int(expected[1]), int(expected[0])]):
             return False
 
     return True

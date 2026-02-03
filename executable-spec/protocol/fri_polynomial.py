@@ -24,7 +24,7 @@ import numpy as np
 from typing import TYPE_CHECKING
 
 from primitives.field import (
-    FF, FF3, ff3,
+    FF, FF3,
     ff3_from_numpy_coeffs, ff3_to_interleaved_numpy,
     ff3_from_interleaved_numpy,
     FIELD_EXTENSION_DEGREE,
@@ -233,7 +233,7 @@ def compute_fri_polynomial(
                 int(params.evals[eval_base + 1]),
                 int(params.evals[eval_base + 2])
             ]
-            eval_val = ff3(eval_coeffs)
+            eval_val = FF3.Vector([eval_coeffs[2], eval_coeffs[1], eval_coeffs[0]])
 
             # Horner step: acc = acc * vf2 + (poly - eval)
             diff = poly_vals - eval_val
@@ -389,7 +389,7 @@ def compute_fri_polynomial_verifier(
                 int(params.evals[eval_base + 1]),
                 int(params.evals[eval_base + 2])
             ]
-            eval_val = ff3(eval_coeffs)
+            eval_val = FF3.Vector([eval_coeffs[2], eval_coeffs[1], eval_coeffs[0]])
 
             diff = poly_vals - eval_val
             group_acc = group_acc * vf2 + diff

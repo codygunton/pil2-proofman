@@ -24,7 +24,7 @@ from primitives.ntt import NTT
 from protocol.proof_context import ProofContext
 from primitives.pol_map import EvMap
 from primitives.merkle_tree import MerkleTree, MerkleRoot
-from primitives.field import FF, FF3, ff3, ff3_from_interleaved_numpy
+from primitives.field import FF, FF3, ff3_from_interleaved_numpy
 from protocol.data import ProverData
 # Late imports to avoid circular dependency:
 # - constraints.base imports protocol.data
@@ -119,7 +119,7 @@ def _build_prover_data_extended(
         coeff0 = int(params.challenges[idx])
         coeff1 = int(params.challenges[idx + 1])
         coeff2 = int(params.challenges[idx + 2])
-        challenges[name] = ff3([coeff0, coeff1, coeff2])
+        challenges[name] = FF3.Vector([coeff2, coeff1, coeff0])
 
     # Extract airgroup values (accumulated results across AIR instances)
     airgroup_values = {}
@@ -129,7 +129,7 @@ def _build_prover_data_extended(
         coeff0 = int(params.airgroupValues[idx])
         coeff1 = int(params.airgroupValues[idx + 1])
         coeff2 = int(params.airgroupValues[idx + 2])
-        airgroup_values[i] = ff3([coeff0, coeff1, coeff2])
+        airgroup_values[i] = FF3.Vector([coeff2, coeff1, coeff0])
 
     return ProverData(columns=columns, constants=constants, challenges=challenges,
                       airgroup_values=airgroup_values, extend=extend)
@@ -216,7 +216,7 @@ def _build_prover_data_base(
         coeff0 = int(params.challenges[idx])
         coeff1 = int(params.challenges[idx + 1])
         coeff2 = int(params.challenges[idx + 2])
-        challenges[name] = ff3([coeff0, coeff1, coeff2])
+        challenges[name] = FF3.Vector([coeff2, coeff1, coeff0])
 
     return ProverData(columns=columns, constants=constants, challenges=challenges)
 
@@ -501,7 +501,7 @@ class Starks:
         3. Reorganize from degree-major to evaluation-major layout
         4. NTT back to extended domain evaluations
         """
-        from primitives.field import FF, ff3, ff3_from_buffer_at, ff3_store_to_buffer, SHIFT_INV
+        from primitives.field import FF, FF3, ff3_from_buffer_at, ff3_store_to_buffer, SHIFT_INV
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
@@ -533,7 +533,7 @@ class Starks:
         # cmQ[(i * qDeg + p) * 3] = qPol[(p * N + i) * 3] * S[p]
         # Vectorized: process all N elements per degree p in one batch
         for p in range(qDeg):
-            shift_p = ff3([int(S[p]), 0, 0])
+            shift_p = FF3(int(S[p]))
 
             # Batch read: indices (p * N + i) * 3 for i in [0, N)
             read_indices = [(p * N + i) * FIELD_EXTENSION_DEGREE for i in range(N)]
@@ -636,7 +636,7 @@ class Starks:
         Returns:
             Lagrange evaluation coefficients in flattened numpy array
         """
-        from primitives.field import FF, FF3, ff3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega, SHIFT_INV
+        from primitives.field import FF, FF3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega, SHIFT_INV
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         nOpeningPoints = len(openingPoints)
@@ -655,7 +655,7 @@ class Starks:
 
         # Embed in extension field and multiply by xi * shift^-1
         wPowers_ff3 = FF3(wPowers)  # Base field values embedded in FF3
-        xisShiftedVals = xiFF3 * wPowers_ff3 * ff3([int(shiftInv), 0, 0])
+        xisShiftedVals = xiFF3 * wPowers_ff3 * FF3(int(shiftInv))
 
         # Build LEv using FF3 arrays - one array per row k
         # LEv[k, :] = LEv[k-1, :] * xisShiftedVals (element-wise)

@@ -5,7 +5,7 @@ from typing import List
 import galois
 
 from primitives.field import (
-    FF, FF3, FF3Poly, ff3, ff3_coeffs, ff3_to_flat_list,
+    FF, FF3, FF3Poly, ff3_coeffs, ff3_to_flat_list,
     SHIFT, SHIFT_INV, get_omega_inv, FIELD_EXTENSION_DEGREE,
 )
 from primitives.merkle_tree import MerkleTree, MerkleRoot, transpose_for_merkle
@@ -27,7 +27,7 @@ class FRI:
         current_bits: int,
     ) -> FF3Poly:
         """Fold polynomial by factor 2^(prev_bits - current_bits) using challenge."""
-        challenge_ff3 = ff3(challenge)
+        challenge_ff3 = FF3.Vector([challenge[2], challenge[1], challenge[0]])
 
         # Coset shift: SHIFT^(-2^k) where k depends on accumulated folding
         k = n_bits_ext - prev_bits if fri_round > 0 else 0
@@ -90,7 +90,7 @@ class FRI:
         siblings: List[List[int]],
     ) -> FF3:
         """Verify fold step: recompute expected value from siblings and challenge."""
-        challenge_ff3 = ff3(challenge)
+        challenge_ff3 = FF3.Vector([challenge[2], challenge[1], challenge[0]])
 
         # Coset shift for verification (forward direction)
         k = n_bits_ext - prev_bits if fri_round > 0 else 0
@@ -100,7 +100,7 @@ class FRI:
         fold_factor = 1 << (prev_bits - current_bits)
 
         # Convert siblings to FF3 coefficients (interpolation)
-        coeffs = [ff3(s) for s in siblings]
+        coeffs = [FF3.Vector([s[2], s[1], s[0]]) for s in siblings]
         if fold_factor > 1:
             coeffs = to_coefficients_cubic(coeffs, fold_factor)
 
