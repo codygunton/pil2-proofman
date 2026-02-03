@@ -28,36 +28,12 @@ Term 0 is added directly to gsum, not via intermediate columns.
 """
 
 from typing import Dict, List, Tuple
+
 import numpy as np
 
-from primitives.field import FF, FF3, FF3Poly, batch_inverse, ff3
+from primitives.field import FF3, FF3Poly, batch_inverse, GOLDILOCKS_PRIME
 from constraints.base import ConstraintContext
 from .base import WitnessModule
-
-
-def _compress_exprs(busid: int, cols: List[FF3Poly], alpha: FF3, gamma: FF3) -> FF3Poly:
-    """Compute denominator: busid + col1*α + col2*α² + ... + γ."""
-    n = len(cols[0])
-    result = FF3(np.full(n, busid, dtype=np.uint64))
-    alpha_power = alpha
-    for col in cols:
-        result = result + col * alpha_power
-        alpha_power = alpha_power * alpha
-    return result + gamma
-
-
-def _compute_logup_term(
-    busid: int,
-    cols: List[FF3Poly],
-    selector: int,
-    alpha: FF3,
-    gamma: FF3
-) -> FF3Poly:
-    """Compute a single logup term: selector / (compressed_exprs + γ)."""
-    denominator = _compress_exprs(busid, cols, alpha, gamma)
-    n = len(cols[0])
-    numerator = FF3(np.full(n, selector % (2**64), dtype=np.uint64))  # Handle -1
-    return numerator * batch_inverse(denominator)
 
 
 class SimpleLeftWitness(WitnessModule):
@@ -91,6 +67,9 @@ class SimpleLeftWitness(WitnessModule):
         # Define all 13 logup terms with constraint-derived selectors
         # Term 0: goes directly to gsum (not in intermediate columns)
         # Terms 1-12: grouped into 6 im_cluster columns
+        one = FF3(1)
+        v255 = FF3(255)
+        v256 = FF3(256)
         terms = [
             # Term 0: permutation assumes (direct to gsum)
             (1, [a, b], -1),
@@ -103,10 +82,10 @@ class SimpleLeftWitness(WitnessModule):
             # Terms 4-12: range checks (all assumes, so selector=-1)
             (100, [k[0]], -1),
             (101, [k[1]], -1),
-            (100, [k[2] - ff3([1, 0, 0])], -1),
-            (100, [ff3([255, 0, 0]) - k[2]], -1),
+            (100, [k[2] - one], -1),
+            (100, [v255 - k[2]], -1),
             (101, [k[3]], -1),
-            (101, [ff3([256, 0, 0]) - k[3]], -1),
+            (101, [v256 - k[3]], -1),
             (102, [k[4]], -1),
             (103, [k[5]], -1),
             (104, [k[6]], -1),
@@ -144,31 +123,37 @@ class SimpleLeftWitness(WitnessModule):
 
         n = len(c)
 
+        def const(value):
+            return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
+
         def compress_1(busid, col):
-            return col * alpha + FF3(np.full(n, busid, dtype=np.uint64)) + gamma
+            return col * alpha + const(busid) + gamma
 
         def compress_2(busid, col1, col2):
-            return (col2 * alpha + col1) * alpha + FF3(np.full(n, busid, dtype=np.uint64)) + gamma
+            return (col2 * alpha + col1) * alpha + const(busid) + gamma
+
+        neg_one = const(-1)
+        one = const(1)
+        v255 = const(255)
+        v256 = const(256)
 
         im_cluster = {}
 
         # im_cluster[0]: (D2 - D1) / (D1 * D2) where D1=compress(1,[c,d]), D2=compress(2,[e,f])
         D1 = compress_2(1, c, d)
         D2 = compress_2(2, e, f)
-        numerator = D2 + FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64)) * D1  # D2 - D1
+        numerator = D2 + neg_one * D1  # D2 - D1
         denominator = D1 * D2
         im_cluster[0] = numerator * batch_inverse(denominator)
 
         # im_cluster[1]: -(D1 + D2) / (D1 * D2) where D1=compress(3,[g,h]), D2=compress(100,k[0])
         D1 = compress_2(3, g, h)
         D2 = compress_1(100, k[0])
-        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
         numerator = neg_one * D2 + neg_one * D1  # -D1 - D2
         denominator = D1 * D2
         im_cluster[1] = numerator * batch_inverse(denominator)
 
         # im_cluster[2]: -(D1 + D2) / (D1 * D2) where D1=compress(101,k[1]), D2=compress(100,k[2]-1)
-        one = FF3(np.full(n, 1, dtype=np.uint64))
         D1 = compress_1(101, k[1])
         D2 = compress_1(100, k[2] - one)
         numerator = neg_one * D2 + neg_one * D1
@@ -176,7 +161,6 @@ class SimpleLeftWitness(WitnessModule):
         im_cluster[2] = numerator * batch_inverse(denominator)
 
         # im_cluster[3]: -(D1 + D2) / (D1 * D2) where D1=compress(100,255-k[2]), D2=compress(101,k[3])
-        v255 = FF3(np.full(n, 255, dtype=np.uint64))
         D1 = compress_1(100, v255 - k[2])
         D2 = compress_1(101, k[3])
         numerator = neg_one * D2 + neg_one * D1
@@ -184,7 +168,6 @@ class SimpleLeftWitness(WitnessModule):
         im_cluster[3] = numerator * batch_inverse(denominator)
 
         # im_cluster[4]: -(D1 + D2) / (D1 * D2) where D1=compress(101,256-k[3]), D2=compress(102,k[4])
-        v256 = FF3(np.full(n, 256, dtype=np.uint64))
         D1 = compress_1(101, v256 - k[3])
         D2 = compress_1(102, k[4])
         numerator = neg_one * D2 + neg_one * D1
@@ -227,12 +210,14 @@ class SimpleLeftWitness(WitnessModule):
 
         n = len(list(im_clusters.values())[0])
 
+        def const(value):
+            return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
+
         # Compute direct_den = compress(1, [a, b]) = (b*α + a)*α + 1 + γ
-        direct_den = (b * alpha + a) * alpha + FF3(np.full(n, 1, dtype=np.uint64)) + gamma
+        direct_den = (b * alpha + a) * alpha + const(1) + gamma
 
         # term0 contribution = -1 / direct_den
-        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
-        term0 = neg_one * batch_inverse(direct_den)
+        term0 = const(-1) * batch_inverse(direct_den)
 
         # Sum all contributions: im_clusters + term0
         row_sum = im_clusters[0]
@@ -240,10 +225,7 @@ class SimpleLeftWitness(WitnessModule):
             row_sum = row_sum + im_clusters[i]
         row_sum = row_sum + term0
 
-        # Compute cumulative sum directly on FF3 array
-        # gsum[i] = sum(row_sum[0:i+1])
-        gsum = row_sum.copy()
-        for i in range(1, n):
-            gsum[i] = gsum[i - 1] + row_sum[i]
+        # Compute cumulative sum
+        gsum = self._compute_cumulative_sum(row_sum)
 
         return {'gsum': gsum}

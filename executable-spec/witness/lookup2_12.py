@@ -18,44 +18,12 @@ Term 0 (busid=4 assumes) is used directly in gsum, not in intermediate columns.
 """
 
 from typing import Dict, List, Tuple, Union
+
 import numpy as np
 
-from primitives.field import FF3, FF3Poly, batch_inverse
+from primitives.field import FF3, FF3Poly, batch_inverse, GOLDILOCKS_PRIME
 from constraints.base import ConstraintContext
 from .base import WitnessModule
-
-
-def _compress_exprs(busid: int, cols: List[FF3Poly], alpha: FF3, gamma: FF3) -> FF3Poly:
-    """Compute denominator: busid + col1*α + col2*α² + ... + γ."""
-    n = len(cols[0])
-    result = FF3(np.full(n, busid, dtype=np.uint64))
-    alpha_power = alpha
-    for col in cols:
-        result = result + col * alpha_power
-        alpha_power = alpha_power * alpha
-    return result + gamma
-
-
-def _compute_logup_term(
-    busid: int,
-    cols: List[FF3Poly],
-    selector: Union[int, FF3Poly],
-    alpha: FF3,
-    gamma: FF3
-) -> FF3Poly:
-    """Compute a single logup term: selector / (compressed_exprs + γ)."""
-    denominator = _compress_exprs(busid, cols, alpha, gamma)
-    n = len(cols[0])
-
-    if isinstance(selector, int):
-        # Scalar selector - handle negative values
-        sel_val = selector % (2**64) if selector >= 0 else (2**64 + selector) % (2**64)
-        numerator = FF3(np.full(n, sel_val, dtype=np.uint64))
-    else:
-        # Column selector
-        numerator = selector
-
-    return numerator * batch_inverse(denominator)
 
 
 class Lookup2_12Witness(WitnessModule):
@@ -130,10 +98,14 @@ class Lookup2_12Witness(WitnessModule):
         mul = ctx.col('mul')
 
         n = len(a2)
-        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
+
+        def const(value):
+            return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
+
+        neg_one = const(-1)
 
         def compress_2(busid, col1, col2):
-            return (col2 * alpha + col1) * alpha + FF3(np.full(n, busid, dtype=np.uint64)) + gamma
+            return (col2 * alpha + col1) * alpha + const(busid) + gamma
 
         im_cluster = {}
 
@@ -185,21 +157,21 @@ class Lookup2_12Witness(WitnessModule):
         im_single = intermediates['im_single']
 
         n = len(im_clusters[0])
-        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
+
+        def const(value):
+            return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
 
         # Compute direct_den = compress(4, [a1, b1])
-        direct_den = (b1 * alpha + a1) * alpha + FF3(np.full(n, 4, dtype=np.uint64)) + gamma
+        direct_den = (b1 * alpha + a1) * alpha + const(4) + gamma
 
         # term0 contribution = -1 / direct_den
-        term0 = neg_one * batch_inverse(direct_den)
+        term0 = const(-1) * batch_inverse(direct_den)
 
         # Sum all contributions: im_clusters + im_single + term0
         sum_ims = im_clusters[0] + im_clusters[1] + im_single[0]
         row_sum = sum_ims + term0
 
-        # Compute cumulative sum directly on FF3 array
-        gsum = row_sum.copy()
-        for i in range(1, n):
-            gsum[i] = gsum[i - 1] + row_sum[i]
+        # Compute cumulative sum
+        gsum = self._compute_cumulative_sum(row_sum)
 
         return {'gsum': gsum}

@@ -19,44 +19,12 @@ Permutation assumes, busid=4, sel=sel3, cols=[a4, b4]
 """
 
 from typing import Dict, List, Tuple, Union
+
 import numpy as np
 
-from primitives.field import FF3, FF3Poly, batch_inverse
+from primitives.field import FF3, FF3Poly, batch_inverse, GOLDILOCKS_PRIME
 from constraints.base import ConstraintContext
 from .base import WitnessModule
-
-
-def _compress_exprs(busid: int, cols: List[FF3Poly], alpha: FF3, gamma: FF3) -> FF3Poly:
-    """Compute denominator: busid + col1*α + col2*α² + ... + γ."""
-    n = len(cols[0])
-    result = FF3(np.full(n, busid, dtype=np.uint64))
-    alpha_power = alpha
-    for col in cols:
-        result = result + col * alpha_power
-        alpha_power = alpha_power * alpha
-    return result + gamma
-
-
-def _compute_logup_term(
-    busid: int,
-    cols: List[FF3Poly],
-    selector: Union[int, FF3Poly],
-    alpha: FF3,
-    gamma: FF3
-) -> FF3Poly:
-    """Compute a single logup term: selector / (compressed_exprs + γ)."""
-    denominator = _compress_exprs(busid, cols, alpha, gamma)
-    n = len(cols[0])
-
-    if isinstance(selector, int):
-        # Scalar selector - handle negative values
-        sel_val = selector % (2**64) if selector >= 0 else (2**64 + selector) % (2**64)
-        numerator = FF3(np.full(n, sel_val, dtype=np.uint64))
-    else:
-        # Column selector
-        numerator = selector
-
-    return numerator * batch_inverse(denominator)
 
 
 class Permutation1_6Witness(WitnessModule):
@@ -122,10 +90,14 @@ class Permutation1_6Witness(WitnessModule):
         sel2 = ctx.col('sel2')
 
         n = len(a2)
-        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
+
+        def const(value):
+            return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
+
+        neg_one = const(-1)
 
         def compress_2(busid, col1, col2):
-            return (col2 * alpha + col1) * alpha + FF3(np.full(n, busid, dtype=np.uint64)) + gamma
+            return (col2 * alpha + col1) * alpha + const(busid) + gamma
 
         im_cluster = {}
 
@@ -177,36 +149,34 @@ class Permutation1_6Witness(WitnessModule):
         im_clusters = intermediates['im_cluster']
 
         n = len(im_clusters[0])
-        one = FF3(np.full(n, 1, dtype=np.uint64))
-        neg_one = FF3(np.full(n, -1 % (2**64 - 2**32 + 1), dtype=np.uint64))
+
+        def const(value):
+            return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
+
+        one = const(1)
 
         # ---- GSUM ----
         # direct_den = compress(1, [a1, b1])
         direct_den = (b1 * alpha + a1) * alpha + one + gamma
 
         # term0 contribution = -1 / direct_den
-        term0 = neg_one * batch_inverse(direct_den)
+        term0 = const(-1) * batch_inverse(direct_den)
 
         # Sum all contributions for gsum: im_clusters + term0
         sum_im = im_clusters[0] + im_clusters[1]
         row_sum = sum_im + term0
 
         # Compute gsum cumulative sum
-        gsum = row_sum.copy()
-        for i in range(1, n):
-            gsum[i] = gsum[i - 1] + row_sum[i]
+        gsum = self._compute_cumulative_sum(row_sum)
 
         # ---- GPROD ----
         # e = (b4*alpha + a4)*alpha + 4 (compress without gamma)
-        e = (b4 * alpha + a4) * alpha + FF3(np.full(n, 4, dtype=np.uint64))
+        e = (b4 * alpha + a4) * alpha + const(4)
         # denom = sel3 * (e + gamma - 1) + 1
         denom = sel3 * (e + gamma - one) + one
 
         # gprod[i] = prod(1/denom[j] for j in 0..i)
-        # = 1 / prod(denom[j] for j in 0..i)
         inv_denom = batch_inverse(denom)
-        gprod = inv_denom.copy()
-        for i in range(1, n):
-            gprod[i] = gprod[i - 1] * inv_denom[i]
+        gprod = self._compute_cumulative_product(inv_denom)
 
         return {'gsum': gsum, 'gprod': gprod}
