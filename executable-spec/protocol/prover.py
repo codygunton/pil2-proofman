@@ -6,7 +6,6 @@ from poseidon2_ffi import linear_hash
 from primitives.field import FIELD_EXTENSION_DEGREE, ff3_from_interleaved_numpy
 from primitives.merkle_tree import HASH_SIZE, QueryProof
 from primitives.transcript import Transcript
-from protocol.expression_evaluator import ExpressionsPack
 from protocol.pcs import FriPcs, FriPcsConfig
 from protocol.proof_context import ProofContext
 from protocol.air_config import ProverHelpers, SetupCtx
@@ -126,15 +125,6 @@ def gen_proof(
     # 3. Returns roots for transcript and stores trees for query proofs
     # NTT instances are created internally to hide implementation details.
     starks = Starks(setup_ctx)
-
-    # ExpressionsPack manages constraint polynomial evaluation by parsing and executing AIR expressions.
-    # It contains:
-    # - Compiled expressions (from setup_ctx.expressions_bin) that compute constraint polynomials
-    # - ProverHelpers for constraint evaluation (sibling/parent maps, etc.)
-    # When you call expressions_ctx.compute(...), it evaluates expressions on params.polynomials
-    # and stores results in params.auxTrace or other buffers. The key insight: expression evaluation
-    # is a black box that takes polynomials and outputs constraint values.
-    expressions_ctx = ExpressionsPack(setup_ctx, prover_helpers)
 
     # Initialize Fiat-Shamir transcript (deterministic RNG seeded by public protocol state).
     # The transcript is the heart of the protocol's security: it ensures challenges are unpredictable
@@ -267,12 +257,6 @@ def gen_proof(
     # Execute all AIR constraint expressions to compute intermediate polynomials (Stage 2).
     # These are derived values computed from the witness:
     # - Polynomial flags (is_first_row, is_last_row, etc.)
-    # - Temporary values (T0, T1, ... = intermediate variables in constraints)
-    # - Permutation/lookup support values
-    # The expressions parse the AIR's constraint definitions and evaluate them point-by-point.
-    # Results are stored in params.auxTrace (auxiliary trace buffer).
-    starks.calculateImPolsExpressions(2, params, expressions_ctx)
-
     # For lookup/permutation arguments: compute grand product polynomials.
     # These polynomials prove the prover didn't cheat by skipping elements or using wrong values.
     #
@@ -326,10 +310,8 @@ def gen_proof(
     # The quotient must be low-degree (verifiable by FRI), so constraint violations would
     # immediately make it high-degree.
     #
-    # All supported AIRs now use the constraint module path (byte-identical proofs).
-    use_constraint_module = stark_info.name in ('SimpleLeft', 'Permutation1_6', 'Lookup2_12')
-    starks.calculateQuotientPolynomial(params, expressions_ctx, use_constraint_module=use_constraint_module,
-                                       prover_helpers=prover_helpers)
+    # All AIRs use constraint modules (expression bytecode no longer needed).
+    starks.calculateQuotientPolynomial(params, prover_helpers=prover_helpers)
 
     # Commit to the quotient polynomial.
     # Note: we use ntt_extended here because the quotient is evaluated over the extended domain.
@@ -446,11 +428,8 @@ def gen_proof(
     # Why a linear combination? Because we want to batch-prove all polynomials are low-degree.
     # If even one polynomial is high-degree, the linear combination is high-degree.
     # So proving the combination is low-degree proves all constituents are low-degree.
-    # Debug: compare FRI polynomial implementations
-    # Note: FRI polynomial uses Horner's method batching which differs from naive formula
-    # The direct computation needs to match the bytecode's grouping scheme
-    starks.calculateFRIPolynomial(params, expressions_ctx, use_direct_computation=True, debug_compare=False,
-                                   prover_helpers=prover_helpers)
+    # FRI polynomial uses Horner's method batching for coefficient assignment.
+    starks.calculateFRIPolynomial(params, prover_helpers=prover_helpers)
 
     # Extract the FRI polynomial from the auxiliary trace buffer.
     # params.auxTrace is a flat array containing all polynomials:

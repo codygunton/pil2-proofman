@@ -13,8 +13,6 @@ from protocol.pcs import (
 
 from protocol.stages import Starks
 
-from protocol.expression_evaluator import ExpressionsPack
-
 from protocol.verifier import stark_verify
 
 from protocol.prover import gen_proof
@@ -22,7 +20,6 @@ from protocol.prover import gen_proof
 from protocol.stark_info import StarkInfo
 from protocol.air_config import SetupCtx, AirConfig, ProverHelpers
 from protocol.proof_context import ProofContext
-from protocol.expressions_bin import ExpressionsBin
 from protocol.proof import STARKProof
 
 __all__ = [
@@ -38,7 +35,6 @@ __all__ = [
     "QueryIndex",
     # STARK
     "Starks",
-    "ExpressionsPack",
     "stark_verify",
     "gen_proof",
     # Configuration and data structures
@@ -47,6 +43,5 @@ __all__ = [
     "SetupCtx",  # Deprecated alias for AirConfig
     "ProverHelpers",
     "ProofContext",
-    "ExpressionsBin",
     "STARKProof",
 ]

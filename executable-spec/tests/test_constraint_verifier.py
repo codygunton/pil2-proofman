@@ -28,9 +28,8 @@ def load_simple_left_fixture():
     """Load all data needed for SimpleLeft verifier constraint test."""
     base_dir = Path(__file__).parent
     starkinfo_path = base_dir / '../../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json'
-    expressions_bin_path = base_dir / '../../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.bin'
 
-    setup_ctx = SetupCtx.from_files(str(starkinfo_path), str(expressions_bin_path))
+    setup_ctx = SetupCtx.from_starkinfo(str(starkinfo_path))
     stark_info = setup_ctx.stark_info
 
     # Load proof

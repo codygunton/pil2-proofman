@@ -66,14 +66,13 @@ def load_setup_ctx(air_name: str) -> Optional[SetupCtx]:
 
     base_dir = Path(__file__).parent
     starkinfo_path = base_dir / config['starkinfo']
-    expressions_bin_path = base_dir / config['expressions_bin']
     global_info_path = base_dir / config.get('global_info', '')
 
-    if not starkinfo_path.exists() or not expressions_bin_path.exists():
+    if not starkinfo_path.exists():
         return None
 
     global_info_str = str(global_info_path) if global_info_path.exists() else None
-    return SetupCtx.from_files(str(starkinfo_path), str(expressions_bin_path), global_info_str)
+    return SetupCtx.from_starkinfo(str(starkinfo_path), global_info_str)
 
 
 def create_params_from_vectors(stark_info, vectors: dict,

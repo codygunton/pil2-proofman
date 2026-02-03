@@ -6,7 +6,6 @@ from protocol import (
     SetupCtx,
     ProverHelpers,
     ProofContext,
-    ExpressionsBin,
     STARKProof,
     gen_proof,
 )
@@ -16,7 +15,6 @@ __all__ = [
     "SetupCtx",
     "ProverHelpers",
     "ProofContext",
-    "ExpressionsBin",
     "STARKProof",
     "gen_proof",
 ]

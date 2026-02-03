@@ -2,8 +2,8 @@
 
 This module provides the configuration bundle for STARK proving/verification:
 
-- AirConfig: Bundles StarkInfo (AIR specification), ExpressionsBin (compiled
-  constraint expressions), and optional GlobalInfo (cross-AIR coordination).
+- AirConfig: Bundles StarkInfo (AIR specification) and optional GlobalInfo
+  (cross-AIR coordination).
 - ProverHelpers: Precomputed zerofiers and evaluation points needed by both
   prover and verifier for constraint evaluation.
 
@@ -12,10 +12,7 @@ that the STARK proves. AirConfig packages everything needed to evaluate those
 constraints.
 
 Example:
-    config = AirConfig.from_files(
-        starkinfo_path="path/to/starkinfo.json",
-        expressions_bin_path="path/to/expressions.bin",
-    )
+    config = AirConfig.from_starkinfo("path/to/starkinfo.json")
     proof = gen_proof(config, params)
 """
 
@@ -29,7 +26,6 @@ from primitives.field import (
 
 if TYPE_CHECKING:
     from protocol.stark_info import StarkInfo, Boundary
-    from protocol.expressions_bin import ExpressionsBin
     from protocol.global_info import GlobalInfo
 
 
@@ -263,37 +259,25 @@ class AirConfig:
     Attributes:
         stark_info: The AIR specification containing domain sizes, stage counts,
             constraint definitions, polynomial mappings, and FRI parameters.
-        expressions_bin: Optional compiled constraint expressions in binary format.
-            Only needed when using the legacy expression evaluator path.
         global_info: Optional cross-AIR coordination data for VADCOP (Virtual
             Algebraic Distributed Computation Over Provers) mode.
 
     Usage:
-        # Load from files (with expressions_bin for backward compatibility)
-        config = AirConfig.from_files(
-            starkinfo_path="path/to/starkinfo.json",
-            expressions_bin_path="path/to/expressions.bin",
-        )
-
-        # Load without expressions_bin (for constraint module path)
-        config = AirConfig.from_starkinfo(starkinfo_path)
+        config = AirConfig.from_starkinfo("path/to/starkinfo.json")
+        proof = gen_proof(config, params)
     """
 
     def __init__(
         self,
         stark_info: 'StarkInfo',
-        expressions_bin: Optional['ExpressionsBin'] = None,
         global_info: Optional['GlobalInfo'] = None
     ):
         self.stark_info = stark_info
-        self.expressions_bin = expressions_bin
         self.global_info = global_info
 
     @classmethod
     def from_starkinfo(cls, starkinfo_path: str, global_info_path: Optional[str] = None) -> 'AirConfig':
-        """Load AIR configuration from starkinfo only (no expressions_bin needed).
-
-        Use this factory when using constraint modules instead of expression bytecode.
+        """Load AIR configuration from starkinfo.json.
 
         Args:
             starkinfo_path: Path to starkinfo.json (AIR specification)
@@ -311,37 +295,7 @@ class AirConfig:
         if global_info_path:
             global_info = GlobalInfo.from_json(global_info_path)
 
-        return cls(stark_info, None, global_info)
-
-    @classmethod
-    def from_files(
-        cls,
-        starkinfo_path: str,
-        expressions_bin_path: str,
-        global_info_path: Optional[str] = None
-    ) -> 'AirConfig':
-        """Load AIR configuration from files (legacy, includes expressions_bin).
-
-        Args:
-            starkinfo_path: Path to starkinfo.json (AIR specification)
-            expressions_bin_path: Path to expressions.bin (compiled constraints)
-            global_info_path: Optional path to pilout.globalInfo.json (VADCOP)
-
-        Returns:
-            AirConfig instance with loaded configuration
-        """
-        from protocol.stark_info import StarkInfo
-        from protocol.expressions_bin import ExpressionsBin
-        from protocol.global_info import GlobalInfo
-
-        stark_info = StarkInfo.from_json(starkinfo_path)
-        expressions_bin = ExpressionsBin.from_file(expressions_bin_path)
-
-        global_info = None
-        if global_info_path:
-            global_info = GlobalInfo.from_json(global_info_path)
-
-        return cls(stark_info, expressions_bin, global_info)
+        return cls(stark_info, global_info)
 
 
 # Backward compatibility alias

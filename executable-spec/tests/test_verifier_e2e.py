@@ -62,12 +62,11 @@ def load_setup_ctx(air_name: str) -> Optional[SetupCtx]:
 
     base_dir = Path(__file__).parent
     starkinfo_path = base_dir / config['starkinfo']
-    expressions_bin_path = base_dir / config['expressions_bin']
 
-    if not starkinfo_path.exists() or not expressions_bin_path.exists():
+    if not starkinfo_path.exists():
         return None
 
-    return SetupCtx.from_files(str(starkinfo_path), str(expressions_bin_path))
+    return SetupCtx.from_starkinfo(str(starkinfo_path))
 
 
 def create_fresh_transcript(stark_info, vectors: dict) -> Transcript:

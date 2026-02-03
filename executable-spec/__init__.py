@@ -56,7 +56,6 @@ from protocol import (
     QueryIndex,
     # STARK
     Starks,
-    ExpressionsPack,
     stark_verify,
 )
 
@@ -125,6 +124,5 @@ __all__ = [
     "QueryIndex",
     # STARK
     "Starks",
-    "ExpressionsPack",
     "stark_verify",
 ]
