@@ -2,7 +2,7 @@
 
 import pytest
 import time
-from primitives.field import FF, ff3, ff3_coeffs
+from primitives.field import FF, FF3, ff3_coeffs
 from primitives.batch_inverse import batch_inverse_ff, batch_inverse_ff3
 
 
@@ -69,7 +69,7 @@ class TestBatchInverseFF3:
 
     def test_single_element(self):
         """Single element is inverted correctly."""
-        val = ff3([12345, 67890, 11111])
+        val = FF3.Vector([11111, 67890, 12345])
         result = batch_inverse_ff3([val])
         assert len(result) == 1
         product = result[0] * val
@@ -77,7 +77,7 @@ class TestBatchInverseFF3:
 
     def test_two_elements(self):
         """Two elements are inverted correctly."""
-        vals = [ff3([1, 2, 3]), ff3([4, 5, 6])]
+        vals = [FF3.Vector([3, 2, 1]), FF3.Vector([6, 5, 4])]
         results = batch_inverse_ff3(vals)
         assert len(results) == 2
         for v, r in zip(vals, results):
@@ -86,7 +86,7 @@ class TestBatchInverseFF3:
 
     def test_many_elements(self):
         """Many elements are inverted correctly."""
-        vals = [ff3([i, i + 1, i + 2]) for i in range(1, 51)]
+        vals = [FF3.Vector([i + 2, i + 1, i]) for i in range(1, 51)]
         results = batch_inverse_ff3(vals)
         assert len(results) == 50
         for v, r in zip(vals, results):
@@ -95,7 +95,7 @@ class TestBatchInverseFF3:
 
     def test_matches_scalar_inversion(self):
         """Batch inversion matches scalar inversion."""
-        vals = [ff3([i * 3 + 1, i * 3 + 2, i * 3 + 3]) for i in range(20)]
+        vals = [FF3.Vector([i * 3 + 3, i * 3 + 2, i * 3 + 1]) for i in range(20)]
         batch_results = batch_inverse_ff3(vals)
         scalar_results = [v ** -1 for v in vals]
         for b, s in zip(batch_results, scalar_results):
@@ -103,7 +103,7 @@ class TestBatchInverseFF3:
 
     def test_performance(self):
         """4096 FF3 inversions complete much faster than scalar."""
-        vals = [ff3([i + 1, i + 2, i + 3]) for i in range(4096)]
+        vals = [FF3.Vector([i + 3, i + 2, i + 1]) for i in range(4096)]
 
         t0 = time.time()
         results = batch_inverse_ff3(vals)

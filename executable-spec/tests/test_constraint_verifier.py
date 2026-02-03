@@ -9,7 +9,7 @@ import numpy as np
 from pathlib import Path
 import json
 
-from primitives.field import ff3, ff3_coeffs, FIELD_EXTENSION_DEGREE, GOLDILOCKS_PRIME, FF3
+from primitives.field import ff3_coeffs, FIELD_EXTENSION_DEGREE, GOLDILOCKS_PRIME, FF3
 from protocol.air_config import SetupCtx
 from protocol.proof import from_bytes_full
 from protocol.verifier import (
@@ -98,7 +98,7 @@ class TestExpressionBinaryEvaluation:
         # Get xi
         xi_idx = next(i for i, cm in enumerate(stark_info.challengesMap) if cm.name == 'std_xi')
         xi = challenges[xi_idx * FIELD_EXTENSION_DEGREE:(xi_idx + 1) * FIELD_EXTENSION_DEGREE]
-        xi_ff3 = ff3([int(xi[k]) for k in range(FIELD_EXTENSION_DEGREE)])
+        xi_ff3 = FF3.Vector([int(xi[2]), int(xi[1]), int(xi[0])])
 
         # Get Q(xi) from proof (reconstructed from Q0, Q1)
         trace_size = 1 << stark_info.starkStruct.nBits
@@ -117,8 +117,8 @@ class TestExpressionBinaryEvaluation:
         q1_ev_idx = next(j for j, e in enumerate(stark_info.evMap)
                         if e.type.name == 'cm' and e.id == q_start_idx + 1)
 
-        q0 = ff3([int(evals[q0_ev_idx * 3 + k]) for k in range(3)])
-        q1 = ff3([int(evals[q1_ev_idx * 3 + k]) for k in range(3)])
+        q0 = FF3.Vector([int(evals[q0_ev_idx * 3 + 2]), int(evals[q0_ev_idx * 3 + 1]), int(evals[q0_ev_idx * 3])])
+        q1 = FF3.Vector([int(evals[q1_ev_idx * 3 + 2]), int(evals[q1_ev_idx * 3 + 1]), int(evals[q1_ev_idx * 3])])
 
         # Q(xi) = Q0(xi) + xi^N * Q1(xi)
         reconstructed_q = q0 + xi_to_n * q1
@@ -161,7 +161,7 @@ class TestConstraintModuleEvaluation:
         # Get xi
         xi_idx = next(i for i, cm in enumerate(stark_info.challengesMap) if cm.name == 'std_xi')
         xi = challenges[xi_idx * FIELD_EXTENSION_DEGREE:(xi_idx + 1) * FIELD_EXTENSION_DEGREE]
-        xi_ff3 = ff3([int(xi[k]) for k in range(FIELD_EXTENSION_DEGREE)])
+        xi_ff3 = FF3.Vector([int(xi[2]), int(xi[1]), int(xi[0])])
 
         # === Reconstruct Q(xi) from proof ===
         trace_size = 1 << stark_info.starkStruct.nBits
@@ -177,8 +177,8 @@ class TestConstraintModuleEvaluation:
         q1_ev_idx = next(j for j, e in enumerate(stark_info.evMap)
                         if e.type.name == 'cm' and e.id == q_start_idx + 1)
 
-        q0 = ff3([int(evals[q0_ev_idx * 3 + k]) for k in range(3)])
-        q1 = ff3([int(evals[q1_ev_idx * 3 + k]) for k in range(3)])
+        q0 = FF3.Vector([int(evals[q0_ev_idx * 3 + 2]), int(evals[q0_ev_idx * 3 + 1]), int(evals[q0_ev_idx * 3])])
+        q1 = FF3.Vector([int(evals[q1_ev_idx * 3 + 2]), int(evals[q1_ev_idx * 3 + 1]), int(evals[q1_ev_idx * 3])])
 
         expected_q_xi = q0 + xi_to_n * q1
 
@@ -190,7 +190,7 @@ class TestConstraintModuleEvaluation:
         c_xi = constraint_module.constraint_polynomial(ctx)
 
         # Divide by Z_H(xi) = xi^N - 1
-        zh_xi = xi_to_n - ff3([1, 0, 0])
+        zh_xi = xi_to_n - FF3(1)
         module_q_xi = c_xi * (zh_xi ** -1)
 
         # Compare
@@ -231,9 +231,9 @@ class TestIndividualConstraints:
         im0 = verifier_data.evals[('im_cluster', 0, 0)]
 
         # Compute D1 = compress(1, [c,d]) = ((d*α + c)*α + 1) + γ
-        one = ff3([1, 0, 0])
-        two = ff3([2, 0, 0])
-        neg_one = ff3([GOLDILOCKS_PRIME - 1, 0, 0])
+        one = FF3(1)
+        two = FF3(2)
+        neg_one = FF3(GOLDILOCKS_PRIME - 1)
 
         D1 = (d * alpha + c) * alpha + one + gamma
         D2 = (f * alpha + e) * alpha + two + gamma
