@@ -126,7 +126,9 @@ executable-spec/
 │   ├── data.py          # ProverData/VerifierData for constraint modules
 │   └── proof.py         # Proof data structures and serialization
 │
-└── tests/               # Test suite (164 tests)
+├── tests/               # Test suite (164 tests)
+├── setup.sh             # Environment setup (uv sync + poseidon2-ffi)
+└── run-tests.sh         # Test runner with filters
 ```
 
 ### Data Model

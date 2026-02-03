@@ -49,6 +49,7 @@ executable-spec/
 │   ├── test_ntt.py             # NTT mathematical properties
 │   └── test-data/              # Golden test vectors (gitignored)
 │
+├── setup.sh                     # Environment setup (uv sync + poseidon2-ffi)
 ├── run-tests.sh                 # Test runner with filters
 └── pyproject.toml
 ```
@@ -100,11 +101,10 @@ The codebase uses a two-layer data model:
 
 ```bash
 cd executable-spec
-uv sync
-cd primitives/poseidon2-ffi && maturin develop && cd ../..
+./setup.sh                # Install deps + build poseidon2-ffi
 ```
 
-Generate test vectors (from repo root):
+Generate test vectors (from repo root, requires pil2-compiler and pil2-proofman-js):
 ```bash
 ./setup.sh && ./generate-test-vectors.sh
 ```
