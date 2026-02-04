@@ -6,7 +6,7 @@ from poseidon2_ffi import linear_hash
 from primitives.field import FIELD_EXTENSION_DEGREE, ff3_from_interleaved_numpy
 from primitives.merkle_tree import HASH_SIZE, QueryProof
 from primitives.transcript import Transcript
-from protocol.air_config import ProverHelpers, SetupCtx
+from protocol.air_config import AirConfig, ProverHelpers
 from protocol.pcs import FriPcs, FriPcsConfig
 from protocol.proof_context import ProofContext
 from protocol.stages import Starks, calculate_witness_with_module
@@ -36,8 +36,8 @@ def _get_air_values_stage1(stark_info: StarkInfo, params: ProofContext) -> list[
     For simple AIRs, this returns an empty list.
     """
     result = []
-    if hasattr(stark_info, 'airValuesMap') and stark_info.airValuesMap:
-        for i, av in enumerate(stark_info.airValuesMap):
+    if hasattr(stark_info, 'air_values_map') and stark_info.air_values_map:
+        for i, av in enumerate(stark_info.air_values_map):
             if av.stage == 1:
                 # Stage 1 air_values are single field elements
                 result.append(int(params.airValues[i]))
@@ -65,7 +65,7 @@ def _get_proof_values_stage1(stark_info: StarkInfo, params: ProofContext) -> lis
 # --- Main Entry Point ---
 
 def gen_proof(
-    setup_ctx: SetupCtx,
+    air_config: AirConfig,
     params: ProofContext,
     skip_challenge_derivation: bool = False,
     global_challenge: list[int] | None = None,
@@ -74,7 +74,7 @@ def gen_proof(
     """Generate complete STARK proof.
 
     Args:
-        setup_ctx: Setup context with AIR configuration
+        air_config: AIR configuration with stark_info and global_info
         params: Prover parameters and witness data
         skip_challenge_derivation: Skip challenge derivation (testing)
         global_challenge: Pre-computed global challenge for VADCOP mode.
@@ -95,21 +95,21 @@ def gen_proof(
     """
     # Extract the AIR specification (constraint definitions, parameters, domains, challenge map, etc.)
     # from setup context. stark_info contains:
-    # - starkStruct: domain sizes, FRI configuration, merkle parameters, etc.
+    # - stark_struct: domain sizes, FRI configuration, merkle parameters, etc.
     # - constraintPols: the constraint polynomials (compiled from AIR expressions)
-    # - nStages: how many polynomial commitment stages (usually 2: witness + intermediate)
-    # - evMap: which polynomials are opened at which points (for verifier)
+    # - n_stages: how many polynomial commitment stages (usually 2: witness + intermediate)
+    # - ev_map: which polynomials are opened at which points (for verifier)
     # - mapOffsets: where each polynomial is stored in the auxTrace buffer
-    # - challengesMap: which challenges are derived at which stages
-    stark_info = setup_ctx.stark_info
+    # - challenges_map: which challenges are derived at which stages
+    stark_info = air_config.stark_info
 
     # === INITIALIZATION: Set up all working data structures ===
 
     # The main domain size N controls how many evaluation points we have.
-    # This is 2^nBits, where nBits typically logs2(execution trace length).
+    # This is 2^n_bits, where n_bits typically logs2(execution trace length).
     # All constraint traces are evaluated at N points in the field.
     # The domain is the multiplicative subgroup of order N in GF(p).
-    1 << stark_info.starkStruct.nBits
+    1 << stark_info.stark_struct.n_bits
 
     # ProverHelpers contains precomputed tables derived from AIR structure. These include:
     # - Sibling maps for permutation constraints (which execution step has which sibling in permutation)
@@ -124,7 +124,7 @@ def gen_proof(
     # 2. Builds Merkle trees from extended evaluations
     # 3. Returns roots for transcript and stores trees for query proofs
     # NTT instances are created internally to hide implementation details.
-    starks = Starks(setup_ctx)
+    starks = Starks(air_config)
 
     # Initialize Fiat-Shamir transcript (deterministic RNG seeded by public protocol state).
     # The transcript is the heart of the protocol's security: it ensures challenges are unpredictable
@@ -134,8 +134,8 @@ def gen_proof(
     # 3. Update internal state so the next call gets a different challenge
     # This is essentially: challenge_n = Hash(all_committed_data_so_far || counter).
     transcript = Transcript(
-        arity=stark_info.starkStruct.transcriptArity,
-        custom=stark_info.starkStruct.merkleTreeCustom
+        arity=stark_info.stark_struct.transcript_arity,
+        custom=stark_info.stark_struct.merkle_tree_custom
     )
 
     # === STAGE 0: Initialize Constant Polynomials and Transcript ===
@@ -189,8 +189,8 @@ def gen_proof(
 
         # Get lattice_size from globalInfo (default 368 for CurveType::None)
         lattice_size = DEFAULT_LATTICE_SIZE
-        if setup_ctx.global_info is not None:
-            lattice_size = setup_ctx.global_info.lattice_size
+        if air_config.global_info is not None:
+            lattice_size = air_config.global_info.lattice_size
 
         # Extract stage 1 air_values (empty for simple AIRs)
         air_values_stage1 = _get_air_values_stage1(stark_info, params)
@@ -220,16 +220,16 @@ def gen_proof(
         # Mode 3: Non-VADCOP - seed with verkey + publics + root1 directly
         # Produces different challenge sequence than VADCOP mode
         transcript.put(verkey)
-        if stark_info.nPublics > 0:
-            if stark_info.starkStruct.hashCommits:
+        if stark_info.n_publics > 0:
+            if stark_info.stark_struct.hash_commits:
                 publics_transcript = Transcript(
-                    arity=stark_info.starkStruct.transcriptArity,
-                    custom=stark_info.starkStruct.merkleTreeCustom
+                    arity=stark_info.stark_struct.transcript_arity,
+                    custom=stark_info.stark_struct.merkle_tree_custom
                 )
-                publics_transcript.put(params.publicInputs[:stark_info.nPublics].tolist())
+                publics_transcript.put(params.publicInputs[:stark_info.n_publics].tolist())
                 transcript.put(publics_transcript.get_state(4))
             else:
-                transcript.put(params.publicInputs[:stark_info.nPublics].tolist())
+                transcript.put(params.publicInputs[:stark_info.n_publics].tolist())
         transcript.put(list(root1))
 
     # === STAGE 2: Intermediate Polynomials (Lookup/Permutation Witness) ===
@@ -252,7 +252,7 @@ def gen_proof(
     # - Expression evaluation for intermediate polynomial construction
     # The challenge must be random (derived from transcript), yet deterministic (same across prover/verifier).
     if not skip_challenge_derivation:
-        _derive_stage_challenges(transcript, params, stark_info.challengesMap, stage=2)
+        _derive_stage_challenges(transcript, params, stark_info.challenges_map, stage=2)
 
     # Execute all AIR constraint expressions to compute intermediate polynomials (Stage 2).
     # These are derived values computed from the witness:
@@ -294,15 +294,15 @@ def gen_proof(
     # to verify via FRI folding.
 
     # Stage Q is computed after Stage 2 (constraint checking depends on intermediate values).
-    # q_stage index is nStages + 1 (e.g., if nStages=2, then q_stage=3).
-    q_stage = stark_info.nStages + 1
+    # q_stage index is n_stages + 1 (e.g., if n_stages=2, then q_stage=3).
+    q_stage = stark_info.n_stages + 1
 
     # Derive Fiat-Shamir challenge for Stage Q from the transcript.
     # This challenge is a random linear combination weight used when computing the quotient polynomial.
     # It's the weight used to combine all constraints: Q(x) = c0*C0(x)/D(x) + c1*C1(x)/D(x) + ...
     # The randomness ensures constraint violations can't be cancelled out by careful cancellation.
     if not skip_challenge_derivation:
-        _derive_stage_challenges(transcript, params, stark_info.challengesMap, stage=q_stage)
+        _derive_stage_challenges(transcript, params, stark_info.challenges_map, stage=q_stage)
 
     # Build the quotient polynomial.
     # This evaluates all constraints at all trace points, divides by vanishing polynomial,
@@ -381,10 +381,10 @@ def gen_proof(
     # This is INCONSISTENT. The verifier's conditional hashing pattern should be applied
     # to publics in prover too, but it's not. This diverges the challenge stream.
 
-    n_evals = len(stark_info.evMap) * FIELD_EXTENSION_DEGREE
-    # evMap contains which polynomials are evaluated (base field vs. extension field).
+    n_evals = len(stark_info.ev_map) * FIELD_EXTENSION_DEGREE
+    # ev_map contains which polynomials are evaluated (base field vs. extension field).
     # FIELD_EXTENSION_DEGREE is 3 (cubic extension), so extension evaluations are 3x base.
-    if not stark_info.starkStruct.hashCommits:
+    if not stark_info.stark_struct.hash_commits:
         # Direct approach: all evaluations in transcript
         # Matches verifier (verifier.py:349)
         transcript.put(params.evals[:n_evals])
@@ -417,8 +417,8 @@ def gen_proof(
     # Each FRI fold level (halving degree) needs a random challenge.
     # There are typically 10-15 folding levels (since degree goes from 2^20 → 2^19 → ... → 2^0).
     if not skip_challenge_derivation:
-        _derive_stage_challenges(transcript, params, stark_info.challengesMap,
-                                 stage=stark_info.nStages + 3)
+        _derive_stage_challenges(transcript, params, stark_info.challenges_map,
+                                 stage=stark_info.n_stages + 3)
 
     # Construct the FRI polynomial: the polynomial we'll prove low-degree-ness of.
     # This is a linear combination of all committed polynomials:
@@ -436,9 +436,9 @@ def gen_proof(
     #   [witness_polys, intermediate_polys, quotient, fri_poly, ...]
     # We need to find fri_poly and extract it.
     # mapOffsets[("f", True)] gives the byte offset of the FRI polynomial in auxTrace.
-    fri_pol_offset = stark_info.mapOffsets[("f", True)]
+    fri_pol_offset = stark_info.map_offsets[("f", True)]
     # The FRI polynomial is evaluated on the extended domain.
-    n_fri_elements = 1 << stark_info.starkStruct.friFoldSteps[0].domainBits
+    n_fri_elements = 1 << stark_info.stark_struct.fri_fold_steps[0].domain_bits
     # Each element is FF3 (cubic extension), so 3 field elements per polynomial value.
     fri_pol_size = n_fri_elements * FIELD_EXTENSION_DEGREE
     # Extract the numpy array slice containing FRI polynomial data.
@@ -459,38 +459,38 @@ def gen_proof(
         # n_bits_ext: log2(extended domain size) for initial FRI level
         # E.g., if extended domain = 2^20, this is 20.
         # FRI folds this down to 2^19, 2^18, ..., 2^0.
-        n_bits_ext=stark_info.starkStruct.friFoldSteps[0].domainBits,
+        n_bits_ext=stark_info.stark_struct.fri_fold_steps[0].domain_bits,
         # fri_round_log_sizes: log2 size at each folding level
         # E.g., [20, 19, 18, 17, 16, 15, ...] (one per fold)
-        fri_round_log_sizes=[step.domainBits for step in stark_info.starkStruct.friFoldSteps],
+        fri_round_log_sizes=[step.domain_bits for step in stark_info.stark_struct.fri_fold_steps],
         # n_queries: how many leaves to sample for verification
         # Larger = more security, larger proof. Typically 16-128 queries.
         # Each query samples one leaf from the merkle tree at each fold level.
-        n_queries=stark_info.starkStruct.nQueries,
-        # ANSWER: merkleTreeArity is the branching factor of FRI merkle trees.
+        n_queries=stark_info.stark_struct.n_queries,
+        # ANSWER: merkle_tree_arity is the branching factor of FRI merkle trees.
         # - arity=2 (binary): each node has 2 children, tree height = log2(N)
         # - arity=4 (quaternary): each node has 4 children, tree height = log4(N) = log2(N)/2
         # - arity=8 (octary): each node has 8 children, tree height = log8(N) = log2(N)/3
         # Larger arity = shorter proof (fewer merkle path elements) but larger intermediate nodes.
         # This spec supports any arity; C++ tests mainly use arity=4.
-        merkle_arity=stark_info.starkStruct.merkleTreeArity,
+        merkle_arity=stark_info.stark_struct.merkle_tree_arity,
         # pow_bits: difficulty of proof-of-work nonce
         # If pow_bits=20, prover must find a nonce such that Hash(proof || nonce) has 20 leading zero bits.
         # This adds computational cost but doesn't affect proof size or verifier time.
         # Used for anti-DOS in some applications. Typically 0 (disabled) for specs.
-        pow_bits=stark_info.starkStruct.powBits,
+        pow_bits=stark_info.stark_struct.pow_bits,
         # last_level_verification: whether to include leaf hashes in the proof
         # If True, verifier can check the final constant values directly (extra security).
         # If False, verifier trusts the merkle tree commitment to the final level.
-        last_level_verification=stark_info.starkStruct.lastLevelVerification,
-        # hash_commits: whether to hash polynomial evaluations (evMap stage)
+        last_level_verification=stark_info.stark_struct.last_level_verification,
+        # hash_commits: whether to hash polynomial evaluations (ev_map stage)
         # Matches the choice made earlier for efficiency/security tradeoff.
-        hash_commits=stark_info.starkStruct.hashCommits,
+        hash_commits=stark_info.stark_struct.hash_commits,
         # transcript_arity: how many field elements per Poseidon2 hash (optimization)
         # Matches the transcript configuration.
-        transcript_arity=stark_info.starkStruct.transcriptArity,
+        transcript_arity=stark_info.stark_struct.transcript_arity,
         # merkle_tree_custom: custom data for hash function (AIR-specific)
-        merkle_tree_custom=stark_info.starkStruct.merkleTreeCustom,
+        merkle_tree_custom=stark_info.stark_struct.merkle_tree_custom,
     )
 
     # Run FRI: the main low-degree testing protocol.
@@ -637,12 +637,12 @@ def _derive_eval_challenges(transcript: Transcript, params: ProofContext,
     Returns:
         Index of xi challenge in params.challenges array
     """
-    eval_stage = stark_info.nStages + 2
+    eval_stage = stark_info.n_stages + 2
     xi_index = 0
 
-    for i, cm in enumerate(stark_info.challengesMap):
+    for i, cm in enumerate(stark_info.challenges_map):
         if cm.stage == eval_stage:
-            if cm.stageId == 0:
+            if cm.stage_id == 0:
                 xi_index = i
             if not skip:
                 challenge = transcript.get_field()
@@ -664,8 +664,8 @@ def _compute_all_evals(stark_info: StarkInfo, starks: Starks, params: ProofConte
         xi: FRI challenge point (extension field element as 3 ints)
     """
     batch_size = 4
-    for i in range(0, len(stark_info.openingPoints), batch_size):
-        batch = stark_info.openingPoints[i:i + batch_size]
+    for i in range(0, len(stark_info.opening_points), batch_size):
+        batch = stark_info.opening_points[i:i + batch_size]
         lagrange_evaluations = starks.computeLEv(xi, batch)
         starks.computeEvals(params, lagrange_evaluations, batch)
 
@@ -701,7 +701,7 @@ def _collect_stage_query_proofs(starks: Starks, stark_info: StarkInfo,
         Dictionary mapping stage number to list of query proofs
     """
     result: dict[StageNum, list[QueryProof]] = {}
-    for stage in range(1, stark_info.nStages + 2):
+    for stage in range(1, stark_info.n_stages + 2):
         if stage in starks.stage_trees:
             tree = starks.stage_trees[stage]
             result[stage] = [tree.get_query_proof(idx, elem_size=1) for idx in query_indices]
@@ -730,14 +730,14 @@ def _collect_last_level_nodes(starks: Starks, stark_info: StarkInfo,
             result['const'] = nodes
 
     # Stage trees
-    for stage in range(1, stark_info.nStages + 2):
+    for stage in range(1, stark_info.n_stages + 2):
         if stage in starks.stage_trees:
             nodes = starks.stage_trees[stage].get_last_level_nodes()
             if nodes:
                 result[f'cm{stage}'] = nodes
 
     # FRI trees
-    for step_idx in range(len(stark_info.starkStruct.friFoldSteps) - 1):
+    for step_idx in range(len(stark_info.stark_struct.fri_fold_steps) - 1):
         if step_idx < len(fri_pcs.fri_trees):
             nodes = fri_pcs.fri_trees[step_idx].get_last_level_nodes()
             if nodes:

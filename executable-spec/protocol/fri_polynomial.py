@@ -64,12 +64,12 @@ def _get_polynomial_on_domain(
 
     if ev_type == EvMap.Type.cm:
         # Committed polynomial
-        pol_info = stark_info.cmPolsMap[ev_id]
+        pol_info = stark_info.cm_pols_map[ev_id]
         stage = pol_info.stage
         dim = pol_info.dim
-        stage_pos = pol_info.stagePos
+        stage_pos = pol_info.stage_pos
         section = f"cm{stage}"
-        n_cols = stark_info.mapSectionsN.get(section, 0)
+        n_cols = stark_info.map_sections_n.get(section, 0)
 
         if stage == 1 and not extended:
             # Non-extended: use original trace buffer
@@ -77,7 +77,7 @@ def _get_polynomial_on_domain(
             base_offset = 0
         else:
             # Extended domain or stage > 1: use auxTrace with proper offset
-            base_offset = stark_info.mapOffsets.get((section, extended), 0)
+            base_offset = stark_info.map_offsets.get((section, extended), 0)
             buffer = params.auxTrace
 
         # For FRI polynomial, read polynomial WITHOUT row offset
@@ -97,10 +97,10 @@ def _get_polynomial_on_domain(
 
     elif ev_type == EvMap.Type.const_:
         # Constant polynomial
-        pol_info = stark_info.constPolsMap[ev_id]
+        pol_info = stark_info.const_pols_map[ev_id]
         dim = pol_info.dim
-        stage_pos = pol_info.stagePos
-        n_cols = stark_info.nConstants
+        stage_pos = pol_info.stage_pos
+        n_cols = stark_info.n_constants
 
         # Use extended constants buffer for extended domain
         const_buffer = params.constPolsExtended if extended else params.constPols
@@ -146,11 +146,11 @@ def compute_fri_polynomial(
 
     # Get vf1, vf2 challenges
     vf1_idx = next(
-        i for i, cm in enumerate(stark_info.challengesMap)
+        i for i, cm in enumerate(stark_info.challenges_map)
         if cm.name == 'std_vf1'
     )
     vf2_idx = next(
-        i for i, cm in enumerate(stark_info.challengesMap)
+        i for i, cm in enumerate(stark_info.challenges_map)
         if cm.name == 'std_vf2'
     )
 
@@ -163,18 +163,18 @@ def compute_fri_polynomial(
 
     # Get xi challenge
     xi_idx = next(
-        i for i, cm in enumerate(stark_info.challengesMap)
-        if cm.stage == stark_info.nStages + 2 and cm.stageId == 0
+        i for i, cm in enumerate(stark_info.challenges_map)
+        if cm.stage == stark_info.n_stages + 2 and cm.stage_id == 0
     )
     xi = ff3_from_numpy_coeffs(
         params.challenges[xi_idx * FIELD_EXTENSION_DEGREE:(xi_idx + 1) * FIELD_EXTENSION_DEGREE]
     )
 
-    # Compute xis[i] = xi * ω^openingPoints[i] for each opening position
-    len(stark_info.openingPoints)
-    w = FF(get_omega(stark_info.starkStruct.nBits))
+    # Compute xis[i] = xi * ω^opening_points[i] for each opening position
+    len(stark_info.opening_points)
+    w = FF(get_omega(stark_info.stark_struct.n_bits))
     xis = []
-    for op in stark_info.openingPoints:
+    for op in stark_info.opening_points:
         w_power = FF3([int(w ** op)]) if op >= 0 else FF3([int((w ** (-op)) ** -1)])
         xis.append(xi * w_power)
 
@@ -184,8 +184,8 @@ def compute_fri_polynomial(
         x_domain = FF3(np.asarray(prover_helpers.x[:domain_size], dtype=np.uint64))
     else:
         # Fall back to computing x values
-        g_ext = FF(get_omega(stark_info.starkStruct.nBitsExt))
-        shift = FF(stark_info.starkStruct.power)
+        g_ext = FF(get_omega(stark_info.stark_struct.n_bits_ext))
+        shift = FF(stark_info.stark_struct.power)
         x_vals = [int(shift * (g_ext ** j)) for j in range(domain_size)]
         x_domain = FF3(np.asarray(x_vals, dtype=np.uint64))
 
@@ -196,12 +196,12 @@ def compute_fri_polynomial(
         inv_diff = batch_inverse(diff)
         x_div_x_sub_xi.append(inv_diff)
 
-    # Group evMap entries by opening position index
-    # evMap[i].openingPos is the INDEX into openingPoints, not the actual value
-    # Each group contains (ev_idx, ev_entry) pairs in evMap order
+    # Group ev_map entries by opening position index
+    # ev_map[i].opening_pos is the INDEX into opening_points, not the actual value
+    # Each group contains (ev_idx, ev_entry) pairs in ev_map order
     groups_by_opening_idx = {}
-    for ev_idx, ev_entry in enumerate(stark_info.evMap):
-        opening_idx = ev_entry.openingPos  # This is already an index
+    for ev_idx, ev_entry in enumerate(stark_info.ev_map):
+        opening_idx = ev_entry.opening_pos  # This is already an index
         if opening_idx not in groups_by_opening_idx:
             groups_by_opening_idx[opening_idx] = []
         groups_by_opening_idx[opening_idx].append((ev_idx, ev_entry))
@@ -278,11 +278,11 @@ def compute_fri_polynomial_verifier(
 
     # Get vf1, vf2 challenges
     vf1_idx = next(
-        i for i, cm in enumerate(stark_info.challengesMap)
+        i for i, cm in enumerate(stark_info.challenges_map)
         if cm.name == 'std_vf1'
     )
     vf2_idx = next(
-        i for i, cm in enumerate(stark_info.challengesMap)
+        i for i, cm in enumerate(stark_info.challenges_map)
         if cm.name == 'std_vf2'
     )
 
@@ -293,7 +293,7 @@ def compute_fri_polynomial_verifier(
         params.challenges[vf2_idx * FIELD_EXTENSION_DEGREE:(vf2_idx + 1) * FIELD_EXTENSION_DEGREE]
     )
 
-    n_opening_points = len(stark_info.openingPoints)
+    n_opening_points = len(stark_info.opening_points)
 
     # Helper to get polynomial values at query points
     def get_poly_vals_at_queries(ev_entry: EvMap) -> FF3 | None:
@@ -301,12 +301,12 @@ def compute_fri_polynomial_verifier(
         ev_id = ev_entry.id
 
         if ev_type == EvMap.Type.cm:
-            pol_info = stark_info.cmPolsMap[ev_id]
+            pol_info = stark_info.cm_pols_map[ev_id]
             stage = pol_info.stage
             dim = pol_info.dim
-            stage_pos = pol_info.stagePos
+            stage_pos = pol_info.stage_pos
             section = f"cm{stage}"
-            n_cols = stark_info.mapSectionsN.get(section, 0)
+            n_cols = stark_info.map_sections_n.get(section, 0)
 
             if stage == 1:
                 buffer = params.trace
@@ -315,8 +315,8 @@ def compute_fri_polynomial_verifier(
                 base_offset = 0
                 for s in range(2, stage):
                     sec = f"cm{s}"
-                    if sec in stark_info.mapSectionsN:
-                        base_offset += n_queries * stark_info.mapSectionsN[sec]
+                    if sec in stark_info.map_sections_n:
+                        base_offset += n_queries * stark_info.map_sections_n[sec]
                 buffer = params.auxTrace
 
             poly_raw = np.zeros(n_queries * dim, dtype=np.uint64)
@@ -330,10 +330,10 @@ def compute_fri_polynomial_verifier(
                 return ff3_from_interleaved_numpy(poly_raw, n_queries)
 
         elif ev_type == EvMap.Type.const_:
-            pol_info = stark_info.constPolsMap[ev_id]
+            pol_info = stark_info.const_pols_map[ev_id]
             dim = pol_info.dim
-            stage_pos = pol_info.stagePos
-            n_cols = stark_info.nConstants
+            stage_pos = pol_info.stage_pos
+            n_cols = stark_info.n_constants
 
             poly_raw = np.zeros(n_queries * dim, dtype=np.uint64)
             for q in range(n_queries):
@@ -356,11 +356,11 @@ def compute_fri_polynomial_verifier(
                 params.xDivXSub[base:base + FIELD_EXTENSION_DEGREE]
         return ff3_from_interleaved_numpy(x_div_raw, n_queries)
 
-    # Group evMap entries by opening position index
-    # evMap[i].openingPos is the INDEX into openingPoints, not the actual value
+    # Group ev_map entries by opening position index
+    # ev_map[i].opening_pos is the INDEX into opening_points, not the actual value
     groups_by_opening_idx = {}
-    for ev_idx, ev_entry in enumerate(stark_info.evMap):
-        opening_idx = ev_entry.openingPos  # This is already an index
+    for ev_idx, ev_entry in enumerate(stark_info.ev_map):
+        opening_idx = ev_entry.opening_pos  # This is already an index
         if opening_idx not in groups_by_opening_idx:
             groups_by_opening_idx[opening_idx] = []
         groups_by_opening_idx[opening_idx].append((ev_idx, ev_entry))

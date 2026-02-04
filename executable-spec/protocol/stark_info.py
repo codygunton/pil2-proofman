@@ -20,23 +20,23 @@ def _field_type_from_dim(dim: int) -> FieldType:
 @dataclass
 class FriFoldStep:
     """FRI recursive folding layer configuration."""
-    domainBits: int
+    domain_bits: int
 
 
 @dataclass
 class StarkStruct:
     """Core STARK protocol parameters."""
-    nBits: int
-    nBitsExt: int
-    nQueries: int
-    verificationHashType: str
-    friFoldSteps: list[FriFoldStep] = field(default_factory=list)
-    merkleTreeArity: int = 16
-    merkleTreeCustom: bool = False
-    transcriptArity: int = 16
-    lastLevelVerification: int = 0
-    powBits: int = 0
-    hashCommits: bool = False
+    n_bits: int
+    n_bits_ext: int
+    n_queries: int
+    verification_hash_type: str
+    fri_fold_steps: list[FriFoldStep] = field(default_factory=list)
+    merkle_tree_arity: int = 16
+    merkle_tree_custom: bool = False
+    transcript_arity: int = 16
+    last_level_verification: int = 0
+    pow_bits: int = 0
+    hash_commits: bool = False
 
 
 # --- StarkInfo ---
@@ -45,83 +45,49 @@ class StarkInfo:
 
     def __init__(self) -> None:
         # Core parameters
-        self.starkStruct = StarkStruct(0, 0, 0, "GL")
+        self.stark_struct = StarkStruct(0, 0, 0, "GL")
         self.name = ""
-        self.airgroupId = 0
-        self.airId = 0
 
         # Polynomial counts
-        self.nPublics = 0
-        self.nConstants = 0
-        self.nStages = 0
+        self.n_publics = 0
+        self.n_constants = 0
+        self.n_stages = 0
 
         # Proof size
-        self.maxProofBuffSize = 0
-        self.maxProofSize = 0
-        self.maxTreeWidth = 0
-        self.proofSize = 0
+        self.proof_size = 0
 
         # Polynomial mappings
-        self.customCommits: list[CustomCommits] = []
-        self.cmPolsMap: list[PolMap] = []
-        self.constPolsMap: list[PolMap] = []
-        self.challengesMap: list[ChallengeMap] = []
-        self.airgroupValuesMap: list[PolMap] = []
-        self.airValuesMap: list[PolMap] = []
-        self.proofValuesMap: list[PolMap] = []
-        self.publicsMap: list[PolMap] = []
-        self.customCommitsMap: list[list[PolMap]] = []
-        self.evMap: list[EvMap] = []
+        self.custom_commits: list[CustomCommits] = []
+        self.cm_pols_map: list[PolMap] = []
+        self.const_pols_map: list[PolMap] = []
+        self.challenges_map: list[ChallengeMap] = []
+        self.airgroup_values_map: list[PolMap] = []
+        self.air_values_map: list[PolMap] = []
+        self.custom_commits_map: list[list[PolMap]] = []
+        self.ev_map: list[EvMap] = []
 
         # Opening points and boundaries
-        self.openingPoints: list[int] = []
+        self.opening_points: list[int] = []
         self.boundaries: list[Boundary] = []
 
         # Quotient polynomial
-        self.qDeg = 0
-        self.qDim = 0
-
-        # Expression IDs
-        self.friExpId = 0
-        self.cExpId = 0
+        self.q_deg = 0
+        self.q_dim = 0
 
         # Memory layout
-        self.mapSectionsN: dict[str, int] = {}
-        self.mapOffsets: dict[tuple[str, bool], int] = {}
-        self.mapTotalN = 0
-        self.mapTotalNCustomCommitsFixed = 0
+        self.map_sections_n: dict[str, int] = {}
+        self.map_offsets: dict[tuple[str, bool], int] = {}
+        self.map_total_n = 0
+        self.map_total_n_custom_commits_fixed = 0
 
         # Value sizes
-        self.airValuesSize = 0
-        self.airgroupValuesSize = 0
-        self.proofValuesSize = 0
-
-        # Execution parameters
-        self.maxNBlocks = 0
-        self.nrowsPack = 0
-
-        # Configuration flags
-        self.verify_constraints = False
-        self.verify = False
-        self.gpu = False
-        self.preallocate = False
-        self.calculateFixedExtended = False
+        self.air_values_size = 0
+        self.airgroup_values_size = 0
 
     @classmethod
-    def from_json(
-        cls,
-        path: str,
-        verify_constraints: bool = False,
-        verify: bool = False,
-        gpu: bool = False,
-        preallocate: bool = False,
-    ) -> "StarkInfo":
+    def from_json(cls, path: str) -> "StarkInfo":
         """Load StarkInfo from starkinfo.json file."""
         info = cls()
-        info.verify_constraints = verify_constraints
-        info.verify = verify
-        info.gpu = gpu
-        info.preallocate = preallocate
 
         with open(path) as f:
             j = json.load(f)
@@ -134,9 +100,9 @@ class StarkInfo:
         self._parse_stark_struct(j["starkStruct"])
         self._parse_basic_params(j)
         self._parse_custom_commits(j)
-        self._parse_opening_points_and_boundaries(j)
+        self._parse_opening_points(j)
+        self._parse_boundaries(j)
         self._parse_challenges(j)
-        self._parse_publics(j)
         self._parse_values_maps(j)
         self._parse_polynomial_maps(j)
         self._parse_ev_map(j)
@@ -147,119 +113,97 @@ class StarkInfo:
 
     def _parse_stark_struct(self, ss: dict) -> None:
         """Parse StarkStruct from JSON."""
-        self.starkStruct.nBits = ss["nBits"]
-        self.starkStruct.nBitsExt = ss["nBitsExt"]
-        self.starkStruct.nQueries = ss["nQueries"]
-        self.starkStruct.verificationHashType = ss["verificationHashType"]
-        self.starkStruct.powBits = ss["powBits"]
+        self.stark_struct.n_bits = ss["nBits"]
+        self.stark_struct.n_bits_ext = ss["nBitsExt"]
+        self.stark_struct.n_queries = ss["nQueries"]
+        self.stark_struct.verification_hash_type = ss["verificationHashType"]
+        self.stark_struct.pow_bits = ss["powBits"]
 
         if ss["verificationHashType"] == "BN128":
-            self.starkStruct.merkleTreeArity = ss.get("merkleTreeArity", 16)
-            self.starkStruct.transcriptArity = ss.get("transcriptArity", 16)
-            self.starkStruct.merkleTreeCustom = ss.get("merkleTreeCustom", False)
-            self.starkStruct.lastLevelVerification = 0
+            self.stark_struct.merkle_tree_arity = ss.get("merkleTreeArity", 16)
+            self.stark_struct.transcript_arity = ss.get("transcriptArity", 16)
+            self.stark_struct.merkle_tree_custom = ss.get("merkleTreeCustom", False)
+            self.stark_struct.last_level_verification = 0
         else:
-            self.starkStruct.merkleTreeArity = ss["merkleTreeArity"]
-            self.starkStruct.transcriptArity = ss["transcriptArity"]
-            self.starkStruct.merkleTreeCustom = ss["merkleTreeCustom"]
-            self.starkStruct.lastLevelVerification = ss["lastLevelVerification"]
+            self.stark_struct.merkle_tree_arity = ss["merkleTreeArity"]
+            self.stark_struct.transcript_arity = ss["transcriptArity"]
+            self.stark_struct.merkle_tree_custom = ss["merkleTreeCustom"]
+            self.stark_struct.last_level_verification = ss["lastLevelVerification"]
 
-        self.starkStruct.hashCommits = ss.get("hashCommits", False)
-        self.starkStruct.friFoldSteps = [FriFoldStep(domainBits=s["nBits"]) for s in ss["steps"]]
+        self.stark_struct.hash_commits = ss.get("hashCommits", False)
+        self.stark_struct.fri_fold_steps = [FriFoldStep(domain_bits=s["nBits"]) for s in ss["steps"]]
 
     def _parse_basic_params(self, j: dict) -> None:
         """Parse basic polynomial parameters."""
         self.name = j["name"]
-        self.nPublics = j["nPublics"]
-        self.nConstants = j["nConstants"]
-        self.nStages = j["nStages"]
-        self.qDeg = j["qDeg"]
-        self.qDim = j["qDim"]
-        self.friExpId = j["friExpId"]
-        self.cExpId = j["cExpId"]
+        self.n_publics = j["nPublics"]
+        self.n_constants = j["nConstants"]
+        self.n_stages = j["nStages"]
+        self.q_deg = j["qDeg"]
+        self.q_dim = j["qDim"]
 
     def _parse_custom_commits(self, j: dict) -> None:
         """Parse custom commits configuration."""
         for c_data in j.get("customCommits", []):
             c = CustomCommits(name=c_data["name"])
-            c.publicValues = [pv["idx"] for pv in c_data.get("publicValues", [])]
-            c.stageWidths = list(c_data.get("stageWidths", []))
-            self.customCommits.append(c)
+            c.public_values = [pv["idx"] for pv in c_data.get("publicValues", [])]
+            c.stage_widths = list(c_data.get("stageWidths", []))
+            self.custom_commits.append(c)
 
-    def _parse_opening_points_and_boundaries(self, j: dict) -> None:
-        """Parse opening points and constraint boundaries."""
-        self.openingPoints = list(j.get("openingPoints", []))
+    def _parse_opening_points(self, j: dict) -> None:
+        """Parse opening points."""
+        self.opening_points = list(j.get("openingPoints", []))
 
+    def _parse_boundaries(self, j: dict) -> None:
+        """Parse constraint boundaries."""
         for b_data in j.get("boundaries", []):
             b = Boundary(name=b_data["name"])
             if b.name == "everyFrame":
-                b.offsetMin = b_data["offsetMin"]
-                b.offsetMax = b_data["offsetMax"]
+                b.offset_min = b_data["offsetMin"]
+                b.offset_max = b_data["offsetMax"]
             self.boundaries.append(b)
 
     def _parse_challenges(self, j: dict) -> None:
         """Parse challenge derivation map."""
-        self.challengesMap = [
+        self.challenges_map = [
             ChallengeMap(
                 name=ch["name"],
                 stage=ch["stage"],
                 field_type=_field_type_from_dim(ch["dim"]),
-                stageId=ch["stageId"],
+                stage_id=ch["stageId"],
             )
             for ch in j.get("challengesMap", [])
         ]
 
-    def _parse_publics(self, j: dict) -> None:
-        """Parse publics map."""
-        for p_data in j.get("publicsMap", []):
-            p = PolMap(stage=0, name=p_data["name"], field_type=FieldType.FF, stagePos=0, stageId=0)
-            if "lengths" in p_data:
-                p.lengths = list(p_data["lengths"])
-            self.publicsMap.append(p)
-
     def _parse_values_maps(self, j: dict) -> None:
-        """Parse airgroup, air, and proof values maps."""
+        """Parse airgroup and air values maps."""
         # Airgroup values
-        self.airgroupValuesSize = 0
+        self.airgroup_values_size = 0
         for av_data in j.get("airgroupValuesMap", []):
             ft = FieldType.FF if av_data["stage"] == 1 else FieldType.FF3
             av = PolMap(
                 stage=av_data["stage"],
                 name=av_data["name"],
                 field_type=ft,
-                stagePos=0,
-                stageId=0,
+                stage_pos=0,
+                stage_id=0,
             )
-            self.airgroupValuesMap.append(av)
-            self.airgroupValuesSize += ft.value
+            self.airgroup_values_map.append(av)
+            self.airgroup_values_size += ft.value
 
         # Air values
-        self.airValuesSize = 0
+        self.air_values_size = 0
         for av_data in j.get("airValuesMap", []):
             ft = FieldType.FF if av_data["stage"] == 1 else FieldType.FF3
             av = PolMap(
                 stage=av_data["stage"],
                 name=av_data["name"],
                 field_type=ft,
-                stagePos=0,
-                stageId=0,
+                stage_pos=0,
+                stage_id=0,
             )
-            self.airValuesMap.append(av)
-            self.airValuesSize += ft.value
-
-        # Proof values
-        self.proofValuesSize = 0
-        for pv_data in j.get("proofValuesMap", []):
-            ft = FieldType.FF if pv_data["stage"] == 1 else FieldType.FF3
-            pv = PolMap(
-                stage=pv_data["stage"],
-                name=pv_data["name"],
-                field_type=ft,
-                stagePos=0,
-                stageId=0,
-            )
-            self.proofValuesMap.append(pv)
-            self.proofValuesSize += ft.value
+            self.air_values_map.append(av)
+            self.air_values_size += ft.value
 
     def _parse_polynomial_maps(self, j: dict) -> None:
         """Parse committed and constant polynomial maps."""
@@ -269,16 +213,16 @@ class StarkInfo:
                 stage=cm_data["stage"],
                 name=cm_data["name"],
                 field_type=_field_type_from_dim(cm_data["dim"]),
-                stagePos=cm_data["stagePos"],
-                stageId=cm_data["stageId"],
-                imPol="imPol" in cm_data,
-                polsMapId=cm_data["polsMapId"],
+                stage_pos=cm_data["stagePos"],
+                stage_id=cm_data["stageId"],
+                im_pol="imPol" in cm_data,
+                pols_map_id=cm_data["polsMapId"],
             )
             if "expId" in cm_data:
-                cm.expId = cm_data["expId"]
+                cm.exp_id = cm_data["expId"]
             if "lengths" in cm_data:
                 cm.lengths = list(cm_data["lengths"])
-            self.cmPolsMap.append(cm)
+            self.cm_pols_map.append(cm)
 
         # Custom commits
         for commit_idx, cc_data in enumerate(j.get("customCommitsMap", [])):
@@ -288,18 +232,18 @@ class StarkInfo:
                     stage=pol_data["stage"],
                     name=pol_data["name"],
                     field_type=_field_type_from_dim(pol_data["dim"]),
-                    stagePos=pol_data["stagePos"],
-                    stageId=pol_data["stageId"],
-                    imPol=False,
-                    polsMapId=pol_data["polsMapId"],
-                    commitId=commit_idx,
+                    stage_pos=pol_data["stagePos"],
+                    stage_id=pol_data["stageId"],
+                    im_pol=False,
+                    pols_map_id=pol_data["polsMapId"],
+                    commit_id=commit_idx,
                 )
                 if "expId" in pol_data:
-                    pol.expId = pol_data["expId"]
+                    pol.exp_id = pol_data["expId"]
                 if "lengths" in pol_data:
                     pol.lengths = list(pol_data["lengths"])
                 cc_pols.append(pol)
-            self.customCommitsMap.append(cc_pols)
+            self.custom_commits_map.append(cc_pols)
 
         # Constant polynomials
         for const_data in j.get("constPolsMap", []):
@@ -307,14 +251,14 @@ class StarkInfo:
                 stage=const_data["stage"],
                 name=const_data["name"],
                 field_type=_field_type_from_dim(const_data["dim"]),
-                stagePos=const_data["stageId"],
-                stageId=const_data["stageId"],
-                imPol=False,
-                polsMapId=const_data["polsMapId"],
+                stage_pos=const_data["stageId"],
+                stage_id=const_data["stageId"],
+                im_pol=False,
+                pols_map_id=const_data["polsMapId"],
             )
             if "lengths" in const_data:
                 const.lengths = list(const_data["lengths"])
-            self.constPolsMap.append(const)
+            self.const_pols_map.append(const)
 
     def _parse_ev_map(self, j: dict) -> None:
         """Parse evaluation map."""
@@ -326,151 +270,151 @@ class StarkInfo:
             )
 
             if ev_data["type"] == "custom":
-                ev.commitId = ev_data["commitId"]
+                ev.commit_id = ev_data["commitId"]
 
             if "openingPos" in ev_data:
-                ev.openingPos = ev_data["openingPos"]
+                ev.opening_pos = ev_data["openingPos"]
             else:
                 try:
-                    ev.openingPos = self.openingPoints.index(ev.prime)
+                    ev.opening_pos = self.opening_points.index(ev.prime)
                 except ValueError:
                     raise ValueError(
-                        f"Opening point {ev.prime} not found in openingPoints"
+                        f"Opening point {ev.prime} not found in opening_points"
                     )
 
-            self.evMap.append(ev)
+            self.ev_map.append(ev)
 
     def _parse_map_sections(self, j: dict) -> None:
-        """Parse mapSectionsN."""
-        self.mapSectionsN = dict(j.get("mapSectionsN", {}))
+        """Parse map_sections_n."""
+        self.map_sections_n = dict(j.get("mapSectionsN", {}))
 
     def _compute_proof_size(self) -> None:
         """Calculate total proof size in field elements."""
-        ss = self.starkStruct
-        self.proofSize = 0
+        ss = self.stark_struct
+        self.proof_size = 0
 
         # Values and roots
-        self.proofSize += len(self.airgroupValuesMap) * FIELD_EXTENSION_DEGREE
-        self.proofSize += len(self.airValuesMap) * FIELD_EXTENSION_DEGREE
-        self.proofSize += (self.nStages + 1) * HASH_SIZE
+        self.proof_size += len(self.airgroup_values_map) * FIELD_EXTENSION_DEGREE
+        self.proof_size += len(self.air_values_map) * FIELD_EXTENSION_DEGREE
+        self.proof_size += (self.n_stages + 1) * HASH_SIZE
 
         # Evaluations
-        self.proofSize += len(self.evMap) * FIELD_EXTENSION_DEGREE
+        self.proof_size += len(self.ev_map) * FIELD_EXTENSION_DEGREE
 
         # Merkle proof siblings
-        nSiblings = (
-            math.ceil(ss.friFoldSteps[0].domainBits / math.log2(ss.merkleTreeArity))
-            - ss.lastLevelVerification
+        n_siblings = (
+            math.ceil(ss.fri_fold_steps[0].domain_bits / math.log2(ss.merkle_tree_arity))
+            - ss.last_level_verification
         )
-        nSiblingsPerLevel = (ss.merkleTreeArity - 1) * HASH_SIZE
+        n_siblings_per_level = (ss.merkle_tree_arity - 1) * HASH_SIZE
 
         # Constants Merkle proofs
-        self.proofSize += ss.nQueries * self.nConstants
-        self.proofSize += ss.nQueries * nSiblings * nSiblingsPerLevel
+        self.proof_size += ss.n_queries * self.n_constants
+        self.proof_size += ss.n_queries * n_siblings * n_siblings_per_level
 
         # Custom commits Merkle proofs
-        for cc in self.customCommits:
-            self.proofSize += ss.nQueries * self.mapSectionsN[cc.name + "0"]
-            self.proofSize += ss.nQueries * nSiblings * nSiblingsPerLevel
+        for cc in self.custom_commits:
+            self.proof_size += ss.n_queries * self.map_sections_n[cc.name + "0"]
+            self.proof_size += ss.n_queries * n_siblings * n_siblings_per_level
 
         # Stage commitments Merkle proofs
-        for i in range(self.nStages + 1):
-            self.proofSize += ss.nQueries * self.mapSectionsN[f"cm{i + 1}"]
-            self.proofSize += ss.nQueries * nSiblings * nSiblingsPerLevel
+        for i in range(self.n_stages + 1):
+            self.proof_size += ss.n_queries * self.map_sections_n[f"cm{i + 1}"]
+            self.proof_size += ss.n_queries * n_siblings * n_siblings_per_level
 
         # FRI roots
-        self.proofSize += (len(ss.friFoldSteps) - 1) * HASH_SIZE
+        self.proof_size += (len(ss.fri_fold_steps) - 1) * HASH_SIZE
 
         # Last level verification nodes
-        if ss.lastLevelVerification > 0:
-            numNodesLevel = int(ss.merkleTreeArity**ss.lastLevelVerification)
-            self.proofSize += (len(ss.friFoldSteps) - 1) * numNodesLevel * HASH_SIZE
-            self.proofSize += (
-                (self.nStages + 2 + len(self.customCommits)) * numNodesLevel * HASH_SIZE
+        if ss.last_level_verification > 0:
+            num_nodes_level = int(ss.merkle_tree_arity**ss.last_level_verification)
+            self.proof_size += (len(ss.fri_fold_steps) - 1) * num_nodes_level * HASH_SIZE
+            self.proof_size += (
+                (self.n_stages + 2 + len(self.custom_commits)) * num_nodes_level * HASH_SIZE
             )
 
         # FRI query proofs
-        for i in range(1, len(ss.friFoldSteps)):
-            nSiblings = (
-                math.ceil(ss.friFoldSteps[i].domainBits / math.log2(ss.merkleTreeArity))
-                - ss.lastLevelVerification
+        for i in range(1, len(ss.fri_fold_steps)):
+            n_siblings = (
+                math.ceil(ss.fri_fold_steps[i].domain_bits / math.log2(ss.merkle_tree_arity))
+                - ss.last_level_verification
             )
-            nSiblingsPerLevel = (ss.merkleTreeArity - 1) * HASH_SIZE
-            fold_factor = 1 << (ss.friFoldSteps[i - 1].domainBits - ss.friFoldSteps[i].domainBits)
-            self.proofSize += ss.nQueries * fold_factor * FIELD_EXTENSION_DEGREE
-            self.proofSize += ss.nQueries * nSiblings * nSiblingsPerLevel
+            n_siblings_per_level = (ss.merkle_tree_arity - 1) * HASH_SIZE
+            fold_factor = 1 << (ss.fri_fold_steps[i - 1].domain_bits - ss.fri_fold_steps[i].domain_bits)
+            self.proof_size += ss.n_queries * fold_factor * FIELD_EXTENSION_DEGREE
+            self.proof_size += ss.n_queries * n_siblings * n_siblings_per_level
 
         # Final polynomial + nonce
-        final_pol_degree = 1 << ss.friFoldSteps[-1].domainBits
-        self.proofSize += final_pol_degree * FIELD_EXTENSION_DEGREE
-        self.proofSize += 1
+        final_pol_degree = 1 << ss.fri_fold_steps[-1].domain_bits
+        self.proof_size += final_pol_degree * FIELD_EXTENSION_DEGREE
+        self.proof_size += 1
 
     def _compute_map_offsets(self) -> None:
         """Compute memory layout offsets for polynomial buffers."""
-        N = 1 << self.starkStruct.nBits
-        NExtended = 1 << self.starkStruct.nBitsExt
+        N = 1 << self.stark_struct.n_bits
+        N_extended = 1 << self.stark_struct.n_bits_ext
 
-        self.mapOffsets[("const", False)] = 0
-        self.mapOffsets[("const", True)] = 0
-        self.mapOffsets[("cm1", False)] = 0
+        self.map_offsets[("const", False)] = 0
+        self.map_offsets[("const", True)] = 0
+        self.map_offsets[("cm1", False)] = 0
 
         # Custom commits offsets
-        self.mapTotalNCustomCommitsFixed = 0
-        for cc in self.customCommits:
-            if cc.stageWidths and cc.stageWidths[0] > 0:
-                self.mapOffsets[(cc.name + "0", False)] = (
-                    self.mapTotalNCustomCommitsFixed
+        self.map_total_n_custom_commits_fixed = 0
+        for cc in self.custom_commits:
+            if cc.stage_widths and cc.stage_widths[0] > 0:
+                self.map_offsets[(cc.name + "0", False)] = (
+                    self.map_total_n_custom_commits_fixed
                 )
-                self.mapTotalNCustomCommitsFixed += cc.stageWidths[0] * N
-                self.mapOffsets[(cc.name + "0", True)] = (
-                    self.mapTotalNCustomCommitsFixed
+                self.map_total_n_custom_commits_fixed += cc.stage_widths[0] * N
+                self.map_offsets[(cc.name + "0", True)] = (
+                    self.map_total_n_custom_commits_fixed
                 )
-                self.mapTotalNCustomCommitsFixed += (
-                    cc.stageWidths[0] * NExtended + self._merkle_tree_nodes(NExtended)
+                self.map_total_n_custom_commits_fixed += (
+                    cc.stage_widths[0] * N_extended + self._merkle_tree_nodes(N_extended)
                 )
 
         # Stage offsets (non-extended, then extended)
-        self.mapTotalN = 0
-        for stage in range(1, self.nStages + 2):
+        self.map_total_n = 0
+        for stage in range(1, self.n_stages + 2):
             section = f"cm{stage}"
-            if section in self.mapSectionsN:
-                self.mapOffsets[(section, False)] = self.mapTotalN
-                self.mapTotalN += N * self.mapSectionsN[section]
+            if section in self.map_sections_n:
+                self.map_offsets[(section, False)] = self.map_total_n
+                self.map_total_n += N * self.map_sections_n[section]
 
-        for stage in range(1, self.nStages + 2):
+        for stage in range(1, self.n_stages + 2):
             section = f"cm{stage}"
-            if section in self.mapSectionsN:
-                self.mapOffsets[(section, True)] = self.mapTotalN
-                self.mapTotalN += NExtended * self.mapSectionsN[section]
+            if section in self.map_sections_n:
+                self.map_offsets[(section, True)] = self.map_total_n
+                self.map_total_n += N_extended * self.map_sections_n[section]
 
         # Quotient and FRI polynomial offsets
-        self.mapOffsets[("q", True)] = self.mapTotalN
-        self.mapTotalN += NExtended * self.qDim
+        self.map_offsets[("q", True)] = self.map_total_n
+        self.map_total_n += N_extended * self.q_dim
 
-        self.mapOffsets[("f", True)] = self.mapTotalN
-        self.mapTotalN += NExtended * FIELD_EXTENSION_DEGREE
+        self.map_offsets[("f", True)] = self.map_total_n
+        self.map_total_n += N_extended * FIELD_EXTENSION_DEGREE
 
     def _merkle_tree_nodes(self, height: int) -> int:
         """Calculate total Merkle tree node count * HASH_SIZE."""
-        arity = self.starkStruct.merkleTreeArity
-        numNodes = height
-        nodesLevel = height
+        arity = self.stark_struct.merkle_tree_arity
+        num_nodes = height
+        nodes_level = height
 
-        while nodesLevel > 1:
-            extraZeros = (arity - (nodesLevel % arity)) % arity
-            numNodes += extraZeros
-            nodesLevel = (nodesLevel + arity - 1) // arity
-            numNodes += nodesLevel
+        while nodes_level > 1:
+            extra_zeros = (arity - (nodes_level % arity)) % arity
+            num_nodes += extra_zeros
+            nodes_level = (nodes_level + arity - 1) // arity
+            num_nodes += nodes_level
 
-        return numNodes * HASH_SIZE
+        return num_nodes * HASH_SIZE
 
     def get_offset(self, section: str, extended: bool) -> int:
         """Get buffer offset for a section."""
-        return self.mapOffsets[(section, extended)]
+        return self.map_offsets[(section, extended)]
 
     def get_n_cols(self, section: str) -> int:
         """Get number of columns in a section."""
-        return self.mapSectionsN[section]
+        return self.map_sections_n[section]
 
     def get_column_key(self, name: str, index: int = 0) -> tuple[str, int]:
         """Get the (name, index) key for a column.
@@ -486,25 +430,25 @@ class StarkInfo:
 
     def has_challenge(self, name: str) -> bool:
         """Check if a challenge with given name exists."""
-        return any(cm.name == name for cm in self.challengesMap)
+        return any(cm.name == name for cm in self.challenges_map)
 
     def get_challenge_index(self, name: str) -> int:
         """Get the index of a challenge by name."""
-        for i, cm in enumerate(self.challengesMap):
+        for i, cm in enumerate(self.challenges_map):
             if cm.name == name:
                 return i
         raise KeyError(f"Challenge '{name}' not found")
 
     def build_column_name_map(self) -> dict[str, list[int]]:
-        """Build mapping from column names to their polsMapId indices.
+        """Build mapping from column names to their pols_map_id indices.
 
         Returns:
-            Dict mapping name -> list of polsMapId values
+            Dict mapping name -> list of pols_map_id values
             e.g., {'a': [0], 'im_cluster': [16, 17, 18, 19, 20, 21]}
         """
         name_map: dict[str, list[int]] = {}
-        for cm in self.cmPolsMap:
+        for cm in self.cm_pols_map:
             if cm.name not in name_map:
                 name_map[cm.name] = []
-            name_map[cm.name].append(cm.polsMapId)
+            name_map[cm.name].append(cm.pols_map_id)
         return name_map

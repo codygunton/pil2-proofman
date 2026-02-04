@@ -43,9 +43,6 @@ if TYPE_CHECKING:
 BufferOffset = int
 StageIndex = int
 
-# Backward compatibility alias
-SetupCtx = AirConfig
-
 
 def _build_prover_data_extended(
     stark_info: StarkInfo,
@@ -65,23 +62,23 @@ def _build_prover_data_extended(
     Returns:
         ProverData ready for constraint evaluation
     """
-    N = 1 << stark_info.starkStruct.nBits
-    N_ext = 1 << stark_info.starkStruct.nBitsExt
+    N = 1 << stark_info.stark_struct.n_bits
+    N_ext = 1 << stark_info.stark_struct.n_bits_ext
     extend = N_ext // N  # Blowup factor for extended domain
     columns = {}
     constants = {}
     challenges = {}
 
     # Extract committed polynomials (all stages)
-    for pol_info in stark_info.cmPolsMap:
+    for pol_info in stark_info.cm_pols_map:
         name = pol_info.name
         stage = pol_info.stage
         dim = pol_info.dim
-        stage_pos = pol_info.stagePos
+        stage_pos = pol_info.stage_pos
 
         section = f"cm{stage}"
-        n_cols = stark_info.mapSectionsN.get(section, 0)
-        offset = stark_info.mapOffsets.get((section, True), 0)  # Extended offset
+        n_cols = stark_info.map_sections_n.get(section, 0)
+        offset = stark_info.map_offsets.get((section, True), 0)  # Extended offset
 
         # Read polynomial values from buffer
         values = np.zeros(N_ext * dim, dtype=np.uint64)
@@ -92,8 +89,8 @@ def _build_prover_data_extended(
         # Find or compute the index for this polynomial name
         # Multiple columns may share the same name (e.g., im_cluster[0], im_cluster[1])
         index = 0
-        for other in stark_info.cmPolsMap:
-            if other.name == name and other.stagePos < stage_pos:
+        for other in stark_info.cm_pols_map:
+            if other.name == name and other.stage_pos < stage_pos:
                 index += 1
 
         if dim == 1:
@@ -102,11 +99,11 @@ def _build_prover_data_extended(
             columns[(name, index)] = ff3_from_interleaved_numpy(values, N_ext)
 
     # Extract constant polynomials
-    for pol_info in stark_info.constPolsMap:
+    for pol_info in stark_info.const_pols_map:
         name = pol_info.name
         dim = pol_info.dim
-        stage_pos = pol_info.stagePos
-        n_cols = stark_info.nConstants
+        stage_pos = pol_info.stage_pos
+        n_cols = stark_info.n_constants
 
         values = np.zeros(N_ext * dim, dtype=np.uint64)
         for j in range(N_ext):
@@ -120,7 +117,7 @@ def _build_prover_data_extended(
             constants[name] = ff3_from_interleaved_numpy(values, N_ext)
 
     # Extract challenges
-    for i, chal_info in enumerate(stark_info.challengesMap):
+    for i, chal_info in enumerate(stark_info.challenges_map):
         name = chal_info.name
         idx = i * FIELD_EXTENSION_DEGREE
         coeff0 = int(params.challenges[idx])
@@ -130,7 +127,7 @@ def _build_prover_data_extended(
 
     # Extract airgroup values (accumulated results across AIR instances)
     airgroup_values = {}
-    n_airgroup_values = len(stark_info.airgroupValuesMap)
+    n_airgroup_values = len(stark_info.airgroup_values_map)
     for i in range(n_airgroup_values):
         idx = i * FIELD_EXTENSION_DEGREE
         coeff0 = int(params.airgroupValues[idx])
@@ -158,20 +155,20 @@ def _build_prover_data_base(
     Returns:
         ProverData ready for witness computation
     """
-    N = 1 << stark_info.starkStruct.nBits
+    N = 1 << stark_info.stark_struct.n_bits
     columns = {}
     constants = {}
     challenges = {}
 
     # Extract committed polynomials (all stages, base domain)
-    for pol_info in stark_info.cmPolsMap:
+    for pol_info in stark_info.cm_pols_map:
         name = pol_info.name
         stage = pol_info.stage
         dim = pol_info.dim
-        stage_pos = pol_info.stagePos
+        stage_pos = pol_info.stage_pos
 
         section = f"cm{stage}"
-        n_cols = stark_info.mapSectionsN.get(section, 0)
+        n_cols = stark_info.map_sections_n.get(section, 0)
 
         if stage == 1:
             # Stage 1: read from trace buffer
@@ -179,7 +176,7 @@ def _build_prover_data_base(
             base_offset = 0
         else:
             # Stage 2+: read from auxTrace at non-extended offset
-            base_offset = stark_info.mapOffsets.get((section, False), 0)
+            base_offset = stark_info.map_offsets.get((section, False), 0)
             buffer = params.auxTrace
 
         # Read polynomial values from buffer
@@ -190,8 +187,8 @@ def _build_prover_data_base(
 
         # Find or compute the index for this polynomial name
         index = 0
-        for other in stark_info.cmPolsMap:
-            if other.name == name and other.stagePos < stage_pos:
+        for other in stark_info.cm_pols_map:
+            if other.name == name and other.stage_pos < stage_pos:
                 index += 1
 
         if dim == 1:
@@ -200,11 +197,11 @@ def _build_prover_data_base(
             columns[(name, index)] = ff3_from_interleaved_numpy(values, N)
 
     # Extract constant polynomials (base domain)
-    for pol_info in stark_info.constPolsMap:
+    for pol_info in stark_info.const_pols_map:
         name = pol_info.name
         dim = pol_info.dim
-        stage_pos = pol_info.stagePos
-        n_cols = stark_info.nConstants
+        stage_pos = pol_info.stage_pos
+        n_cols = stark_info.n_constants
 
         values = np.zeros(N * dim, dtype=np.uint64)
         for j in range(N):
@@ -217,7 +214,7 @@ def _build_prover_data_base(
             constants[name] = ff3_from_interleaved_numpy(values, N)
 
     # Extract challenges
-    for i, chal_info in enumerate(stark_info.challengesMap):
+    for i, chal_info in enumerate(stark_info.challenges_map):
         name = chal_info.name
         idx = i * FIELD_EXTENSION_DEGREE
         coeff0 = int(params.challenges[idx])
@@ -244,15 +241,15 @@ def _write_witness_to_buffer(
     """
     from primitives.field import ff3_to_interleaved_numpy
 
-    N = 1 << stark_info.starkStruct.nBits
+    N = 1 << stark_info.stark_struct.n_bits
 
-    # Build mapping from (name, index) to cmPolsMap entry
+    # Build mapping from (name, index) to cm_pols_map entry
     name_to_pol_info = {}
-    for pol_info in stark_info.cmPolsMap:
+    for pol_info in stark_info.cm_pols_map:
         # Count index for this name
         index = 0
-        for other in stark_info.cmPolsMap:
-            if other.name == pol_info.name and other.stagePos < pol_info.stagePos:
+        for other in stark_info.cm_pols_map:
+            if other.name == pol_info.name and other.stage_pos < pol_info.stage_pos:
                 index += 1
         name_to_pol_info[(pol_info.name, index)] = pol_info
 
@@ -266,10 +263,10 @@ def _write_witness_to_buffer(
             pol_info = name_to_pol_info[key]
             stage = pol_info.stage
             dim = pol_info.dim
-            stage_pos = pol_info.stagePos
+            stage_pos = pol_info.stage_pos
             section = f"cm{stage}"
-            n_cols = stark_info.mapSectionsN.get(section, 0)
-            base_offset = stark_info.mapOffsets.get((section, False), 0)
+            n_cols = stark_info.map_sections_n.get(section, 0)
+            base_offset = stark_info.map_offsets.get((section, False), 0)
 
             # Convert FF3 to interleaved numpy
             interleaved = ff3_to_interleaved_numpy(values)
@@ -288,10 +285,10 @@ def _write_witness_to_buffer(
         pol_info = name_to_pol_info[key]
         stage = pol_info.stage
         dim = pol_info.dim
-        stage_pos = pol_info.stagePos
+        stage_pos = pol_info.stage_pos
         section = f"cm{stage}"
-        n_cols = stark_info.mapSectionsN.get(section, 0)
-        base_offset = stark_info.mapOffsets.get((section, False), 0)
+        n_cols = stark_info.map_sections_n.get(section, 0)
+        base_offset = stark_info.map_offsets.get((section, False), 0)
 
         interleaved = ff3_to_interleaved_numpy(values)
 
@@ -302,7 +299,7 @@ def _write_witness_to_buffer(
     # Write final gsum/gprod values to airgroupValues
     # These are the running sum/product result used in constraint checking
     from primitives.field import FIELD_EXTENSION_DEGREE, ff3_to_numpy_coeffs
-    for i, av in enumerate(stark_info.airgroupValuesMap):
+    for i, av in enumerate(stark_info.airgroup_values_map):
         # airgroupValues names are like "Simple.gsum_result" or "Permutation.gprod_result"
         # Extract the column name (gsum or gprod) from the name
         if '_result' in av.name:
@@ -386,8 +383,8 @@ class Starks:
         # These precompute FFT twiddle factors for efficient polynomial
         # interpolation, evaluation, and extension.
         si = setupCtx.stark_info
-        N = 1 << si.starkStruct.nBits
-        N_extended = 1 << si.starkStruct.nBitsExt
+        N = 1 << si.stark_struct.n_bits
+        N_extended = 1 << si.stark_struct.n_bits_ext
         self._ntt = NTT(N)
         self._ntt_extended = NTT(N_extended)
 
@@ -395,14 +392,14 @@ class Starks:
 
     def build_const_tree(self, constPolsExtended: np.ndarray) -> MerkleRoot:
         """Build Merkle tree for constant polynomials."""
-        NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
-        nCols = self.setupCtx.stark_info.mapSectionsN.get("const", 0)
+        NExtended = 1 << self.setupCtx.stark_info.stark_struct.n_bits_ext
+        nCols = self.setupCtx.stark_info.map_sections_n.get("const", 0)
 
         if nCols == 0:
             return [0] * 4
 
         constData = [int(x) for x in constPolsExtended[:NExtended * nCols]]
-        last_lvl = self.setupCtx.stark_info.starkStruct.lastLevelVerification
+        last_lvl = self.setupCtx.stark_info.stark_struct.last_level_verification
         self.const_tree = MerkleTree(arity=4, last_level_verification=last_lvl)
         self.const_tree.merkelize(constData, NExtended, nCols, n_cols=nCols)
 
@@ -419,20 +416,20 @@ class Starks:
     def extendAndMerkelize(self, step: int, trace: np.ndarray, auxTrace: np.ndarray,
                           pBuffHelper: np.ndarray | None = None) -> MerkleRoot:
         """Extend polynomial from N to N_ext and build Merkle tree commitment."""
-        N = 1 << self.setupCtx.stark_info.starkStruct.nBits
-        NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
+        N = 1 << self.setupCtx.stark_info.stark_struct.n_bits
+        NExtended = 1 << self.setupCtx.stark_info.stark_struct.n_bits_ext
 
         section = f"cm{step}"
-        nCols = self.setupCtx.stark_info.mapSectionsN[section]
+        nCols = self.setupCtx.stark_info.map_sections_n[section]
 
         # Stage 1 uses trace buffer directly, other stages use auxTrace
         if step == 1:
             pBuff = trace
         else:
-            offset = self.setupCtx.stark_info.mapOffsets[(section, False)]
+            offset = self.setupCtx.stark_info.map_offsets[(section, False)]
             pBuff = auxTrace[offset:]
 
-        offsetExt = self.setupCtx.stark_info.mapOffsets[(section, True)]
+        offsetExt = self.setupCtx.stark_info.map_offsets[(section, True)]
         pBuffExtended = auxTrace[offsetExt:]
 
         # Extend: INTT(pBuff) -> coeffs -> zero-pad -> NTT(coeffs_extended)
@@ -442,7 +439,7 @@ class Starks:
 
         # Build Merkle tree
         extendedData = [int(x) for x in pBuffExtended[:NExtended * nCols]]
-        last_lvl = self.setupCtx.stark_info.starkStruct.lastLevelVerification
+        last_lvl = self.setupCtx.stark_info.stark_struct.last_level_verification
         tree = MerkleTree(arity=4, last_level_verification=last_lvl)
         tree.merkelize(extendedData, NExtended, nCols, n_cols=nCols)
         self.stage_trees[step] = tree
@@ -466,29 +463,29 @@ class Starks:
         """Execute a commitment stage (witness or quotient polynomial).
 
         Args:
-            step: Stage number (1 = witness, 2 = intermediate, nStages+1 = quotient)
+            step: Stage number (1 = witness, 2 = intermediate, n_stages+1 = quotient)
             params: Proof context with polynomial data
             pBuffHelper: Optional helper buffer (unused, for API compatibility)
 
         Returns:
             Merkle root (HASH_SIZE integers)
         """
-        if step <= self.setupCtx.stark_info.nStages:
+        if step <= self.setupCtx.stark_info.n_stages:
             return self.extendAndMerkelize(step, params.trace, params.auxTrace, pBuffHelper)
 
         # Quotient polynomial stage - uses extended NTT
         self.computeFriPol(params, pBuffHelper)
 
-        NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
+        NExtended = 1 << self.setupCtx.stark_info.stark_struct.n_bits_ext
         section = f"cm{step}"
-        nCols = self.setupCtx.stark_info.mapSectionsN.get(section, 0)
+        nCols = self.setupCtx.stark_info.map_sections_n.get(section, 0)
 
         if nCols > 0:
-            cmQOffset = self.setupCtx.stark_info.mapOffsets[(section, True)]
+            cmQOffset = self.setupCtx.stark_info.map_offsets[(section, True)]
             cmQ = params.auxTrace[cmQOffset:]
             extendedData = [int(x) for x in cmQ[:NExtended * nCols]]
 
-            last_lvl = self.setupCtx.stark_info.starkStruct.lastLevelVerification
+            last_lvl = self.setupCtx.stark_info.stark_struct.last_level_verification
             tree = MerkleTree(arity=4, last_level_verification=last_lvl)
             tree.merkelize(extendedData, NExtended, nCols, n_cols=nCols)
             self.stage_trees[step] = tree
@@ -510,18 +507,18 @@ class Starks:
         """
         from primitives.field import FF, FF3, SHIFT_INV, ff3_from_buffer_at, ff3_store_to_buffer
 
-        N = 1 << self.setupCtx.stark_info.starkStruct.nBits
-        NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
-        qDim = self.setupCtx.stark_info.qDim
-        qDeg = self.setupCtx.stark_info.qDeg
+        N = 1 << self.setupCtx.stark_info.stark_struct.n_bits
+        NExtended = 1 << self.setupCtx.stark_info.stark_struct.n_bits_ext
+        qDim = self.setupCtx.stark_info.q_dim
+        qDeg = self.setupCtx.stark_info.q_deg
 
-        section = f"cm{self.setupCtx.stark_info.nStages + 1}"
-        nCols = self.setupCtx.stark_info.mapSectionsN[section]
+        section = f"cm{self.setupCtx.stark_info.n_stages + 1}"
+        nCols = self.setupCtx.stark_info.map_sections_n[section]
 
-        qOffset = self.setupCtx.stark_info.mapOffsets[("q", True)]
+        qOffset = self.setupCtx.stark_info.map_offsets[("q", True)]
         qPol = params.auxTrace[qOffset:]
 
-        cmQOffset = self.setupCtx.stark_info.mapOffsets[(section, True)]
+        cmQOffset = self.setupCtx.stark_info.map_offsets[(section, True)]
         cmQ = params.auxTrace[cmQOffset:]
 
         # Step 1: INTT constraint polynomial (uses extended NTT)
@@ -575,10 +572,10 @@ class Starks:
         from constraints import ProverConstraintContext, get_constraint_module
         from primitives.field import ff3_to_interleaved_numpy
 
-        qOffset = self.setupCtx.stark_info.mapOffsets[("q", True)]
+        qOffset = self.setupCtx.stark_info.map_offsets[("q", True)]
         qPol = params.auxTrace[qOffset:]
         stark_info = self.setupCtx.stark_info
-        N_ext = 1 << stark_info.starkStruct.nBitsExt
+        N_ext = 1 << stark_info.stark_struct.n_bits_ext
         air_name = stark_info.name
 
         # Use per-AIR constraint modules
@@ -614,7 +611,7 @@ class Starks:
         from protocol.fri_polynomial import compute_fri_polynomial
 
         stark_info = self.setupCtx.stark_info
-        N_ext = 1 << stark_info.starkStruct.nBitsExt
+        N_ext = 1 << stark_info.stark_struct.n_bits_ext
 
         # Compute FRI polynomial on extended domain
         fri_result = compute_fri_polynomial(
@@ -623,7 +620,7 @@ class Starks:
         )
 
         # Write result to FRI polynomial buffer
-        fOffset = stark_info.mapOffsets[("f", True)]
+        fOffset = stark_info.map_offsets[("f", True)]
         fPol = params.auxTrace[fOffset:]
         fPol[:len(fri_result)] = fri_result
 
@@ -652,10 +649,10 @@ class Starks:
             get_omega,
         )
 
-        N = 1 << self.setupCtx.stark_info.starkStruct.nBits
+        N = 1 << self.setupCtx.stark_info.stark_struct.n_bits
         nOpeningPoints = len(openingPoints)
 
-        w = FF(get_omega(self.setupCtx.stark_info.starkStruct.nBits))
+        w = FF(get_omega(self.setupCtx.stark_info.stark_struct.n_bits))
         shiftInv = FF(SHIFT_INV)
         xiFF3 = ff3_from_numpy_coeffs(xiChallenge)
 
@@ -698,13 +695,13 @@ class Starks:
         """Evaluate polynomials at opening points using vectorized operations."""
         from primitives.field import ff3_array, ff3_coeffs
 
-        N = 1 << self.setupCtx.stark_info.starkStruct.nBits
-        extendBits = self.setupCtx.stark_info.starkStruct.nBitsExt - self.setupCtx.stark_info.starkStruct.nBits
+        N = 1 << self.setupCtx.stark_info.stark_struct.n_bits
+        extendBits = self.setupCtx.stark_info.stark_struct.n_bits_ext - self.setupCtx.stark_info.stark_struct.n_bits
         nOpeningPoints = len(openingPoints)
 
         # Build evaluation task list
         evalsToCalculate = [
-            i for i, evMap in enumerate(self.setupCtx.stark_info.evMap)
+            i for i, evMap in enumerate(self.setupCtx.stark_info.ev_map)
             if evMap.prime in openingPoints
         ]
 
@@ -725,7 +722,7 @@ class Starks:
 
         # Evaluate each polynomial
         for evMapIdx in evalsToCalculate:
-            evMap = self.setupCtx.stark_info.evMap[evMapIdx]
+            evMap = self.setupCtx.stark_info.ev_map[evMapIdx]
             openingPosIdx = openingPoints.index(evMap.prime)
 
             pol_arr = self._load_evmap_poly(params, evMap, rows)
@@ -741,11 +738,11 @@ class Starks:
         from primitives.field import ff3_array, ff3_array_from_base
 
         if evMap.type == EvMap.Type.cm:
-            polInfo = self.setupCtx.stark_info.cmPolsMap[evMap.id]
+            polInfo = self.setupCtx.stark_info.cm_pols_map[evMap.id]
             section = f"cm{polInfo.stage}"
-            offset = self.setupCtx.stark_info.mapOffsets[(section, True)]
-            nCols = self.setupCtx.stark_info.mapSectionsN[section]
-            base_indices = offset + rows * nCols + polInfo.stagePos
+            offset = self.setupCtx.stark_info.map_offsets[(section, True)]
+            nCols = self.setupCtx.stark_info.map_sections_n[section]
+            base_indices = offset + rows * nCols + polInfo.stage_pos
 
             if polInfo.dim == 1:
                 return ff3_array_from_base(params.auxTrace[base_indices].tolist())
@@ -756,19 +753,19 @@ class Starks:
                 return ff3_array(c0, c1, c2)
 
         elif evMap.type == EvMap.Type.const_:
-            polInfo = self.setupCtx.stark_info.constPolsMap[evMap.id]
-            offset = self.setupCtx.stark_info.mapOffsets[("const", True)]
-            nCols = self.setupCtx.stark_info.mapSectionsN["const"]
-            base_indices = offset + rows * nCols + polInfo.stagePos
+            polInfo = self.setupCtx.stark_info.const_pols_map[evMap.id]
+            offset = self.setupCtx.stark_info.map_offsets[("const", True)]
+            nCols = self.setupCtx.stark_info.map_sections_n["const"]
+            base_indices = offset + rows * nCols + polInfo.stage_pos
             return ff3_array_from_base(params.constPolsExtended[base_indices].tolist())
 
         elif evMap.type == EvMap.Type.custom:
-            polInfo = self.setupCtx.stark_info.customCommitsMap[evMap.commitId][evMap.id]
-            commitName = self.setupCtx.stark_info.customCommits[polInfo.commitId].name
+            polInfo = self.setupCtx.stark_info.custom_commits_map[evMap.commit_id][evMap.id]
+            commitName = self.setupCtx.stark_info.custom_commits[polInfo.commit_id].name
             section = commitName + "0"
-            offset = self.setupCtx.stark_info.mapOffsets[(section, True)]
-            nCols = self.setupCtx.stark_info.mapSectionsN[section]
-            base_indices = offset + rows * nCols + polInfo.stagePos
+            offset = self.setupCtx.stark_info.map_offsets[(section, True)]
+            nCols = self.setupCtx.stark_info.map_sections_n[section]
+            base_indices = offset + rows * nCols + polInfo.stage_pos
             return ff3_array_from_base(params.customCommits[base_indices].tolist())
 
         else:

@@ -2,19 +2,19 @@
 
 # Re-export protocol types for convenience in tests
 from protocol import (
+    AirConfig,
     ProofContext,
     ProverHelpers,
-    SetupCtx,
     StarkInfo,
     STARKProof,
     gen_proof,
 )
 
 __all__ = [
-    "StarkInfo",
-    "SetupCtx",
-    "ProverHelpers",
+    "AirConfig",
     "ProofContext",
+    "ProverHelpers",
+    "StarkInfo",
     "STARKProof",
     "gen_proof",
 ]

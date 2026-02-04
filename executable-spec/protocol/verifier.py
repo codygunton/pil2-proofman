@@ -21,7 +21,7 @@ from primitives.merkle_tree import HASH_SIZE, MerkleRoot, MerkleTree
 from primitives.pol_map import EvMap
 from primitives.polynomial import to_coefficients
 from primitives.transcript import Transcript
-from protocol.air_config import SetupCtx
+from protocol.air_config import AirConfig
 from protocol.data import VerifierData
 from protocol.fri import FRI
 from protocol.proof import MerkleProof, STARKProof
@@ -42,10 +42,10 @@ SPONGE_WIDTH_BY_ARITY = {2: 8, 3: 12, 4: 16}
 # Poseidon2 linear hash width for evaluation hashing
 EVALS_HASH_WIDTH = 16
 
-# Stage number offsets from nStages for special protocol stages
-QUOTIENT_STAGE_OFFSET = 1  # nStages + 1 = quotient polynomial stage
-EVAL_STAGE_OFFSET = 2      # nStages + 2 = evaluation stage (xi challenge)
-FRI_STAGE_OFFSET = 3       # nStages + 3 = FRI polynomial stage
+# Stage number offsets from n_stages for special protocol stages
+QUOTIENT_STAGE_OFFSET = 1  # n_stages + 1 = quotient polynomial stage
+EVAL_STAGE_OFFSET = 2      # n_stages + 2 = evaluation stage (xi challenge)
+FRI_STAGE_OFFSET = 3       # n_stages + 3 = FRI polynomial stage
 
 
 def _get_challenge(challenges: InterleavedFF3, idx: int) -> InterleavedFF3:
@@ -57,7 +57,7 @@ def _get_challenge(challenges: InterleavedFF3, idx: int) -> InterleavedFF3:
 
 def stark_verify(
     proof: STARKProof,
-    setup_ctx: SetupCtx,
+    air_config: AirConfig,
     verkey: MerkleRoot,
     global_challenge: InterleavedFF3,
     publics: FFArray | None = None,
@@ -74,9 +74,8 @@ def stark_verify(
        - Merkle proofs: all commitment openings are valid
        - Degree bound: final FRI polynomial has correct degree
     """
-    stark_info = setup_ctx.stark_info
-    stark_info.verify = True
-    stark_struct = stark_info.starkStruct
+    stark_info = air_config.stark_info
+    stark_struct = stark_info.stark_struct
 
     # --- Parse proof components ---
     evals = _parse_evals(proof, stark_info)
@@ -87,17 +86,17 @@ def stark_verify(
     challenges, final_pol = _reconstruct_transcript(proof, stark_info, global_challenge)
 
     # --- Verify proof-of-work ---
-    grinding_idx = len(stark_info.challengesMap) + len(stark_struct.friFoldSteps)
+    grinding_idx = len(stark_info.challenges_map) + len(stark_struct.fri_fold_steps)
     grinding_challenge = _get_challenge(challenges, grinding_idx)
-    if not verify_grinding(list(grinding_challenge), proof.nonce, stark_struct.powBits):
+    if not verify_grinding(list(grinding_challenge), proof.nonce, stark_struct.pow_bits):
         print("ERROR: PoW verification failed")
         return False
 
     # --- Derive FRI query indices ---
-    transcript_perm = Transcript(arity=stark_struct.transcriptArity, custom=stark_struct.merkleTreeCustom)
+    transcript_perm = Transcript(arity=stark_struct.transcript_arity, custom=stark_struct.merkle_tree_custom)
     transcript_perm.put(list(grinding_challenge))
     transcript_perm.put([proof.nonce])
-    fri_queries = transcript_perm.get_permutations(stark_struct.nQueries, stark_struct.friFoldSteps[0].domainBits)
+    fri_queries = transcript_perm.get_permutations(stark_struct.n_queries, stark_struct.fri_fold_steps[0].domain_bits)
 
     # --- Parse query values ---
     const_pols_vals = _parse_const_pols_vals(proof, stark_info)
@@ -139,7 +138,7 @@ def stark_verify(
 
     # Check 3: Stage commitment Merkle trees
     print("Verifying stage Merkle trees")
-    for stage_num in range(stark_info.nStages + 1):
+    for stage_num in range(stark_info.n_stages + 1):
         root = proof.roots[stage_num]
         if not _verify_stage_merkle(proof, stark_info, root, stage_num + 1, fri_queries):
             print(f"ERROR: Stage {stage_num + 1} Merkle Tree verification failed")
@@ -154,22 +153,22 @@ def stark_verify(
     # Check 5: Custom commit Merkle trees
     print("Verifying custom commits Merkle trees")
     if publics is not None:
-        for custom_commit in stark_info.customCommits:
-            root = [int(publics[custom_commit.publicValues[j]]) for j in range(HASH_SIZE)]
+        for custom_commit in stark_info.custom_commits:
+            root = [int(publics[custom_commit.public_values[j]]) for j in range(HASH_SIZE)]
             if not _verify_custom_commit_merkle(proof, stark_info, root, custom_commit.name, fri_queries):
                 print(f"ERROR: Custom Commit {custom_commit.name} Merkle Tree verification failed")
                 is_valid = False
 
     # Check 6: FRI layer Merkle trees
     print("Verifying FRI foldings Merkle Trees")
-    for step in range(1, len(stark_struct.friFoldSteps)):
+    for step in range(1, len(stark_struct.fri_fold_steps)):
         if not _verify_fri_merkle_tree(proof, stark_info, step, fri_queries):
             print("ERROR: FRI folding Merkle Tree verification failed")
             is_valid = False
 
     # Check 7: FRI folding correctness
     print("Verifying FRI foldings")
-    for step in range(1, len(stark_struct.friFoldSteps)):
+    for step in range(1, len(stark_struct.fri_fold_steps)):
         if not _verify_fri_folding(proof, stark_info, challenges, step, fri_queries):
             print("ERROR: FRI folding verification failed")
             is_valid = False
@@ -186,11 +185,11 @@ def stark_verify(
 # --- Proof Parsing ---
 
 def _parse_evals(proof: STARKProof, stark_info: StarkInfo) -> InterleavedFF3:
-    return ff3_to_interleaved_numpy(ff3_from_json(proof.evals[:len(stark_info.evMap)]))
+    return ff3_to_interleaved_numpy(ff3_from_json(proof.evals[:len(stark_info.ev_map)]))
 
 
 def _parse_airgroup_values(proof: STARKProof, stark_info: StarkInfo) -> InterleavedFF3:
-    num_airgroup_values = len(stark_info.airgroupValuesMap)
+    num_airgroup_values = len(stark_info.airgroup_values_map)
     if num_airgroup_values == 0:
         return np.zeros(0, dtype=np.uint64)
     return ff3_to_interleaved_numpy(ff3_from_json(proof.airgroup_values[:num_airgroup_values]))
@@ -198,9 +197,9 @@ def _parse_airgroup_values(proof: STARKProof, stark_info: StarkInfo) -> Interlea
 
 def _parse_air_values(proof: STARKProof, stark_info: StarkInfo) -> InterleavedFF3:
     """Stage 1 values are single Fe, stage 2+ are Fe3."""
-    values = np.zeros(stark_info.airValuesSize, dtype=np.uint64)
+    values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
     buffer_offset = 0
-    for i, air_value in enumerate(stark_info.airValuesMap):
+    for i, air_value in enumerate(stark_info.air_values_map):
         if air_value.stage == 1:
             values[buffer_offset] = int(proof.air_values[i][0])
             buffer_offset += 1
@@ -213,8 +212,8 @@ def _parse_air_values(proof: STARKProof, stark_info: StarkInfo) -> InterleavedFF
 
 def _parse_const_pols_vals(proof: STARKProof, stark_info: StarkInfo) -> FFArray:
     """Extract constant polynomial values from proof query proofs."""
-    n_queries, n_constants = stark_info.starkStruct.nQueries, stark_info.nConstants
-    const_tree_idx = stark_info.nStages + 1
+    n_queries, n_constants = stark_info.stark_struct.n_queries, stark_info.n_constants
+    const_tree_idx = stark_info.n_stages + 1
     vals = np.zeros(n_constants * n_queries, dtype=np.uint64)
     for query_idx in range(n_queries):
         for col_idx in range(n_constants):
@@ -231,36 +230,36 @@ def _compute_stage_offsets(stark_info: StarkInfo, n_queries: int) -> tuple[dict[
     """
     offsets = {}
     current_offset = 0
-    for stage in range(2, stark_info.nStages + 2):
+    for stage in range(2, stark_info.n_stages + 2):
         section = f"cm{stage}"
-        if section in stark_info.mapSectionsN:
+        if section in stark_info.map_sections_n:
             offsets[stage] = current_offset
-            current_offset += n_queries * stark_info.mapSectionsN[section]
+            current_offset += n_queries * stark_info.map_sections_n[section]
     return offsets, current_offset
 
 
 def _compute_custom_commit_total_size(stark_info: StarkInfo, n_queries: int) -> int:
     """Compute total buffer size needed for custom commits."""
     total_size = 0
-    for commit in stark_info.customCommits:
+    for commit in stark_info.custom_commits:
         section = commit.name + "0"
-        if section in stark_info.mapSectionsN:
-            total_size += n_queries * stark_info.mapSectionsN[section]
+        if section in stark_info.map_sections_n:
+            total_size += n_queries * stark_info.map_sections_n[section]
     return total_size
 
 
 def _allocate_trace_buffers(stark_info: StarkInfo, stage_total: int,
                             custom_total: int, n_queries: int) -> tuple[FFArray, FFArray, FFArray]:
     """Allocate empty buffers for trace, aux_trace, and custom_commits."""
-    cm1_n_pols = stark_info.mapSectionsN["cm1"]
+    cm1_n_pols = stark_info.map_sections_n["cm1"]
     trace = np.zeros(n_queries * cm1_n_pols, dtype=np.uint64)
 
     # aux_trace holds all stages 2+
-    aux_trace_size = max(stage_total, stark_info.mapTotalN)
+    aux_trace_size = max(stage_total, stark_info.map_total_n)
     aux_trace = np.zeros(aux_trace_size, dtype=np.uint64)
 
     # custom_commits holds custom commitment values
-    custom_size = max(custom_total, stark_info.mapTotalNCustomCommitsFixed)
+    custom_size = max(custom_total, stark_info.map_total_n_custom_commits_fixed)
     custom_commits = np.zeros(custom_size, dtype=np.uint64)
 
     return trace, aux_trace, custom_commits
@@ -269,14 +268,14 @@ def _allocate_trace_buffers(stark_info: StarkInfo, stage_total: int,
 def _fill_trace_from_proof(proof: STARKProof, stark_info: StarkInfo, trace: FFArray, aux_trace: FFArray,
                            stage_offsets: dict[int, int]) -> None:
     """Fill trace buffers with values from proof."""
-    n_queries = stark_info.starkStruct.nQueries
+    n_queries = stark_info.stark_struct.n_queries
 
     for query_idx in range(n_queries):
         # Fill committed polynomial values
-        for cm_pol in stark_info.cmPolsMap:
+        for cm_pol in stark_info.cm_pols_map:
             stage = cm_pol.stage
-            stage_pos = cm_pol.stagePos
-            n_pols = stark_info.mapSectionsN[f"cm{stage}"]
+            stage_pos = cm_pol.stage_pos
+            n_pols = stark_info.map_sections_n[f"cm{stage}"]
             tree_idx = stage - 1  # Stage 1 -> tree_idx 0, etc.
 
             if stage == 1:
@@ -299,7 +298,7 @@ def _parse_trace_values(proof: STARKProof, stark_info: StarkInfo) -> tuple[FFArr
     2. Allocate buffers - create appropriately-sized numpy arrays
     3. Fill from proof - copy values from proof into buffers
     """
-    n_queries = stark_info.starkStruct.nQueries
+    n_queries = stark_info.stark_struct.n_queries
 
     stage_offsets, stage_total = _compute_stage_offsets(stark_info, n_queries)
     custom_total = _compute_custom_commit_total_size(stark_info, n_queries)
@@ -315,8 +314,8 @@ def _parse_trace_values(proof: STARKProof, stark_info: StarkInfo) -> tuple[FFArr
 
 def _find_xi_challenge(stark_info: StarkInfo, challenges: InterleavedFF3) -> Challenge:
     """Find xi (evaluation point) in challenges array."""
-    for i, challenge_info in enumerate(stark_info.challengesMap):
-        if challenge_info.stage == stark_info.nStages + EVAL_STAGE_OFFSET and challenge_info.stageId == 0:
+    for i, challenge_info in enumerate(stark_info.challenges_map):
+        if challenge_info.stage == stark_info.n_stages + EVAL_STAGE_OFFSET and challenge_info.stage_id == 0:
             return _get_challenge(challenges, i)
     return np.zeros(FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
@@ -328,25 +327,25 @@ def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_cha
 
     Protocol flow:
     1. Initialize transcript with global_challenge
-    2. For each stage 2..nStages+1: derive challenges, absorb root and air values
+    2. For each stage 2..n_stages+1: derive challenges, absorb root and air values
     3. Derive evaluation point (xi) challenges
-    4. Absorb evals (hashed if hashCommits enabled)
+    4. Absorb evals (hashed if hash_commits enabled)
     5. Derive FRI polynomial challenges
     6. For each FRI step: derive fold challenge, absorb next root (or final poly)
     7. Derive grinding challenge for proof-of-work
     """
-    stark_struct = stark_info.starkStruct
-    n_challenges = len(stark_info.challengesMap)
-    n_steps = len(stark_struct.friFoldSteps)
+    stark_struct = stark_info.stark_struct
+    n_challenges = len(stark_info.challenges_map)
+    n_steps = len(stark_struct.fri_fold_steps)
     challenges = np.zeros((n_challenges + n_steps + 1) * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
-    transcript = Transcript(arity=stark_struct.transcriptArity, custom=stark_struct.merkleTreeCustom)
+    transcript = Transcript(arity=stark_struct.transcript_arity, custom=stark_struct.merkle_tree_custom)
     transcript.put(global_challenge[:3].tolist())
 
-    # Stages 2..nStages+1
+    # Stages 2..n_stages+1
     challenge_idx = 0
-    for stage_num in range(2, stark_info.nStages + 2):
-        for challenge_info in stark_info.challengesMap:
+    for stage_num in range(2, stark_info.n_stages + 2):
+        for challenge_info in stark_info.challenges_map:
             if challenge_info.stage == stage_num:
                 challenges[challenge_idx * FIELD_EXTENSION_DEGREE:(challenge_idx + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
                 challenge_idx += 1
@@ -354,26 +353,26 @@ def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_cha
         # roots[stage_num-1] because roots[0] is root1
         transcript.put(proof.roots[stage_num - 1])
 
-        for air_value in stark_info.airValuesMap:
+        for air_value in stark_info.air_values_map:
             if air_value.stage != 1 and air_value.stage == stage_num:
-                idx = stark_info.airValuesMap.index(air_value)
+                idx = stark_info.air_values_map.index(air_value)
                 transcript.put([int(v) for v in proof.air_values[idx]])
 
-    # Evals stage (nStages + EVAL_STAGE_OFFSET)
-    for challenge_info in stark_info.challengesMap:
-        if challenge_info.stage == stark_info.nStages + EVAL_STAGE_OFFSET:
+    # Evals stage (n_stages + EVAL_STAGE_OFFSET)
+    for challenge_info in stark_info.challenges_map:
+        if challenge_info.stage == stark_info.n_stages + EVAL_STAGE_OFFSET:
             challenges[challenge_idx * FIELD_EXTENSION_DEGREE:(challenge_idx + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
             challenge_idx += 1
 
-    evals_flat = [int(v) for eval_entry in proof.evals[:len(stark_info.evMap)] for v in eval_entry]
-    if not stark_struct.hashCommits:
+    evals_flat = [int(v) for eval_entry in proof.evals[:len(stark_info.ev_map)] for v in eval_entry]
+    if not stark_struct.hash_commits:
         transcript.put(evals_flat)
     else:
         transcript.put(list(linear_hash(evals_flat, width=EVALS_HASH_WIDTH)))
 
-    # FRI polynomial stage (nStages + FRI_STAGE_OFFSET)
-    for challenge_info in stark_info.challengesMap:
-        if challenge_info.stage == stark_info.nStages + FRI_STAGE_OFFSET:
+    # FRI polynomial stage (n_stages + FRI_STAGE_OFFSET)
+    for challenge_info in stark_info.challenges_map:
+        if challenge_info.stage == stark_info.n_stages + FRI_STAGE_OFFSET:
             challenges[challenge_idx * FIELD_EXTENSION_DEGREE:(challenge_idx + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
             challenge_idx += 1
 
@@ -390,10 +389,10 @@ def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_cha
             final_pol_ff3 = ff3_from_json(proof.fri.pol)
             final_pol = ff3_to_interleaved_numpy(final_pol_ff3)
 
-            if not stark_struct.hashCommits:
+            if not stark_struct.hash_commits:
                 transcript.put(final_pol.tolist())
             else:
-                hash_transcript = Transcript(arity=stark_struct.transcriptArity, custom=stark_struct.merkleTreeCustom)
+                hash_transcript = Transcript(arity=stark_struct.transcript_arity, custom=stark_struct.merkle_tree_custom)
                 hash_transcript.put(final_pol.tolist())
                 transcript.put(hash_transcript.get_state(HASH_SIZE))
 
@@ -411,10 +410,10 @@ def _build_verifier_data(
 ) -> VerifierData:
     """Build VerifierData from proof evaluations and challenges.
 
-    Maps evMap entries to (name, index, offset) tuples for constraint evaluation.
+    Maps ev_map entries to (name, index, offset) tuples for constraint evaluation.
 
     Args:
-        stark_info: StarkInfo with evMap and challengesMap
+        stark_info: StarkInfo with ev_map and challenges_map
         evals: Flattened evaluation buffer from proof
         challenges: Flattened challenges buffer
         airgroup_values: Optional airgroup values from proof (for boundary constraints)
@@ -426,23 +425,23 @@ def _build_verifier_data(
     data_challenges = {}
     data_airgroup_values = {}
 
-    # Map evMap entries to evaluations
-    for ev_idx, eval_entry in enumerate(stark_info.evMap):
+    # Map ev_map entries to evaluations
+    for ev_idx, eval_entry in enumerate(stark_info.ev_map):
         ev_type = eval_entry.type
         ev_id = eval_entry.id
         offset = eval_entry.prime  # Row offset: -1, 0, or 1
 
         # Get polynomial name and index
         if ev_type.name == 'cm':
-            pol_info = stark_info.cmPolsMap[ev_id]
+            pol_info = stark_info.cm_pols_map[ev_id]
             name = pol_info.name
             # Find index by counting same-name entries before this one
             index = 0
-            for other in stark_info.cmPolsMap[:ev_id]:
+            for other in stark_info.cm_pols_map[:ev_id]:
                 if other.name == name:
                     index += 1
         elif ev_type.name == 'const_':
-            pol_info = stark_info.constPolsMap[ev_id]
+            pol_info = stark_info.const_pols_map[ev_id]
             name = pol_info.name
             index = 0  # Constants don't have indices
         else:
@@ -459,7 +458,7 @@ def _build_verifier_data(
         data_evals[(name, index, offset)] = eval_val
 
     # Map challenges
-    for ch_idx, challenge_info in enumerate(stark_info.challengesMap):
+    for ch_idx, challenge_info in enumerate(stark_info.challenges_map):
         ch_base = ch_idx * FIELD_EXTENSION_DEGREE
         ch_val = FF3.Vector([
             int(challenges[ch_base + 2]),
@@ -470,7 +469,7 @@ def _build_verifier_data(
 
     # Map airgroup values (for boundary constraints)
     if airgroup_values is not None:
-        n_airgroup_values = len(stark_info.airgroupValuesMap)
+        n_airgroup_values = len(stark_info.airgroup_values_map)
         for i in range(n_airgroup_values):
             idx = i * FIELD_EXTENSION_DEGREE
             data_airgroup_values[i] = FF3.Vector([
@@ -508,7 +507,7 @@ def _evaluate_constraint_with_module(stark_info: StarkInfo, verifier_data: Verif
     constraint_at_xi = constraint_module.constraint_polynomial(ctx)
 
     # Compute Z_H(xi) = xi^N - 1 where N is trace size
-    trace_size = 1 << stark_info.starkStruct.nBits
+    trace_size = 1 << stark_info.stark_struct.n_bits
     xi_to_n = xi
     for _ in range(trace_size - 1):
         xi_to_n = xi_to_n * xi
@@ -527,8 +526,8 @@ def _compute_x_div_x_sub(stark_info: StarkInfo, xi_challenge: Challenge, fri_que
     of the DEEP quotient: 1/(x - xi * w^openingPoint). This is used to
     reconstruct the committed polynomials from their evaluations.
     """
-    n_queries = stark_info.starkStruct.nQueries
-    n_opening_points = len(stark_info.openingPoints)
+    n_queries = stark_info.stark_struct.n_queries
+    n_opening_points = len(stark_info.opening_points)
 
     x_div_x_sub = np.zeros(n_queries * n_opening_points * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
@@ -536,8 +535,8 @@ def _compute_x_div_x_sub(stark_info: StarkInfo, xi_challenge: Challenge, fri_que
     xi = FF3.Vector([int(xi_challenge[2]), int(xi_challenge[1]), int(xi_challenge[0])])
 
     # Domain generators
-    omega_extended = FF(get_omega(stark_info.starkStruct.nBitsExt))  # Extended domain
-    omega_trace = FF(get_omega(stark_info.starkStruct.nBits))        # Trace domain
+    omega_extended = FF(get_omega(stark_info.stark_struct.n_bits_ext))  # Extended domain
+    omega_trace = FF(get_omega(stark_info.stark_struct.n_bits))        # Trace domain
     shift = FF(SHIFT)
 
     for query_idx in range(n_queries):
@@ -545,7 +544,7 @@ def _compute_x_div_x_sub(stark_info: StarkInfo, xi_challenge: Challenge, fri_que
         query_position = fri_queries[query_idx]
         x = FF3(int(shift * (omega_extended ** query_position)))
 
-        for opening_idx, opening_point in enumerate(stark_info.openingPoints):
+        for opening_idx, opening_point in enumerate(stark_info.opening_points):
             # Compute omega_trace^opening_point (handle negative exponents)
             omega_power = omega_trace ** abs(opening_point)
             if opening_point < 0:
@@ -576,24 +575,24 @@ def _compute_xi_to_trace_size(xi: FF3, trace_size: int) -> FF3:
 def _reconstruct_quotient_at_xi(stark_info: StarkInfo, evals: InterleavedFF3, xi: FF3, xi_to_n: FF3) -> FF3:
     """Reconstruct Q(xi) from split quotient pieces Q_0, Q_1, ..., Q_{d-1}.
 
-    The quotient polynomial Q is split into qDeg pieces to keep degrees manageable:
+    The quotient polynomial Q is split into q_deg pieces to keep degrees manageable:
     Q(x) = Q_0(x) + x^N * Q_1(x) + x^(2N) * Q_2(x) + ...
 
     We reconstruct Q(xi) by summing these terms.
     """
-    quotient_stage = stark_info.nStages + QUOTIENT_STAGE_OFFSET
+    quotient_stage = stark_info.n_stages + QUOTIENT_STAGE_OFFSET
     quotient_start_idx = next(
-        i for i, p in enumerate(stark_info.cmPolsMap)
-        if p.stage == quotient_stage and p.stageId == 0
+        i for i, p in enumerate(stark_info.cm_pols_map)
+        if p.stage == quotient_stage and p.stage_id == 0
     )
 
     reconstructed_quotient = FF3(0)
     xi_power_accumulator = FF3(1)
 
-    for piece_idx in range(stark_info.qDeg):
+    for piece_idx in range(stark_info.q_deg):
         # Find evaluation of Q_i(xi) in the evals array
         eval_map_idx = next(
-            j for j, e in enumerate(stark_info.evMap)
+            j for j, e in enumerate(stark_info.ev_map)
             if e.type == EvMap.Type.cm and e.id == quotient_start_idx + piece_idx
         )
 
@@ -629,7 +628,7 @@ def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
     constraint_at_xi = FF3.Vector([int(constraint_buffer[2]), int(constraint_buffer[1]), int(constraint_buffer[0])])
 
     # Step 2: Compute powers of xi needed for reconstruction
-    trace_size = 1 << stark_info.starkStruct.nBits
+    trace_size = 1 << stark_info.stark_struct.n_bits
     xi_to_n = _compute_xi_to_trace_size(xi, trace_size)
 
     # Step 3: Reconstruct Q(xi) from split quotient pieces
@@ -652,17 +651,17 @@ def _verify_fri_consistency(proof: STARKProof, stark_info: StarkInfo, params: Pr
     """Verify FRI polynomial matches constraint evaluation at query points."""
     from protocol.fri_polynomial import compute_fri_polynomial_verifier
 
-    n_queries = stark_info.starkStruct.nQueries
-    n_steps = len(stark_info.starkStruct.friFoldSteps)
+    n_queries = stark_info.stark_struct.n_queries
+    n_steps = len(stark_info.stark_struct.fri_fold_steps)
 
     # Compute FRI polynomial at query points using direct computation
     buff = compute_fri_polynomial_verifier(stark_info, params, n_queries)
 
     for query_idx in range(n_queries):
-        idx = fri_queries[query_idx] % (1 << stark_info.starkStruct.friFoldSteps[0].domainBits)
+        idx = fri_queries[query_idx] % (1 << stark_info.stark_struct.fri_fold_steps[0].domain_bits)
 
         if n_steps > 1:
-            next_n_groups = 1 << stark_info.starkStruct.friFoldSteps[1].domainBits
+            next_n_groups = 1 << stark_info.stark_struct.fri_fold_steps[1].domain_bits
             group_idx = idx // next_n_groups
             # Get FRI step 1 values: proof.fri.trees_fri[0].pol_queries[query_idx][0].v[col][0]
             fri_vals = proof.fri.trees_fri[0].pol_queries[query_idx][0].v
@@ -750,10 +749,10 @@ def _verify_merkle_tree_with_proofs(stark_info: StarkInfo, root: MerkleRoot,
                                     query_proofs: list[MerkleProof], last_levels: list,
                                     n_cols: int, fri_queries: list[QueryIdx], domain_bits: int) -> bool:
     """Verify Merkle tree using structured query proofs."""
-    stark_struct = stark_info.starkStruct
-    arity = stark_struct.merkleTreeArity
-    last_level_verification = stark_struct.lastLevelVerification
-    n_queries = stark_struct.nQueries
+    stark_struct = stark_info.stark_struct
+    arity = stark_struct.merkle_tree_arity
+    last_level_verification = stark_struct.last_level_verification
+    n_queries = stark_struct.n_queries
     sponge_width = SPONGE_WIDTH_BY_ARITY[arity]
 
     # Flatten last level nodes
@@ -765,7 +764,7 @@ def _verify_merkle_tree_with_proofs(stark_info: StarkInfo, root: MerkleRoot,
                 level.append(int(last_levels[i][j]))
 
     if last_level_verification > 0:
-        if not MerkleTree.verify_merkle_root(root, level, 1 << stark_struct.nBitsExt, last_level_verification, arity, sponge_width):
+        if not MerkleTree.verify_merkle_root(root, level, 1 << stark_struct.n_bits_ext, last_level_verification, arity, sponge_width):
             return False
 
     n_siblings = int(math.ceil(domain_bits / math.log2(arity))) - last_level_verification
@@ -790,25 +789,25 @@ def _verify_stage_merkle(proof: STARKProof, stark_info: StarkInfo, root: MerkleR
     """Verify stage commitment Merkle tree."""
     section = f"cm{stage}"
     tree_idx = stage - 1  # Tree indices are 0-based, stages are 1-based
-    n_cols = stark_info.mapSectionsN[section]
-    query_proofs = [proof.fri.trees.pol_queries[query_idx][tree_idx] for query_idx in range(stark_info.starkStruct.nQueries)]
+    n_cols = stark_info.map_sections_n[section]
+    query_proofs = [proof.fri.trees.pol_queries[query_idx][tree_idx] for query_idx in range(stark_info.stark_struct.n_queries)]
     last_levels = proof.last_levels[tree_idx] if tree_idx < len(proof.last_levels) else []
     return _verify_merkle_tree_with_proofs(
         stark_info, root, query_proofs, last_levels,
-        n_cols, fri_queries, stark_info.starkStruct.friFoldSteps[0].domainBits
+        n_cols, fri_queries, stark_info.stark_struct.fri_fold_steps[0].domain_bits
     )
 
 
 def _verify_const_merkle(proof: STARKProof, stark_info: StarkInfo, verkey: MerkleRoot,
                          fri_queries: list[QueryIdx]) -> bool:
     """Verify constant polynomial Merkle tree."""
-    const_tree_idx = stark_info.nStages + 1
-    query_proofs = [proof.fri.trees.pol_queries[query_idx][const_tree_idx] for query_idx in range(stark_info.starkStruct.nQueries)]
+    const_tree_idx = stark_info.n_stages + 1
+    query_proofs = [proof.fri.trees.pol_queries[query_idx][const_tree_idx] for query_idx in range(stark_info.stark_struct.n_queries)]
     # Const last levels are stored at const_tree_idx
     last_levels = proof.last_levels[const_tree_idx] if const_tree_idx < len(proof.last_levels) else []
     return _verify_merkle_tree_with_proofs(
         stark_info, verkey, query_proofs, last_levels,
-        stark_info.nConstants, fri_queries, stark_info.starkStruct.friFoldSteps[0].domainBits
+        stark_info.n_constants, fri_queries, stark_info.stark_struct.fri_fold_steps[0].domain_bits
     )
 
 
@@ -821,14 +820,14 @@ def _verify_custom_commit_merkle(proof: STARKProof, stark_info: StarkInfo, root:
 
 def _verify_fri_merkle_tree(proof: STARKProof, stark_info: StarkInfo, step: int, fri_queries: list[QueryIdx]) -> bool:
     """Verify FRI layer Merkle tree."""
-    stark_struct = stark_info.starkStruct
-    arity = stark_struct.merkleTreeArity
-    last_level_verification = stark_struct.lastLevelVerification
-    n_queries = stark_struct.nQueries
+    stark_struct = stark_info.stark_struct
+    arity = stark_struct.merkle_tree_arity
+    last_level_verification = stark_struct.last_level_verification
+    n_queries = stark_struct.n_queries
     sponge_width = SPONGE_WIDTH_BY_ARITY[arity]
 
-    n_groups = 1 << stark_struct.friFoldSteps[step].domainBits
-    group_size = (1 << stark_struct.friFoldSteps[step - 1].domainBits) // n_groups
+    n_groups = 1 << stark_struct.fri_fold_steps[step].domain_bits
+    group_size = (1 << stark_struct.fri_fold_steps[step - 1].domain_bits) // n_groups
     n_cols = group_size * FIELD_EXTENSION_DEGREE
 
     root = proof.fri.trees_fri[step - 1].root
@@ -846,11 +845,11 @@ def _verify_fri_merkle_tree(proof: STARKProof, stark_info: StarkInfo, step: int,
         if not MerkleTree.verify_merkle_root(root, level, n_groups, last_level_verification, arity, sponge_width):
             return False
 
-    n_siblings = int(math.ceil(stark_struct.friFoldSteps[step].domainBits / math.log2(arity))) - last_level_verification
+    n_siblings = int(math.ceil(stark_struct.fri_fold_steps[step].domain_bits / math.log2(arity))) - last_level_verification
     siblings_per_level = (arity - 1) * HASH_SIZE
 
     for query_idx in range(n_queries):
-        idx = fri_queries[query_idx] % (1 << stark_struct.friFoldSteps[step].domainBits)
+        idx = fri_queries[query_idx] % (1 << stark_struct.fri_fold_steps[step].domain_bits)
         # Get values from FRI tree query proof
         fri_vals = proof.fri.trees_fri[step - 1].pol_queries[query_idx][0].v
         values = [int(fri_vals[i][0]) for i in range(n_cols)]
@@ -880,30 +879,30 @@ def _verify_fri_folding(proof: STARKProof, stark_info: StarkInfo, challenges: In
     2. Recompute the folded value using FRI.verify_fold
     3. Check it matches the claimed value in the next FRI layer (or final poly)
     """
-    stark_struct = stark_info.starkStruct
-    n_queries = stark_struct.nQueries
-    n_steps = len(stark_struct.friFoldSteps)
+    stark_struct = stark_info.stark_struct
+    n_queries = stark_struct.n_queries
+    n_steps = len(stark_struct.fri_fold_steps)
 
     for query_idx in range(n_queries):
-        idx = fri_queries[query_idx] % (1 << stark_struct.friFoldSteps[step].domainBits)
+        idx = fri_queries[query_idx] % (1 << stark_struct.fri_fold_steps[step].domain_bits)
 
         # Gather sibling evaluations from FRI tree query proof
-        n_x = 1 << (stark_struct.friFoldSteps[step - 1].domainBits - stark_struct.friFoldSteps[step].domainBits)
+        n_x = 1 << (stark_struct.fri_fold_steps[step - 1].domain_bits - stark_struct.fri_fold_steps[step].domain_bits)
         fri_vals = proof.fri.trees_fri[step - 1].pol_queries[query_idx][0].v
         siblings = [
             [int(fri_vals[i * FIELD_EXTENSION_DEGREE + j][0]) for j in range(FIELD_EXTENSION_DEGREE)]
             for i in range(n_x)
         ]
 
-        fold_challenge_idx = len(stark_info.challengesMap) + step
+        fold_challenge_idx = len(stark_info.challenges_map) + step
         challenge = [int(c) for c in _get_challenge(challenges, fold_challenge_idx)]
 
         value = FRI.verify_fold(
             value=[0, 0, 0],
             fri_round=step,
-            n_bits_ext=stark_struct.nBitsExt,
-            current_bits=stark_struct.friFoldSteps[step].domainBits,
-            prev_bits=stark_struct.friFoldSteps[step - 1].domainBits,
+            n_bits_ext=stark_struct.n_bits_ext,
+            current_bits=stark_struct.fri_fold_steps[step].domain_bits,
+            prev_bits=stark_struct.fri_fold_steps[step - 1].domain_bits,
             challenge=challenge,
             idx=idx,
             siblings=siblings,
@@ -911,7 +910,7 @@ def _verify_fri_folding(proof: STARKProof, stark_info: StarkInfo, challenges: In
 
         # Check against next layer or final polynomial
         if step < n_steps - 1:
-            next_bits = stark_struct.friFoldSteps[step + 1].domainBits
+            next_bits = stark_struct.fri_fold_steps[step + 1].domain_bits
             sibling_pos = idx >> next_bits
             next_fri_vals = proof.fri.trees_fri[step].pol_queries[query_idx][0].v
             expected = [next_fri_vals[sibling_pos * FIELD_EXTENSION_DEGREE + j][0] for j in range(FIELD_EXTENSION_DEGREE)]
@@ -935,7 +934,7 @@ def _verify_final_polynomial(proof: STARKProof, stark_info: StarkInfo) -> bool:
     (interpolation), not an implementation detail. The fact that we use INTT
     internally is hidden by the polynomial abstraction.
     """
-    stark_struct = stark_info.starkStruct
+    stark_struct = stark_info.stark_struct
     final_pol_ff3 = ff3_from_json(proof.fri.pol)
     final_pol = ff3_to_interleaved_numpy(final_pol_ff3)
     final_pol_size = len(final_pol_ff3)
@@ -945,8 +944,8 @@ def _verify_final_polynomial(proof: STARKProof, stark_info: StarkInfo) -> bool:
     final_pol_coeffs = to_coefficients(final_pol_reshaped, final_pol_size, n_cols=FIELD_EXTENSION_DEGREE)
 
     # High-degree coefficients must be zero
-    last_step = stark_struct.friFoldSteps[-1].domainBits
-    blowup_factor = stark_struct.nBitsExt - stark_struct.nBits
+    last_step = stark_struct.fri_fold_steps[-1].domain_bits
+    blowup_factor = stark_struct.n_bits_ext - stark_struct.n_bits
     init = 0 if blowup_factor > last_step else (1 << (last_step - blowup_factor))
 
     for i in range(init, final_pol_size):

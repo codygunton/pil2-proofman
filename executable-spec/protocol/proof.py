@@ -150,24 +150,24 @@ def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
     proof = STARKProof()
 
     # Configuration
-    n_queries = stark_info.starkStruct.nQueries
-    n_stages = stark_info.nStages
-    n_constants = len(stark_info.constPolsMap)
-    merkle_arity = stark_info.starkStruct.merkleTreeArity
-    last_level_verification = stark_info.starkStruct.lastLevelVerification
-    n_bits_ext = stark_info.starkStruct.nBitsExt
+    n_queries = stark_info.stark_struct.n_queries
+    n_stages = stark_info.n_stages
+    n_constants = len(stark_info.const_pols_map)
+    merkle_arity = stark_info.stark_struct.merkle_tree_arity
+    last_level_verification = stark_info.stark_struct.last_level_verification
+    n_bits_ext = stark_info.stark_struct.n_bits_ext
     n_siblings = int(math.ceil(n_bits_ext / math.log2(merkle_arity))) - last_level_verification
     n_siblings_per_level = (merkle_arity - 1) * HASH_SIZE
 
     # Section 1: airgroupValues
-    n_airgroup_values = len(stark_info.airgroupValuesMap)
+    n_airgroup_values = len(stark_info.airgroup_values_map)
     for _ in range(n_airgroup_values):
         proof.airgroup_values.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
         idx += FIELD_EXTENSION_DEGREE
 
     # Section 2: airValues
-    for i in range(len(stark_info.airValuesMap)):
-        if stark_info.airValuesMap[i].stage == 1:
+    for i in range(len(stark_info.air_values_map)):
+        if stark_info.air_values_map[i].stage == 1:
             proof.air_values.append([values[idx]])
             idx += 1
         else:
@@ -180,7 +180,7 @@ def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
         idx += HASH_SIZE
 
     # Section 4: evals
-    n_evals = len(stark_info.evMap)
+    n_evals = len(stark_info.ev_map)
     for _ in range(n_evals):
         proof.evals.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
         idx += FIELD_EXTENSION_DEGREE
@@ -226,7 +226,7 @@ def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
     # Stored at tree indices 0..(n_stages)
     for stage_num in range(1, n_stages + 2):
         tree_idx = stage_num - 1
-        n_stage_cols = stark_info.mapSectionsN.get(f"cm{stage_num}", 0)
+        n_stage_cols = stark_info.map_sections_n.get(f"cm{stage_num}", 0)
 
         # Values
         for q in range(n_queries):
@@ -253,7 +253,7 @@ def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
             proof.last_levels[tree_idx] = stage_last_levels
 
     # Section 10: FRI step roots
-    n_fri_round_log_sizes = len(stark_info.starkStruct.friFoldSteps) - 1
+    n_fri_round_log_sizes = len(stark_info.stark_struct.fri_fold_steps) - 1
     for _ in range(n_fri_round_log_sizes):
         fri_tree = ProofTree()
         fri_tree.root = list(values[idx:idx + HASH_SIZE])
@@ -263,8 +263,8 @@ def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
 
     # Section 11: FRI step query proofs
     for step_idx in range(n_fri_round_log_sizes):
-        prev_bits = stark_info.starkStruct.friFoldSteps[step_idx].domainBits
-        curr_bits = stark_info.starkStruct.friFoldSteps[step_idx + 1].domainBits
+        prev_bits = stark_info.stark_struct.fri_fold_steps[step_idx].domain_bits
+        curr_bits = stark_info.stark_struct.fri_fold_steps[step_idx + 1].domain_bits
         n_fri_cols = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION_DEGREE
 
         # Values
@@ -293,7 +293,7 @@ def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
             proof.fri.trees_fri[step_idx].last_levels = fri_last_levels
 
     # Section 12: finalPol
-    final_pol_size = 1 << stark_info.starkStruct.friFoldSteps[-1].domainBits
+    final_pol_size = 1 << stark_info.stark_struct.fri_fold_steps[-1].domain_bits
     for _ in range(final_pol_size):
         proof.fri.pol.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
         idx += FIELD_EXTENSION_DEGREE
@@ -352,14 +352,14 @@ def to_bytes_partial(proof_dict: dict[str, Any], stark_info: Any) -> tuple[bytes
 
     # 1. airgroupValues
     airgroup_values = _to_list(proof_dict.get('airgroup_values', []))
-    n_airgroup_values = len(stark_info.airgroupValuesMap)
+    n_airgroup_values = len(stark_info.airgroup_values_map)
     for i in range(n_airgroup_values):
         start = i * FIELD_EXTENSION_DEGREE
         header_values.extend(int(v) for v in airgroup_values[start:start + FIELD_EXTENSION_DEGREE])
 
     # 2. airValues
     air_values = _to_list(proof_dict.get('air_values', []))
-    n_air_values = len(stark_info.airValuesMap)
+    n_air_values = len(stark_info.air_values_map)
     for i in range(n_air_values):
         start = i * FIELD_EXTENSION_DEGREE
         header_values.extend(int(v) for v in air_values[start:start + FIELD_EXTENSION_DEGREE])
@@ -370,7 +370,7 @@ def to_bytes_partial(proof_dict: dict[str, Any], stark_info: Any) -> tuple[bytes
 
     # 4. evals
     evals = _to_list(proof_dict.get('evals', []))
-    n_evals = len(stark_info.evMap)
+    n_evals = len(stark_info.ev_map)
     for i in range(n_evals):
         start = i * FIELD_EXTENSION_DEGREE
         header_values.extend(int(v) for v in evals[start:start + FIELD_EXTENSION_DEGREE])
@@ -409,14 +409,14 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
         values.extend(ev[:FIELD_EXTENSION_DEGREE])
 
     # Configuration
-    n_queries = stark_info.starkStruct.nQueries
-    n_constants = stark_info.nConstants
-    n_stages = stark_info.nStages
+    n_queries = stark_info.stark_struct.n_queries
+    n_constants = stark_info.n_constants
+    n_stages = stark_info.n_stages
     n_field_elements = HASH_SIZE
-    merkle_arity = stark_info.starkStruct.merkleTreeArity
-    last_level_verification = stark_info.starkStruct.lastLevelVerification
+    merkle_arity = stark_info.stark_struct.merkle_tree_arity
+    last_level_verification = stark_info.stark_struct.last_level_verification
 
-    n_siblings = int(math.ceil(stark_info.starkStruct.friFoldSteps[0].domainBits / math.log2(merkle_arity))) - last_level_verification
+    n_siblings = int(math.ceil(stark_info.stark_struct.fri_fold_steps[0].domain_bits / math.log2(merkle_arity))) - last_level_verification
     n_siblings_per_level = (merkle_arity - 1) * n_field_elements
 
     # 5-7: Constant tree queries
@@ -433,8 +433,8 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
         values.extend(proof.last_levels[n_stages + 1][:num_nodes])
 
     # 8: Custom commits
-    for c, custom_commit in enumerate(stark_info.customCommits):
-        n_custom_cols = stark_info.mapSectionsN.get(custom_commit.name + "0", 0)
+    for c, custom_commit in enumerate(stark_info.custom_commits):
+        n_custom_cols = stark_info.map_sections_n.get(custom_commit.name + "0", 0)
         tree_idx = n_stages + 2 + c
 
         for i in range(n_queries):
@@ -450,7 +450,7 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
 
     # 9: Stage trees (cm1, cm2, ..., cmQ)
     for s in range(n_stages + 1):
-        n_stage_cols = stark_info.mapSectionsN.get(f"cm{s + 1}", 0)
+        n_stage_cols = stark_info.map_sections_n.get(f"cm{s + 1}", 0)
 
         for i in range(n_queries):
             for col in range(n_stage_cols):
@@ -464,13 +464,13 @@ def to_bytes_full(proof: STARKProof, stark_info: Any) -> bytes:
             values.extend(proof.last_levels[s][:num_nodes])
 
     # 10: FRI step roots
-    for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
+    for step in range(1, len(stark_info.stark_struct.fri_fold_steps)):
         values.extend(proof.fri.trees_fri[step - 1].root[:n_field_elements])
 
     # 11: FRI step query proofs
-    for step in range(1, len(stark_info.starkStruct.friFoldSteps)):
-        prev_bits = stark_info.starkStruct.friFoldSteps[step - 1].domainBits
-        curr_bits = stark_info.starkStruct.friFoldSteps[step].domainBits
+    for step in range(1, len(stark_info.stark_struct.fri_fold_steps)):
+        prev_bits = stark_info.stark_struct.fri_fold_steps[step - 1].domain_bits
+        curr_bits = stark_info.stark_struct.fri_fold_steps[step].domain_bits
         n_fri_vals = (1 << (prev_bits - curr_bits)) * FIELD_EXTENSION_DEGREE
 
         for i in range(n_queries):
@@ -510,18 +510,18 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
     last_level_nodes = proof_dict.get('last_level_nodes', {})
 
     # Configuration
-    n_stages = stark_info.nStages
-    merkle_arity = stark_info.starkStruct.merkleTreeArity
-    last_level_verification = stark_info.starkStruct.lastLevelVerification
+    n_stages = stark_info.n_stages
+    merkle_arity = stark_info.stark_struct.merkle_tree_arity
+    last_level_verification = stark_info.stark_struct.last_level_verification
 
     # Section 1: airgroupValues
-    n_airgroup_values = len(stark_info.airgroupValuesMap)
+    n_airgroup_values = len(stark_info.airgroup_values_map)
     for i in range(n_airgroup_values):
         start = i * FIELD_EXTENSION_DEGREE
         values.extend(int(v) for v in airgroup_values[start:start + FIELD_EXTENSION_DEGREE])
 
     # Section 2: airValues
-    n_air_values = len(stark_info.airValuesMap)
+    n_air_values = len(stark_info.air_values_map)
     for i in range(n_air_values):
         start = i * FIELD_EXTENSION_DEGREE
         values.extend(int(v) for v in air_values[start:start + FIELD_EXTENSION_DEGREE])
@@ -531,16 +531,16 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
         values.extend(int(v) for v in root[:HASH_SIZE])
 
     # Section 4: evals
-    n_evals = len(stark_info.evMap)
+    n_evals = len(stark_info.ev_map)
     for i in range(n_evals):
         start = i * FIELD_EXTENSION_DEGREE
         values.extend(int(v) for v in evals[start:start + FIELD_EXTENSION_DEGREE])
 
     # Sections 5-7: const tree query proofs
     const_query_proofs = proof_dict.get('const_query_proofs', [])
-    n_constants = len(stark_info.constPolsMap)
+    n_constants = len(stark_info.const_pols_map)
 
-    n_bits_ext = stark_info.starkStruct.nBitsExt
+    n_bits_ext = stark_info.stark_struct.n_bits_ext
     n_siblings = int(math.ceil(n_bits_ext / math.log2(merkle_arity))) - last_level_verification
     n_siblings_per_level = (merkle_arity - 1) * HASH_SIZE
 
@@ -571,7 +571,7 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
 
     # Section 9: stage tree proofs (cm1, cm2, ..., cmQ)
     for stage_num in range(1, n_stages + 2):
-        n_stage_cols = stark_info.mapSectionsN.get(f"cm{stage_num}", 0)
+        n_stage_cols = stark_info.map_sections_n.get(f"cm{stage_num}", 0)
 
         if stage_num not in stage_query_proofs:
             raise ValueError(f"Missing stage {stage_num} query proofs for full serialization")
@@ -607,9 +607,9 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
 
     # Section 11: FRI step query proofs
     if fri_proof is not None:
-        for step_idx in range(len(stark_info.starkStruct.friFoldSteps) - 1):
-            prev_bits = stark_info.starkStruct.friFoldSteps[step_idx].domainBits
-            curr_bits = stark_info.starkStruct.friFoldSteps[step_idx + 1].domainBits
+        for step_idx in range(len(stark_info.stark_struct.fri_fold_steps) - 1):
+            prev_bits = stark_info.stark_struct.fri_fold_steps[step_idx].domain_bits
+            curr_bits = stark_info.stark_struct.fri_fold_steps[step_idx + 1].domain_bits
             n_fri_groups = 1 << (prev_bits - curr_bits)
 
             # Values
@@ -658,35 +658,35 @@ def validate_proof_structure(proof: STARKProof, stark_info: Any) -> list[str]:
     """Validate that proof structure matches STARK configuration."""
     errors = []
 
-    expected_stages = stark_info.nStages + 1
+    expected_stages = stark_info.n_stages + 1
     if len(proof.roots) != expected_stages:
         errors.append(f"Expected {expected_stages} stage roots, got {len(proof.roots)}")
 
-    if len(proof.evals) != len(stark_info.evMap):
-        errors.append(f"Expected {len(stark_info.evMap)} evaluations, got {len(proof.evals)}")
+    if len(proof.evals) != len(stark_info.ev_map):
+        errors.append(f"Expected {len(stark_info.ev_map)} evaluations, got {len(proof.evals)}")
 
     for i, ev in enumerate(proof.evals):
         if len(ev) != FIELD_EXTENSION_DEGREE:
             errors.append(f"Evaluation {i} has dimension {len(ev)}, expected {FIELD_EXTENSION_DEGREE}")
 
-    if len(proof.airgroup_values) != len(stark_info.airgroupValuesMap):
+    if len(proof.airgroup_values) != len(stark_info.airgroup_values_map):
         errors.append(
-            f"Expected {len(stark_info.airgroupValuesMap)} airgroup values, "
+            f"Expected {len(stark_info.airgroup_values_map)} airgroup values, "
             f"got {len(proof.airgroup_values)}"
         )
 
-    if len(proof.air_values) != len(stark_info.airValuesMap):
+    if len(proof.air_values) != len(stark_info.air_values_map):
         errors.append(
-            f"Expected {len(stark_info.airValuesMap)} air values, "
+            f"Expected {len(stark_info.air_values_map)} air values, "
             f"got {len(proof.air_values)}"
         )
 
-    expected_fri_round_log_sizes = len(stark_info.starkStruct.friFoldSteps) - 1
+    expected_fri_round_log_sizes = len(stark_info.stark_struct.fri_fold_steps) - 1
     if len(proof.fri.trees_fri) != expected_fri_round_log_sizes:
         errors.append(f"Expected {expected_fri_round_log_sizes} FRI trees, got {len(proof.fri.trees_fri)}")
 
     if proof.fri.pol:
-        expected_degree = 1 << stark_info.starkStruct.friFoldSteps[-1].domainBits
+        expected_degree = 1 << stark_info.stark_struct.fri_fold_steps[-1].domain_bits
         if len(proof.fri.pol) != expected_degree:
             errors.append(f"Final polynomial degree {len(proof.fri.pol)}, expected {expected_degree}")
 

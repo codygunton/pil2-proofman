@@ -1,6 +1,6 @@
 """Protocol - Core STARK protocol algorithms."""
 
-from protocol.air_config import AirConfig, ProverHelpers, SetupCtx
+from protocol.air_config import AirConfig, ProverHelpers
 from protocol.fri import FRI
 from protocol.pcs import (
     FIELD_EXTENSION_DEGREE,
@@ -36,7 +36,6 @@ __all__ = [
     # Configuration and data structures
     "StarkInfo",
     "AirConfig",
-    "SetupCtx",  # Deprecated alias for AirConfig
     "ProverHelpers",
     "ProofContext",
     "STARKProof",

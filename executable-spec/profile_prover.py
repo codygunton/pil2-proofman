@@ -192,13 +192,13 @@ def run_lookup_test() -> None:
 
     # Now import and run
     from protocol.prover import gen_proof
-    from tests.test_stark_e2e import create_params_from_vectors, load_setup_ctx, load_test_vectors
+    from tests.test_stark_e2e import create_params_from_vectors, load_air_config, load_test_vectors
 
     air_name = "lookup"
     print(f"\nRunning profiler on {air_name} test...")
 
-    setup_ctx = load_setup_ctx(air_name)
-    if setup_ctx is None:
+    air_config = load_air_config(air_name)
+    if air_config is None:
         print(f"Setup not found for {air_name}")
         return
 
@@ -207,12 +207,12 @@ def run_lookup_test() -> None:
         print(f"Test vectors not found for {air_name}")
         return
 
-    params, global_challenge = create_params_from_vectors(setup_ctx.stark_info, vectors)
+    params, global_challenge = create_params_from_vectors(air_config.stark_info, vectors)
 
     # Run gen_proof with timing
     print("Starting proof generation...")
     start = time.perf_counter()
-    gen_proof(setup_ctx, params, global_challenge=global_challenge)
+    gen_proof(air_config, params, global_challenge=global_challenge)
     total_time = time.perf_counter() - start
     print(f"Proof generation complete in {total_time:.2f}s")
 

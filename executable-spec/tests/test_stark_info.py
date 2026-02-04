@@ -33,42 +33,37 @@ class TestStarkInfoSimple:
 
     def test_stark_struct_basic_params(self, stark_info: StarkInfo) -> None:
         """Verify basic STARK parameters."""
-        ss = stark_info.starkStruct
-        assert ss.nBits == 3  # 8 rows
-        assert ss.nBitsExt == 4  # 16 extended
-        assert ss.nQueries == 228
-        assert ss.verificationHashType == "GL"
-        assert ss.merkleTreeArity == 4
-        assert ss.transcriptArity == 4
-        assert ss.merkleTreeCustom is True
-        assert ss.lastLevelVerification == 2
-        assert ss.powBits == 16
-        assert ss.hashCommits is True
+        ss = stark_info.stark_struct
+        assert ss.n_bits == 3  # 8 rows
+        assert ss.n_bits_ext == 4  # 16 extended
+        assert ss.n_queries == 228
+        assert ss.verification_hash_type == "GL"
+        assert ss.merkle_tree_arity == 4
+        assert ss.transcript_arity == 4
+        assert ss.merkle_tree_custom is True
+        assert ss.last_level_verification == 2
+        assert ss.pow_bits == 16
+        assert ss.hash_commits is True
 
     def test_fri_round_log_sizes(self, stark_info: StarkInfo) -> None:
         """Verify FRI folding steps."""
-        assert len(stark_info.starkStruct.friFoldSteps) == 1
-        assert stark_info.starkStruct.friFoldSteps[0].domainBits == 4
+        assert len(stark_info.stark_struct.fri_fold_steps) == 1
+        assert stark_info.stark_struct.fri_fold_steps[0].domain_bits == 4
 
     def test_basic_counts(self, stark_info: StarkInfo) -> None:
         """Verify polynomial counts."""
-        assert stark_info.nPublics == 0
-        assert stark_info.nConstants == 1
-        assert stark_info.nStages == 2
+        assert stark_info.n_publics == 0
+        assert stark_info.n_constants == 1
+        assert stark_info.n_stages == 2
 
     def test_quotient_params(self, stark_info: StarkInfo) -> None:
         """Verify quotient polynomial parameters."""
-        assert stark_info.qDeg == 2
-        assert stark_info.qDim == 3
-
-    def test_expression_ids(self, stark_info: StarkInfo) -> None:
-        """Verify expression IDs."""
-        assert stark_info.friExpId == 313
-        assert stark_info.cExpId == 312
+        assert stark_info.q_deg == 2
+        assert stark_info.q_dim == 3
 
     def test_opening_points(self, stark_info: StarkInfo) -> None:
         """Verify opening points."""
-        assert stark_info.openingPoints == [-1, 0, 1]
+        assert stark_info.opening_points == [-1, 0, 1]
 
     def test_boundaries(self, stark_info: StarkInfo) -> None:
         """Verify constraint boundaries."""
@@ -77,53 +72,53 @@ class TestStarkInfoSimple:
 
     def test_challenges_map(self, stark_info: StarkInfo) -> None:
         """Verify challenge derivation map."""
-        assert len(stark_info.challengesMap) == 6
+        assert len(stark_info.challenges_map) == 6
 
         # Check first few challenges
-        ch0 = stark_info.challengesMap[0]
+        ch0 = stark_info.challenges_map[0]
         assert ch0.name == "std_alpha"
         assert ch0.stage == 2
         assert ch0.dim == 3
-        assert ch0.stageId == 0
+        assert ch0.stage_id == 0
 
-        ch1 = stark_info.challengesMap[1]
+        ch1 = stark_info.challenges_map[1]
         assert ch1.name == "std_gamma"
         assert ch1.stage == 2
         assert ch1.dim == 3
-        assert ch1.stageId == 1
+        assert ch1.stage_id == 1
 
     def test_cm_pols_map(self, stark_info: StarkInfo) -> None:
         """Verify committed polynomials map."""
         # SimpleLeft has 15 stage 1, 7 stage 2, and 2 quotient polys
-        stage1_pols = [p for p in stark_info.cmPolsMap if p.stage == 1]
-        stage2_pols = [p for p in stark_info.cmPolsMap if p.stage == 2]
-        stage3_pols = [p for p in stark_info.cmPolsMap if p.stage == 3]
+        stage1_pols = [p for p in stark_info.cm_pols_map if p.stage == 1]
+        stage2_pols = [p for p in stark_info.cm_pols_map if p.stage == 2]
+        stage3_pols = [p for p in stark_info.cm_pols_map if p.stage == 3]
 
         assert len(stage1_pols) == 15
         assert len(stage2_pols) == 7
         assert len(stage3_pols) == 2
 
         # Check first stage 1 polynomial
-        pol0 = stark_info.cmPolsMap[0]
+        pol0 = stark_info.cm_pols_map[0]
         assert pol0.name == "a"
         assert pol0.stage == 1
         assert pol0.dim == 1
-        assert pol0.stageId == 0
-        assert pol0.stagePos == 0
-        assert pol0.polsMapId == 0
-        assert pol0.imPol is False
+        assert pol0.stage_id == 0
+        assert pol0.stage_pos == 0
+        assert pol0.pols_map_id == 0
+        assert pol0.im_pol is False
 
         # Check first stage 2 polynomial (gsum)
-        gsum = next(p for p in stark_info.cmPolsMap if p.name == "gsum")
+        gsum = next(p for p in stark_info.cm_pols_map if p.name == "gsum")
         assert gsum.stage == 2
         assert gsum.dim == 3
-        assert gsum.stageId == 0
-        assert gsum.stagePos == 0
+        assert gsum.stage_id == 0
+        assert gsum.stage_pos == 0
 
     def test_const_pols_map(self, stark_info: StarkInfo) -> None:
         """Verify constant polynomials map."""
-        assert len(stark_info.constPolsMap) == 1
-        const_pol = stark_info.constPolsMap[0]
+        assert len(stark_info.const_pols_map) == 1
+        const_pol = stark_info.const_pols_map[0]
         assert const_pol.name == "__L1__"
         assert const_pol.stage == 0
         assert const_pol.dim == 1
@@ -131,33 +126,33 @@ class TestStarkInfoSimple:
     def test_ev_map(self, stark_info: StarkInfo) -> None:
         """Verify evaluation map."""
         # SimpleLeft has 27 evaluations
-        assert len(stark_info.evMap) == 27
+        assert len(stark_info.ev_map) == 27
 
         # Check first evaluation (gsum at prime=-1)
-        ev0 = stark_info.evMap[0]
+        ev0 = stark_info.ev_map[0]
         assert ev0.type == EvMap.Type.cm
         assert ev0.id == 15
         assert ev0.prime == -1
-        assert ev0.openingPos == 0
+        assert ev0.opening_pos == 0
 
         # Check a const evaluation
-        const_ev = next(ev for ev in stark_info.evMap if ev.type == EvMap.Type.const_)
+        const_ev = next(ev for ev in stark_info.ev_map if ev.type == EvMap.Type.const_)
         assert const_ev.id == 0
         assert const_ev.prime in [0, 1]
 
     def test_airgroup_values(self, stark_info: StarkInfo) -> None:
         """Verify airgroup values."""
-        assert len(stark_info.airgroupValuesMap) == 1
-        assert stark_info.airgroupValuesMap[0].name == "Simple.gsum_result"
-        assert stark_info.airgroupValuesMap[0].stage == 2
-        assert stark_info.airgroupValuesSize == FIELD_EXTENSION_DEGREE
+        assert len(stark_info.airgroup_values_map) == 1
+        assert stark_info.airgroup_values_map[0].name == "Simple.gsum_result"
+        assert stark_info.airgroup_values_map[0].stage == 2
+        assert stark_info.airgroup_values_size == FIELD_EXTENSION_DEGREE
 
     def test_map_sections(self, stark_info: StarkInfo) -> None:
         """Verify section column counts."""
-        assert stark_info.mapSectionsN["const"] == 1
-        assert stark_info.mapSectionsN["cm1"] == 15
-        assert stark_info.mapSectionsN["cm2"] == 21
-        assert stark_info.mapSectionsN["cm3"] == 6
+        assert stark_info.map_sections_n["const"] == 1
+        assert stark_info.map_sections_n["cm1"] == 15
+        assert stark_info.map_sections_n["cm2"] == 21
+        assert stark_info.map_sections_n["cm3"] == 6
 
     def test_get_n_cols(self, stark_info: StarkInfo) -> None:
         """Verify get_n_cols accessor."""
@@ -223,7 +218,7 @@ class TestStarkInfoLookup:
         """Verify Lookup2_12 loads successfully."""
         info = StarkInfo.from_json(lookup_starkinfo_path)
         assert info is not None
-        assert info.starkStruct.nBits == 12  # 4096 rows
+        assert info.stark_struct.n_bits == 12  # 4096 rows
 
 
 class TestStarkInfoPermutation:
@@ -242,7 +237,7 @@ class TestStarkInfoPermutation:
         """Verify Permutation1_6 loads successfully."""
         info = StarkInfo.from_json(permutation_starkinfo_path)
         assert info is not None
-        assert info.starkStruct.nBits == 6  # 64 rows
+        assert info.stark_struct.n_bits == 6  # 64 rows
 
 
 class TestEvMapTypeConversion:

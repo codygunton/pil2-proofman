@@ -67,8 +67,8 @@ def calculate_internal_contribution(
 
     # Hash through a fresh Poseidon2 transcript
     hash_transcript = Transcript(
-        arity=stark_info.starkStruct.transcriptArity,
-        custom=stark_info.starkStruct.merkleTreeCustom
+        arity=stark_info.stark_struct.transcript_arity,
+        custom=stark_info.stark_struct.merkle_tree_custom
     )
     hash_transcript.put(values_to_hash)
 
@@ -140,13 +140,13 @@ def derive_global_challenge(
 
     # Step 2: Create global_challenge transcript
     transcript = Transcript(
-        arity=stark_info.starkStruct.transcriptArity,
-        custom=stark_info.starkStruct.merkleTreeCustom
+        arity=stark_info.stark_struct.transcript_arity,
+        custom=stark_info.stark_struct.merkle_tree_custom
     )
 
     # Phase 1: Hash public inputs
-    if stark_info.nPublics > 0:
-        transcript.put(publics[:stark_info.nPublics].tolist())
+    if stark_info.n_publics > 0:
+        transcript.put(publics[:stark_info.n_publics].tolist())
 
     # Phase 2: Hash Stage 1 proof values (if any)
     # For simple AIRs this is typically empty

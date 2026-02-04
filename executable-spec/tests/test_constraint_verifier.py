@@ -11,7 +11,7 @@ import numpy as np
 
 from constraints import VerifierConstraintContext, get_constraint_module
 from primitives.field import FF3, FIELD_EXTENSION_DEGREE, GOLDILOCKS_PRIME, ff3_coeffs
-from protocol.air_config import SetupCtx
+from protocol.air_config import AirConfig
 from protocol.proof import from_bytes_full
 from protocol.verifier import (
     _build_verifier_data,
@@ -26,8 +26,8 @@ def load_simple_left_fixture() -> tuple:
     base_dir = Path(__file__).parent
     starkinfo_path = base_dir / '../../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json'
 
-    setup_ctx = SetupCtx.from_starkinfo(str(starkinfo_path))
-    stark_info = setup_ctx.stark_info
+    air_config = AirConfig.from_starkinfo(str(starkinfo_path))
+    stark_info = air_config.stark_info
 
     # Load proof
     with open(TEST_DATA_DIR / 'simple-left.proof.bin', 'rb') as f:
@@ -44,7 +44,7 @@ def load_simple_left_fixture() -> tuple:
     # Build airgroup_values as interleaved numpy array
     airgroup_values = np.array([v for av in proof.airgroup_values for v in av], dtype=np.uint64)
 
-    return setup_ctx, stark_info, proof, challenges, vectors, airgroup_values
+    return air_config, stark_info, proof, challenges, vectors, airgroup_values
 
 
 class TestConstraintVerifierBasics:
@@ -52,7 +52,7 @@ class TestConstraintVerifierBasics:
 
     def test_verifier_data_contains_all_columns(self) -> None:
         """Verify VerifierData has all columns needed by SimpleLeft."""
-        setup_ctx, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
+        air_config, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
         verifier_data = _build_verifier_data(stark_info, evals, challenges, airgroup_values)
 
@@ -74,7 +74,7 @@ class TestConstraintVerifierBasics:
 
     def test_verifier_data_challenges_match(self) -> None:
         """Verify challenges are correctly mapped."""
-        setup_ctx, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
+        air_config, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
         verifier_data = _build_verifier_data(stark_info, evals, challenges, airgroup_values)
 
@@ -89,16 +89,16 @@ class TestExpressionBinaryEvaluation:
 
     def test_reconstructed_q_from_proof(self) -> None:
         """Verify we can reconstruct Q(xi) from proof evaluations."""
-        setup_ctx, stark_info, proof, challenges, _, _ = load_simple_left_fixture()
+        _, stark_info, proof, challenges, _, _ = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
 
         # Get xi
-        xi_idx = next(i for i, cm in enumerate(stark_info.challengesMap) if cm.name == 'std_xi')
+        xi_idx = next(i for i, cm in enumerate(stark_info.challenges_map) if cm.name == 'std_xi')
         xi = challenges[xi_idx * FIELD_EXTENSION_DEGREE:(xi_idx + 1) * FIELD_EXTENSION_DEGREE]
         xi_ff3 = FF3.Vector([int(xi[2]), int(xi[1]), int(xi[0])])
 
         # Get Q(xi) from proof (reconstructed from Q0, Q1)
-        trace_size = 1 << stark_info.starkStruct.nBits
+        trace_size = 1 << stark_info.stark_struct.n_bits
 
         # Compute xi^N
         xi_to_n = xi_ff3
@@ -106,12 +106,12 @@ class TestExpressionBinaryEvaluation:
             xi_to_n = xi_to_n * xi_ff3
 
         # Find Q0, Q1 in evals
-        q_stage = stark_info.nStages + 1
-        q_start_idx = next(i for i, p in enumerate(stark_info.cmPolsMap) if p.stage == q_stage)
+        q_stage = stark_info.n_stages + 1
+        q_start_idx = next(i for i, p in enumerate(stark_info.cm_pols_map) if p.stage == q_stage)
 
-        q0_ev_idx = next(j for j, e in enumerate(stark_info.evMap)
+        q0_ev_idx = next(j for j, e in enumerate(stark_info.ev_map)
                         if e.type.name == 'cm' and e.id == q_start_idx)
-        q1_ev_idx = next(j for j, e in enumerate(stark_info.evMap)
+        q1_ev_idx = next(j for j, e in enumerate(stark_info.ev_map)
                         if e.type.name == 'cm' and e.id == q_start_idx + 1)
 
         q0 = FF3.Vector([int(evals[q0_ev_idx * 3 + 2]), int(evals[q0_ev_idx * 3 + 1]), int(evals[q0_ev_idx * 3])])
@@ -135,7 +135,7 @@ class TestConstraintModuleEvaluation:
 
     def test_constraint_module_basic_evaluation(self) -> None:
         """Test that constraint module runs without error."""
-        setup_ctx, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
+        air_config, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
         verifier_data = _build_verifier_data(stark_info, evals, challenges, airgroup_values)
 
@@ -152,26 +152,26 @@ class TestConstraintModuleEvaluation:
         The proof contains Q0(xi) and Q1(xi) evaluations. We reconstruct Q(xi)
         and compare to what the constraint module produces.
         """
-        setup_ctx, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
+        air_config, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
 
         # Get xi
-        xi_idx = next(i for i, cm in enumerate(stark_info.challengesMap) if cm.name == 'std_xi')
+        xi_idx = next(i for i, cm in enumerate(stark_info.challenges_map) if cm.name == 'std_xi')
         xi = challenges[xi_idx * FIELD_EXTENSION_DEGREE:(xi_idx + 1) * FIELD_EXTENSION_DEGREE]
         xi_ff3 = FF3.Vector([int(xi[2]), int(xi[1]), int(xi[0])])
 
         # === Reconstruct Q(xi) from proof ===
-        trace_size = 1 << stark_info.starkStruct.nBits
+        trace_size = 1 << stark_info.stark_struct.n_bits
         xi_to_n = xi_ff3
         for _ in range(trace_size - 1):
             xi_to_n = xi_to_n * xi_ff3
 
-        q_stage = stark_info.nStages + 1
-        q_start_idx = next(i for i, p in enumerate(stark_info.cmPolsMap) if p.stage == q_stage)
+        q_stage = stark_info.n_stages + 1
+        q_start_idx = next(i for i, p in enumerate(stark_info.cm_pols_map) if p.stage == q_stage)
 
-        q0_ev_idx = next(j for j, e in enumerate(stark_info.evMap)
+        q0_ev_idx = next(j for j, e in enumerate(stark_info.ev_map)
                         if e.type.name == 'cm' and e.id == q_start_idx)
-        q1_ev_idx = next(j for j, e in enumerate(stark_info.evMap)
+        q1_ev_idx = next(j for j, e in enumerate(stark_info.ev_map)
                         if e.type.name == 'cm' and e.id == q_start_idx + 1)
 
         q0 = FF3.Vector([int(evals[q0_ev_idx * 3 + 2]), int(evals[q0_ev_idx * 3 + 1]), int(evals[q0_ev_idx * 3])])
@@ -213,7 +213,7 @@ class TestIndividualConstraints:
 
     def test_constraint_0_manually(self) -> None:
         """Manually compute constraint 0 and compare."""
-        setup_ctx, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
+        air_config, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
         verifier_data = _build_verifier_data(stark_info, evals, challenges, airgroup_values)
 

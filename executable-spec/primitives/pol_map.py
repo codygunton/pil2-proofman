@@ -26,13 +26,13 @@ class PolMap:
     stage: int
     name: str
     field_type: FieldType
-    stagePos: int
-    stageId: int
-    imPol: bool = False
+    stage_pos: int
+    stage_id: int
+    im_pol: bool = False
     lengths: list[int] = field(default_factory=list)
-    commitId: int = 0
-    expId: int = 0
-    polsMapId: int = 0
+    commit_id: int = 0
+    exp_id: int = 0
+    pols_map_id: int = 0
 
     @property
     def dim(self) -> int:
@@ -68,8 +68,8 @@ class EvMap:
     type: Type
     id: int
     prime: int
-    commitId: int = 0
-    openingPos: int = 0
+    commit_id: int = 0
+    opening_pos: int = 0
 
     # C++: stark_info.hpp::EvMap::setType (lines 124-134)
     @staticmethod
@@ -104,7 +104,7 @@ class ChallengeMap:
     name: str
     stage: int
     field_type: FieldType
-    stageId: int
+    stage_id: int
 
     @property
     def dim(self) -> int:
@@ -121,12 +121,12 @@ class CustomCommits:
 
     Attributes:
         name: Custom commit name
-        stageWidths: Number of columns at each stage
-        publicValues: Indices of public values used
+        stage_widths: Number of columns at each stage
+        public_values: Indices of public values used
     """
     name: str
-    stageWidths: list[int] = field(default_factory=list)
-    publicValues: list[int] = field(default_factory=list)
+    stage_widths: list[int] = field(default_factory=list)
+    public_values: list[int] = field(default_factory=list)
 
 
 # C++: pil2-stark/src/starkpil/stark_info.hpp::Boundary (lines 60-66)
@@ -138,9 +138,9 @@ class Boundary:
 
     Attributes:
         name: Boundary name (e.g., "everyRow", "everyFrame")
-        offsetMin: Minimum row offset (only for "everyFrame")
-        offsetMax: Maximum row offset (only for "everyFrame")
+        offset_min: Minimum row offset (only for "everyFrame")
+        offset_max: Maximum row offset (only for "everyFrame")
     """
     name: str
-    offsetMin: int = 0
-    offsetMax: int = 0
+    offset_min: int = 0
+    offset_max: int = 0

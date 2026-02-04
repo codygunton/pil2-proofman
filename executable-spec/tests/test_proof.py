@@ -276,11 +276,11 @@ class TestProofValidation:
     def simple_stark_info(self) -> StarkInfo:
         """Create a simple StarkInfo for testing."""
         info = StarkInfo()
-        info.nStages = 2
-        info.starkStruct.friFoldSteps = [type('obj', (object,), {'domainBits': 4})()]
-        info.evMap = [None, None, None]  # 3 evaluations
-        info.airgroupValuesMap = []
-        info.airValuesMap = []
+        info.n_stages = 2
+        info.stark_struct.fri_fold_steps = [type('obj', (object,), {'domain_bits': 4})()]
+        info.ev_map = [None, None, None]  # 3 evaluations
+        info.airgroup_values_map = []
+        info.air_values_map = []
         return info
 
     def test_validate_correct_proof(self, simple_stark_info: StarkInfo) -> None:

@@ -22,6 +22,11 @@ import re
 import sys
 from pathlib import Path
 
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from protocol.stark_info import StarkInfo
+
 
 def parse_all_json_blocks(text: str, start_marker: str, end_marker: str) -> list[dict]:
     """Extract and parse ALL JSON blocks between markers."""
@@ -187,25 +192,22 @@ def load_starkinfo(starkinfo_path: Path) -> dict:
 
     Returns dict with FRI configuration parameters.
     """
-    with open(starkinfo_path) as f:
-        starkinfo = json.load(f)
-
-    stark_struct = starkinfo.get('starkStruct', {})
-    steps = stark_struct.get('steps', [])
+    stark_info = StarkInfo.from_json(str(starkinfo_path))
+    stark_struct = stark_info.stark_struct
 
     return {
-        'name': starkinfo.get('name', ''),
-        'n_bits': stark_struct.get('nBits'),
-        'n_bits_ext': stark_struct.get('nBitsExt'),
-        'n_queries': stark_struct.get('nQueries'),
-        'pow_bits': stark_struct.get('powBits'),
-        'merkle_arity': stark_struct.get('merkleTreeArity'),
-        'transcript_arity': stark_struct.get('transcriptArity'),
-        'last_level_verification': stark_struct.get('lastLevelVerification'),
-        'hash_commits': stark_struct.get('hashCommits'),
-        'merkle_tree_custom': stark_struct.get('merkleTreeCustom'),
-        'num_fri_round_log_sizes': len(steps),
-        'fri_round_log_sizes': [step.get('nBits') for step in steps],
+        'name': stark_info.name,
+        'n_bits': stark_struct.n_bits,
+        'n_bits_ext': stark_struct.n_bits_ext,
+        'n_queries': stark_struct.n_queries,
+        'pow_bits': stark_struct.pow_bits,
+        'merkle_arity': stark_struct.merkle_tree_arity,
+        'transcript_arity': stark_struct.transcript_arity,
+        'last_level_verification': stark_struct.last_level_verification,
+        'hash_commits': stark_struct.hash_commits,
+        'merkle_tree_custom': stark_struct.merkle_tree_custom,
+        'num_fri_round_log_sizes': len(stark_struct.fri_fold_steps),
+        'fri_round_log_sizes': [step.domain_bits for step in stark_struct.fri_fold_steps],
     }
 
 

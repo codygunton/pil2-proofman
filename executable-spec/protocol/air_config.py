@@ -80,8 +80,8 @@ class ProverHelpers:
             ProverHelpers with precomputed values for prover
         """
         helpers = cls()
-        n_bits = stark_info.starkStruct.nBits
-        n_bits_ext = stark_info.starkStruct.nBitsExt
+        n_bits = stark_info.stark_struct.n_bits
+        n_bits_ext = stark_info.stark_struct.n_bits_ext
         boundaries = stark_info.boundaries
 
         helpers.compute_x(n_bits, n_bits_ext, pil1)
@@ -103,7 +103,7 @@ class ProverHelpers:
             ProverHelpers with zerofiers computed at challenge point
         """
         helpers = cls()
-        n_bits = stark_info.starkStruct.nBits
+        n_bits = stark_info.stark_struct.n_bits
         boundaries = stark_info.boundaries
         N = 1 << n_bits
 
@@ -146,13 +146,13 @@ class ProverHelpers:
                 w = FF(get_omega(n_bits))
                 zi_temp = one_ff3
 
-                # Rows [0, offsetMin)
-                for k in range(boundary.offsetMin):
+                # Rows [0, offset_min)
+                for k in range(boundary.offset_min):
                     root_ff3 = FF3(int(w ** k))
                     zi_temp = zi_temp * (z_ff3 - root_ff3)
 
-                # Rows [N - offsetMax, N)
-                for k in range(boundary.offsetMax):
+                # Rows [N - offset_max, N)
+                for k in range(boundary.offset_max):
                     root_ff3 = FF3(int(w ** (N - k - 1)))
                     zi_temp = zi_temp * (z_ff3 - root_ff3)
 
@@ -196,7 +196,7 @@ class ProverHelpers:
                 self.build_one_row_zerofier_inv(n_bits, n_bits_ext, i, N)
             elif boundary.name == "everyFrame":
                 self.build_frame_zerofier_inv(n_bits, n_bits_ext, i,
-                                              boundary.offsetMin, boundary.offsetMax)
+                                              boundary.offset_min, boundary.offset_max)
 
     def build_zh_inv(self, n_bits: int, n_bits_ext: int) -> None:
         """Build 1/(x^N - 1) for all coset points. Writes to zi[0:N_ext]."""
@@ -304,8 +304,5 @@ class AirConfig:
         return cls(stark_info, global_info)
 
 
-# Backward compatibility alias
-SetupCtx = AirConfig
-
 # Re-export FIELD_EXTENSION_DEGREE for modules that import it from here
-__all__ = ['AirConfig', 'SetupCtx', 'ProverHelpers', 'FIELD_EXTENSION_DEGREE']
+__all__ = ['AirConfig', 'ProverHelpers', 'FIELD_EXTENSION_DEGREE']

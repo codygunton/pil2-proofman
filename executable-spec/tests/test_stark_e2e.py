@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 from primitives.field import FF, ff3_to_flat_list
-from protocol.air_config import SetupCtx
+from protocol.air_config import AirConfig
 from protocol.proof_context import ProofContext
 from protocol.prover import gen_proof
 from protocol.stark_info import StarkInfo
@@ -59,8 +59,8 @@ def load_test_vectors(air_name: str) -> dict[str, Any] | None:
         return json.load(f)
 
 
-def load_setup_ctx(air_name: str) -> SetupCtx | None:
-    """Load SetupCtx for an AIR including globalInfo.json."""
+def load_air_config(air_name: str) -> AirConfig | None:
+    """Load AirConfig for an AIR including globalInfo.json."""
     config = AIR_CONFIGS.get(air_name)
     if not config:
         return None
@@ -73,7 +73,7 @@ def load_setup_ctx(air_name: str) -> SetupCtx | None:
         return None
 
     global_info_str = str(global_info_path) if global_info_path.exists() else None
-    return SetupCtx.from_starkinfo(str(starkinfo_path), global_info_str)
+    return AirConfig.from_starkinfo(str(starkinfo_path), global_info_str)
 
 
 def create_params_from_vectors(stark_info: StarkInfo, vectors: dict,
@@ -94,17 +94,17 @@ def create_params_from_vectors(stark_info: StarkInfo, vectors: dict,
     inputs = vectors['inputs']
     intermediates = vectors.get('intermediates', {})
 
-    N = 1 << stark_info.starkStruct.nBits
-    N_ext = 1 << stark_info.starkStruct.nBitsExt
+    N = 1 << stark_info.stark_struct.n_bits
+    N_ext = 1 << stark_info.stark_struct.n_bits_ext
     n_constants = inputs['n_constants']
 
     # Calculate total trace buffer size needed (cm1 + cm2 + cm3)
     # The trace buffer holds all witness stages in the base domain
     trace_size = 0
     for section in ['cm1', 'cm2', 'cm3']:
-        if section in stark_info.mapSectionsN:
-            offset = stark_info.mapOffsets.get((section, False), 0)
-            size = N * stark_info.mapSectionsN[section]
+        if section in stark_info.map_sections_n:
+            offset = stark_info.map_offsets.get((section, False), 0)
+            size = N * stark_info.map_sections_n[section]
             trace_size = max(trace_size, offset + size)
 
     # Allocate full trace buffer and copy witness trace into cm1 portion
@@ -122,37 +122,37 @@ def create_params_from_vectors(stark_info: StarkInfo, vectors: dict,
     const_pols_extended = ntt.extend_pol(const_pols, N_ext, N, n_constants)
 
     # Allocate challenges buffer
-    challenges = np.zeros(len(stark_info.challengesMap) * 3, dtype=np.uint64)
+    challenges = np.zeros(len(stark_info.challenges_map) * 3, dtype=np.uint64)
 
     # Optionally inject captured challenges
     if inject_challenges:
         # Stage 2 challenges
         stage2_challenges = intermediates.get('challenges_stage2', [])
-        for i, cm in enumerate(stark_info.challengesMap):
-            if cm.stage == 2 and cm.stageId < len(stage2_challenges):
-                for j, v in enumerate(stage2_challenges[cm.stageId]):
+        for i, cm in enumerate(stark_info.challenges_map):
+            if cm.stage == 2 and cm.stage_id < len(stage2_challenges):
+                for j, v in enumerate(stage2_challenges[cm.stage_id]):
                     challenges[i * 3 + j] = v
 
         # Stage Q challenges
         stageQ_challenges = intermediates.get('challenges_stageQ', [])
-        for i, cm in enumerate(stark_info.challengesMap):
-            if cm.stage == stark_info.nStages + 1 and cm.stageId < len(stageQ_challenges):
-                for j, v in enumerate(stageQ_challenges[cm.stageId]):
+        for i, cm in enumerate(stark_info.challenges_map):
+            if cm.stage == stark_info.n_stages + 1 and cm.stage_id < len(stageQ_challenges):
+                for j, v in enumerate(stageQ_challenges[cm.stage_id]):
                     challenges[i * 3 + j] = v
 
         # Xi challenge (stage nStages + 2)
         xi_challenge = intermediates.get('xi_challenge', [])
         if xi_challenge:
-            for i, cm in enumerate(stark_info.challengesMap):
-                if cm.stage == stark_info.nStages + 2 and cm.stageId == 0:
+            for i, cm in enumerate(stark_info.challenges_map):
+                if cm.stage == stark_info.n_stages + 2 and cm.stage_id == 0:
                     for j, v in enumerate(xi_challenge):
                         challenges[i * 3 + j] = v
 
         # FRI challenges (stage nStages + 3)
         fri_challenges = intermediates.get('challenges_fri', [])
-        for i, cm in enumerate(stark_info.challengesMap):
-            if cm.stage == stark_info.nStages + 3 and cm.stageId < len(fri_challenges):
-                for j, v in enumerate(fri_challenges[cm.stageId]):
+        for i, cm in enumerate(stark_info.challenges_map):
+            if cm.stage == stark_info.n_stages + 3 and cm.stage_id < len(fri_challenges):
+                for j, v in enumerate(fri_challenges[cm.stage_id]):
                     challenges[i * 3 + j] = v
 
     # Extract global_challenge from inputs if present
@@ -164,12 +164,12 @@ def create_params_from_vectors(stark_info: StarkInfo, vectors: dict,
     # Allocate buffers
     params = ProofContext(
         trace=trace,
-        auxTrace=np.zeros(stark_info.mapTotalN, dtype=np.uint64),
-        publicInputs=FF.Zeros(max(1, stark_info.nPublics)),
+        auxTrace=np.zeros(stark_info.map_total_n, dtype=np.uint64),
+        publicInputs=FF.Zeros(max(1, stark_info.n_publics)),
         challenges=challenges,
-        evals=np.zeros(len(stark_info.evMap) * 3, dtype=np.uint64),
-        airValues=np.zeros(max(1, stark_info.airValuesSize * 3), dtype=np.uint64),
-        airgroupValues=np.zeros(max(1, stark_info.airgroupValuesSize * 3), dtype=np.uint64),
+        evals=np.zeros(len(stark_info.ev_map) * 3, dtype=np.uint64),
+        airValues=np.zeros(max(1, stark_info.air_values_size * 3), dtype=np.uint64),
+        airgroupValues=np.zeros(max(1, stark_info.airgroup_values_size * 3), dtype=np.uint64),
         constPols=const_pols,
         constPolsExtended=const_pols_extended,
     )
@@ -203,16 +203,16 @@ class TestStarkE2E:
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
 
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.fail(f"Setup files not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
 
         params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof with global_challenge from test vectors (VADCOP mode)
-        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
+        proof = gen_proof(air_config, params, global_challenge=global_challenge)
 
         # Verify proof structure is valid
         assert 'roots' in proof
@@ -234,19 +234,19 @@ class TestStarkE2E:
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
 
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.fail(f"Setup files not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
 
         params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof with global_challenge from test vectors (VADCOP mode)
-        gen_proof(setup_ctx, params, global_challenge=global_challenge)
+        gen_proof(air_config, params, global_challenge=global_challenge)
 
         # Verify evaluations were computed
-        n_evals = len(stark_info.evMap) * 3
+        n_evals = len(stark_info.ev_map) * 3
         actual_evals = [int(v) for v in params.evals[:n_evals]]
 
         # Check that we have the expected number of evaluations
@@ -264,16 +264,16 @@ class TestStarkE2E:
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
 
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.fail(f"Setup files not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
 
         params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof with global_challenge from test vectors (VADCOP mode)
-        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
+        proof = gen_proof(air_config, params, global_challenge=global_challenge)
 
         # Check proof structure
         assert 'nonce' in proof
@@ -307,32 +307,32 @@ class TestStarkWithInjectedChallenges:
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
 
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.fail(f"Setup files not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
 
         # Create params with injected challenges - bypass transcript for challenge derivation
         params, global_challenge = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
 
         # Run gen_proof - challenges are pre-populated, skip transcript challenge derivation
         # Use global_challenge from test vectors (VADCOP mode) for transcript seeding
-        gen_proof(setup_ctx, params, skip_challenge_derivation=True, global_challenge=global_challenge)
+        gen_proof(air_config, params, skip_challenge_derivation=True, global_challenge=global_challenge)
 
         # Check that stage 2 challenges match (they were injected)
         intermediates = vectors['intermediates']
         expected_stage2 = flatten_evals(intermediates.get('challenges_stage2', []))
         if expected_stage2:
             actual = []
-            for i, cm in enumerate(stark_info.challengesMap):
+            for i, cm in enumerate(stark_info.challenges_map):
                 if cm.stage == 2:
                     actual.extend([int(v) for v in params.challenges[i*3:(i+1)*3]])
             assert actual == expected_stage2, "Stage 2 challenges injection failed"
 
         # Check evals
         expected_evals = flatten_evals(intermediates.get('evals', []))
-        n_evals = len(stark_info.evMap) * 3
+        n_evals = len(stark_info.ev_map) * 3
         actual_evals = [int(v) for v in params.evals[:n_evals]]
 
         n_match = sum(1 for i in range(len(expected_evals)) if expected_evals[i] == actual_evals[i])
@@ -360,24 +360,24 @@ class TestStarkPartialEvals:
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
 
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.fail(f"Setup files not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
 
         # Create params with injected challenges
         params, global_challenge = create_params_from_vectors(stark_info, vectors, inject_challenges=True)
 
         # Run gen_proof with challenge derivation skipped
         # Use global_challenge from test vectors (VADCOP mode) for transcript seeding
-        gen_proof(setup_ctx, params, skip_challenge_derivation=True, global_challenge=global_challenge)
+        gen_proof(air_config, params, skip_challenge_derivation=True, global_challenge=global_challenge)
 
         # Identify testable evaluations (cm1 and const only)
         testable_eval_indices = []
-        for i, ev in enumerate(stark_info.evMap):
+        for i, ev in enumerate(stark_info.ev_map):
             if ev.type.name == 'cm':
-                pol = stark_info.cmPolsMap[ev.id]
+                pol = stark_info.cm_pols_map[ev.id]
                 if pol.stage == 1:
                     testable_eval_indices.append(i)
             elif ev.type.name == 'const_':
@@ -396,7 +396,7 @@ class TestStarkPartialEvals:
             if actual_triplet == expected_triplet:
                 matches += 1
             else:
-                ev = stark_info.evMap[idx]
+                ev = stark_info.ev_map[idx]
                 mismatches.append(f"eval[{idx}] ({ev.type.name}): expected {expected_triplet}, got {actual_triplet}")
 
         assert matches == len(testable_eval_indices), (
@@ -424,16 +424,16 @@ class TestStarkE2EComplete:
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
 
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.fail(f"Setup files not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
 
         params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof with global_challenge from test vectors (VADCOP mode)
-        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
+        proof = gen_proof(air_config, params, global_challenge=global_challenge)
 
         # Verify Python-computed roots match C++ expected roots
         intermediates = vectors['intermediates']
@@ -453,7 +453,7 @@ class TestStarkE2EComplete:
 
         expected_stage2 = flatten_evals(intermediates.get('challenges_stage2', []))
         actual_stage2 = []
-        for i, cm in enumerate(stark_info.challengesMap):
+        for i, cm in enumerate(stark_info.challenges_map):
             if cm.stage == 2:
                 actual_stage2.extend([int(v) for v in params.challenges[i*3:(i+1)*3]])
         if actual_stage2 != expected_stage2:
@@ -558,11 +558,11 @@ class TestFullBinaryComparison:
         matches byte-for-byte.
         """
 
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.fail(f"Setup not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -570,7 +570,7 @@ class TestFullBinaryComparison:
         params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof with global_challenge from test vectors (VADCOP mode)
-        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
+        proof = gen_proof(air_config, params, global_challenge=global_challenge)
 
         # Verify Python-computed roots match C++ expected roots
         intermediates = vectors['intermediates']
@@ -666,20 +666,20 @@ class TestGlobalChallengeComputation:
         Note: The proof will differ from C++ because internal computation only
         considers a single AIR, while C++ aggregates all AIRs in the pilout.
         """
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.skip(f"Setup not found for {air_name}")
 
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.skip(f"Test vectors not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
         params, _ = create_params_from_vectors(stark_info, vectors)
 
         # Generate proof with internal challenge computation
         proof = gen_proof(
-            setup_ctx, params,
+            air_config, params,
             global_challenge=None,  # Force internal computation
             compute_global_challenge=True
         )
@@ -699,20 +699,20 @@ class TestGlobalChallengeComputation:
         This test confirms that using the external challenge produces matching proofs.
         """
         air_name = "simple"
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.skip("Setup not available")
 
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.skip("Test vectors not available")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
         params, expected_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Generate with external challenge (from C++ test vectors)
         proof = gen_proof(
-            setup_ctx, params,
+            air_config, params,
             global_challenge=expected_challenge
         )
 

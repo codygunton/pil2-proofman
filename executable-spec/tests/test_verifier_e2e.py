@@ -13,7 +13,7 @@ import pytest
 
 from primitives.field import FF
 from primitives.transcript import Transcript
-from protocol.air_config import SetupCtx
+from protocol.air_config import AirConfig
 from protocol.proof_context import ProofContext
 from protocol.stark_info import StarkInfo
 from protocol.verifier import stark_verify
@@ -55,8 +55,8 @@ def load_test_vectors(air_name: str) -> dict[str, Any] | None:
         return json.load(f)
 
 
-def load_setup_ctx(air_name: str) -> SetupCtx | None:
-    """Load SetupCtx for an AIR."""
+def load_air_config(air_name: str) -> AirConfig | None:
+    """Load AirConfig for an AIR."""
     config = AIR_CONFIGS.get(air_name)
     if not config:
         return None
@@ -67,14 +67,14 @@ def load_setup_ctx(air_name: str) -> SetupCtx | None:
     if not starkinfo_path.exists():
         return None
 
-    return SetupCtx.from_starkinfo(str(starkinfo_path))
+    return AirConfig.from_starkinfo(str(starkinfo_path))
 
 
 def create_fresh_transcript(stark_info: StarkInfo, vectors: dict) -> Transcript:
     """Create a fresh transcript with global_challenge (if any)."""
     transcript = Transcript(
-        arity=stark_info.starkStruct.transcriptArity,
-        custom=stark_info.starkStruct.merkleTreeCustom
+        arity=stark_info.stark_struct.transcript_arity,
+        custom=stark_info.stark_struct.merkle_tree_custom
     )
 
     global_challenge = vectors['inputs'].get('global_challenge', [])
@@ -90,16 +90,16 @@ def create_params_from_vectors(stark_info: StarkInfo, vectors: dict) -> ProofCon
 
     inputs = vectors['inputs']
 
-    N = 1 << stark_info.starkStruct.nBits
-    N_ext = 1 << stark_info.starkStruct.nBitsExt
+    N = 1 << stark_info.stark_struct.n_bits
+    N_ext = 1 << stark_info.stark_struct.n_bits_ext
     n_constants = inputs['n_constants']
 
     # Calculate total trace buffer size
     trace_size = 0
     for section in ['cm1', 'cm2', 'cm3']:
-        if section in stark_info.mapSectionsN:
-            offset = stark_info.mapOffsets.get((section, False), 0)
-            size = N * stark_info.mapSectionsN[section]
+        if section in stark_info.map_sections_n:
+            offset = stark_info.map_offsets.get((section, False), 0)
+            size = N * stark_info.map_sections_n[section]
             trace_size = max(trace_size, offset + size)
 
     # Allocate trace and copy witness
@@ -115,16 +115,16 @@ def create_params_from_vectors(stark_info: StarkInfo, vectors: dict) -> ProofCon
     const_pols_extended = ntt.extend_pol(const_pols, N_ext, N, n_constants)
 
     # Allocate challenges buffer
-    challenges = np.zeros(len(stark_info.challengesMap) * 3, dtype=np.uint64)
+    challenges = np.zeros(len(stark_info.challenges_map) * 3, dtype=np.uint64)
 
     params = ProofContext(
         trace=trace,
-        auxTrace=np.zeros(stark_info.mapTotalN, dtype=np.uint64),
-        publicInputs=FF.Zeros(max(1, stark_info.nPublics)),
+        auxTrace=np.zeros(stark_info.map_total_n, dtype=np.uint64),
+        publicInputs=FF.Zeros(max(1, stark_info.n_publics)),
         challenges=challenges,
-        evals=np.zeros(len(stark_info.evMap) * 3, dtype=np.uint64),
-        airValues=np.zeros(max(1, stark_info.airValuesSize * 3), dtype=np.uint64),
-        airgroupValues=np.zeros(max(1, stark_info.airgroupValuesSize * 3), dtype=np.uint64),
+        evals=np.zeros(len(stark_info.ev_map) * 3, dtype=np.uint64),
+        airValues=np.zeros(max(1, stark_info.air_values_size * 3), dtype=np.uint64),
+        airgroupValues=np.zeros(max(1, stark_info.airgroup_values_size * 3), dtype=np.uint64),
         constPols=const_pols,
         constPolsExtended=const_pols_extended,
     )
@@ -145,11 +145,11 @@ class TestVerifierE2E:
         from protocol.proof import from_bytes_full
         from protocol.stages import Starks
 
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.skip(f"Setup files not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
 
         # Load binary proof file
         config = AIR_CONFIGS.get(air_name)
@@ -171,7 +171,7 @@ class TestVerifierE2E:
             pytest.skip(f"Test vectors not found for {air_name}")
 
         params = create_params_from_vectors(stark_info, vectors)
-        starks = Starks(setup_ctx)
+        starks = Starks(air_config)
         verkey = starks.build_const_tree(params.constPolsExtended)
 
         global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
@@ -180,7 +180,7 @@ class TestVerifierE2E:
         print(f"\nVerifying {air_name} proof from {bin_filename}...")
         result = stark_verify(
             proof=proof,
-            setup_ctx=setup_ctx,
+            air_config=air_config,
             verkey=verkey,
             global_challenge=global_challenge,
             publics=params.publicInputs,
@@ -197,11 +197,11 @@ class TestVerifierE2E:
         from protocol.proof import from_bytes_full
         from protocol.stages import Starks
 
-        setup_ctx = load_setup_ctx(air_name)
-        if setup_ctx is None:
+        air_config = load_air_config(air_name)
+        if air_config is None:
             pytest.skip(f"Setup files not found for {air_name}")
 
-        stark_info = setup_ctx.stark_info
+        stark_info = air_config.stark_info
 
         # Load binary proof file
         config = AIR_CONFIGS.get(air_name)
@@ -223,7 +223,7 @@ class TestVerifierE2E:
             pytest.skip(f"Test vectors not found for {air_name}")
 
         params = create_params_from_vectors(stark_info, vectors)
-        starks = Starks(setup_ctx)
+        starks = Starks(air_config)
         verkey = starks.build_const_tree(params.constPolsExtended)
         global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
 
@@ -233,7 +233,7 @@ class TestVerifierE2E:
         # Verify should fail
         result = stark_verify(
             proof=proof,
-            setup_ctx=setup_ctx,
+            air_config=air_config,
             verkey=verkey,
             global_challenge=global_challenge,
             publics=params.publicInputs,
