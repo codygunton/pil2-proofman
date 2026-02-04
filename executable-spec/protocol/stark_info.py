@@ -3,12 +3,11 @@
 import json
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
-
-from primitives.pol_map import PolMap, EvMap, ChallengeMap, CustomCommits, Boundary, FieldType
 
 # --- Constants ---
 from primitives.field import FIELD_EXTENSION_DEGREE
+from primitives.pol_map import Boundary, ChallengeMap, CustomCommits, EvMap, FieldType, PolMap
+
 HASH_SIZE = 4
 
 
@@ -31,7 +30,7 @@ class StarkStruct:
     nBitsExt: int
     nQueries: int
     verificationHashType: str
-    friFoldSteps: List[FriFoldStep] = field(default_factory=list)
+    friFoldSteps: list[FriFoldStep] = field(default_factory=list)
     merkleTreeArity: int = 16
     merkleTreeCustom: bool = False
     transcriptArity: int = 16
@@ -44,7 +43,7 @@ class StarkStruct:
 class StarkInfo:
     """STARK configuration loaded from starkinfo.json."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Core parameters
         self.starkStruct = StarkStruct(0, 0, 0, "GL")
         self.name = ""
@@ -63,20 +62,20 @@ class StarkInfo:
         self.proofSize = 0
 
         # Polynomial mappings
-        self.customCommits: List[CustomCommits] = []
-        self.cmPolsMap: List[PolMap] = []
-        self.constPolsMap: List[PolMap] = []
-        self.challengesMap: List[ChallengeMap] = []
-        self.airgroupValuesMap: List[PolMap] = []
-        self.airValuesMap: List[PolMap] = []
-        self.proofValuesMap: List[PolMap] = []
-        self.publicsMap: List[PolMap] = []
-        self.customCommitsMap: List[List[PolMap]] = []
-        self.evMap: List[EvMap] = []
+        self.customCommits: list[CustomCommits] = []
+        self.cmPolsMap: list[PolMap] = []
+        self.constPolsMap: list[PolMap] = []
+        self.challengesMap: list[ChallengeMap] = []
+        self.airgroupValuesMap: list[PolMap] = []
+        self.airValuesMap: list[PolMap] = []
+        self.proofValuesMap: list[PolMap] = []
+        self.publicsMap: list[PolMap] = []
+        self.customCommitsMap: list[list[PolMap]] = []
+        self.evMap: list[EvMap] = []
 
         # Opening points and boundaries
-        self.openingPoints: List[int] = []
-        self.boundaries: List[Boundary] = []
+        self.openingPoints: list[int] = []
+        self.boundaries: list[Boundary] = []
 
         # Quotient polynomial
         self.qDeg = 0
@@ -87,8 +86,8 @@ class StarkInfo:
         self.cExpId = 0
 
         # Memory layout
-        self.mapSectionsN: Dict[str, int] = {}
-        self.mapOffsets: Dict[Tuple[str, bool], int] = {}
+        self.mapSectionsN: dict[str, int] = {}
+        self.mapOffsets: dict[tuple[str, bool], int] = {}
         self.mapTotalN = 0
         self.mapTotalNCustomCommitsFixed = 0
 
@@ -124,7 +123,7 @@ class StarkInfo:
         info.gpu = gpu
         info.preallocate = preallocate
 
-        with open(path, "r") as f:
+        with open(path) as f:
             j = json.load(f)
 
         info._load(j)
@@ -473,7 +472,7 @@ class StarkInfo:
         """Get number of columns in a section."""
         return self.mapSectionsN[section]
 
-    def get_column_key(self, name: str, index: int = 0) -> Tuple[str, int]:
+    def get_column_key(self, name: str, index: int = 0) -> tuple[str, int]:
         """Get the (name, index) key for a column.
 
         Args:
@@ -496,14 +495,14 @@ class StarkInfo:
                 return i
         raise KeyError(f"Challenge '{name}' not found")
 
-    def build_column_name_map(self) -> Dict[str, List[int]]:
+    def build_column_name_map(self) -> dict[str, list[int]]:
         """Build mapping from column names to their polsMapId indices.
 
         Returns:
             Dict mapping name -> list of polsMapId values
             e.g., {'a': [0], 'im_cluster': [16, 17, 18, 19, 20, 21]}
         """
-        name_map: Dict[str, List[int]] = {}
+        name_map: dict[str, list[int]] = {}
         for cm in self.cmPolsMap:
             if cm.name not in name_map:
                 name_map[cm.name] = []

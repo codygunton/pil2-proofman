@@ -6,13 +6,14 @@ in C++ format for cross-validation.
 """
 
 import json
-import pytest
 from pathlib import Path
+
+import pytest
 
 from protocol.proof import (
     STARKProof,
-    proof_to_json,
     load_proof_from_json,
+    proof_to_json,
     validate_proof_structure,
 )
 from protocol.stark_info import StarkInfo
@@ -21,7 +22,7 @@ from protocol.stark_info import StarkInfo
 class TestProofSerialization:
     """Test proof JSON serialization and deserialization."""
 
-    def test_proof_to_json_minimal(self):
+    def test_proof_to_json_minimal(self) -> None:
         """Test JSON serialization of minimal proof."""
         proof = STARKProof(
             roots=[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
@@ -40,7 +41,7 @@ class TestProofSerialization:
         assert len(j["evals"]) == 1
         assert j["evals"][0] == ["100", "200", "300"]
 
-    def test_proof_to_json_with_air_values(self):
+    def test_proof_to_json_with_air_values(self) -> None:
         """Test JSON serialization with AIR values."""
         proof = STARKProof(
             roots=[[1, 2, 3, 4]],
@@ -58,7 +59,7 @@ class TestProofSerialization:
         assert len(j["airvalues"]) == 1
         assert j["airgroupvalues"][0] == ["10", "20", "30"]
 
-    def test_proof_to_json_with_final_pol(self):
+    def test_proof_to_json_with_final_pol(self) -> None:
         """Test JSON serialization with final polynomial."""
         proof = STARKProof(
             roots=[[1, 2, 3, 4]],
@@ -74,7 +75,7 @@ class TestProofSerialization:
         assert j["finalPol"][0] == ["1", "2", "3"]
         assert j["finalPol"][2] == ["7", "8", "9"]
 
-    def test_json_round_trip(self):
+    def test_json_round_trip(self) -> None:
         """Test that proof survives JSON round-trip."""
         import tempfile
 
@@ -119,11 +120,11 @@ class TestProofLoading:
     """Test loading proofs from actual test data files."""
 
     @pytest.fixture
-    def test_data_dir(self):
+    def test_data_dir(self) -> Path:
         """Get test data directory."""
         return Path(__file__).parent / "test-data"
 
-    def test_load_simple_left_proof_structure(self, test_data_dir):
+    def test_load_simple_left_proof_structure(self, test_data_dir: Path) -> None:
         """Test loading SimpleLeft proof has correct structure."""
         proof_path = test_data_dir / "simple-left.json"
 
@@ -152,7 +153,7 @@ class TestProofLoading:
         # so we just verify it has the expected structure
         assert isinstance(expected["final_pol"], list)
 
-    def test_load_lookup_proof_structure(self, test_data_dir):
+    def test_load_lookup_proof_structure(self, test_data_dir: Path) -> None:
         """Test loading Lookup2_12 proof has FRI folding."""
         proof_path = test_data_dir / "lookup2-12.json"
 
@@ -174,7 +175,7 @@ class TestProofLoading:
         num_fri = metadata.get("num_fri_round_log_sizes") or metadata.get("num_fri_steps")
         assert num_fri >= 1
 
-    def test_load_permutation_proof_structure(self, test_data_dir):
+    def test_load_permutation_proof_structure(self, test_data_dir: Path) -> None:
         """Test loading Permutation1_6 proof structure."""
         proof_path = test_data_dir / "permutation1-6.json"
 
@@ -195,12 +196,12 @@ class TestProofLoading:
         assert "nonce" in data["expected"]
         assert data["expected"]["nonce"] > 0
 
-    def test_load_nonexistent_file(self):
+    def test_load_nonexistent_file(self) -> None:
         """Test loading non-existent file raises error."""
         with pytest.raises(FileNotFoundError):
             load_proof_from_json("/nonexistent/path.json")
 
-    def test_load_invalid_json(self):
+    def test_load_invalid_json(self) -> None:
         """Test loading invalid JSON raises error."""
         import tempfile
 
@@ -214,7 +215,7 @@ class TestProofLoading:
         finally:
             Path(temp_path).unlink()
 
-    def test_load_cpp_proof_format(self):
+    def test_load_cpp_proof_format(self) -> None:
         """Test loading proof in C++ JSON format (from pointer2json)."""
         import tempfile
 
@@ -272,7 +273,7 @@ class TestProofValidation:
     """Test proof structure validation."""
 
     @pytest.fixture
-    def simple_stark_info(self):
+    def simple_stark_info(self) -> StarkInfo:
         """Create a simple StarkInfo for testing."""
         info = StarkInfo()
         info.nStages = 2
@@ -282,7 +283,7 @@ class TestProofValidation:
         info.airValuesMap = []
         return info
 
-    def test_validate_correct_proof(self, simple_stark_info):
+    def test_validate_correct_proof(self, simple_stark_info: StarkInfo) -> None:
         """Test validation passes for correct proof."""
         proof = STARKProof(
             roots=[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],  # 3 stages
@@ -294,7 +295,7 @@ class TestProofValidation:
         errors = validate_proof_structure(proof, simple_stark_info)
         assert errors == []
 
-    def test_validate_wrong_stage_count(self, simple_stark_info):
+    def test_validate_wrong_stage_count(self, simple_stark_info: StarkInfo) -> None:
         """Test validation catches wrong stage count."""
         proof = STARKProof(
             roots=[[1, 2, 3, 4]],  # Only 1 root, expected 3
@@ -306,7 +307,7 @@ class TestProofValidation:
         assert len(errors) > 0
         assert any("stage roots" in err for err in errors)
 
-    def test_validate_wrong_eval_count(self, simple_stark_info):
+    def test_validate_wrong_eval_count(self, simple_stark_info: StarkInfo) -> None:
         """Test validation catches wrong evaluation count."""
         proof = STARKProof(
             roots=[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
@@ -318,7 +319,7 @@ class TestProofValidation:
         assert len(errors) > 0
         assert any("evaluations" in err for err in errors)
 
-    def test_validate_wrong_eval_dimension(self, simple_stark_info):
+    def test_validate_wrong_eval_dimension(self, simple_stark_info: StarkInfo) -> None:
         """Test validation catches wrong evaluation dimension."""
         proof = STARKProof(
             roots=[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
@@ -330,7 +331,7 @@ class TestProofValidation:
         assert len(errors) > 0
         assert any("dimension" in err for err in errors)
 
-    def test_validate_wrong_final_pol_degree(self, simple_stark_info):
+    def test_validate_wrong_final_pol_degree(self, simple_stark_info: StarkInfo) -> None:
         """Test validation catches wrong final polynomial degree."""
         proof = STARKProof(
             roots=[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],

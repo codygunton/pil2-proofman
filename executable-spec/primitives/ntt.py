@@ -1,17 +1,17 @@
 """Number Theoretic Transform for Goldilocks field."""
 
-import numpy as np
-from typing import Optional
-import galois
-from primitives.field import FF, SHIFT, get_omega, get_omega_inv
 
+import galois
+import numpy as np
+
+from primitives.field import FF, SHIFT, get_omega, get_omega_inv
 
 # --- NTT Engine ---
 
 class NTT:
     """NTT engine for polynomial operations over Goldilocks field."""
 
-    def __init__(self, domain_size: int, extension: int = 1):
+    def __init__(self, domain_size: int, extension: int = 1) -> None:
         """Initialize NTT engine for given domain size."""
         assert domain_size > 0, "Domain size must be positive"
         assert (domain_size & (domain_size - 1)) == 0, "Domain size must be power of 2"
@@ -28,8 +28,8 @@ class NTT:
         self.pow_two_inv = _precompute_pow_two_inv(self.n_bits)
 
         # Coset shift arrays (computed lazily)
-        self.r: Optional[np.ndarray] = None
-        self.r_: Optional[np.ndarray] = None
+        self.r: np.ndarray | None = None
+        self.r_: np.ndarray | None = None
 
     def _compute_r(self, N: int) -> None:
         """Compute coset shift arrays r and r_.

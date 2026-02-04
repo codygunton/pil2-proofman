@@ -4,13 +4,13 @@ import json
 import math
 import struct
 from dataclasses import dataclass, field
-from typing import Any, List
+from typing import Any
 
 from primitives.field import ff3_coeffs, ff3_to_flat_list
 from protocol.stark_info import FIELD_EXTENSION_DEGREE, HASH_SIZE
 
 # --- Type Aliases ---
-Hash = List[int]  # Poseidon hash output [h0, h1, h2, h3]
+Hash = list[int]  # Poseidon hash output [h0, h1, h2, h3]
 
 
 # --- Proof Data Structures ---
@@ -34,19 +34,19 @@ class ProofTree:
 class FriProof:
     """FRI opening proof: folding trees and final polynomial."""
     trees: ProofTree = field(default_factory=ProofTree)
-    trees_fri: List[ProofTree] = field(default_factory=list)
-    pol: List[List[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
+    trees_fri: list[ProofTree] = field(default_factory=list)
+    pol: list[list[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
 
 
 @dataclass
 class STARKProof:
     """Complete STARK proof."""
-    roots: List[Hash] = field(default_factory=list)
-    last_levels: List[List[int]] = field(default_factory=list)
-    evals: List[List[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
-    airgroup_values: List[List[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
-    air_values: List[List[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
-    custom_commits: List[str] = field(default_factory=list)
+    roots: list[Hash] = field(default_factory=list)
+    last_levels: list[list[int]] = field(default_factory=list)
+    evals: list[list[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
+    airgroup_values: list[list[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
+    air_values: list[list[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
+    custom_commits: list[str] = field(default_factory=list)
     fri: FriProof = field(default_factory=FriProof)
     nonce: int = 0
 
@@ -84,7 +84,7 @@ def proof_to_json(proof: STARKProof, n_stages: int, n_field_elements: int = HASH
 
 def load_proof_from_json(path: str) -> tuple[STARKProof, dict[str, Any]]:
     """Load STARK proof from JSON file."""
-    with open(path, 'r') as f:
+    with open(path) as f:
         data = json.load(f)
 
     proof = STARKProof()

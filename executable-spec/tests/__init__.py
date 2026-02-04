@@ -2,10 +2,10 @@
 
 # Re-export protocol types for convenience in tests
 from protocol import (
-    StarkInfo,
-    SetupCtx,
-    ProverHelpers,
     ProofContext,
+    ProverHelpers,
+    SetupCtx,
+    StarkInfo,
     STARKProof,
     gen_proof,
 )

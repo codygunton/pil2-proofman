@@ -7,11 +7,11 @@ initialization cost of galois.GF() for extension fields. To regenerate the cache
     python -c "from primitives.field import _regenerate_ff3_cache; _regenerate_ff3_cache()"
 """
 
-import galois
-import numpy as np
 import pickle
 from pathlib import Path
-from typing import List
+
+import galois
+import numpy as np
 
 # --- Field Construction ---
 
@@ -41,13 +41,13 @@ FF3Array = FF3   # Array of extension field values
 FFArray = FF     # Array of base field values
 
 # Hashes
-HashOutput = List[int]  # 4-element Poseidon hash output (base field)
+HashOutput = list[int]  # 4-element Poseidon hash output (base field)
 
 # Interleaved buffers (for C++ compatibility and performance)
 InterleavedFF3 = np.ndarray  # Interleaved FF3 coefficients [c0,c1,c2,c0,c1,c2,...] as uint64
 
 
-def _regenerate_ff3_cache():
+def _regenerate_ff3_cache() -> None:
     """Regenerate the FF3 cache file. Only needed if galois version changes."""
     _irr_poly = galois.Poly([1, 0, GOLDILOCKS_PRIME - 1, GOLDILOCKS_PRIME - 1], field=FF)
     ff3 = galois.GF(GOLDILOCKS_PRIME**3, irreducible_poly=_irr_poly)
@@ -60,12 +60,12 @@ def _regenerate_ff3_cache():
 # Galois uses descending order [a2, a1, a0], we use ascending [a0, a1, a2].
 
 
-def ff3_coeffs(elem: FF3) -> List[int]:
+def ff3_coeffs(elem: FF3) -> list[int]:
     """Extract ascending-order coefficients [a0, a1, a2] from FF3 element."""
     return [int(c) for c in elem.vector()[::-1]]
 
 
-def ff3_array(c0: List[int], c1: List[int], c2: List[int]):
+def ff3_array(c0: list[int], c1: list[int], c2: list[int]) -> FF3:
     """Construct FF3 array from parallel coefficient lists."""
     p = GOLDILOCKS_PRIME
     p2 = p * p
@@ -73,14 +73,14 @@ def ff3_array(c0: List[int], c1: List[int], c2: List[int]):
     return FF3([int(c0[k]) + int(c1[k]) * p + int(c2[k]) * p2 for k in range(len(c0))])
 
 
-def ff3_array_from_base(vals: List[int]):
+def ff3_array_from_base(vals: list[int]) -> FF3:
     """Construct FF3 array from base field values (c1=c2=0)."""
     return FF3(vals)
 
 
 # --- Flat List Conversions (for serialization/transcript) ---
 
-def ff3_from_flat_list(coeffs: List[int]) -> FF3:
+def ff3_from_flat_list(coeffs: list[int]) -> FF3:
     """Convert flattened [c0,c1,c2,c0,c1,c2,...] to FF3 array."""
     n = len(coeffs) // FIELD_EXTENSION_DEGREE
     c0 = [coeffs[i * FIELD_EXTENSION_DEGREE] for i in range(n)]
@@ -89,7 +89,7 @@ def ff3_from_flat_list(coeffs: List[int]) -> FF3:
     return ff3_array(c0, c1, c2)
 
 
-def ff3_to_flat_list(arr: FF3) -> List[int]:
+def ff3_to_flat_list(arr: FF3) -> list[int]:
     """Convert FF3 array to flattened [c0,c1,c2,c0,c1,c2,...]."""
     result = []
     for elem in arr:
@@ -99,7 +99,7 @@ def ff3_to_flat_list(arr: FF3) -> List[int]:
 
 # --- JSON Conversions (for proof parsing) ---
 
-def ff3_from_json(json_arr: List[List[int]]) -> FF3:
+def ff3_from_json(json_arr: list[list[int]]) -> FF3:
     """Parse JSON [[c0,c1,c2],...] to FF3 array."""
     n = len(json_arr)
     c0 = [int(json_arr[i][0]) for i in range(n)]
@@ -108,7 +108,7 @@ def ff3_from_json(json_arr: List[List[int]]) -> FF3:
     return ff3_array(c0, c1, c2)
 
 
-def ff3_to_json(arr: FF3) -> List[List[int]]:
+def ff3_to_json(arr: FF3) -> list[list[int]]:
     """Convert FF3 array to JSON [[c0,c1,c2],...] format."""
     return [ff3_coeffs(elem) for elem in arr]
 
@@ -153,7 +153,7 @@ def ff3_to_numpy_coeffs(elem: FF3) -> np.ndarray:
 
 # --- Buffer Index Access (for expression_evaluator hot path) ---
 
-def ff3_from_buffer_at(buffer: np.ndarray, indices: List[int]) -> FF3:
+def ff3_from_buffer_at(buffer: np.ndarray, indices: list[int]) -> FF3:
     """Extract FF3 elements from buffer at coefficient indices.
 
     Each index points to c0, with c1 at index+1, c2 at index+2.
@@ -164,7 +164,7 @@ def ff3_from_buffer_at(buffer: np.ndarray, indices: List[int]) -> FF3:
     return ff3_array(c0, c1, c2)
 
 
-def ff3_store_to_buffer(arr: FF3, buffer: np.ndarray, indices: List[int]) -> None:
+def ff3_store_to_buffer(arr: FF3, buffer: np.ndarray, indices: list[int]) -> None:
     """Store FF3 elements to buffer at coefficient indices.
 
     Each index points to c0, stores c1 at index+1, c2 at index+2.
@@ -186,7 +186,7 @@ SHIFT = FF(7)
 SHIFT_INV = SHIFT ** -1
 
 # Precomputed roots of unity: W[n] is a primitive 2^n-th root of unity
-W: List[int] = [
+W: list[int] = [
     1,
     18446744069414584320,
     281474976710656,
@@ -223,7 +223,7 @@ W: List[int] = [
 ]
 
 # Precomputed inverses: W_INV[n] = W[n]^(-1) mod p
-W_INV: List[int] = [
+W_INV: list[int] = [
     1,
     18446744069414584320,
     18446462594437873665,
@@ -272,7 +272,8 @@ def get_omega_inv(n_bits: int) -> int:
 
 # --- Montgomery Batch Inversion ---
 
-def batch_inverse(values):
+
+def batch_inverse(values: galois.Array) -> galois.Array:
     """Montgomery batch inversion for any galois array.
 
     Converts N field inversions into 3N-3 multiplications + 1 inversion.

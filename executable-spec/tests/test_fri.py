@@ -30,32 +30,30 @@ AIRs Tested:
 """
 
 import pytest
+from poseidon2_ffi import linear_hash
 
 from primitives.field import ff3_from_flat_list, ff3_to_flat_list
 from primitives.merkle_tree import MerkleTree
 from primitives.transcript import Transcript
 from protocol.fri import FRI
 from protocol.pcs import FriPcs, FriPcsConfig
-from poseidon2_ffi import linear_hash
-
 from tests.fri_vectors import (
     get_config,
     get_expected_final_pol,
     get_expected_hash,
     get_expected_nonce,
     get_fri_challenges,
-    get_grinding_challenge,
-    get_fri_round_log_sizes,
-    get_n_bits_ext,
-    get_fri_queries,
-    get_fri_input_polynomial,
     get_fri_input_hash,
-    get_poly_hashes_after_fold,
+    get_fri_input_polynomial,
+    get_fri_queries,
+    get_fri_round_log_sizes,
+    get_grinding_challenge,
     get_merkle_roots,
+    get_n_bits_ext,
+    get_poly_hashes_after_fold,
     get_query_proof_siblings,
     get_transcript_state,
 )
-
 
 # =============================================================================
 # FRI End-to-End Tests - Runs FriPcs.prove(), compares against C++ golden values
@@ -79,7 +77,7 @@ class TestProveEndToEnd:
     """
 
     @pytest.fixture(autouse=True)
-    def setup(self, air_name):
+    def setup(self, air_name: str) -> None:
         """Load test vectors for the AIR."""
         self.air_name = air_name
         self.config = get_config(air_name)
@@ -95,7 +93,7 @@ class TestProveEndToEnd:
         self.fri_round_log_sizes = get_fri_round_log_sizes(air_name)
         self.n_bits_ext = get_n_bits_ext(air_name)
 
-    def _create_fri_pcs(self):
+    def _create_fri_pcs(self) -> FriPcs:
         """Create FriPcs with config."""
         return FriPcs(FriPcsConfig(
             n_bits_ext=self.n_bits_ext,
@@ -107,7 +105,7 @@ class TestProveEndToEnd:
             hash_commits=self.config['hash_commits'],
         ))
 
-    def _create_primed_transcript(self):
+    def _create_primed_transcript(self) -> Transcript:
         """Create transcript primed with captured state."""
         transcript = Transcript(arity=self.config['transcript_arity'])
         transcript.state = list(self.transcript_state['state'])
@@ -117,7 +115,7 @@ class TestProveEndToEnd:
         transcript.pending = [0] * transcript.transcript_out_size
         return transcript
 
-    def test_prove_complete_match(self, air_name):
+    def test_prove_complete_match(self, air_name: str) -> None:
         """
         COMPLETE END-TO-END TEST.
 
@@ -147,7 +145,7 @@ class TestProveEndToEnd:
         assert actual_final_pol == self.expected_final_pol, \
             f"Final polynomial mismatch (length: expected {len(self.expected_final_pol)}, got {len(actual_final_pol)})"
 
-    def test_prove_challenges_match(self, air_name):
+    def test_prove_challenges_match(self, air_name: str) -> None:
         """
         Test that transcript generates the same challenges as C++.
 
@@ -183,7 +181,7 @@ class TestProveEndToEnd:
 # =============================================================================
 
 @pytest.mark.parametrize("air_name", ["simple", "lookup", "permutation"])
-def test_final_polynomial_hash(air_name):
+def test_final_polynomial_hash(air_name: str) -> None:
     """Test that linear_hash(final_pol) matches C++ captured hash."""
     expected_pol = get_expected_final_pol(air_name)
     expected_hash = get_expected_hash(air_name)
@@ -192,7 +190,7 @@ def test_final_polynomial_hash(air_name):
 
 
 @pytest.mark.parametrize("air_name", ["simple", "lookup", "permutation"])
-def test_query_indices_derivation(air_name):
+def test_query_indices_derivation(air_name: str) -> None:
     """Test query index derivation matches C++ exactly."""
     expected_queries = get_fri_queries(air_name)
     config = get_config(air_name)
@@ -230,7 +228,7 @@ class TestFRIFolding:
     """
 
     @pytest.fixture(autouse=True)
-    def setup(self, air_name):
+    def setup(self, air_name: str) -> None:
         """Load vectors from JSON."""
         self.air_name = air_name
         self.input_pol = get_fri_input_polynomial(air_name)
@@ -240,7 +238,7 @@ class TestFRIFolding:
         self.n_bits_ext = get_n_bits_ext(air_name)
         self.config = get_config(air_name)
 
-    def _compute_final_polynomial(self):
+    def _compute_final_polynomial(self) -> list[int]:
         """Compute final polynomial through all FRI folds."""
         current_pol = ff3_from_flat_list(self.input_pol)
         for fold_idx in range(len(self.fri_round_log_sizes) - 1):
@@ -254,24 +252,24 @@ class TestFRIFolding:
             )
         return ff3_to_flat_list(current_pol)
 
-    def test_input_polynomial_hash_matches(self, air_name):
+    def test_input_polynomial_hash_matches(self, air_name: str) -> None:
         """Verify input polynomial hash matches C++ captured value."""
         computed_hash = linear_hash(self.input_pol, width=16)
         assert computed_hash == self.input_hash
 
-    def test_final_polynomial_matches_expected(self, air_name):
+    def test_final_polynomial_matches_expected(self, air_name: str) -> None:
         """CRITICAL TEST: Verify final folded polynomial matches C++ golden values."""
         computed = self._compute_final_polynomial()
         expected = get_expected_final_pol(air_name)
         assert computed == expected
 
-    def test_final_polynomial_hash_matches(self, air_name):
+    def test_final_polynomial_hash_matches(self, air_name: str) -> None:
         """Verify hash of folded polynomial matches expected hash."""
         computed_hash = linear_hash(self._compute_final_polynomial(), width=16)
         expected_hash = get_expected_hash(air_name)
         assert computed_hash == expected_hash
 
-    def test_intermediate_polynomial_hashes(self, air_name):
+    def test_intermediate_polynomial_hashes(self, air_name: str) -> None:
         """Verify polynomial hash after EACH fold step matches C++ captured values."""
         expected_hashes = get_poly_hashes_after_fold(air_name)
         if not expected_hashes:
@@ -295,7 +293,7 @@ class TestFRIFolding:
                 computed_hash = linear_hash(ff3_to_flat_list(current_pol), width=16)
                 assert computed_hash == expected_hashes[cpp_step_idx]
 
-    def test_merkle_roots_match_cpp(self, air_name):
+    def test_merkle_roots_match_cpp(self, air_name: str) -> None:
         """Verify Python Merkle tree roots match C++ captured values."""
         expected_roots = get_merkle_roots(air_name)
         if not expected_roots:
@@ -324,7 +322,7 @@ class TestFRIFolding:
                 current_bits=self.fri_round_log_sizes[fri_round + 1]
             )
 
-    def test_query_proof_siblings_match_cpp(self, air_name):
+    def test_query_proof_siblings_match_cpp(self, air_name: str) -> None:
         """Verify Python Merkle proof extraction matches C++ exactly.
 
         This validates that MerkleTree.get_group_proof() produces

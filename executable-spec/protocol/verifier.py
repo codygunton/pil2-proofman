@@ -21,12 +21,13 @@ from primitives.merkle_tree import HASH_SIZE, MerkleRoot, MerkleTree
 from primitives.pol_map import EvMap
 from primitives.polynomial import to_coefficients
 from primitives.transcript import Transcript
+from protocol.air_config import SetupCtx
+from protocol.data import VerifierData
 from protocol.fri import FRI
 from protocol.proof import MerkleProof, STARKProof
 from protocol.proof_context import ProofContext
-from protocol.air_config import SetupCtx
 from protocol.stark_info import StarkInfo
-from protocol.data import VerifierData
+
 # Late import: get_constraint_module, VerifierConstraintContext imported inside functions
 
 # --- Type Aliases ---
@@ -500,7 +501,7 @@ def _evaluate_constraint_with_module(si: StarkInfo, verifier_data: VerifierData,
         Buffer containing Q(xi) = C(xi)/Z_H(xi) coefficients in extension field
     """
     # Late import to avoid circular dependency
-    from constraints import get_constraint_module, VerifierConstraintContext
+    from constraints import VerifierConstraintContext, get_constraint_module
 
     constraint_module = get_constraint_module(si.name)
     ctx = VerifierConstraintContext(verifier_data)

@@ -4,27 +4,24 @@ These tests isolate the discrepancy between expression binary and constraint
 module evaluation at a single point xi.
 """
 
-import pytest
-import numpy as np
-from pathlib import Path
 import json
+from pathlib import Path
 
-from primitives.field import ff3_coeffs, FIELD_EXTENSION_DEGREE, GOLDILOCKS_PRIME, FF3
+import numpy as np
+
+from constraints import VerifierConstraintContext, get_constraint_module
+from primitives.field import FF3, FIELD_EXTENSION_DEGREE, GOLDILOCKS_PRIME, ff3_coeffs
 from protocol.air_config import SetupCtx
 from protocol.proof import from_bytes_full
 from protocol.verifier import (
     _build_verifier_data,
     _reconstruct_transcript,
 )
-from protocol.proof_context import ProofContext
-from protocol.data import VerifierData
-from constraints import get_constraint_module, VerifierConstraintContext
-
 
 TEST_DATA_DIR = Path(__file__).parent / "test-data"
 
 
-def load_simple_left_fixture():
+def load_simple_left_fixture() -> tuple:
     """Load all data needed for SimpleLeft verifier constraint test."""
     base_dir = Path(__file__).parent
     starkinfo_path = base_dir / '../../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json'
@@ -53,7 +50,7 @@ def load_simple_left_fixture():
 class TestConstraintVerifierBasics:
     """Test basic assumptions about constraint evaluation."""
 
-    def test_verifier_data_contains_all_columns(self):
+    def test_verifier_data_contains_all_columns(self) -> None:
         """Verify VerifierData has all columns needed by SimpleLeft."""
         setup_ctx, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
@@ -75,7 +72,7 @@ class TestConstraintVerifierBasics:
         for i in range(7):
             assert ('k', i, 0) in verifier_data.evals, f"Missing k[{i}]"
 
-    def test_verifier_data_challenges_match(self):
+    def test_verifier_data_challenges_match(self) -> None:
         """Verify challenges are correctly mapped."""
         setup_ctx, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
@@ -90,7 +87,7 @@ class TestConstraintVerifierBasics:
 class TestExpressionBinaryEvaluation:
     """Test expression binary evaluation as ground truth."""
 
-    def test_reconstructed_q_from_proof(self):
+    def test_reconstructed_q_from_proof(self) -> None:
         """Verify we can reconstruct Q(xi) from proof evaluations."""
         setup_ctx, stark_info, proof, challenges, _, _ = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
@@ -123,7 +120,7 @@ class TestExpressionBinaryEvaluation:
         # Q(xi) = Q0(xi) + xi^N * Q1(xi)
         reconstructed_q = q0 + xi_to_n * q1
 
-        print(f"\nReconstructed Q(xi) from proof:")
+        print("\nReconstructed Q(xi) from proof:")
         print(f"  Q0(xi): {ff3_coeffs(q0)}")
         print(f"  Q1(xi): {ff3_coeffs(q1)}")
         print(f"  xi^N: {ff3_coeffs(xi_to_n)}")
@@ -136,7 +133,7 @@ class TestExpressionBinaryEvaluation:
 class TestConstraintModuleEvaluation:
     """Test constraint module evaluation and compare to expression binary."""
 
-    def test_constraint_module_basic_evaluation(self):
+    def test_constraint_module_basic_evaluation(self) -> None:
         """Test that constraint module runs without error."""
         setup_ctx, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
@@ -149,7 +146,7 @@ class TestConstraintModuleEvaluation:
         result = constraint_module.constraint_polynomial(ctx)
         assert result is not None
 
-    def test_constraint_module_vs_proof_q(self):
+    def test_constraint_module_vs_proof_q(self) -> None:
         """Compare constraint module Q(xi) to reconstructed Q(xi) from proof.
 
         The proof contains Q0(xi) and Q1(xi) evaluations. We reconstruct Q(xi)
@@ -214,7 +211,7 @@ class TestConstraintModuleEvaluation:
 class TestIndividualConstraints:
     """Test individual constraints to find where divergence occurs."""
 
-    def test_constraint_0_manually(self):
+    def test_constraint_0_manually(self) -> None:
         """Manually compute constraint 0 and compare."""
         setup_ctx, stark_info, proof, challenges, _, airgroup_values = load_simple_left_fixture()
         evals = np.array(proof.evals, dtype=np.uint64).flatten()
@@ -241,7 +238,7 @@ class TestIndividualConstraints:
         # Constraint 0: im * D1 * D2 - (D2 + (-1)*D1)
         constraint_0 = im0 * D1 * D2 - (D2 + neg_one * D1)
 
-        print(f"\nManual constraint 0 computation:")
+        print("\nManual constraint 0 computation:")
         print(f"  alpha: {ff3_coeffs(alpha)}")
         print(f"  gamma: {ff3_coeffs(gamma)}")
         print(f"  c: {ff3_coeffs(c)}")

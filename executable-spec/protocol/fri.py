@@ -1,16 +1,20 @@
 """FRI folding protocol."""
 
-from typing import List
 
 import galois
 
 from primitives.field import (
-    FF, FF3, FF3Poly, ff3_coeffs, ff3_to_flat_list,
-    SHIFT, SHIFT_INV, get_omega_inv, FIELD_EXTENSION_DEGREE,
+    FF,
+    FF3,
+    FIELD_EXTENSION_DEGREE,
+    SHIFT,
+    SHIFT_INV,
+    FF3Poly,
+    ff3_to_flat_list,
+    get_omega_inv,
 )
-from primitives.merkle_tree import MerkleTree, MerkleRoot, transpose_for_merkle
+from primitives.merkle_tree import MerkleRoot, MerkleTree, transpose_for_merkle
 from primitives.polynomial import to_coefficients_cubic
-
 
 # --- FRI Protocol ---
 
@@ -21,7 +25,7 @@ class FRI:
     def fold(
         fri_round: int,
         pol: FF3Poly,
-        challenge: List[int],
+        challenge: list[int],
         n_bits_ext: int,
         prev_bits: int,
         current_bits: int,
@@ -80,14 +84,14 @@ class FRI:
 
     @staticmethod
     def verify_fold(
-        value: List[int],  # noqa: ARG004 - unused but part of protocol API
+        value: list[int],  # noqa: ARG004 - unused but part of protocol API
         fri_round: int,
         n_bits_ext: int,
         current_bits: int,
         prev_bits: int,
-        challenge: List[int],
+        challenge: list[int],
         idx: int,
-        siblings: List[List[int]],
+        siblings: list[list[int]],
     ) -> FF3:
         """Verify fold step: recompute expected value from siblings and challenge."""
         challenge_ff3 = FF3.Vector([challenge[2], challenge[1], challenge[0]])
@@ -111,10 +115,10 @@ class FRI:
 
     @staticmethod
     def prove_queries(
-        queries: List[int],
-        trees: List[MerkleTree],
+        queries: list[int],
+        trees: list[MerkleTree],
         current_bits: int,
-    ) -> List[List[int]]:
+    ) -> list[list[int]]:
         """Generate Merkle proofs for query indices."""
         return [
             [tree.get_group_proof(q % (1 << current_bits)) for tree in trees]

@@ -3,41 +3,37 @@
 from primitives.field import (
     FF,
     FF3,
-    ff3_coeffs,
     GOLDILOCKS_PRIME,
-    W,
     SHIFT,
     SHIFT_INV,
-    ntt,
-    intt,
+    W,
+    ff3_coeffs,
     get_omega,
     get_omega_inv,
+    intt,
+    ntt,
 )
-
-from primitives.ntt import NTT
-
 from primitives.merkle_tree import (
-    MerkleTree,
-    MerkleRoot,
-    QueryProof,
-    LeafData,
     HASH_SIZE,
+    LeafData,
+    MerkleRoot,
+    MerkleTree,
+    QueryProof,
     transpose_for_merkle,
 )
-
-from primitives.transcript import (
-    Transcript,
-    SpongeState,
-    Hash,
-    Challenge,
-)
-
+from primitives.ntt import NTT
 from primitives.pol_map import (
-    PolMap,
-    EvMap,
+    Boundary,
     ChallengeMap,
     CustomCommits,
-    Boundary,
+    EvMap,
+    PolMap,
+)
+from primitives.transcript import (
+    Challenge,
+    Hash,
+    SpongeState,
+    Transcript,
 )
 
 __all__ = [

@@ -5,17 +5,18 @@ the Python prover. This validates the complete STARK verification flow
 including Merkle tree verification.
 """
 
-import pytest
-import numpy as np
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
+
+import numpy as np
+import pytest
 
 from primitives.field import FF
-from protocol.proof_context import ProofContext
-from protocol.air_config import SetupCtx
 from primitives.transcript import Transcript
+from protocol.air_config import SetupCtx
+from protocol.proof_context import ProofContext
+from protocol.stark_info import StarkInfo
 from protocol.verifier import stark_verify
-
 
 TEST_DATA_DIR = Path(__file__).parent / "test-data"
 
@@ -39,7 +40,7 @@ AIR_CONFIGS = {
 }
 
 
-def load_test_vectors(air_name: str) -> Optional[Dict[str, Any]]:
+def load_test_vectors(air_name: str) -> dict[str, Any] | None:
     """Load test vectors for an AIR."""
     import json
     config = AIR_CONFIGS.get(air_name)
@@ -54,7 +55,7 @@ def load_test_vectors(air_name: str) -> Optional[Dict[str, Any]]:
         return json.load(f)
 
 
-def load_setup_ctx(air_name: str) -> Optional[SetupCtx]:
+def load_setup_ctx(air_name: str) -> SetupCtx | None:
     """Load SetupCtx for an AIR."""
     config = AIR_CONFIGS.get(air_name)
     if not config:
@@ -69,7 +70,7 @@ def load_setup_ctx(air_name: str) -> Optional[SetupCtx]:
     return SetupCtx.from_starkinfo(str(starkinfo_path))
 
 
-def create_fresh_transcript(stark_info, vectors: dict) -> Transcript:
+def create_fresh_transcript(stark_info: StarkInfo, vectors: dict) -> Transcript:
     """Create a fresh transcript with global_challenge (if any)."""
     transcript = Transcript(
         arity=stark_info.starkStruct.transcriptArity,
@@ -83,7 +84,7 @@ def create_fresh_transcript(stark_info, vectors: dict) -> Transcript:
     return transcript
 
 
-def create_params_from_vectors(stark_info, vectors: dict) -> ProofContext:
+def create_params_from_vectors(stark_info: StarkInfo, vectors: dict) -> ProofContext:
     """Create ProofContext initialized from test vectors."""
     from primitives.ntt import NTT
 
@@ -135,7 +136,7 @@ class TestVerifierE2E:
     """End-to-end verifier tests."""
 
     @pytest.mark.parametrize("air_name", ['simple', 'lookup', 'permutation'])
-    def test_verify_valid_proof(self, air_name):
+    def test_verify_valid_proof(self, air_name: str) -> None:
         """Test that stark_verify returns True for valid proofs.
 
         Loads pre-generated binary proofs from test-data/*.proof.bin and verifies them.
@@ -188,7 +189,7 @@ class TestVerifierE2E:
         assert result is True, f"Valid proof for {air_name} should verify"
 
     @pytest.mark.parametrize("air_name", ['simple'])
-    def test_verify_corrupted_root_fails(self, air_name):
+    def test_verify_corrupted_root_fails(self, air_name: str) -> None:
         """Test that stark_verify returns False for proofs with corrupted roots.
 
         Loads a valid binary proof, corrupts root1, and verifies it fails.

@@ -16,16 +16,23 @@ Stages in the STARK protocol:
 The Merkle trees are retained for later query proof generation during FRI.
 """
 
-from typing import Optional, Dict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from protocol.air_config import AirConfig, FIELD_EXTENSION_DEGREE
-from primitives.ntt import NTT
-from protocol.proof_context import ProofContext
-from primitives.pol_map import EvMap
-from primitives.merkle_tree import MerkleTree, MerkleRoot
 from primitives.field import FF, FF3, ff3_from_interleaved_numpy
+from primitives.merkle_tree import MerkleRoot, MerkleTree, QueryProof
+from primitives.ntt import NTT
+from primitives.pol_map import EvMap
+from protocol.air_config import FIELD_EXTENSION_DEGREE, AirConfig, ProverHelpers
 from protocol.data import ProverData
+from protocol.proof_context import ProofContext
+
+if TYPE_CHECKING:
+    from protocol.stark_info import StarkInfo
+
 # Late imports to avoid circular dependency:
 # - constraints.base imports protocol.data
 # - protocol.__init__ imports protocol.stages
@@ -41,7 +48,7 @@ SetupCtx = AirConfig
 
 
 def _build_prover_data_extended(
-    stark_info: 'StarkInfo',
+    stark_info: StarkInfo,
     params: ProofContext,
     constPolsExtended: np.ndarray
 ) -> ProverData:
@@ -136,7 +143,7 @@ def _build_prover_data_extended(
 
 
 def _build_prover_data_base(
-    stark_info: 'StarkInfo',
+    stark_info: StarkInfo,
     params: ProofContext,
 ) -> ProverData:
     """Build ProverData from base domain buffers.
@@ -222,7 +229,7 @@ def _build_prover_data_base(
 
 
 def _write_witness_to_buffer(
-    stark_info: 'StarkInfo',
+    stark_info: StarkInfo,
     params: ProofContext,
     intermediates: dict,
     grand_sums: dict
@@ -294,7 +301,7 @@ def _write_witness_to_buffer(
 
     # Write final gsum/gprod values to airgroupValues
     # These are the running sum/product result used in constraint checking
-    from primitives.field import ff3_to_numpy_coeffs, FIELD_EXTENSION_DEGREE
+    from primitives.field import FIELD_EXTENSION_DEGREE, ff3_to_numpy_coeffs
     for i, av in enumerate(stark_info.airgroupValuesMap):
         # airgroupValues names are like "Simple.gsum_result" or "Permutation.gprod_result"
         # Extract the column name (gsum or gprod) from the name
@@ -314,7 +321,7 @@ def _write_witness_to_buffer(
 
 
 def calculate_witness_with_module(
-    stark_info: 'StarkInfo',
+    stark_info: StarkInfo,
     params: ProofContext,
 ) -> None:
     """Calculate witness polynomials using per-AIR witness modules.
@@ -365,15 +372,15 @@ class Starks:
         const_tree: Merkle tree for constant polynomials (if present)
     """
 
-    def __init__(self, setupCtx: AirConfig):
+    def __init__(self, setupCtx: AirConfig) -> None:
         """Initialize polynomial commitment orchestrator.
 
         Args:
             setupCtx: AIR configuration with domain sizes and parameters
         """
         self.setupCtx = setupCtx
-        self.stage_trees: Dict[StageIndex, MerkleTree] = {}
-        self.const_tree: Optional[MerkleTree] = None
+        self.stage_trees: dict[StageIndex, MerkleTree] = {}
+        self.const_tree: MerkleTree | None = None
 
         # Internal NTT instances for polynomial operations
         # These precompute FFT twiddle factors for efficient polynomial
@@ -401,7 +408,7 @@ class Starks:
 
         return self.const_tree.get_root()
 
-    def get_const_query_proof(self, idx: int, elem_size: int = 1):
+    def get_const_query_proof(self, idx: int, elem_size: int = 1) -> QueryProof:
         """Extract query proof from constant polynomial tree."""
         if self.const_tree is None:
             raise ValueError("Constant tree not built. Call build_const_tree() first.")
@@ -410,7 +417,7 @@ class Starks:
     # --- Stage Commitment ---
 
     def extendAndMerkelize(self, step: int, trace: np.ndarray, auxTrace: np.ndarray,
-                          pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
+                          pBuffHelper: np.ndarray | None = None) -> MerkleRoot:
         """Extend polynomial from N to N_ext and build Merkle tree commitment."""
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
@@ -442,7 +449,7 @@ class Starks:
 
         return tree.get_root()
 
-    def get_stage_query_proof(self, step: int, idx: int, elem_size: int = 1):
+    def get_stage_query_proof(self, step: int, idx: int, elem_size: int = 1) -> QueryProof:
         """Extract query proof from a stored stage tree."""
         if step not in self.stage_trees:
             raise KeyError(f"Stage {step} tree not found. Has commitStage been called?")
@@ -455,7 +462,7 @@ class Starks:
         return self.stage_trees[step]
 
     def commitStage(self, step: int, params: ProofContext,
-                   pBuffHelper: Optional[np.ndarray] = None) -> MerkleRoot:
+                   pBuffHelper: np.ndarray | None = None) -> MerkleRoot:
         """Execute a commitment stage (witness or quotient polynomial).
 
         Args:
@@ -493,7 +500,7 @@ class Starks:
     # --- Quotient Polynomial ---
 
     def computeFriPol(self, params: ProofContext,
-                     pBuffHelper: Optional[np.ndarray] = None):
+                     pBuffHelper: np.ndarray | None = None) -> None:
         """Compute quotient polynomial Q for FRI commitment.
 
         1. INTT constraint polynomial (extended domain -> coefficients)
@@ -501,7 +508,7 @@ class Starks:
         3. Reorganize from degree-major to evaluation-major layout
         4. NTT back to extended domain evaluations
         """
-        from primitives.field import FF, FF3, ff3_from_buffer_at, ff3_store_to_buffer, SHIFT_INV
+        from primitives.field import FF, FF3, SHIFT_INV, ff3_from_buffer_at, ff3_store_to_buffer
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         NExtended = 1 << self.setupCtx.stark_info.starkStruct.nBitsExt
@@ -557,7 +564,7 @@ class Starks:
     # --- Constraint and FRI Polynomials ---
 
     def calculateQuotientPolynomial(self, params: ProofContext,
-                                   prover_helpers: 'ProverHelpers' = None):
+                                   prover_helpers: ProverHelpers = None) -> None:
         """Evaluate constraint expression across the extended domain.
 
         Args:
@@ -565,7 +572,7 @@ class Starks:
             prover_helpers: ProverHelpers with zerofiers
         """
         # Late import to avoid circular dependency
-        from constraints import get_constraint_module, ProverConstraintContext
+        from constraints import ProverConstraintContext, get_constraint_module
         from primitives.field import ff3_to_interleaved_numpy
 
         qOffset = self.setupCtx.stark_info.mapOffsets[("q", True)]
@@ -597,7 +604,7 @@ class Starks:
         qPol[:len(result)] = result
 
     def calculateFRIPolynomial(self, params: ProofContext,
-                              prover_helpers: 'ProverHelpers' = None):
+                              prover_helpers: ProverHelpers = None) -> None:
         """Compute FRI polynomial F = linear combination of committed polys at xi*w^offset.
 
         Args:
@@ -636,7 +643,14 @@ class Starks:
         Returns:
             Lagrange evaluation coefficients in flattened numpy array
         """
-        from primitives.field import FF, FF3, ff3_from_numpy_coeffs, ff3_to_interleaved_numpy, get_omega, SHIFT_INV
+        from primitives.field import (
+            FF,
+            FF3,
+            SHIFT_INV,
+            ff3_from_numpy_coeffs,
+            ff3_to_interleaved_numpy,
+            get_omega,
+        )
 
         N = 1 << self.setupCtx.stark_info.starkStruct.nBits
         nOpeningPoints = len(openingPoints)
@@ -676,11 +690,11 @@ class Starks:
         LEvCoeffs = self._ntt.intt(LEvReshaped, n_cols=nOpeningPoints * FIELD_EXTENSION_DEGREE)
         return LEvCoeffs.flatten()
 
-    def computeEvals(self, params: ProofContext, LEv: np.ndarray, openingPoints: list):
+    def computeEvals(self, params: ProofContext, LEv: np.ndarray, openingPoints: list) -> None:
         """Compute polynomial evaluations at opening points."""
         self.evmap(params, LEv, openingPoints)
 
-    def evmap(self, params: ProofContext, LEv: np.ndarray, openingPoints: list):
+    def evmap(self, params: ProofContext, LEv: np.ndarray, openingPoints: list) -> None:
         """Evaluate polynomials at opening points using vectorized operations."""
         from primitives.field import ff3_array, ff3_coeffs
 
@@ -722,7 +736,7 @@ class Starks:
             coeffs = ff3_coeffs(result)
             params.evals[dstIdx:dstIdx + 3] = coeffs
 
-    def _load_evmap_poly(self, params: ProofContext, evMap: EvMap, rows: np.ndarray):
+    def _load_evmap_poly(self, params: ProofContext, evMap: EvMap, rows: np.ndarray) -> FF3:
         """Load polynomial values for evmap evaluation."""
         from primitives.field import ff3_array, ff3_array_from_base
 

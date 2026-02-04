@@ -6,9 +6,9 @@ computes intermediate columns and grand sums directly in readable Python code.
 """
 
 from .base import WitnessModule
-from .simple_left import SimpleLeftWitness
 from .lookup2_12 import Lookup2_12Witness
 from .permutation1_6 import Permutation1_6Witness
+from .simple_left import SimpleLeftWitness
 
 # Registry mapping AIR names to witness module classes
 WITNESS_REGISTRY: dict[str, type[WitnessModule]] = {

@@ -17,12 +17,12 @@ Convention: stored_num = -selector for assumes, +multiplicity for proves.
 Term 0 (busid=4 assumes) is used directly in gsum, not in intermediate columns.
 """
 
-from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
-from primitives.field import FF3, FF3Poly, batch_inverse, GOLDILOCKS_PRIME
 from constraints.base import ConstraintContext
+from primitives.field import FF3, GOLDILOCKS_PRIME, FF3Poly, batch_inverse
+
 from .base import WitnessModule
 
 
@@ -34,7 +34,7 @@ class Lookup2_12Witness(WitnessModule):
 
     def _get_all_logup_terms(
         self, ctx: ConstraintContext
-    ) -> List[Tuple[int, List[FF3Poly], Union[int, FF3Poly]]]:
+    ) -> list[tuple[int, list[FF3Poly], int | FF3Poly]]:
         """Return all logup terms as (busid, cols, selector) tuples."""
         # Get witness columns
         a1 = ctx.col('a1')
@@ -65,7 +65,7 @@ class Lookup2_12Witness(WitnessModule):
         ]
         return terms
 
-    def compute_intermediates(self, ctx: ConstraintContext) -> Dict[str, Dict[int, FF3Poly]]:
+    def compute_intermediates(self, ctx: ConstraintContext) -> dict[str, dict[int, FF3Poly]]:
         """Compute intermediate polynomials directly from constraint equations.
 
         From constraint module:
@@ -99,12 +99,12 @@ class Lookup2_12Witness(WitnessModule):
 
         n = len(a2)
 
-        def const(value):
+        def const(value: int) -> FF3:
             return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
 
         neg_one = const(-1)
 
-        def compress_2(busid, col1, col2):
+        def compress_2(busid: int, col1: FF3, col2: FF3) -> FF3:
             return (col2 * alpha + col1) * alpha + const(busid) + gamma
 
         im_cluster = {}
@@ -131,7 +131,7 @@ class Lookup2_12Witness(WitnessModule):
 
         return {'im_cluster': im_cluster, 'im_single': im_single}
 
-    def compute_grand_sums(self, ctx: ConstraintContext) -> Dict[str, FF3Poly]:
+    def compute_grand_sums(self, ctx: ConstraintContext) -> dict[str, FF3Poly]:
         """Compute gsum running sum polynomial.
 
         From constraint 3:
@@ -158,7 +158,7 @@ class Lookup2_12Witness(WitnessModule):
 
         n = len(im_clusters[0])
 
-        def const(value):
+        def const(value: int) -> FF3:
             return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
 
         # Compute direct_den = compress(4, [a1, b1])

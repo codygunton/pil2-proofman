@@ -20,20 +20,24 @@ Where:
 - xDivXSubXi[g] = 1/(x - xi * ω^openingPoints[g])
 """
 
-import numpy as np
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 from primitives.field import (
-    FF, FF3,
-    ff3_from_numpy_coeffs, ff3_to_interleaved_numpy,
-    ff3_from_interleaved_numpy,
+    FF,
+    FF3,
     FIELD_EXTENSION_DEGREE,
+    ff3_from_interleaved_numpy,
+    ff3_from_numpy_coeffs,
+    ff3_to_interleaved_numpy,
 )
 from primitives.pol_map import EvMap
 
 if TYPE_CHECKING:
-    from protocol.stark_info import StarkInfo
+    from protocol.air_config import ProverHelpers
     from protocol.proof_context import ProofContext
+    from protocol.stark_info import StarkInfo
 
 
 def _get_polynomial_on_domain(
@@ -57,8 +61,6 @@ def _get_polynomial_on_domain(
     """
     ev_type = ev_entry.type
     ev_id = ev_entry.id
-    opening_pos = ev_entry.openingPos
-    prime = ev_entry.prime  # Row offset: -1, 0, or 1
 
     if ev_type == EvMap.Type.cm:
         # Committed polynomial
@@ -169,14 +171,11 @@ def compute_fri_polynomial(
     )
 
     # Compute xis[i] = xi * ω^openingPoints[i] for each opening position
-    n_opening_points = len(stark_info.openingPoints)
+    len(stark_info.openingPoints)
     w = FF(get_omega(stark_info.starkStruct.nBits))
     xis = []
     for op in stark_info.openingPoints:
-        if op >= 0:
-            w_power = FF3([int(w ** op)])  # Embed in extension field
-        else:
-            w_power = FF3([int((w ** (-op)) ** -1)])
+        w_power = FF3([int(w ** op)]) if op >= 0 else FF3([int((w ** (-op)) ** -1)])
         xis.append(xi * w_power)
 
     # Get domain x values: x[j] = g^j * shift where g is the extended domain generator
@@ -276,7 +275,6 @@ def compute_fri_polynomial_verifier(
     Returns:
         FRI polynomial values at query points as interleaved array (n_queries * 3)
     """
-    from primitives.field import batch_inverse
 
     # Get vf1, vf2 challenges
     vf1_idx = next(
@@ -298,7 +296,7 @@ def compute_fri_polynomial_verifier(
     n_opening_points = len(stark_info.openingPoints)
 
     # Helper to get polynomial values at query points
-    def get_poly_vals_at_queries(ev_entry):
+    def get_poly_vals_at_queries(ev_entry: EvMap) -> FF3 | None:
         ev_type = ev_entry.type
         ev_id = ev_entry.id
 
@@ -350,7 +348,7 @@ def compute_fri_polynomial_verifier(
             return None
 
     # Helper to get xDivXSub for opening position at all queries
-    def get_x_div_x_sub(opening_idx):
+    def get_x_div_x_sub(opening_idx: int) -> FF3:
         x_div_raw = np.zeros(n_queries * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
         for q in range(n_queries):
             base = (q * n_opening_points + opening_idx) * FIELD_EXTENSION_DEGREE

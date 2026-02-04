@@ -1,8 +1,6 @@
-import pytest
-from primitives.field import FF3
 
 
-def test_permutation1_6_witness_module_loads():
+def test_permutation1_6_witness_module_loads() -> None:
     from witness.permutation1_6 import Permutation1_6Witness
     module = Permutation1_6Witness()
     assert hasattr(module, 'compute_intermediates')

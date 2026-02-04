@@ -1,7 +1,6 @@
 """ProofContext container for prover/verifier working data."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -30,40 +29,40 @@ class ProofContext:
     """
 
     # --- Stage 1 witness (base field) ---
-    trace: Optional[np.ndarray] = None
+    trace: np.ndarray | None = None
 
     # --- Working buffer for stages 2+ ---
     # Interleaved FF/FF3 sections matching C++ buffer layout
-    auxTrace: Optional[np.ndarray] = None
+    auxTrace: np.ndarray | None = None
 
     # --- Public inputs (base field) ---
-    publicInputs: Optional[np.ndarray] = None
+    publicInputs: np.ndarray | None = None
 
     # --- Proof values (base field, application-specific) ---
-    proofValues: Optional[np.ndarray] = None
+    proofValues: np.ndarray | None = None
 
     # --- Fiat-Shamir challenges (interleaved FF3 coefficients) ---
     # Layout: [c0_0, c0_1, c0_2, c1_0, c1_1, c1_2, ...]
-    challenges: Optional[np.ndarray] = None
+    challenges: np.ndarray | None = None
 
     # --- AIR group constraint values (interleaved FF3 coefficients) ---
-    airgroupValues: Optional[np.ndarray] = None
+    airgroupValues: np.ndarray | None = None
 
     # --- AIR constraint values (mixed: stage 1 = FF, others = FF3) ---
-    airValues: Optional[np.ndarray] = None
+    airValues: np.ndarray | None = None
 
     # --- Polynomial evaluations at opening points (interleaved FF3) ---
-    evals: Optional[np.ndarray] = None
+    evals: np.ndarray | None = None
 
     # --- Precomputed x/(x-xi) denominators for verifier ---
-    xDivXSub: Optional[np.ndarray] = None
+    xDivXSub: np.ndarray | None = None
 
     # --- Constant polynomials (base field) ---
-    constPols: Optional[np.ndarray] = None
-    constPolsExtended: Optional[np.ndarray] = None
+    constPols: np.ndarray | None = None
+    constPolsExtended: np.ndarray | None = None
 
     # --- Custom commitment data (application-specific) ---
-    customCommits: Optional[np.ndarray] = None
+    customCommits: np.ndarray | None = None
 
     # --- Challenge Access Helpers ---
 

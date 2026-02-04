@@ -16,17 +16,23 @@ Example:
     proof = gen_proof(config, params)
 """
 
-from typing import TYPE_CHECKING, Optional, List, Union
+from typing import TYPE_CHECKING, Optional
+
 import numpy as np
 
 from primitives.field import (
-    FF, FF3, ff3_to_numpy_coeffs, get_omega, SHIFT, batch_inverse,
+    FF,
+    FF3,
     FIELD_EXTENSION_DEGREE,
+    SHIFT,
+    batch_inverse,
+    ff3_to_numpy_coeffs,
+    get_omega,
 )
 
 if TYPE_CHECKING:
-    from protocol.stark_info import StarkInfo, Boundary
     from protocol.global_info import GlobalInfo
+    from protocol.stark_info import Boundary, StarkInfo
 
 
 # --- Prover Helpers ---
@@ -55,10 +61,10 @@ class ProverHelpers:
         helpers = ProverHelpers.from_challenge(stark_info, z)
     """
 
-    def __init__(self):
-        self.zi: Optional[Union[FF, np.ndarray]] = None
-        self.x: Optional[FF] = None
-        self.x_n: Optional[Union[FF, np.ndarray]] = None
+    def __init__(self) -> None:
+        self.zi: FF | np.ndarray | None = None
+        self.x: FF | None = None
+        self.x_n: FF | np.ndarray | None = None
 
     @classmethod
     def from_stark_info(cls, stark_info: 'StarkInfo', pil1: bool = False) -> 'ProverHelpers':
@@ -155,7 +161,7 @@ class ProverHelpers:
         helpers.x_n = np.array([z[0], z[1], z[2]], dtype=np.uint64)
         return helpers
 
-    def compute_x(self, n_bits: int, n_bits_ext: int, pil1: bool):
+    def compute_x(self, n_bits: int, n_bits_ext: int, pil1: bool) -> None:
         """Compute coset points x[i] = shift * w^i using cumulative product."""
         N_extended = 1 << n_bits_ext
         N = 1 << n_bits
@@ -174,7 +180,7 @@ class ProverHelpers:
             ones_n[1:] = w_n
             self.x_n = np.cumprod(ones_n)  # [1, w, w^2, ..., w^(N-1)]
 
-    def compute_zerofier(self, n_bits: int, n_bits_ext: int, boundaries: List['Boundary']):
+    def compute_zerofier(self, n_bits: int, n_bits_ext: int, boundaries: list['Boundary']) -> None:
         """Compute zerofier inverses 1/Z_H(x) for all boundaries."""
         N = 1 << n_bits
         N_extended = 1 << n_bits_ext
@@ -192,7 +198,7 @@ class ProverHelpers:
                 self.build_frame_zerofier_inv(n_bits, n_bits_ext, i,
                                               boundary.offsetMin, boundary.offsetMax)
 
-    def build_zh_inv(self, n_bits: int, n_bits_ext: int):
+    def build_zh_inv(self, n_bits: int, n_bits_ext: int) -> None:
         """Build 1/(x^N - 1) for all coset points. Writes to zi[0:N_ext]."""
         N_extended = 1 << n_bits_ext
         extend_bits = n_bits_ext - n_bits
@@ -217,7 +223,7 @@ class ProverHelpers:
             self.zi[i] = self.zi[i % extend]
 
     def build_one_row_zerofier_inv(self, n_bits: int, n_bits_ext: int,
-                                   offset: int, row_index: int):
+                                   offset: int, row_index: int) -> None:
         """Build 1/((x - w^row) * Z_H(x)). Reads Z_H^(-1) from zi[0:N_ext]."""
         N_extended = 1 << n_bits_ext
         w = FF(get_omega(n_bits))
@@ -229,7 +235,7 @@ class ProverHelpers:
         self.zi[offset * N_extended:(offset + 1) * N_extended] = batch_inverse(diffs * zh_inv)
 
     def build_frame_zerofier_inv(self, n_bits: int, n_bits_ext: int, offset: int,
-                                 offset_min: int, offset_max: int):
+                                 offset_min: int, offset_max: int) -> None:
         """Build frame zerofier (NOT inverted): product of (x - w^k) for excluded rows."""
         N = 1 << n_bits
         N_extended = 1 << n_bits_ext
@@ -271,12 +277,12 @@ class AirConfig:
         self,
         stark_info: 'StarkInfo',
         global_info: Optional['GlobalInfo'] = None
-    ):
+    ) -> None:
         self.stark_info = stark_info
         self.global_info = global_info
 
     @classmethod
-    def from_starkinfo(cls, starkinfo_path: str, global_info_path: Optional[str] = None) -> 'AirConfig':
+    def from_starkinfo(cls, starkinfo_path: str, global_info_path: str | None = None) -> 'AirConfig':
         """Load AIR configuration from starkinfo.json.
 
         Args:
@@ -286,8 +292,8 @@ class AirConfig:
         Returns:
             AirConfig instance with loaded configuration
         """
-        from protocol.stark_info import StarkInfo
         from protocol.global_info import GlobalInfo
+        from protocol.stark_info import StarkInfo
 
         stark_info = StarkInfo.from_json(starkinfo_path)
 

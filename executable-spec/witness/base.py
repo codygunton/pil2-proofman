@@ -1,10 +1,9 @@
 """Base class for witness generation."""
 
 from abc import ABC, abstractmethod
-from typing import Dict
 
-from primitives.field import FF3Poly
 from constraints.base import ConstraintContext
+from primitives.field import FF3Poly
 
 
 class WitnessModule(ABC):
@@ -17,7 +16,7 @@ class WitnessModule(ABC):
     """
 
     @abstractmethod
-    def compute_intermediates(self, ctx: ConstraintContext) -> Dict[str, Dict[int, FF3Poly]]:
+    def compute_intermediates(self, ctx: ConstraintContext) -> dict[str, dict[int, FF3Poly]]:
         """Compute im_cluster polynomials.
 
         Args:
@@ -30,7 +29,7 @@ class WitnessModule(ABC):
         pass
 
     @abstractmethod
-    def compute_grand_sums(self, ctx: ConstraintContext) -> Dict[str, FF3Poly]:
+    def compute_grand_sums(self, ctx: ConstraintContext) -> dict[str, FF3Poly]:
         """Compute gsum/gprod running sum polynomials.
 
         Args:

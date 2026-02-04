@@ -1,17 +1,17 @@
 """Montgomery batch inversion for Goldilocks field and cubic extension."""
 
-from typing import List
+
 from primitives.field import FF, FF3, batch_inverse
 
 
-def batch_inverse_ff(values: List[FF]) -> List[FF]:
+def batch_inverse_ff(values: list[FF]) -> list[FF]:
     """Montgomery batch inversion for base field (list interface)."""
     if len(values) == 0:
         return []
     return list(batch_inverse(FF(values)))
 
 
-def batch_inverse_ff3(values: List[FF3]) -> List[FF3]:
+def batch_inverse_ff3(values: list[FF3]) -> list[FF3]:
     """Montgomery batch inversion for cubic extension (list interface)."""
     if len(values) == 0:
         return []

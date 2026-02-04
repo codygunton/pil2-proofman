@@ -1,10 +1,10 @@
 """Merkle tree commitment using Poseidon2."""
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Union
 import math
+from dataclasses import dataclass, field
+
 import numpy as np
-from poseidon2_ffi import linear_hash, hash_seq
+from poseidon2_ffi import hash_seq, linear_hash
 
 # --- Constants ---
 
@@ -12,13 +12,13 @@ HASH_SIZE = 4
 
 # --- Type Aliases ---
 
-MerkleRoot = List[int]
-LeafData = List[int]
+MerkleRoot = list[int]
+LeafData = list[int]
 
 
 # --- FFI Boundary Helpers ---
 
-def _to_int_list(data: List[Union[int, object]]) -> List[int]:
+def _to_int_list(data: list[int | object]) -> list[int]:
     """Convert FF/FF3/int elements to plain int for FFI calls."""
     return [int(x) for x in data]
 
@@ -38,13 +38,13 @@ class QueryProof:
         mp: Merkle path - list of sibling hashes per level, from leaf to root
            Each level has (arity - 1) * HASH_SIZE elements
     """
-    v: List[List[int]] = field(default_factory=list)
-    mp: List[List[int]] = field(default_factory=list)
+    v: list[list[int]] = field(default_factory=list)
+    mp: list[list[int]] = field(default_factory=list)
 
 
 # --- Data Layout ---
 
-def transpose_for_merkle(data: List[int], height: int, width: int, elem_size: int) -> List[int]:
+def transpose_for_merkle(data: list[int], height: int, width: int, elem_size: int) -> list[int]:
     """Transpose data layout for Merkle tree construction.
 
     Reorders elements so that those belonging to the same Merkle leaf are contiguous.
@@ -65,7 +65,7 @@ class MerkleTree:
         arity: int = 4,
         last_level_verification: int = 0,
         custom: bool = False
-    ):
+    ) -> None:
         if arity not in [2, 3, 4]:
             raise ValueError(f"arity must be 2, 3, or 4, got {arity}")
 
@@ -77,11 +77,11 @@ class MerkleTree:
 
         self.height = 0
         self.width = 0
-        self.nodes: List[int] = []
+        self.nodes: list[int] = []
         self.num_nodes = 0
 
         # Store source data for query proof value extraction
-        self.source_data: Optional[List[int]] = None
+        self.source_data: list[int] | None = None
         self.n_cols: int = 0  # Number of columns (polynomials)
 
     # --- Core Operations ---
@@ -152,9 +152,9 @@ class MerkleTree:
             return [0] * HASH_SIZE
         return self.nodes[self.num_nodes - HASH_SIZE:self.num_nodes]
 
-    def get_group_proof(self, idx: int) -> List[int]:
+    def get_group_proof(self, idx: int) -> list[int]:
         """Generate Merkle proof (siblings only) for leaf at index."""
-        proof: List[int] = []
+        proof: list[int] = []
         self._collect_proof_siblings(proof, idx, 0, self.height)
         return proof
 
@@ -208,7 +208,7 @@ class MerkleTree:
 
         return QueryProof(v=v, mp=mp)
 
-    def get_last_level_nodes(self) -> List[int]:
+    def get_last_level_nodes(self) -> list[int]:
         """Extract last level verification nodes.
 
         When lastLevelVerification > 0, the verifier needs access to
@@ -265,7 +265,7 @@ class MerkleTree:
     @staticmethod
     def verify_merkle_root(
         root: MerkleRoot,
-        level: List[int],
+        level: list[int],
         height: int,
         last_level_verification: int,
         arity: int,
@@ -339,7 +339,7 @@ class MerkleTree:
     def verify_group_proof(
         self,
         root: MerkleRoot,
-        proof: List[List[int]],
+        proof: list[list[int]],
         idx: int,
         leaf_data: LeafData
     ) -> bool:
@@ -401,7 +401,7 @@ class MerkleTree:
 
     def _collect_proof_siblings(
         self,
-        proof: List[int],
+        proof: list[int],
         idx: int,
         offset: int,
         n: int

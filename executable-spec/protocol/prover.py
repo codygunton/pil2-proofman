@@ -6,9 +6,9 @@ from poseidon2_ffi import linear_hash
 from primitives.field import FIELD_EXTENSION_DEGREE, ff3_from_interleaved_numpy
 from primitives.merkle_tree import HASH_SIZE, QueryProof
 from primitives.transcript import Transcript
+from protocol.air_config import ProverHelpers, SetupCtx
 from protocol.pcs import FriPcs, FriPcsConfig
 from protocol.proof_context import ProofContext
-from protocol.air_config import ProverHelpers, SetupCtx
 from protocol.stages import Starks, calculate_witness_with_module
 from protocol.stark_info import StarkInfo
 from protocol.utils.challenge_utils import derive_global_challenge
@@ -109,7 +109,7 @@ def gen_proof(
     # This is 2^nBits, where nBits typically logs2(execution trace length).
     # All constraint traces are evaluated at N points in the field.
     # The domain is the multiplicative subgroup of order N in GF(p).
-    N = 1 << stark_info.starkStruct.nBits
+    1 << stark_info.starkStruct.nBits
 
     # ProverHelpers contains precomputed tables derived from AIR structure. These include:
     # - Sibling maps for permutation constraints (which execution step has which sibling in permutation)

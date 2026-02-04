@@ -5,18 +5,22 @@ Run with: uv run python profile_prover.py
 """
 
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Dict, List
-import numpy as np
+from typing import Any, TypeVar
 
 # Global timing storage
-TIMINGS: Dict[str, List[float]] = {}
+TIMINGS: dict[str, list[float]] = {}
 
-def timed(name: str):
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def timed(name: str) -> Callable[[F], F]:
     """Decorator to time function execution."""
-    def decorator(func):
+
+    def decorator(func: F) -> F:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             start = time.perf_counter()
             result = func(*args, **kwargs)
             elapsed = time.perf_counter() - start
@@ -24,18 +28,19 @@ def timed(name: str):
                 TIMINGS[name] = []
             TIMINGS[name].append(elapsed)
             return result
-        return wrapper
+
+        return wrapper  # type: ignore[return-value]
+
     return decorator
 
 
-def patch_prover():
+def patch_prover() -> None:
     """Patch prover functions with timing instrumentation."""
-    import protocol.prover as prover_module
-    import protocol.stages as stages_module
-    import protocol.expression_evaluator as expr_module
-    import protocol.pcs as pcs_module
     import primitives.merkle_tree as merkle_module
     import primitives.ntt as ntt_module
+    import protocol.expression_evaluator as expr_module
+    import protocol.pcs as pcs_module
+    import protocol.stages as stages_module
 
     # Patch NTT operations
     original_ntt = ntt_module.NTT.ntt
@@ -43,15 +48,15 @@ def patch_prover():
     original_extend_pol = ntt_module.NTT.extend_pol
 
     @timed("NTT.ntt")
-    def timed_ntt(self, *args, **kwargs):
+    def timed_ntt(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_ntt(self, *args, **kwargs)
 
     @timed("NTT.intt")
-    def timed_intt(self, *args, **kwargs):
+    def timed_intt(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_intt(self, *args, **kwargs)
 
     @timed("NTT.extend_pol")
-    def timed_extend_pol(self, *args, **kwargs):
+    def timed_extend_pol(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_extend_pol(self, *args, **kwargs)
 
     ntt_module.NTT.ntt = timed_ntt
@@ -68,31 +73,31 @@ def patch_prover():
     original_evmap = stages_module.Starks.evmap
 
     @timed("Starks.commitStage")
-    def timed_commitStage(self, *args, **kwargs):
+    def timed_commitStage(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_commitStage(self, *args, **kwargs)
 
     @timed("Starks.calculateImPolsExpressions")
-    def timed_calculateImPolsExpressions(self, *args, **kwargs):
+    def timed_calculateImPolsExpressions(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_calculateImPolsExpressions(self, *args, **kwargs)
 
     @timed("Starks.calculateQuotientPolynomial")
-    def timed_calculateQuotientPolynomial(self, *args, **kwargs):
+    def timed_calculateQuotientPolynomial(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_calculateQuotientPolynomial(self, *args, **kwargs)
 
     @timed("Starks.calculateFRIPolynomial")
-    def timed_calculateFRIPolynomial(self, *args, **kwargs):
+    def timed_calculateFRIPolynomial(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_calculateFRIPolynomial(self, *args, **kwargs)
 
     @timed("Starks.computeLEv")
-    def timed_computeLEv(self, *args, **kwargs):
+    def timed_computeLEv(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_computeLEv(self, *args, **kwargs)
 
     @timed("Starks.computeEvals")
-    def timed_computeEvals(self, *args, **kwargs):
+    def timed_computeEvals(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_computeEvals(self, *args, **kwargs)
 
     @timed("Starks.evmap")
-    def timed_evmap(self, *args, **kwargs):
+    def timed_evmap(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_evmap(self, *args, **kwargs)
 
     stages_module.Starks.commitStage = timed_commitStage
@@ -107,7 +112,7 @@ def patch_prover():
     original_calculate_witness_with_module = stages_module.calculate_witness_with_module
 
     @timed("calculate_witness_with_module")
-    def timed_calculate_witness_with_module(*args, **kwargs):
+    def timed_calculate_witness_with_module(*args: Any, **kwargs: Any) -> Any:
         return original_calculate_witness_with_module(*args, **kwargs)
 
     stages_module.calculate_witness_with_module = timed_calculate_witness_with_module
@@ -116,7 +121,7 @@ def patch_prover():
     original_calculate_expressions = expr_module.ExpressionsPack.calculate_expressions
 
     @timed("ExpressionsPack.calculate_expressions")
-    def timed_calculate_expressions(self, *args, **kwargs):
+    def timed_calculate_expressions(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_calculate_expressions(self, *args, **kwargs)
 
     expr_module.ExpressionsPack.calculate_expressions = timed_calculate_expressions
@@ -126,11 +131,11 @@ def patch_prover():
     original_get_root = merkle_module.MerkleTree.get_root
 
     @timed("MerkleTree.merkelize")
-    def timed_merkelize(self, *args, **kwargs):
+    def timed_merkelize(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_merkelize(self, *args, **kwargs)
 
     @timed("MerkleTree.get_root")
-    def timed_get_root(self, *args, **kwargs):
+    def timed_get_root(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_get_root(self, *args, **kwargs)
 
     merkle_module.MerkleTree.merkelize = timed_merkelize
@@ -140,13 +145,13 @@ def patch_prover():
     original_fri_prove = pcs_module.FriPcs.prove
 
     @timed("FriPcs.prove")
-    def timed_fri_prove(self, *args, **kwargs):
+    def timed_fri_prove(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_fri_prove(self, *args, **kwargs)
 
     pcs_module.FriPcs.prove = timed_fri_prove
 
 
-def print_timings():
+def print_timings() -> None:
     """Print timing results."""
     print("\n" + "=" * 70)
     print("PERFORMANCE PROFILE")
@@ -177,7 +182,7 @@ def print_timings():
     print("=" * 70)
 
 
-def run_lookup_test():
+def run_lookup_test() -> None:
     """Run the lookup test with profiling."""
     import sys
     sys.path.insert(0, '/home/cody/pil2-proofman/executable-spec')
@@ -186,11 +191,8 @@ def run_lookup_test():
     patch_prover()
 
     # Now import and run
-    from tests.test_stark_e2e import (
-        load_setup_ctx, load_test_vectors,
-        create_params_from_vectors
-    )
     from protocol.prover import gen_proof
+    from tests.test_stark_e2e import create_params_from_vectors, load_setup_ctx, load_test_vectors
 
     air_name = "lookup"
     print(f"\nRunning profiler on {air_name} test...")
@@ -210,7 +212,7 @@ def run_lookup_test():
     # Run gen_proof with timing
     print("Starting proof generation...")
     start = time.perf_counter()
-    proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
+    gen_proof(setup_ctx, params, global_challenge=global_challenge)
     total_time = time.perf_counter() - start
     print(f"Proof generation complete in {total_time:.2f}s")
 

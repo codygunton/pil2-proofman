@@ -27,12 +27,12 @@ Intermediate columns clustering (from constraint equations):
 Term 0 is added directly to gsum, not via intermediate columns.
 """
 
-from typing import Dict, List, Tuple
 
 import numpy as np
 
-from primitives.field import FF3, FF3Poly, batch_inverse, GOLDILOCKS_PRIME
 from constraints.base import ConstraintContext
+from primitives.field import FF3, GOLDILOCKS_PRIME, FF3Poly, batch_inverse
+
 from .base import WitnessModule
 
 
@@ -46,7 +46,7 @@ class SimpleLeftWitness(WitnessModule):
 
     def _get_all_logup_terms(
         self, ctx: ConstraintContext
-    ) -> List[Tuple[int, List[FF3Poly], int]]:
+    ) -> list[tuple[int, list[FF3Poly], int]]:
         """Return all logup terms as (busid, cols, selector) tuples.
 
         Selector convention (from constraint analysis):
@@ -92,7 +92,7 @@ class SimpleLeftWitness(WitnessModule):
         ]
         return terms
 
-    def compute_intermediates(self, ctx: ConstraintContext) -> Dict[str, Dict[int, FF3Poly]]:
+    def compute_intermediates(self, ctx: ConstraintContext) -> dict[str, dict[int, FF3Poly]]:
         """Compute im_cluster polynomials directly from constraint equations.
 
         Each im_cluster satisfies: im[i] * D1 * D2 = (coeff2*D2 + coeff1*D1)
@@ -123,13 +123,13 @@ class SimpleLeftWitness(WitnessModule):
 
         n = len(c)
 
-        def const(value):
+        def const(value: int) -> FF3:
             return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
 
-        def compress_1(busid, col):
+        def compress_1(busid: int, col: FF3) -> FF3:
             return col * alpha + const(busid) + gamma
 
-        def compress_2(busid, col1, col2):
+        def compress_2(busid: int, col1: FF3, col2: FF3) -> FF3:
             return (col2 * alpha + col1) * alpha + const(busid) + gamma
 
         neg_one = const(-1)
@@ -183,7 +183,7 @@ class SimpleLeftWitness(WitnessModule):
 
         return {'im_cluster': im_cluster}
 
-    def compute_grand_sums(self, ctx: ConstraintContext) -> Dict[str, FF3Poly]:
+    def compute_grand_sums(self, ctx: ConstraintContext) -> dict[str, FF3Poly]:
         """Compute gsum running sum polynomial.
 
         From constraint 6:
@@ -210,7 +210,7 @@ class SimpleLeftWitness(WitnessModule):
 
         n = len(list(im_clusters.values())[0])
 
-        def const(value):
+        def const(value: int) -> FF3:
             return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
 
         # Compute direct_den = compress(1, [a, b]) = (b*α + a)*α + 1 + γ

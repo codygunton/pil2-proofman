@@ -1,21 +1,23 @@
 """Fiat-Shamir transcript using Poseidon2 sponge."""
 
-from typing import List, Union
+from typing import Any
+
 from poseidon2_ffi import poseidon2_hash
+
 from primitives.field import GOLDILOCKS_PRIME
 
 # --- Type Aliases ---
 
-SpongeState = List[int]
-Hash = List[int]
-Challenge = List[int]
+SpongeState = list[int]
+Hash = list[int]
+Challenge = list[int]
 
 # --- Constants ---
 
 HASH_SIZE = 4
 
 
-def _to_int(v) -> int:
+def _to_int(v: Any) -> int:
     """Convert field element or int to plain int for Poseidon2 FFI."""
     return int(v) if hasattr(v, '__int__') else v
 
@@ -25,7 +27,7 @@ def _to_int(v) -> int:
 class Transcript:
     """Fiat-Shamir transcript using Poseidon2 sponge construction."""
 
-    def __init__(self, arity: int = 4, custom: bool = False):
+    def __init__(self, arity: int = 4, custom: bool = False) -> None:
         if arity not in [2, 3, 4]:
             raise ValueError(f"arity must be 2, 3, or 4, got {arity}")
 
@@ -36,15 +38,15 @@ class Transcript:
         self.sponge_width = HASH_SIZE * arity
 
         self.state: SpongeState = [0] * self.transcript_out_size
-        self.pending: List[int] = [0] * self.transcript_out_size
-        self.out: List[int] = [0] * self.transcript_out_size
+        self.pending: list[int] = [0] * self.transcript_out_size
+        self.out: list[int] = [0] * self.transcript_out_size
 
         self.pending_cursor = 0
         self.out_cursor = 0
 
     # --- Core Operations ---
 
-    def put(self, elements: Union[List[int], List]) -> None:
+    def put(self, elements: list[int] | list) -> None:
         """Absorb field elements into the sponge."""
         for elem in elements:
             self._absorb_one(_to_int(elem))
@@ -63,7 +65,7 @@ class Transcript:
 
         return self.state[:n_outputs]
 
-    def get_permutations(self, n: int, n_bits: int) -> List[int]:
+    def get_permutations(self, n: int, n_bits: int) -> list[int]:
         """Generate n pseudorandom indices, each using n_bits bits."""
         n_fields = ((n * n_bits - 1) // 63) + 1
         fields = [self._squeeze_one() for _ in range(n_fields)]
@@ -127,9 +129,9 @@ class Transcript:
         self.pending_cursor = 0
         self.state = list(self.out)
 
-    def set_state(self, state: List[int], out: List[int],
+    def set_state(self, state: list[int], out: list[int],
                   out_cursor: int, pending_cursor: int,
-                  pending: List[int] = None) -> None:
+                  pending: list[int] = None) -> None:
         """Restore transcript state from captured values.
 
         Used to replay Fiat-Shamir transcript from a known state,

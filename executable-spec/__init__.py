@@ -7,46 +7,55 @@ Package structure:
 """
 
 # Re-export from subpackages for convenience
+# Poseidon2 is in a separate FFI package
+from poseidon2_ffi import (
+    CAPACITY,
+    grinding,
+    hash_seq,
+    linear_hash,
+    poseidon2_hash,
+    verify_grinding,
+)
+
 from primitives import (
     # Field
     FF,
     FF3,
-    ff3_coeffs,
     GOLDILOCKS_PRIME,
-    W,
-    SHIFT,
-    SHIFT_INV,
-    ntt,
-    intt,
-    get_omega,
-    get_omega_inv,
+    HASH_SIZE,
     # NTT
     NTT,
-    # Merkle Tree
-    MerkleTree,
-    MerkleRoot,
-    QueryProof,
-    LeafData,
-    HASH_SIZE,
-    transpose_for_merkle,
-    # Transcript
-    Transcript,
-    SpongeState,
-    Hash,
+    SHIFT,
+    SHIFT_INV,
+    Boundary,
     Challenge,
-    # Polynomial mappings
-    PolMap,
-    EvMap,
     ChallengeMap,
     CustomCommits,
-    Boundary,
+    EvMap,
+    Hash,
+    LeafData,
+    MerkleRoot,
+    # Merkle Tree
+    MerkleTree,
+    # Polynomial mappings
+    PolMap,
+    QueryProof,
+    SpongeState,
+    # Transcript
+    Transcript,
+    W,
+    ff3_coeffs,
+    get_omega,
+    get_omega_inv,
+    intt,
+    ntt,
+    transpose_for_merkle,
 )
-
 from protocol import (
+    FIELD_EXTENSION_DEGREE,
     # FRI
     FRI,
     EvalPoly,
-    FIELD_EXTENSION_DEGREE,
     # FRI PCS
     FriPcs,
     FriPcsConfig,
@@ -56,16 +65,6 @@ from protocol import (
     # STARK
     Starks,
     stark_verify,
-)
-
-# Poseidon2 is in a separate FFI package
-from poseidon2_ffi import (
-    poseidon2_hash,
-    linear_hash,
-    hash_seq,
-    grinding,
-    verify_grinding,
-    CAPACITY,
 )
 
 __version__ = "0.1.0"

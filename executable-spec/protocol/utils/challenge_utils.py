@@ -9,20 +9,26 @@ The computation has three steps:
 3. Hash [publics, proof_values_stage1, expanded_contribution] to get challenge
 """
 
-import numpy as np
-from typing import Optional, List
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import numpy as np
 from poseidon2_ffi import poseidon2_hash
+
 from primitives.transcript import Transcript
+
+if TYPE_CHECKING:
+    from protocol.stark_info import StarkInfo
 
 
 def calculate_internal_contribution(
-    stark_info,
-    verkey: List[int],
-    root1: List[int],
-    air_values: Optional[List[int]] = None,
+    stark_info: StarkInfo,
+    verkey: list[int],
+    root1: list[int],
+    air_values: list[int] | None = None,
     lattice_size: int = 368
-) -> List[int]:
+) -> list[int]:
     """Compute internal contribution by hashing verkey + root1 + air_values.
 
     This matches C++ calculate_internal_contributions() in challenge_accumulation.rs.
@@ -90,14 +96,14 @@ def calculate_internal_contribution(
 
 
 def derive_global_challenge(
-    stark_info,
+    stark_info: StarkInfo,
     publics: np.ndarray,
-    root1: List[int],
-    verkey: List[int],
-    air_values: Optional[List[int]] = None,
-    proof_values_stage1: Optional[List[int]] = None,
+    root1: list[int],
+    verkey: list[int],
+    air_values: list[int] | None = None,
+    proof_values_stage1: list[int] | None = None,
     lattice_size: int = 368
-) -> List[int]:
+) -> list[int]:
     """Derive global_challenge from publics and proof values.
 
     Implements C++ pattern from challenge_accumulation.rs (lines 84-111).

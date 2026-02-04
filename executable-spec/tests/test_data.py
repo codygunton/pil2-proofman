@@ -1,9 +1,9 @@
 """Unit tests for ProverData and VerifierData dataclasses."""
 
-from primitives.field import FF, FF3
+from primitives.field import FF3
 
 
-def test_prover_data_stores_columns():
+def test_prover_data_stores_columns() -> None:
     from protocol.data import ProverData
 
     # Create simple test data with (name, index) tuple keys
@@ -16,7 +16,7 @@ def test_prover_data_stores_columns():
     assert 'std_alpha' in data.challenges
 
 
-def test_verifier_data_stores_evals():
+def test_verifier_data_stores_evals() -> None:
     from protocol.data import VerifierData
 
     evals = {('a', 0, 0): FF3.Random(1)[0], ('a', 0, 1): FF3.Random(1)[0]}

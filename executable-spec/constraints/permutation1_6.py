@@ -19,12 +19,12 @@ Clustering:
 6 constraints combined with std_vc powers.
 """
 
-from typing import Union
 
 import numpy as np
 
-from primitives.field import FF3, FF3Poly, GOLDILOCKS_PRIME
-from .base import ConstraintModule, ConstraintContext, compress_2col
+from primitives.field import FF3, GOLDILOCKS_PRIME, FF3Poly
+
+from .base import ConstraintContext, ConstraintModule, compress_2col
 
 
 class Permutation1_6Constraints(ConstraintModule):
@@ -42,7 +42,7 @@ class Permutation1_6Constraints(ConstraintModule):
     - C5: gprod boundary constraint
     """
 
-    def constraint_polynomial(self, ctx: ConstraintContext) -> Union[FF3Poly, FF3]:
+    def constraint_polynomial(self, ctx: ConstraintContext) -> FF3Poly | FF3:
         """Evaluate combined constraint polynomial."""
         # Get challenges
         alpha = ctx.challenge('std_alpha')
@@ -89,7 +89,7 @@ class Permutation1_6Constraints(ConstraintModule):
             n = None  # Verifier mode: a1 is a scalar
 
         # Helper for creating scalar/array constants
-        def const(value):
+        def const(value: int) -> FF3:
             if n is None:
                 return FF3(value % GOLDILOCKS_PRIME)
             return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))

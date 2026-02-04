@@ -8,11 +8,11 @@ Protocol Invariant: If you can change an implementation detail without changing
 the resulting proof bytes, that detail does NOT belong in the protocol specification.
 """
 
-import numpy as np
-from typing import List
 
 import galois
-from primitives.field import FF, FF3, ff3_coeffs, FIELD_EXTENSION_DEGREE, get_omega_inv
+import numpy as np
+
+from primitives.field import FF, FF3, FIELD_EXTENSION_DEGREE, ff3_coeffs, get_omega_inv
 from primitives.ntt import NTT
 
 
@@ -90,9 +90,9 @@ def extend_to_domain(
 
 
 def to_coefficients_cubic(
-    values: List[FF3],
+    values: list[FF3],
     n: int,
-) -> List[FF3]:
+) -> list[FF3]:
     """Convert cubic extension field elements from evaluation to coefficient form.
 
     For FF3 polynomials, we apply the transform component-wise over the base field.

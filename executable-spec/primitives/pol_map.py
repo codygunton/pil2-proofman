@@ -10,7 +10,6 @@ map to different stages of the STARK proof system.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List
 
 
 # --- Field Type Enum ---
@@ -30,7 +29,7 @@ class PolMap:
     stagePos: int
     stageId: int
     imPol: bool = False
-    lengths: List[int] = field(default_factory=list)
+    lengths: list[int] = field(default_factory=list)
     commitId: int = 0
     expId: int = 0
     polsMapId: int = 0
@@ -126,8 +125,8 @@ class CustomCommits:
         publicValues: Indices of public values used
     """
     name: str
-    stageWidths: List[int] = field(default_factory=list)
-    publicValues: List[int] = field(default_factory=list)
+    stageWidths: list[int] = field(default_factory=list)
+    publicValues: list[int] = field(default_factory=list)
 
 
 # C++: pil2-stark/src/starkpil/stark_info.hpp::Boundary (lines 60-66)

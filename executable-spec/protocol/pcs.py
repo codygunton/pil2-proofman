@@ -1,9 +1,9 @@
 """FRI Polynomial Commitment Scheme."""
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 from poseidon2_ffi import grinding, linear_hash
+
 from primitives.field import FF3, FF3Poly, ff3_to_flat_list
 from primitives.merkle_tree import HASH_SIZE, MerkleRoot, MerkleTree, QueryProof
 from primitives.transcript import Transcript
@@ -23,7 +23,7 @@ QueryIndex = int
 class FriPcsConfig:
     """FRI PCS parameters."""
     n_bits_ext: int
-    fri_round_log_sizes: List[int]
+    fri_round_log_sizes: list[int]
     n_queries: int
     merkle_arity: int = 4
     pow_bits: int = 16
@@ -36,11 +36,11 @@ class FriPcsConfig:
 @dataclass
 class FriProof:
     """FRI proof: roots, final polynomial, grinding nonce, and query proofs."""
-    fri_roots: List[MerkleRoot] = field(default_factory=list)
+    fri_roots: list[MerkleRoot] = field(default_factory=list)
     final_pol: FF3Poly = field(default_factory=lambda: FF3([]))
     nonce: Nonce = 0
-    query_proofs: List[List[QueryProof]] = field(default_factory=list)
-    query_indices: List[QueryIndex] = field(default_factory=list)
+    query_proofs: list[list[QueryProof]] = field(default_factory=list)
+    query_indices: list[QueryIndex] = field(default_factory=list)
 
 
 # --- FRI PCS ---
@@ -48,7 +48,7 @@ class FriProof:
 class FriPcs:
     """FRI Polynomial Commitment Scheme."""
 
-    def __init__(self, config: FriPcsConfig):
+    def __init__(self, config: FriPcsConfig) -> None:
         self.config = config
         self.fri_trees = [
             MerkleTree(
@@ -63,7 +63,7 @@ class FriPcs:
         self,
         polynomial: EvalPoly,
         transcript: Transcript,
-        stage_trees: Optional[List[MerkleTree]] = None,  # noqa: ARG002
+        stage_trees: list[MerkleTree] | None = None,  # noqa: ARG002
     ) -> FriProof:
         """Generate FRI proof: commit-fold, finalize, grind, query."""
         cfg = self.config
@@ -71,7 +71,7 @@ class FriPcs:
 
         # --- Commit-Fold Loop ---
         # Each iteration: merkelize -> commit root -> derive challenge -> fold
-        fri_roots: List[MerkleRoot] = []
+        fri_roots: list[MerkleRoot] = []
         current_pol = polynomial  # Already FF3Poly
 
         for fri_round in range(n_fri_rounds):
@@ -110,7 +110,7 @@ class FriPcs:
             query_indices=query_indices,
         )
 
-    def _derive_query_indices(self, challenge: List[int], nonce: Nonce) -> List[QueryIndex]:
+    def _derive_query_indices(self, challenge: list[int], nonce: Nonce) -> list[QueryIndex]:
         """Derive pseudorandom query indices from grinding output."""
         cfg = self.config
         query_transcript = Transcript(arity=cfg.transcript_arity)
@@ -118,10 +118,10 @@ class FriPcs:
         query_transcript.put([nonce])
         return query_transcript.get_permutations(cfg.n_queries, cfg.fri_round_log_sizes[0])
 
-    def _generate_query_proofs(self, query_indices: List[QueryIndex]) -> List[List[QueryProof]]:
+    def _generate_query_proofs(self, query_indices: list[QueryIndex]) -> list[list[QueryProof]]:
         """Generate Merkle proofs for all queries at each FRI layer."""
         cfg = self.config
-        query_proofs: List[List[QueryProof]] = []
+        query_proofs: list[list[QueryProof]] = []
 
         for fri_round in range(len(cfg.fri_round_log_sizes) - 1):
             domain_bits = cfg.fri_round_log_sizes[fri_round + 1]

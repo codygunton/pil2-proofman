@@ -2,7 +2,7 @@
 
 import json
 from dataclasses import dataclass, field
-from typing import Optional, List, Any
+from typing import Any
 
 
 @dataclass
@@ -23,15 +23,15 @@ class GlobalInfo:
     curve: str  # "None", "BN128", "BLS12-381", etc.
     lattice_size: int  # Default 368 for CurveType::None
     n_publics: int
-    num_challenges: List[int]
+    num_challenges: list[int]
     transcript_arity: int
 
     # Optional fields (may be empty for simple AIRs)
-    air_groups: Optional[List[str]] = None
-    airs: Optional[List[List[Any]]] = None
-    agg_types: Optional[List[List[Any]]] = None
-    publics_map: Optional[List[Any]] = field(default_factory=list)
-    proof_values_map: Optional[List[Any]] = field(default_factory=list)
+    air_groups: list[str] | None = None
+    airs: list[list[Any]] | None = None
+    agg_types: list[list[Any]] | None = None
+    publics_map: list[Any] | None = field(default_factory=list)
+    proof_values_map: list[Any] | None = field(default_factory=list)
 
     @classmethod
     def from_json(cls, path: str) -> 'GlobalInfo':
@@ -50,7 +50,7 @@ class GlobalInfo:
           "proofValuesMap": []
         }
         """
-        with open(path, 'r') as f:
+        with open(path) as f:
             data = json.load(f)
 
         return cls(

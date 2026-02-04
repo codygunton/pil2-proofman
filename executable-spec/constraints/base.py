@@ -18,7 +18,6 @@ Example:
 """
 
 from abc import ABC, abstractmethod
-from typing import Union
 
 import numpy as np
 
@@ -30,7 +29,9 @@ FF3Poly = FF3  # Array of extension field elements
 FFPoly = FF    # Array of base field elements
 
 
-def compress_2col(busid: int, col1, col2, alpha, gamma, n: int = None):
+def compress_2col(
+    busid: int, col1: FF3, col2: FF3, alpha: FF3, gamma: FF3, n: int | None = None
+) -> FF3:
     """Compress 2-column expression: ((col2*α + col1)*α + busid) + γ."""
     if n is None:
         busid_val = FF3(busid % GOLDILOCKS_PRIME)
@@ -43,7 +44,7 @@ class ConstraintContext(ABC):
     """Uniform interface for constraint evaluation - works for prover and verifier."""
 
     @abstractmethod
-    def col(self, name: str, index: int = 0) -> Union[FF3Poly, FF3]:
+    def col(self, name: str, index: int = 0) -> FF3Poly | FF3:
         """Get column at current row.
 
         Args:
@@ -57,7 +58,7 @@ class ConstraintContext(ABC):
         pass
 
     @abstractmethod
-    def next_col(self, name: str, index: int = 0) -> Union[FF3Poly, FF3]:
+    def next_col(self, name: str, index: int = 0) -> FF3Poly | FF3:
         """Get column at next row (offset +1).
 
         Args:
@@ -71,7 +72,7 @@ class ConstraintContext(ABC):
         pass
 
     @abstractmethod
-    def prev_col(self, name: str, index: int = 0) -> Union[FF3Poly, FF3]:
+    def prev_col(self, name: str, index: int = 0) -> FF3Poly | FF3:
         """Get column at previous row (offset -1).
 
         Args:
@@ -85,7 +86,7 @@ class ConstraintContext(ABC):
         pass
 
     @abstractmethod
-    def const(self, name: str) -> Union[FF3Poly, FF3]:
+    def const(self, name: str) -> FF3Poly | FF3:
         """Get constant polynomial at current row (converted to extension field).
 
         Args:
@@ -98,7 +99,7 @@ class ConstraintContext(ABC):
         pass
 
     @abstractmethod
-    def next_const(self, name: str) -> Union[FF3Poly, FF3]:
+    def next_const(self, name: str) -> FF3Poly | FF3:
         """Get constant polynomial at next row (offset +1).
 
         Args:
@@ -111,7 +112,7 @@ class ConstraintContext(ABC):
         pass
 
     @abstractmethod
-    def prev_const(self, name: str) -> Union[FF3Poly, FF3]:
+    def prev_const(self, name: str) -> FF3Poly | FF3:
         """Get constant polynomial at previous row (offset -1).
 
         Args:
@@ -155,7 +156,7 @@ class ProverConstraintContext(ConstraintContext):
     producing arrays of constraint evaluations.
     """
 
-    def __init__(self, data: ProverData):
+    def __init__(self, data: ProverData) -> None:
         self._data = data
 
     def col(self, name: str, index: int = 0) -> FF3Poly:
@@ -200,7 +201,7 @@ class VerifierConstraintContext(ConstraintContext):
     checking that the constraint polynomial evaluates to zero.
     """
 
-    def __init__(self, data: VerifierData):
+    def __init__(self, data: VerifierData) -> None:
         self._data = data
 
     def col(self, name: str, index: int = 0) -> FF3:
@@ -243,7 +244,7 @@ class ConstraintModule(ABC):
     """
 
     @abstractmethod
-    def constraint_polynomial(self, ctx: ConstraintContext) -> Union[FF3Poly, FF3]:
+    def constraint_polynomial(self, ctx: ConstraintContext) -> FF3Poly | FF3:
         """Evaluate all constraints combined into single polynomial.
 
         Args:
@@ -255,7 +256,7 @@ class ConstraintModule(ABC):
         """
         pass
 
-    def _combine_constraints(self, constraints, vc):
+    def _combine_constraints(self, constraints: list[FF3], vc: FF3) -> FF3:
         """Combine constraint list using standard accumulation pattern.
 
         Computes: ((constraints[0] * vc + constraints[1]) * vc + ...) + constraints[-1]

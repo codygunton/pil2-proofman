@@ -8,16 +8,17 @@ deterministic replay that matches C++ exactly.
 """
 
 import json
-import pytest
-import numpy as np
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
+
+import numpy as np
+import pytest
 
 from primitives.field import FF, ff3_to_flat_list
-from protocol.proof_context import ProofContext
 from protocol.air_config import SetupCtx
+from protocol.proof_context import ProofContext
 from protocol.prover import gen_proof
-
+from protocol.stark_info import StarkInfo
 
 TEST_DATA_DIR = Path(__file__).parent / "test-data"
 
@@ -44,7 +45,7 @@ AIR_CONFIGS = {
 }
 
 
-def load_test_vectors(air_name: str) -> Optional[Dict[str, Any]]:
+def load_test_vectors(air_name: str) -> dict[str, Any] | None:
     """Load test vectors for an AIR."""
     config = AIR_CONFIGS.get(air_name)
     if not config:
@@ -58,7 +59,7 @@ def load_test_vectors(air_name: str) -> Optional[Dict[str, Any]]:
         return json.load(f)
 
 
-def load_setup_ctx(air_name: str) -> Optional[SetupCtx]:
+def load_setup_ctx(air_name: str) -> SetupCtx | None:
     """Load SetupCtx for an AIR including globalInfo.json."""
     config = AIR_CONFIGS.get(air_name)
     if not config:
@@ -75,7 +76,7 @@ def load_setup_ctx(air_name: str) -> Optional[SetupCtx]:
     return SetupCtx.from_starkinfo(str(starkinfo_path), global_info_str)
 
 
-def create_params_from_vectors(stark_info, vectors: dict,
+def create_params_from_vectors(stark_info: StarkInfo, vectors: dict,
                                 inject_challenges: bool = False) -> tuple:
     """Create ProofContext and global_challenge from test vectors.
 
@@ -176,7 +177,7 @@ def create_params_from_vectors(stark_info, vectors: dict,
     return params, global_challenge
 
 
-def flatten_evals(evals_nested):
+def flatten_evals(evals_nested: list) -> list[int]:
     """Flatten nested evals [[a,b,c], [d,e,f], ...] to [a,b,c,d,e,f,...]."""
     if evals_nested and isinstance(evals_nested[0], list):
         return [v for triplet in evals_nested for v in triplet]
@@ -187,7 +188,7 @@ class TestStarkE2E:
     """End-to-end STARK proof tests with transcript replay."""
 
     @pytest.mark.parametrize("air_name", ['simple'])
-    def test_challenges_match(self, air_name):
+    def test_challenges_match(self, air_name: str) -> None:
         """Test that proof generation completes successfully with internal global_challenge.
 
         This test verifies that gen_proof can compute global_challenge internally
@@ -221,7 +222,7 @@ class TestStarkE2E:
         assert len(proof['evals']) > 0
 
     @pytest.mark.parametrize("air_name", ['simple'])
-    def test_evals_match(self, air_name):
+    def test_evals_match(self, air_name: str) -> None:
         """Test that polynomial evaluations are computed.
 
         Verifies that gen_proof successfully computes polynomial evaluations
@@ -242,7 +243,7 @@ class TestStarkE2E:
         params, global_challenge = create_params_from_vectors(stark_info, vectors)
 
         # Run gen_proof with global_challenge from test vectors (VADCOP mode)
-        proof = gen_proof(setup_ctx, params, global_challenge=global_challenge)
+        gen_proof(setup_ctx, params, global_challenge=global_challenge)
 
         # Verify evaluations were computed
         n_evals = len(stark_info.evMap) * 3
@@ -253,7 +254,7 @@ class TestStarkE2E:
         assert all(isinstance(e, int) for e in actual_evals)
 
     @pytest.mark.parametrize("air_name", ['simple'])
-    def test_fri_output_matches(self, air_name):
+    def test_fri_output_matches(self, air_name: str) -> None:
         """Test that FRI output is generated.
 
         Verifies that gen_proof successfully generates FRI components
@@ -297,7 +298,7 @@ class TestStarkWithInjectedChallenges:
     """
 
     @pytest.mark.parametrize("air_name", ['simple'])
-    def test_evals_with_injected_challenges(self, air_name):
+    def test_evals_with_injected_challenges(self, air_name: str) -> None:
         """Test that evals match when using injected challenges.
 
         Challenges are injected from test vectors, but roots are computed by Python.
@@ -317,7 +318,7 @@ class TestStarkWithInjectedChallenges:
 
         # Run gen_proof - challenges are pre-populated, skip transcript challenge derivation
         # Use global_challenge from test vectors (VADCOP mode) for transcript seeding
-        proof = gen_proof(setup_ctx, params, skip_challenge_derivation=True, global_challenge=global_challenge)
+        gen_proof(setup_ctx, params, skip_challenge_derivation=True, global_challenge=global_challenge)
 
         # Check that stage 2 challenges match (they were injected)
         intermediates = vectors['intermediates']
@@ -327,7 +328,7 @@ class TestStarkWithInjectedChallenges:
             for i, cm in enumerate(stark_info.challengesMap):
                 if cm.stage == 2:
                     actual.extend([int(v) for v in params.challenges[i*3:(i+1)*3]])
-            assert actual == expected_stage2, f"Stage 2 challenges injection failed"
+            assert actual == expected_stage2, "Stage 2 challenges injection failed"
 
         # Check evals
         expected_evals = flatten_evals(intermediates.get('evals', []))
@@ -350,7 +351,7 @@ class TestStarkPartialEvals:
     """
 
     @pytest.mark.parametrize("air_name", ['simple'])
-    def test_cm1_and_const_evals(self, air_name):
+    def test_cm1_and_const_evals(self, air_name: str) -> None:
         """Test that cm1 and constant polynomial evaluations match.
 
         Challenges are injected, but roots are computed by Python.
@@ -370,7 +371,7 @@ class TestStarkPartialEvals:
 
         # Run gen_proof with challenge derivation skipped
         # Use global_challenge from test vectors (VADCOP mode) for transcript seeding
-        proof = gen_proof(setup_ctx, params, skip_challenge_derivation=True, global_challenge=global_challenge)
+        gen_proof(setup_ctx, params, skip_challenge_derivation=True, global_challenge=global_challenge)
 
         # Identify testable evaluations (cm1 and const only)
         testable_eval_indices = []
@@ -413,7 +414,7 @@ class TestStarkE2EComplete:
     """
 
     @pytest.mark.parametrize("air_name", list(AIR_CONFIGS.keys()))
-    def test_full_proof_matches(self, air_name):
+    def test_full_proof_matches(self, air_name: str) -> None:
         """Test complete proof generation matches C++ golden values.
 
         Python computes its own roots and uses them throughout. If roots match
@@ -486,8 +487,9 @@ class TestStarkE2EComplete:
         if not bin_path.exists():
             pytest.fail(f"Binary proof file not found: {bin_path}")
 
-        from protocol.proof import to_bytes_full_from_dict
         import struct
+
+        from protocol.proof import to_bytes_full_from_dict
 
         with open(bin_path, 'rb') as f:
             cpp_proof_bytes = f.read()
@@ -529,7 +531,7 @@ class TestStarkE2EComplete:
                 f"Diff with: cmp -l {bin_path} {py_bin_path}"
             )
 
-        assert not mismatches, f"Proof mismatches:\n" + "\n".join(f"  - {m}" for m in mismatches)
+        assert not mismatches, "Proof mismatches:\n" + "\n".join(f"  - {m}" for m in mismatches)
 
 
 class TestFullBinaryComparison:
@@ -545,7 +547,7 @@ class TestFullBinaryComparison:
     """
 
     @pytest.mark.parametrize("air_name", list(AIR_CONFIGS.keys()))
-    def test_full_binary_proof_match(self, air_name):
+    def test_full_binary_proof_match(self, air_name: str) -> None:
         """Test full binary proof equivalence with C++.
 
         This test serializes the complete Python proof (including query proofs)
@@ -555,7 +557,6 @@ class TestFullBinaryComparison:
         them throughout. If roots match C++, challenges match, and the full proof
         matches byte-for-byte.
         """
-        import struct
 
         setup_ctx = load_setup_ctx(air_name)
         if setup_ctx is None:
@@ -656,7 +657,7 @@ class TestGlobalChallengeComputation:
     """
 
     @pytest.mark.parametrize("air_name", list(AIR_CONFIGS.keys()))
-    def test_internal_challenge_produces_valid_proof(self, air_name):
+    def test_internal_challenge_produces_valid_proof(self, air_name: str) -> None:
         """Verify internal global_challenge computation produces valid proof.
 
         This test runs gen_proof with compute_global_challenge=True (internal
@@ -688,7 +689,7 @@ class TestGlobalChallengeComputation:
         assert len(proof['roots']) == 3
         assert proof['fri_proof'] is not None
 
-    def test_external_challenge_required_for_cpp_match(self):
+    def test_external_challenge_required_for_cpp_match(self) -> None:
         """Verify that external global_challenge is required for C++ byte-identical proofs.
 
         The test vectors' global_challenge was computed by C++ proofman by aggregating

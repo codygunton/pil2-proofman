@@ -13,12 +13,12 @@ The compress formula is: ((col2*α + col1)*α + busid) + γ for 2 columns,
 or (col1*α + busid) + γ for 1 column.
 """
 
-from typing import Union
 
 import numpy as np
 
-from primitives.field import FF3, FF3Poly, GOLDILOCKS_PRIME
-from .base import ConstraintModule, ConstraintContext, compress_2col
+from primitives.field import FF3, GOLDILOCKS_PRIME, FF3Poly
+
+from .base import ConstraintContext, ConstraintModule, compress_2col
 
 
 class SimpleLeftConstraints(ConstraintModule):
@@ -28,7 +28,7 @@ class SimpleLeftConstraints(ConstraintModule):
     PIL compiler as found in SimpleLeft.expressionsinfo.json.
     """
 
-    def constraint_polynomial(self, ctx: ConstraintContext) -> Union[FF3Poly, FF3]:
+    def constraint_polynomial(self, ctx: ConstraintContext) -> FF3Poly | FF3:
         """Evaluate combined constraint polynomial.
 
         For prover: returns polynomial over evaluation domain
@@ -69,13 +69,13 @@ class SimpleLeftConstraints(ConstraintModule):
             n = None  # Verifier mode: a is a scalar
 
         # Helper for creating scalar/array constants
-        def const(value):
+        def const(value: int) -> FF3:
             if n is None:
                 return FF3(value % GOLDILOCKS_PRIME)
             return FF3(np.full(n, value % GOLDILOCKS_PRIME, dtype=np.uint64))
 
         # Helper for 1-column compress
-        def compress_1col(busid, col):
+        def compress_1col(busid: int, col: FF3) -> FF3:
             return col * alpha + const(busid) + gamma
 
         # Build constraint polynomials (unweighted)

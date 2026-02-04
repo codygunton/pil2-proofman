@@ -340,7 +340,7 @@ def build_test_vectors(
     return result
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description='Create JSON test vectors from C++ capture output'
     )
@@ -446,7 +446,7 @@ def main():
     if test_vectors['inputs'].get('public_inputs'):
         print(f"  Public inputs: {len(test_vectors['inputs']['public_inputs'])}")
     if test_vectors['inputs'].get('transcript_state_step0'):
-        print(f"  Transcript state captured: Yes")
+        print("  Transcript state captured: Yes")
 
 
 if __name__ == '__main__':

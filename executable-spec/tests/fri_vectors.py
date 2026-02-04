@@ -68,7 +68,7 @@ def _load_vectors(air_name: str) -> dict:
                 f"Vectors not found at {vectors_path}. "
                 f"Run generate-fri-vectors.sh to generate them."
             )
-        with open(vectors_path, 'r') as f:
+        with open(vectors_path) as f:
             _vectors_cache[file_name] = json.load(f)
     return _vectors_cache[file_name]
 
@@ -293,7 +293,7 @@ def get_query_proof_siblings(air_name: str) -> list:
 # ============================================================================
 
 # Load SimpleLeft vectors for backwards compatibility with existing tests
-def _get_simple_left():
+def _get_simple_left() -> dict | None:
     try:
         return _load_vectors('simple')
     except FileNotFoundError:
@@ -322,7 +322,7 @@ else:
     SIMPLE_LEFT_FRI_QUERIES = []
 
 # Load Lookup2_12 vectors for backwards compatibility
-def _get_lookup2_12():
+def _get_lookup2_12() -> dict | None:
     try:
         return _load_vectors('lookup')
     except FileNotFoundError:

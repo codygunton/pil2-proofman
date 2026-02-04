@@ -7,13 +7,13 @@ evaluates the constraint polynomial directly in readable Python code.
 
 from .base import (
     ConstraintContext,
+    ConstraintModule,
     ProverConstraintContext,
     VerifierConstraintContext,
-    ConstraintModule,
 )
-from .simple_left import SimpleLeftConstraints
 from .lookup2_12 import Lookup2_12Constraints
 from .permutation1_6 import Permutation1_6Constraints
+from .simple_left import SimpleLeftConstraints
 
 # Registry mapping AIR names to constraint module classes
 CONSTRAINT_REGISTRY: dict[str, type[ConstraintModule]] = {

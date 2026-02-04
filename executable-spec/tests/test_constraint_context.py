@@ -1,11 +1,12 @@
 """Tests for ConstraintContext ABC and implementations."""
 
-import pytest
 import numpy as np
+import pytest
+
 from primitives.field import FF, FF3
 
 
-def test_prover_context_col_returns_array():
+def test_prover_context_col_returns_array() -> None:
     """ProverConstraintContext.col returns full array of values."""
     from constraints.base import ProverConstraintContext
     from protocol.data import ProverData
@@ -23,7 +24,7 @@ def test_prover_context_col_returns_array():
     assert np.array_equal(result, a_values)
 
 
-def test_prover_context_col_with_index():
+def test_prover_context_col_with_index() -> None:
     """ProverConstraintContext.col supports index parameter for multi-column polynomials."""
     from constraints.base import ProverConstraintContext
     from protocol.data import ProverData
@@ -39,7 +40,7 @@ def test_prover_context_col_with_index():
     assert np.array_equal(ctx.col('a', 1), a1_values)
 
 
-def test_prover_context_next_col_shifts():
+def test_prover_context_next_col_shifts() -> None:
     """ProverConstraintContext.next_col shifts values by -1 (circular)."""
     from constraints.base import ProverConstraintContext
     from protocol.data import ProverData
@@ -57,7 +58,7 @@ def test_prover_context_next_col_shifts():
     assert np.array_equal(result, expected)
 
 
-def test_prover_context_prev_col_shifts():
+def test_prover_context_prev_col_shifts() -> None:
     """ProverConstraintContext.prev_col shifts values by +1 (circular)."""
     from constraints.base import ProverConstraintContext
     from protocol.data import ProverData
@@ -74,7 +75,7 @@ def test_prover_context_prev_col_shifts():
     assert np.array_equal(result, expected)
 
 
-def test_prover_context_challenge_returns_scalar():
+def test_prover_context_challenge_returns_scalar() -> None:
     """ProverConstraintContext.challenge returns scalar challenge value."""
     from constraints.base import ProverConstraintContext
     from protocol.data import ProverData
@@ -87,7 +88,7 @@ def test_prover_context_challenge_returns_scalar():
     assert result == alpha
 
 
-def test_prover_context_const_returns_array():
+def test_prover_context_const_returns_array() -> None:
     """ProverConstraintContext.const returns full constant polynomial array."""
     from constraints.base import ProverConstraintContext
     from protocol.data import ProverData
@@ -100,7 +101,7 @@ def test_prover_context_const_returns_array():
     assert np.array_equal(result, const_values)
 
 
-def test_verifier_context_col_returns_scalar():
+def test_verifier_context_col_returns_scalar() -> None:
     """VerifierConstraintContext.col returns scalar evaluation at xi."""
     from constraints.base import VerifierConstraintContext
     from protocol.data import VerifierData
@@ -115,7 +116,7 @@ def test_verifier_context_col_returns_scalar():
     assert result == eval_val
 
 
-def test_verifier_context_next_col_returns_shifted_eval():
+def test_verifier_context_next_col_returns_shifted_eval() -> None:
     """VerifierConstraintContext.next_col returns evaluation at xi*omega."""
     from constraints.base import VerifierConstraintContext
     from protocol.data import VerifierData
@@ -130,7 +131,7 @@ def test_verifier_context_next_col_returns_shifted_eval():
     assert result == next_eval
 
 
-def test_verifier_context_prev_col_returns_shifted_eval():
+def test_verifier_context_prev_col_returns_shifted_eval() -> None:
     """VerifierConstraintContext.prev_col returns evaluation at xi*omega^(-1)."""
     from constraints.base import VerifierConstraintContext
     from protocol.data import VerifierData
@@ -145,7 +146,7 @@ def test_verifier_context_prev_col_returns_shifted_eval():
     assert result == prev_eval
 
 
-def test_verifier_context_challenge_returns_scalar():
+def test_verifier_context_challenge_returns_scalar() -> None:
     """VerifierConstraintContext.challenge returns scalar challenge value."""
     from constraints.base import VerifierConstraintContext
     from protocol.data import VerifierData
@@ -158,27 +159,27 @@ def test_verifier_context_challenge_returns_scalar():
     assert result == alpha
 
 
-def test_constraint_module_abc():
+def test_constraint_module_abc() -> None:
     """ConstraintModule is an abstract base class requiring constraint_polynomial."""
-    from constraints.base import ConstraintModule, ConstraintContext
+    from constraints.base import ConstraintModule
 
     # Cannot instantiate ConstraintModule directly
     with pytest.raises(TypeError):
         ConstraintModule()
 
 
-def test_uniform_constraint_evaluation():
+def test_uniform_constraint_evaluation() -> None:
     """Same constraint code works for both prover and verifier contexts."""
     from constraints.base import (
+        ConstraintContext,
         ProverConstraintContext,
         VerifierConstraintContext,
-        ConstraintContext,
     )
     from protocol.data import ProverData, VerifierData
 
     # Simple constraint: a * b - c = 0
 
-    def eval_constraint(ctx: ConstraintContext):
+    def eval_constraint(ctx: ConstraintContext) -> FF3:
         a = ctx.col('a')
         b = ctx.col('b')
         c = ctx.col('c')
