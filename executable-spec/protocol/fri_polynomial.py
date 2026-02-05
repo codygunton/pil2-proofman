@@ -31,11 +31,14 @@ from primitives.field import (
     ff3_from_interleaved_numpy,
     ff3_to_interleaved_numpy,
 )
-from primitives.pol_map import EvMap
+from primitives.pol_map import EvMap, PolynomialId
 
 if TYPE_CHECKING:
     from protocol.air_config import ProverHelpers
     from protocol.stark_info import StarkInfo
+
+# Type alias for query polynomial values
+QueryPolynomials = dict[PolynomialId, FF3]
 
 
 def _get_polynomial_on_domain(
@@ -242,9 +245,8 @@ def compute_fri_polynomial(
 
 def compute_fri_polynomial_verifier(
     stark_info: 'StarkInfo',
-    trace: np.ndarray,
-    aux_trace: np.ndarray,
-    const_pols: np.ndarray,
+    poly_values: QueryPolynomials,
+    ev_id_to_poly_id: dict[int, PolynomialId],
     evals: np.ndarray,
     x_div_x_sub: np.ndarray,
     challenges: np.ndarray,
@@ -256,15 +258,16 @@ def compute_fri_polynomial_verifier(
     F(q) = Σ_i (vf1^i * vf2^openingPos[i]) * (poly_i(q) - eval_i) * xDivXSub[q][openingPos[i]]
 
     Where:
-    - poly_i(q) are polynomial values at query point q (from trace/auxTrace)
+    - poly_i(q) are polynomial values at query point q (from poly_values dict)
     - eval_i are claimed evaluations at xi (from evals)
     - xDivXSub[q][i] = 1/(x_q - xi * ω^openingPoints[i])
 
+    This version uses dict-based polynomial access, eliminating buffer offset arithmetic.
+
     Args:
         stark_info: StarkInfo with evMap and polynomial mappings
-        trace: Stage 1 trace buffer (query-sized)
-        aux_trace: Auxiliary trace buffer (query-sized)
-        const_pols: Constant polynomials
+        poly_values: Dict mapping PolynomialId -> FF3 array (vectorized over queries)
+        ev_id_to_poly_id: Mapping from ev_map index to PolynomialId
         evals: Polynomial evaluations from proof
         x_div_x_sub: Precomputed 1/(x - xi*w^k) values
         challenges: Challenge array (interleaved format)
@@ -294,58 +297,6 @@ def compute_fri_polynomial_verifier(
 
     n_opening_points = len(stark_info.opening_points)
 
-    # Helper to get polynomial values at query points
-    def get_poly_vals_at_queries(ev_entry: EvMap) -> FF3 | None:
-        ev_type = ev_entry.type
-        ev_id = ev_entry.id
-
-        if ev_type == EvMap.Type.cm:
-            pol_info = stark_info.cm_pols_map[ev_id]
-            stage = pol_info.stage
-            dim = pol_info.dim
-            stage_pos = pol_info.stage_pos
-            section = f"cm{stage}"
-            n_cols = stark_info.map_sections_n.get(section, 0)
-
-            if stage == 1:
-                buffer = trace
-                base_offset = 0
-            else:
-                base_offset = 0
-                for s in range(2, stage):
-                    sec = f"cm{s}"
-                    if sec in stark_info.map_sections_n:
-                        base_offset += n_queries * stark_info.map_sections_n[sec]
-                buffer = aux_trace
-
-            poly_raw = np.zeros(n_queries * dim, dtype=np.uint64)
-            for q in range(n_queries):
-                src_idx = base_offset + q * n_cols + stage_pos
-                poly_raw[q * dim:(q + 1) * dim] = buffer[src_idx:src_idx + dim]
-
-            if dim == 1:
-                return FF3(np.asarray(poly_raw, dtype=np.uint64))
-            else:
-                return ff3_from_interleaved_numpy(poly_raw, n_queries)
-
-        elif ev_type == EvMap.Type.const_:
-            pol_info = stark_info.const_pols_map[ev_id]
-            dim = pol_info.dim
-            stage_pos = pol_info.stage_pos
-            n_cols = stark_info.n_constants
-
-            poly_raw = np.zeros(n_queries * dim, dtype=np.uint64)
-            for q in range(n_queries):
-                src_idx = q * n_cols + stage_pos
-                poly_raw[q * dim:(q + 1) * dim] = const_pols[src_idx:src_idx + dim]
-
-            if dim == 1:
-                return FF3(np.asarray(poly_raw, dtype=np.uint64))
-            else:
-                return ff3_from_interleaved_numpy(poly_raw, n_queries)
-        else:
-            return None
-
     # Helper to get xDivXSub for opening position at all queries
     def get_x_div_x_sub(opening_idx: int) -> FF3:
         x_div_raw = np.zeros(n_queries * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
@@ -357,7 +308,7 @@ def compute_fri_polynomial_verifier(
 
     # Group ev_map entries by opening position index
     # ev_map[i].opening_pos is the INDEX into opening_points, not the actual value
-    groups_by_opening_idx = {}
+    groups_by_opening_idx: dict[int, list[tuple[int, EvMap]]] = {}
     for ev_idx, ev_entry in enumerate(stark_info.ev_map):
         opening_idx = ev_entry.opening_pos  # This is already an index
         if opening_idx not in groups_by_opening_idx:
@@ -376,7 +327,11 @@ def compute_fri_polynomial_verifier(
         group_acc = FF3(np.zeros(n_queries, dtype=np.uint64))
 
         for ev_idx, ev_entry in entries:
-            poly_vals = get_poly_vals_at_queries(ev_entry)
+            # Look up polynomial values using dict - clean and simple!
+            poly_id = ev_id_to_poly_id.get(ev_idx)
+            if poly_id is None:
+                continue
+            poly_vals = poly_values.get(poly_id)
             if poly_vals is None:
                 continue
 
