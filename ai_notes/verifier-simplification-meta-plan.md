@@ -1,0 +1,191 @@
+# Verifier Simplification Meta-Plan
+
+This plan outlines a phased approach to simplifying `executable-spec/protocol/verifier.py`. Based on investigation of the 32 clarity questions in [verifier-clarity-questions.md](./verifier-clarity-questions.md).
+
+---
+
+## Investigation Results (Dependency Analysis)
+
+### Q1: Can the verifier eliminate buffers?
+
+**Finding: YES, with moderate effort.**
+
+The verifier uses buffers (`trace`, `aux_trace`, `const_pols`) only in `compute_fri_polynomial_verifier`. The current flow:
+
+1. Proof parsing (`_parse_trace_values`) extracts values from `proof.fri.trees.pol_queries[query_idx][tree_idx].v[col_idx][0]` into flat buffers
+2. `compute_fri_polynomial_verifier` reads from buffers using offset arithmetic
+
+**Alternative architecture:**
+- Parse proof directly into `dict[PolynomialId, FF3]` where each FF3 has shape `(n_queries,)`
+- `compute_fri_polynomial_verifier` uses dict lookups instead of buffer arithmetic
+- Much cleaner: `poly_vals = poly_values_at_queries[(stage, name)]`
+
+**What this renders moot:**
+- B #6 (interleaved buffer abstraction) → partially moot for verifier
+- B #7 ([0] subscripts) → solved at parsing boundary, not scattered throughout
+- A #14 (`buff` rename) → moot for this variable
+
+**What still needs buffer work:** `evals`, `challenges`, `x_div_x_sub` are still interleaved buffers, so B #6 remains useful but less critical.
+
+### Q2: Is `last_level_verification` protocol-level?
+
+**Finding: NO, it's purely an engineering optimization.**
+
+From the code analysis:
+- It batches Merkle proofs by sharing intermediate level nodes across queries
+- Without it (`last_level_verification = 0`), each query's Merkle proof goes directly to root
+- Protocol correctness is unaffected; only proof size and verification efficiency change
+
+**The problem:** `last_level_verification` appears 70+ times in the codebase, threading through:
+- `MerkleTree` construction and proof generation
+- All `_verify_*_merkle` functions
+- Proof parsing/serialization
+
+**Simplification options:**
+1. **Always use 0** - Simplest, but can't verify C++ proofs that use it
+2. **Hide inside abstraction** - Create `MerkleVerifier` class that handles this internally, exposing clean API
+
+Option 2 is better: maintains compatibility while hiding complexity from the auditor.
+
+### Revised Dependency Graph
+
+```
+D: Architecture Investigation
+├── Q1 (buffers) ──┬── renders A#14 moot
+│                  ├── solves B#7 at boundary
+│                  └── reduces urgency of B#6
+│
+└── Q2 (last_level) ── dramatically simplifies Merkle code
+                       (but must maintain proof compat)
+
+Independent of D:
+├── A: #1,2,9,10,12,19,27 (type aliases, helpers, renames, errors)
+├── B: #29 (FF/FF3 discipline - always needed)
+└── C: #5,11,13,30,31 (documentation, naming)
+```
+
+---
+
+## Revised Project Structure
+
+Based on the investigation, here's the revised plan:
+
+---
+
+## Project D0: Architecture Decisions (DO FIRST)
+
+**Scope:** Make key architectural decisions that affect downstream work. This is a short spike, not full implementation.
+
+**Decisions to make:**
+1. **Verifier buffer elimination:** Design the `dict[PolynomialId, FF3]` structure and confirm it works with `compute_fri_polynomial_verifier`
+2. **Merkle abstraction:** Design `MerkleVerifier` class API that hides `last_level_verification`
+
+**Deliverables:**
+- Proof-of-concept for buffer-free verifier polynomial access (can be throwaway code)
+- API sketch for `MerkleVerifier`
+- Updated dependency analysis: which items from A/B/C become moot
+
+**Risk:** Low (it's just investigation + design)
+**Effort:** Small (1-2 days)
+**Payoff:** Avoids wasted work on items that become moot
+
+---
+
+## Project A: Low-Hanging Fruit (Immediate Clarity)
+
+**Scope:** Straightforward changes that survive regardless of D0 decisions.
+
+**Items:**
+- #1: Remove Challenge type alias
+- #2: Rename QueryIdx to something clearer (e.g., FRIQueryIdx)
+- #9: Use `_get_challenge` helper consistently (replace inline slicing)
+- #10: Rename `prime` → `row_offset` in EvMap
+- #12: Expand `cm` abbreviation (or add comment explaining it)
+- #19: Fix silent failure in `_find_xi_challenge` (raise exception)
+- #27: Add context to error messages (query index, step number, etc.)
+
+**Removed from original:** #14 (`buff` rename) — may be moot if D0 eliminates buffers
+
+**Risk:** Low
+**Effort:** Small
+**Payoff:** Immediate readability improvement
+
+---
+
+## Project B: Type System & Field Element Discipline
+
+**Scope:** Establish and enforce consistent FF/FF3 usage.
+
+**Items:**
+- #29: Document and enforce FF/FF3 type discipline (update CLAUDE.md/style guide)
+- #6: Abstract remaining interleaved buffer arithmetic (for `evals`, `challenges`, `x_div_x_sub`)
+
+**Conditionally removed:** #7 ([0] subscripts) — solved at parsing boundary if D0 buffer elimination proceeds
+
+**Risk:** Medium
+**Effort:** Medium
+**Payoff:** High—eliminates cognitive friction on field operations
+
+**Depends on:** D0 decisions (to know which buffers remain)
+
+---
+
+## Project C: Data Structure Documentation & Naming
+
+**Scope:** Understand and document the data model.
+
+**Items:**
+- #5: Trace EVALS_HASH_WIDTH to C++ and document derivation
+- #11: Investigate and clarify `airgroup_values` vs `air_values` distinction
+- #13: Check `x_div_x_sub` naming in C++ (keep if matches, rename if not)
+- #30: Document STARKProof structure (docstrings or diagram)
+- #31: Clarify `stark_struct` vs `stark_info` distinction
+
+**Risk:** Low
+**Effort:** Medium
+**Payoff:** Medium—helps auditors understand the data model
+
+**Independent of:** D0 decisions (documentation is always useful)
+
+---
+
+## Project D: Architecture Implementation
+
+**Scope:** Implement the architecture decisions from D0.
+
+**Items:**
+- #17: Eliminate verifier buffers (implement dict-based polynomial access)
+- #23: Implement `MerkleVerifier` abstraction (hide `last_level_verification`)
+- #3: Hide sponge width details inside Merkle abstraction
+- #4: Eliminate stage offset constants (use named stages)
+- #25: Fix circular dependencies
+- #26: Separate parsing phase from verification phase
+
+**Risk:** Medium-High (significant refactoring)
+**Effort:** Large
+**Payoff:** High—dramatically simpler verifier
+
+**Depends on:** D0 decisions and design
+
+---
+
+## Recommended Execution Order
+
+```
+Week 1:  D0 (Architecture Decisions) ─────────────────────┐
+         A (Low-Hanging Fruit) ──────── can run in parallel│
+         C (Documentation) ──────────── can run in parallel│
+                                                           │
+Week 2+: B (Type System) ◄─────────────────────────────────┤
+         D (Architecture Implementation) ◄─────────────────┘
+```
+
+**Key insight:** D0 is a small spike that unlocks the rest. Don't skip it—doing A/B/C without D0's answers risks wasted work.
+
+**What can run in parallel with D0:**
+- A (all items survive regardless)
+- C (documentation is always useful)
+
+**What should wait for D0:**
+- B #6 (need to know which buffers remain)
+- D implementation (obviously)
