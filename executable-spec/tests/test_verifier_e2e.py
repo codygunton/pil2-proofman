@@ -12,9 +12,9 @@ import numpy as np
 import pytest
 
 from primitives.field import FF
+from primitives.ntt import NTT
 from primitives.transcript import Transcript
 from protocol.air_config import AirConfig
-from protocol.proof_context import ProofContext
 from protocol.stark_info import StarkInfo
 from protocol.verifier import stark_verify
 
@@ -84,28 +84,19 @@ def create_fresh_transcript(stark_info: StarkInfo, vectors: dict) -> Transcript:
     return transcript
 
 
-def create_params_from_vectors(stark_info: StarkInfo, vectors: dict) -> ProofContext:
-    """Create ProofContext initialized from test vectors."""
-    from primitives.ntt import NTT
+def create_buffers_from_vectors(
+    stark_info: StarkInfo, vectors: dict
+) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    """Create explicit buffers from test vectors.
 
+    Returns:
+        Tuple of (const_pols, const_pols_extended, public_inputs)
+    """
     inputs = vectors['inputs']
 
     N = 1 << stark_info.stark_struct.n_bits
     N_ext = 1 << stark_info.stark_struct.n_bits_ext
     n_constants = inputs['n_constants']
-
-    # Calculate total trace buffer size
-    trace_size = 0
-    for section in ['cm1', 'cm2', 'cm3']:
-        if section in stark_info.map_sections_n:
-            offset = stark_info.map_offsets.get((section, False), 0)
-            size = N * stark_info.map_sections_n[section]
-            trace_size = max(trace_size, offset + size)
-
-    # Allocate trace and copy witness
-    witness_trace_data = FF(inputs['witness_trace'])
-    trace = FF.Zeros(trace_size)
-    trace[:len(witness_trace_data)] = witness_trace_data
 
     # Convert constant polynomials
     const_pols = FF(inputs['const_pols'])
@@ -114,22 +105,16 @@ def create_params_from_vectors(stark_info: StarkInfo, vectors: dict) -> ProofCon
     ntt = NTT(N)
     const_pols_extended = ntt.extend_pol(const_pols, N_ext, N, n_constants)
 
-    # Allocate challenges buffer
-    challenges = np.zeros(len(stark_info.challenges_map) * 3, dtype=np.uint64)
+    # Extract public_inputs (if any)
+    public_inputs = None
+    if stark_info.n_publics > 0 and 'public_inputs' in inputs:
+        public_inputs = np.array(inputs['public_inputs'], dtype=np.uint64)
 
-    params = ProofContext(
-        trace=trace,
-        auxTrace=np.zeros(stark_info.map_total_n, dtype=np.uint64),
-        publicInputs=FF.Zeros(max(1, stark_info.n_publics)),
-        challenges=challenges,
-        evals=np.zeros(len(stark_info.ev_map) * 3, dtype=np.uint64),
-        airValues=np.zeros(max(1, stark_info.air_values_size * 3), dtype=np.uint64),
-        airgroupValues=np.zeros(max(1, stark_info.airgroup_values_size * 3), dtype=np.uint64),
-        constPols=const_pols,
-        constPolsExtended=const_pols_extended,
+    return (
+        np.asarray(const_pols, dtype=np.uint64),
+        np.asarray(const_pols_extended, dtype=np.uint64),
+        public_inputs
     )
-
-    return params
 
 
 class TestVerifierE2E:
@@ -170,9 +155,9 @@ class TestVerifierE2E:
         if vectors is None:
             pytest.skip(f"Test vectors not found for {air_name}")
 
-        params = create_params_from_vectors(stark_info, vectors)
+        const_pols, const_pols_extended, public_inputs = create_buffers_from_vectors(stark_info, vectors)
         starks = Starks(air_config)
-        verkey = starks.build_const_tree(params.constPolsExtended)
+        verkey = starks.build_const_tree(const_pols_extended)
 
         global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
 
@@ -183,7 +168,7 @@ class TestVerifierE2E:
             air_config=air_config,
             verkey=verkey,
             global_challenge=global_challenge,
-            publics=params.publicInputs,
+            publics=public_inputs,
         )
 
         assert result is True, f"Valid proof for {air_name} should verify"
@@ -222,9 +207,9 @@ class TestVerifierE2E:
         if vectors is None:
             pytest.skip(f"Test vectors not found for {air_name}")
 
-        params = create_params_from_vectors(stark_info, vectors)
+        const_pols, const_pols_extended, public_inputs = create_buffers_from_vectors(stark_info, vectors)
         starks = Starks(air_config)
-        verkey = starks.build_const_tree(params.constPolsExtended)
+        verkey = starks.build_const_tree(const_pols_extended)
         global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
 
         # Corrupt root1 (roots[0])
@@ -236,7 +221,7 @@ class TestVerifierE2E:
             air_config=air_config,
             verkey=verkey,
             global_challenge=global_challenge,
-            publics=params.publicInputs,
+            publics=public_inputs,
         )
 
         assert result is False, "Proof with corrupted root1 should fail verification"

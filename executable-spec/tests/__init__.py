@@ -3,7 +3,6 @@
 # Re-export protocol types for convenience in tests
 from protocol import (
     AirConfig,
-    ProofContext,
     ProverHelpers,
     StarkInfo,
     STARKProof,
@@ -12,7 +11,6 @@ from protocol import (
 
 __all__ = [
     "AirConfig",
-    "ProofContext",
     "ProverHelpers",
     "StarkInfo",
     "STARKProof",
