@@ -122,7 +122,7 @@ Based on the investigation, here's the revised plan:
 
 ## Project A: Low-Hanging Fruit (Immediate Clarity)
 
-**Scope:** Straightforward changes that survive regardless of D0 decisions.
+**Scope:** Straightforward changes that improve readability.
 
 **Items:**
 - #1: Remove Challenge type alias
@@ -132,8 +132,6 @@ Based on the investigation, here's the revised plan:
 - #12: Expand `cm` abbreviation (or add comment explaining it)
 - #19: Fix silent failure in `_find_xi_challenge` (raise exception)
 - #27: Add context to error messages (query index, step number, etc.)
-
-**Removed from original:** #14 (`buff` rename) — resolved by D0 (buffers eliminated)
 
 **Risk:** Low
 **Effort:** Small
@@ -149,13 +147,9 @@ Based on the investigation, here's the revised plan:
 - #29: Document and enforce FF/FF3 type discipline (update CLAUDE.md/style guide)
 - #6: Abstract remaining interleaved buffer arithmetic (for `evals`, `challenges`, `x_div_x_sub`)
 
-**Conditionally removed:** #7 ([0] subscripts) — solved at parsing boundary if D0 buffer elimination proceeds
-
 **Risk:** Medium
 **Effort:** Medium
 **Payoff:** High—eliminates cognitive friction on field operations
-
-**Depends on:** D0 decisions (to know which buffers remain)
 
 ---
 
@@ -178,23 +172,18 @@ Based on the investigation, here's the revised plan:
 
 ---
 
-## Project D: Architecture Implementation
+## Project D: Architecture Implementation (Remaining Items)
 
-**Scope:** Implement the architecture decisions from D0.
+**Scope:** Complete remaining architecture improvements.
 
 **Items:**
-- ~~#17: Eliminate verifier buffers (implement dict-based polynomial access)~~ ✅ DONE
-- ~~#23: Implement `MerkleVerifier` abstraction (hide `last_level_verification`)~~ ✅ DONE
-- ~~#3: Hide sponge width details inside Merkle abstraction~~ ✅ DONE
-- #4: Eliminate stage offset constants (use named stages) - REMAINING
-- #25: Fix circular dependencies - REMAINING (verify scope after D0)
-- #26: Separate parsing phase from verification phase - PARTIALLY DONE (poly parsing separated)
+- #4: Eliminate stage offset constants (use named stages)
+- #25: Fix circular dependencies (verify scope needed)
+- #26: Separate parsing phase from verification phase (partially done - poly parsing separated)
 
-**Risk:** Medium-High (significant refactoring) → **Reduced** after D0
-**Effort:** Large → **Reduced** (core items done)
-**Payoff:** High—dramatically simpler verifier ✅ ACHIEVED
-
-**Depends on:** D0 decisions and design → **Completed**
+**Risk:** Low-Medium (core refactoring complete)
+**Effort:** Small-Medium
+**Payoff:** Incremental improvements to already-simplified verifier
 
 ---
 
