@@ -17,7 +17,7 @@ Group 4 (MerkleProver) remains optional for future work.
 - Group 1: 11 quick wins (type aliases, renames, error context, docs) ✅
 - Group 2: Challenge helper consistency ✅
 - Group 3: B #29 FF/FF3 docs ✅, D #4 deferred (constants already well-documented)
-- Group 4: E #1 MerkleProver - deferred (optional polish)
+- Group 4: E #1 MerkleProver ✅
 
 **Approach:** Execute in parallel groups where possible, with sequential dependencies respected.
 
@@ -330,27 +330,23 @@ The codebase lacks documented conventions for when to use FF vs FF3.
 
 ---
 
-### Group 4: Optional Enhancement (1 item)
+### Group 4: Optional Enhancement (1 item) ✅ COMPLETE
 
-#### E #1: MerkleProver abstraction
+#### E #1: MerkleProver abstraction ✅
 
 **File:** `executable-spec/primitives/merkle_prover.py` (NEW)
-**Effort:** 2-3 hours
+**Effort:** 30 min (simpler than estimated)
 
-Mirror `MerkleVerifier` pattern for proof generation side.
+Created `MerkleProver` class mirroring `MerkleVerifier` pattern.
+Updated stages.py to use factory methods instead of raw MerkleTree construction.
+FriPcs kept unchanged (has its own clean config via FriPcsConfig).
 
 **Changes:**
-1. Create `MerkleProver` class with:
-   - `__init__(config: MerkleConfig)`
-   - `build_tree(leaves: list[list[int]]) -> MerkleTree`
-   - `get_query_proof(tree: MerkleTree, query_idx: int) -> QueryProof`
-   - `get_last_level_nodes(tree: MerkleTree) -> list[int]`
-2. Factory methods: `for_stage()`, `for_fri_step()`
-3. Update prover to use `MerkleProver` instead of raw `MerkleTree`
+1. Created `MerkleProver` with `for_stage()`, `for_const()`, `for_fri_step()` factory methods
+2. Updated stages.py: 3 `MerkleTree(arity=4, ...)` sites replaced with `MerkleProver.for_*()`
+3. `tree` property provides backward compatibility for existing MerkleTree consumers
 
-**Verification:** Tests pass, prover code simplified
-
-**Note:** This is optional polish - prover already works correctly.
+**Verification:** All 155 tests pass, byte-identical proofs
 
 ---
 

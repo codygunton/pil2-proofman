@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from primitives.field import FF, FF3, ff3_from_interleaved_numpy
+from primitives.merkle_prover import MerkleProver
 from primitives.merkle_tree import MerkleRoot, MerkleTree, QueryProof
 from primitives.ntt import NTT
 from primitives.pol_map import EvMap
@@ -406,11 +407,11 @@ class Starks:
             return [0] * 4
 
         constData = [int(x) for x in constPolsExtended[:NExtended * nCols]]
-        last_lvl = self.setupCtx.stark_info.stark_struct.last_level_verification
-        self.const_tree = MerkleTree(arity=4, last_level_verification=last_lvl)
-        self.const_tree.merkelize(constData, NExtended, nCols, n_cols=nCols)
+        self._const_prover = MerkleProver.for_const(self.setupCtx.stark_info)
+        root = self._const_prover.commit(constData, NExtended, nCols)
+        self.const_tree = self._const_prover.tree
 
-        return self.const_tree.get_root()
+        return root
 
     def get_const_query_proof(self, idx: int, elem_size: int = 1) -> QueryProof:
         """Extract query proof from constant polynomial tree."""
@@ -445,12 +446,11 @@ class Starks:
 
         # Build Merkle tree
         extendedData = [int(x) for x in pBuffExtended[:NExtended * nCols]]
-        last_lvl = self.setupCtx.stark_info.stark_struct.last_level_verification
-        tree = MerkleTree(arity=4, last_level_verification=last_lvl)
-        tree.merkelize(extendedData, NExtended, nCols, n_cols=nCols)
-        self.stage_trees[step] = tree
+        prover = MerkleProver.for_stage(self.setupCtx.stark_info)
+        root = prover.commit(extendedData, NExtended, nCols)
+        self.stage_trees[step] = prover.tree
 
-        return tree.get_root()
+        return root
 
     def get_stage_query_proof(self, step: int, idx: int, elem_size: int = 1) -> QueryProof:
         """Extract query proof from a stored stage tree."""
@@ -490,12 +490,11 @@ class Starks:
             cmQ = auxTrace[cmQOffset:]
             extendedData = [int(x) for x in cmQ[:NExtended * nCols]]
 
-            last_lvl = self.setupCtx.stark_info.stark_struct.last_level_verification
-            tree = MerkleTree(arity=4, last_level_verification=last_lvl)
-            tree.merkelize(extendedData, NExtended, nCols, n_cols=nCols)
-            self.stage_trees[step] = tree
+            prover = MerkleProver.for_stage(self.setupCtx.stark_info)
+            root = prover.commit(extendedData, NExtended, nCols)
+            self.stage_trees[step] = prover.tree
 
-            return tree.get_root()
+            return root
 
         return [0] * 4
 
