@@ -4,6 +4,35 @@ This plan outlines a phased approach to simplifying `executable-spec/protocol/ve
 
 ---
 
+## Status: D0 COMPLETE (2026-02-05)
+
+**D0 (Architecture Decisions) has been fully implemented**, not just designed. Key outcomes:
+
+### What was implemented:
+1. **PolynomialId** (`primitives/pol_map.py`) - NamedTuple for identifying polynomials
+2. **MerkleVerifier** (`primitives/merkle_verifier.py`) - Encapsulates `last_level_verification` complexity
+3. **Dict-based polynomial access** - `_parse_polynomial_values()` replaces 5 buffer functions
+4. **Simplified Merkle verification** - 3 functions reduced from ~30-45 lines to ~15-20 lines each
+
+### Items resolved by D0:
+| Item | Status | Reason |
+|------|--------|--------|
+| A #14 (rename `buff`) | **RESOLVED** | `trace`/`aux_trace` buffers eliminated from verifier |
+| B #7 (`[0]` subscripts) | **SOLVED** | Handled at parsing boundary only in `_parse_polynomial_values()` |
+| D #17 (eliminate verifier buffers) | **DONE** | Implemented |
+| D #23 (MerkleVerifier abstraction) | **DONE** | Implemented |
+| Q2 (last_level_verification) | **ADDRESSED** | Reduced from 12+ exposures to 1 (inside MerkleVerifier) |
+| D #3 (hide sponge width) | **ADDRESSED** | `MerkleConfig.sponge_width` computed internally |
+
+### Test verification:
+- All 155 tests pass
+- E2E tests verify byte-identical proofs against C++ implementation
+- Linter checks pass
+
+---
+
+---
+
 ## Investigation Results (Dependency Analysis)
 
 ### Q1: Can the verifier eliminate buffers?
@@ -20,10 +49,10 @@ The verifier uses buffers (`trace`, `aux_trace`, `const_pols`) only in `compute_
 - `compute_fri_polynomial_verifier` uses dict lookups instead of buffer arithmetic
 - Much cleaner: `poly_vals = poly_values_at_queries[(stage, name)]`
 
-**What this renders moot:**
-- B #6 (interleaved buffer abstraction) → partially moot for verifier
+**What this resolves:**
+- B #6 (interleaved buffer abstraction) → partially resolved for verifier
 - B #7 ([0] subscripts) → solved at parsing boundary, not scattered throughout
-- A #14 (`buff` rename) → moot for this variable
+- A #14 (`buff` rename) → resolved (variable eliminated)
 
 **What still needs buffer work:** `evals`, `challenges`, `x_div_x_sub` are still interleaved buffers, so B #6 remains useful but less critical.
 
@@ -51,7 +80,7 @@ Option 2 is better: maintains compatibility while hiding complexity from the aud
 
 ```
 D: Architecture Investigation
-├── Q1 (buffers) ──┬── renders A#14 moot
+├── Q1 (buffers) ──┬── resolves A#14
 │                  ├── solves B#7 at boundary
 │                  └── reduces urgency of B#6
 │
@@ -83,11 +112,11 @@ Based on the investigation, here's the revised plan:
 **Deliverables:**
 - Proof-of-concept for buffer-free verifier polynomial access (can be throwaway code)
 - API sketch for `MerkleVerifier`
-- Updated dependency analysis: which items from A/B/C become moot
+- Updated dependency analysis: which items from A/B/C become resolved
 
 **Risk:** Low (it's just investigation + design)
 **Effort:** Small (1-2 days)
-**Payoff:** Avoids wasted work on items that become moot
+**Payoff:** Avoids wasted work on items that become resolved
 
 ---
 
@@ -104,7 +133,7 @@ Based on the investigation, here's the revised plan:
 - #19: Fix silent failure in `_find_xi_challenge` (raise exception)
 - #27: Add context to error messages (query index, step number, etc.)
 
-**Removed from original:** #14 (`buff` rename) — may be moot if D0 eliminates buffers
+**Removed from original:** #14 (`buff` rename) — resolved by D0 (buffers eliminated)
 
 **Risk:** Low
 **Effort:** Small
@@ -154,38 +183,86 @@ Based on the investigation, here's the revised plan:
 **Scope:** Implement the architecture decisions from D0.
 
 **Items:**
-- #17: Eliminate verifier buffers (implement dict-based polynomial access)
-- #23: Implement `MerkleVerifier` abstraction (hide `last_level_verification`)
-- #3: Hide sponge width details inside Merkle abstraction
-- #4: Eliminate stage offset constants (use named stages)
-- #25: Fix circular dependencies
-- #26: Separate parsing phase from verification phase
+- ~~#17: Eliminate verifier buffers (implement dict-based polynomial access)~~ ✅ DONE
+- ~~#23: Implement `MerkleVerifier` abstraction (hide `last_level_verification`)~~ ✅ DONE
+- ~~#3: Hide sponge width details inside Merkle abstraction~~ ✅ DONE
+- #4: Eliminate stage offset constants (use named stages) - REMAINING
+- #25: Fix circular dependencies - REMAINING (verify scope after D0)
+- #26: Separate parsing phase from verification phase - PARTIALLY DONE (poly parsing separated)
 
-**Risk:** Medium-High (significant refactoring)
-**Effort:** Large
-**Payoff:** High—dramatically simpler verifier
+**Risk:** Medium-High (significant refactoring) → **Reduced** after D0
+**Effort:** Large → **Reduced** (core items done)
+**Payoff:** High—dramatically simpler verifier ✅ ACHIEVED
 
-**Depends on:** D0 decisions and design
+**Depends on:** D0 decisions and design → **Completed**
 
 ---
 
 ## Recommended Execution Order
 
 ```
-Week 1:  D0 (Architecture Decisions) ─────────────────────┐
-         A (Low-Hanging Fruit) ──────── can run in parallel│
-         C (Documentation) ──────────── can run in parallel│
+✅ DONE:  D0 (Architecture Decisions & Implementation) ────┐
                                                            │
-Week 2+: B (Type System) ◄─────────────────────────────────┤
-         D (Architecture Implementation) ◄─────────────────┘
+Next:    A (Low-Hanging Fruit) ────────────────────────────┤ can run now
+         C (Documentation) ────────────────────────────────┤ can run now
+                                                           │
+Later:   B (Type System - remaining buffers only) ◄────────┘
+         D (remaining items: #4, #25, #26) ◄───────────────┘
 ```
 
-**Key insight:** D0 is a small spike that unlocks the rest. Don't skip it—doing A/B/C without D0's answers risks wasted work.
+**Updated status after D0 completion:**
 
-**What can run in parallel with D0:**
-- A (all items survive regardless)
+**Can proceed now:**
+- A (all remaining items survive: #1, #2, #9, #10, #12, #19, #27)
 - C (documentation is always useful)
 
-**What should wait for D0:**
-- B #6 (need to know which buffers remain)
-- D implementation (obviously)
+**Remaining from D:**
+- #4: Eliminate stage offset constants (lower priority)
+- #25: Fix circular dependencies (if any remain)
+- #26: Separate parsing phase from verification phase (partially done with `_parse_polynomial_values()`)
+
+**B updates:**
+- B #6 now only applies to `evals`, `challenges`, `x_div_x_sub` (lower priority)
+- B #7 solved by D0 implementation
+- B #29 (FF/FF3 discipline) still relevant
+
+---
+
+## Project E: Prover Symmetry (NEW - suggested after D0)
+
+**Scope:** Apply the same abstractions to the prover that simplified the verifier.
+
+**Items:**
+- E1: **MerkleProver abstraction** - Mirror `MerkleVerifier` for proof generation
+  - The prover's `MerkleTree` class still exposes `last_level_verification` throughout
+  - A `MerkleProver` class could encapsulate tree building, query proof generation, and last-level node extraction
+  - Would hide `get_last_level_nodes()`, `get_query_proof()`, and related complexity
+
+- E2: Consider dict-based polynomial storage in prover (lower priority)
+  - Prover needs buffers for NTT performance, so this is less clear-cut than verifier
+  - May not be worth the effort
+
+**Risk:** Medium (prover is more complex than verifier)
+**Effort:** Medium (can reuse patterns from MerkleVerifier)
+**Payoff:** Medium—prover already works, this is polish
+
+**Depends on:** Nothing (can proceed independently)
+
+---
+
+## Resolved Items Registry
+
+Items that were planned but resolved by D0 implementation:
+
+| Original Item | How Resolved | What Replaced It |
+|---------------|----------|------------------|
+| A #14: Rename `buff` variable | Buffer variables eliminated from verifier | `poly_values` dict in `_parse_polynomial_values()` |
+| B #7: Fix `[0]` subscript confusion | Subscripts now only appear at parsing boundary | Single location in `_parse_polynomial_values()` |
+| D #17: Eliminate verifier buffers | Implemented | `QueryPolynomials = dict[PolynomialId, FF3]` |
+| D #23: MerkleVerifier abstraction | Implemented | `primitives/merkle_verifier.py` |
+| D #3: Hide sponge width | Implemented | `MerkleConfig.sponge_width` property |
+
+**Why track resolved items?**
+- Prevents accidental re-implementation of solved problems
+- Documents the rationale for anyone reviewing the plan later
+- Shows the payoff of D0 (5 items eliminated by 2 abstractions)
