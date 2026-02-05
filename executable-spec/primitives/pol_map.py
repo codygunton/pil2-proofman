@@ -10,6 +10,27 @@ map to different stages of the STARK proof system.
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import NamedTuple
+
+# --- Polynomial Identification ---
+
+class PolynomialId(NamedTuple):
+    """Identifies a polynomial in verification context.
+
+    Used as dict key for buffer-free polynomial access in the verifier.
+    The verifier parses proof data into dict[PolynomialId, FF3] where
+    values are vectorized across all query points.
+
+    Attributes:
+        type: 'cm' (committed), 'const' (constant)
+        name: Polynomial name from starkinfo (e.g., 'a', 'gsum')
+        index: Array index for multi-instance polynomials (0 for scalars)
+        stage: Stage number (1+ for committed, 0 for constants)
+    """
+    type: str
+    name: str
+    index: int
+    stage: int
 
 
 # --- Field Type Enum ---
