@@ -1,5 +1,10 @@
 # Verifier Simplification: Complete Implementation Plan
 
+## Status: ✅ COMPLETE (2026-02-05)
+
+All Group 1, Group 2, and Group 3 items completed (except D #4 which was deferred).
+Group 4 (MerkleProver) remains optional for future work.
+
 ## Executive Summary
 
 **Scope:** Complete all remaining verifier simplification work from the meta-plan in a single execution pass.
@@ -8,7 +13,11 @@
 - Dict-based polynomial access via `PolynomialId` (eliminates buffer arithmetic)
 - `MerkleVerifier` abstraction (encapsulates `last_level_verification`)
 
-**Remaining work:** 14 items across 4 projects, plus 1 new item (MerkleProver). Research shows most items are trivial (5-15 min each). Total estimated effort: ~4-6 hours.
+**Completed work:**
+- Group 1: 11 quick wins (type aliases, renames, error context, docs) ✅
+- Group 2: Challenge helper consistency ✅
+- Group 3: B #29 FF/FF3 docs ✅, D #4 deferred (constants already well-documented)
+- Group 4: E #1 MerkleProver - deferred (optional polish)
 
 **Approach:** Execute in parallel groups where possible, with sequential dependencies respected.
 
@@ -60,13 +69,13 @@ Deferred:
 
 ## Implementation Tasks
 
-### Group 1: Parallel Quick Wins (11 items, ~90 min total)
+### Group 1: Parallel Quick Wins (11 items, ~90 min total) ✅ COMPLETE
 
 All items in this group are independent and can be executed in any order.
 
 ---
 
-#### A #1: Remove Challenge type alias
+#### A #1: Remove Challenge type alias ✅
 
 **File:** `executable-spec/protocol/verifier.py`
 **Effort:** 5 min
@@ -81,7 +90,7 @@ The `Challenge` type alias adds no semantic value over `FF3`. Remove it.
 
 ---
 
-#### A #2: Rename QueryIdx → FRIQueryIndex
+#### A #2: Rename QueryIdx → FRIQueryIndex ✅
 
 **Files:** `executable-spec/protocol/verifier.py`, `executable-spec/protocol/fri.py`
 **Effort:** 10 min
@@ -97,7 +106,7 @@ The `Challenge` type alias adds no semantic value over `FF3`. Remove it.
 
 ---
 
-#### A #10: Rename prime → row_offset in EvMap
+#### A #10: Rename prime → row_offset in EvMap ✅
 
 **File:** `executable-spec/primitives/pol_map.py`
 **Effort:** 5 min
@@ -113,7 +122,7 @@ The `prime` field name is misleading (suggests primality). It's actually a row o
 
 ---
 
-#### A #12: Expand cm abbreviation
+#### A #12: Expand cm abbreviation ✅
 
 **File:** `executable-spec/primitives/pol_map.py`
 **Effort:** 5 min
@@ -128,7 +137,7 @@ The `prime` field name is misleading (suggests primality). It's actually a row o
 
 ---
 
-#### A #19: Fix silent failure in _find_xi_challenge
+#### A #19: Fix silent failure in _find_xi_challenge ✅
 
 **File:** `executable-spec/protocol/verifier.py`
 **Effort:** 10 min
@@ -145,7 +154,7 @@ The `prime` field name is misleading (suggests primality). It's actually a row o
 
 ---
 
-#### A #27: Add context to error messages
+#### A #27: Add context to error messages ✅
 
 **File:** `executable-spec/protocol/verifier.py`
 **Effort:** 15 min
@@ -163,7 +172,7 @@ Error messages lack context (query index, step number, tree index).
 
 ---
 
-#### C #5: Document EVALS_HASH_WIDTH derivation
+#### C #5: Document EVALS_HASH_WIDTH derivation ✅
 
 **File:** `executable-spec/protocol/verifier.py`
 **Effort:** 10 min
@@ -179,7 +188,7 @@ Error messages lack context (query index, step number, tree index).
 
 ---
 
-#### C #11: Document airgroup_values vs air_values
+#### C #11: Document airgroup_values vs air_values ✅
 
 **Files:** `executable-spec/protocol/verifier.py`, `executable-spec/protocol/proof.py`
 **Effort:** 10 min
@@ -196,7 +205,7 @@ The distinction between `airgroup_values` and `air_values` is unclear.
 
 ---
 
-#### C #13: Verify x_div_x_sub naming matches C++
+#### C #13: Verify x_div_x_sub naming matches C++ ✅
 
 **Files:** `executable-spec/protocol/verifier.py`, `executable-spec/protocol/fri_polynomial.py`
 **Effort:** 5 min
@@ -212,7 +221,7 @@ Verify `x_div_x_sub` naming matches C++ implementation.
 
 ---
 
-#### C #30: Add STARKProof docstrings
+#### C #30: Add STARKProof docstrings ✅
 
 **File:** `executable-spec/protocol/proof.py`
 **Effort:** 15 min
@@ -231,7 +240,7 @@ STARKProof and its nested structures lack docstrings.
 
 ---
 
-#### C #31: Document stark_struct vs stark_info distinction
+#### C #31: Document stark_struct vs stark_info distinction ✅
 
 **Files:** `executable-spec/protocol/stark_info.py`
 **Effort:** 10 min
@@ -248,14 +257,15 @@ STARKProof and its nested structures lack docstrings.
 
 ---
 
-### Group 2: Sequential (1 item, depends on A #2)
+### Group 2: Sequential (1 item, depends on A #2) ✅ COMPLETE
 
-#### A #9: Use _get_challenge helper consistently
+#### A #9: Use _get_challenge helper consistently ✅
 
 **File:** `executable-spec/protocol/verifier.py`
 **Effort:** 15 min
 
-Challenge extraction uses inconsistent patterns. Standardize on `_get_challenge` helper.
+Challenge extraction already uses `_get_challenge` helper consistently.
+The inline patterns in tests are acceptable for test code.
 
 **Changes:**
 1. Ensure `_get_challenge(challenges, name)` helper exists
@@ -274,14 +284,16 @@ Challenge extraction uses inconsistent patterns. Standardize on `_get_challenge`
 
 ---
 
-### Group 3: Independent Medium Items (2 items, ~2 hours)
+### Group 3: Independent Medium Items (2 items, ~2 hours) - PARTIAL
 
-#### D #4: Eliminate stage offset constants
+#### D #4: Eliminate stage offset constants - DEFERRED
 
 **Files:** `executable-spec/protocol/verifier.py`, `executable-spec/protocol/stages.py`
 **Effort:** 1-2 hours
 
-Magic stage offset constants like `STAGE_1_OFFSET = 0` obscure intent.
+The existing named constants (QUOTIENT_STAGE_OFFSET, EVAL_STAGE_OFFSET, FRI_STAGE_OFFSET)
+actually improve readability by documenting what `n_stages + 1`, etc. mean.
+Kept as-is since they serve as semantic documentation.
 
 **Changes:**
 1. Identify all stage offset constants
@@ -300,7 +312,7 @@ Magic stage offset constants like `STAGE_1_OFFSET = 0` obscure intent.
 
 ---
 
-#### B #29: Document FF/FF3 type discipline
+#### B #29: Document FF/FF3 type discipline ✅
 
 **File:** `executable-spec/primitives/field.py` (and CLAUDE.md update)
 **Effort:** 30 min
