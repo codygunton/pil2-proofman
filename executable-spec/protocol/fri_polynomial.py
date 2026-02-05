@@ -29,20 +29,20 @@ from primitives.field import (
     FF3,
     FIELD_EXTENSION_DEGREE,
     ff3_from_interleaved_numpy,
-    ff3_from_numpy_coeffs,
     ff3_to_interleaved_numpy,
 )
 from primitives.pol_map import EvMap
 
 if TYPE_CHECKING:
     from protocol.air_config import ProverHelpers
-    from protocol.proof_context import ProofContext
     from protocol.stark_info import StarkInfo
 
 
 def _get_polynomial_on_domain(
     stark_info: 'StarkInfo',
-    params: 'ProofContext',
+    trace: np.ndarray,
+    aux_trace: np.ndarray,
+    const_pols_extended: np.ndarray,
     ev_entry: EvMap,
     domain_size: int,
     extended: bool = True
@@ -51,7 +51,9 @@ def _get_polynomial_on_domain(
 
     Args:
         stark_info: StarkInfo with polynomial mappings
-        params: ProofContext with trace buffers
+        trace: Stage 1 trace buffer
+        aux_trace: Auxiliary trace buffer
+        const_pols_extended: Extended constant polynomials
         ev_entry: evMap entry with type, id, prime, openingPos
         domain_size: Size of evaluation domain
         extended: Whether using extended domain
@@ -73,12 +75,12 @@ def _get_polynomial_on_domain(
 
         if stage == 1 and not extended:
             # Non-extended: use original trace buffer
-            buffer = params.trace
+            buffer = trace
             base_offset = 0
         else:
             # Extended domain or stage > 1: use auxTrace with proper offset
             base_offset = stark_info.map_offsets.get((section, extended), 0)
-            buffer = params.auxTrace
+            buffer = aux_trace
 
         # For FRI polynomial, read polynomial WITHOUT row offset
         # The row offset (prime) only determines which evaluation point and denominator to use,
@@ -103,7 +105,7 @@ def _get_polynomial_on_domain(
         n_cols = stark_info.n_constants
 
         # Use extended constants buffer for extended domain
-        const_buffer = params.constPolsExtended if extended else params.constPols
+        const_buffer = const_pols_extended
 
         # For FRI polynomial, read constant polynomial WITHOUT row offset
         result = np.zeros(domain_size * dim, dtype=np.uint64)
@@ -123,7 +125,13 @@ def _get_polynomial_on_domain(
 
 def compute_fri_polynomial(
     stark_info: 'StarkInfo',
-    params: 'ProofContext',
+    trace: np.ndarray,
+    aux_trace: np.ndarray,
+    const_pols_extended: np.ndarray,
+    evals: np.ndarray,
+    xi: FF3,
+    vf1: FF3,
+    vf2: FF3,
     domain_size: int,
     extended: bool = True,
     prover_helpers: 'ProverHelpers' = None
@@ -134,7 +142,13 @@ def compute_fri_polynomial(
 
     Args:
         stark_info: StarkInfo with evMap and challenge mappings
-        params: ProofContext with trace buffers, challenges, and evals
+        trace: Stage 1 trace buffer
+        aux_trace: Auxiliary trace buffer
+        const_pols_extended: Extended constant polynomials
+        evals: Polynomial evaluations array
+        xi: Evaluation point challenge
+        vf1: FRI batching challenge 1
+        vf2: FRI batching challenge 2
         domain_size: Size of evaluation domain
         extended: Whether using extended domain
         prover_helpers: ProverHelpers with x domain values (required for prover)
@@ -144,34 +158,7 @@ def compute_fri_polynomial(
     """
     from primitives.field import batch_inverse, get_omega
 
-    # Get vf1, vf2 challenges
-    vf1_idx = next(
-        i for i, cm in enumerate(stark_info.challenges_map)
-        if cm.name == 'std_vf1'
-    )
-    vf2_idx = next(
-        i for i, cm in enumerate(stark_info.challenges_map)
-        if cm.name == 'std_vf2'
-    )
-
-    vf1 = ff3_from_numpy_coeffs(
-        params.challenges[vf1_idx * FIELD_EXTENSION_DEGREE:(vf1_idx + 1) * FIELD_EXTENSION_DEGREE]
-    )
-    vf2 = ff3_from_numpy_coeffs(
-        params.challenges[vf2_idx * FIELD_EXTENSION_DEGREE:(vf2_idx + 1) * FIELD_EXTENSION_DEGREE]
-    )
-
-    # Get xi challenge
-    xi_idx = next(
-        i for i, cm in enumerate(stark_info.challenges_map)
-        if cm.stage == stark_info.n_stages + 2 and cm.stage_id == 0
-    )
-    xi = ff3_from_numpy_coeffs(
-        params.challenges[xi_idx * FIELD_EXTENSION_DEGREE:(xi_idx + 1) * FIELD_EXTENSION_DEGREE]
-    )
-
     # Compute xis[i] = xi * ω^opening_points[i] for each opening position
-    len(stark_info.opening_points)
     w = FF(get_omega(stark_info.stark_struct.n_bits))
     xis = []
     for op in stark_info.opening_points:
@@ -222,15 +209,16 @@ def compute_fri_polynomial(
         for ev_idx, ev_entry in entries:
             # Get polynomial values on domain
             poly_vals = _get_polynomial_on_domain(
-                stark_info, params, ev_entry, domain_size, extended
+                stark_info, trace, aux_trace, const_pols_extended,
+                ev_entry, domain_size, extended
             )
 
             # Get claimed evaluation for this polynomial
             eval_base = ev_idx * FIELD_EXTENSION_DEGREE
             eval_coeffs = [
-                int(params.evals[eval_base]),
-                int(params.evals[eval_base + 1]),
-                int(params.evals[eval_base + 2])
+                int(evals[eval_base]),
+                int(evals[eval_base + 1]),
+                int(evals[eval_base + 2])
             ]
             eval_val = FF3.Vector([eval_coeffs[2], eval_coeffs[1], eval_coeffs[0]])
 
@@ -254,7 +242,12 @@ def compute_fri_polynomial(
 
 def compute_fri_polynomial_verifier(
     stark_info: 'StarkInfo',
-    params: 'ProofContext',
+    trace: np.ndarray,
+    aux_trace: np.ndarray,
+    const_pols: np.ndarray,
+    evals: np.ndarray,
+    x_div_x_sub: np.ndarray,
+    challenges: np.ndarray,
     n_queries: int
 ) -> np.ndarray:
     """Compute FRI polynomial at query points for verifier.
@@ -264,17 +257,23 @@ def compute_fri_polynomial_verifier(
 
     Where:
     - poly_i(q) are polynomial values at query point q (from trace/auxTrace)
-    - eval_i are claimed evaluations at xi (from params.evals)
+    - eval_i are claimed evaluations at xi (from evals)
     - xDivXSub[q][i] = 1/(x_q - xi * ω^openingPoints[i])
 
     Args:
         stark_info: StarkInfo with evMap and polynomial mappings
-        params: ProofContext with trace, auxTrace, evals, xDivXSub, challenges
+        trace: Stage 1 trace buffer (query-sized)
+        aux_trace: Auxiliary trace buffer (query-sized)
+        const_pols: Constant polynomials
+        evals: Polynomial evaluations from proof
+        x_div_x_sub: Precomputed 1/(x - xi*w^k) values
+        challenges: Challenge array (interleaved format)
         n_queries: Number of query points
 
     Returns:
         FRI polynomial values at query points as interleaved array (n_queries * 3)
     """
+    from primitives.field import ff3_from_numpy_coeffs
 
     # Get vf1, vf2 challenges
     vf1_idx = next(
@@ -287,10 +286,10 @@ def compute_fri_polynomial_verifier(
     )
 
     vf1 = ff3_from_numpy_coeffs(
-        params.challenges[vf1_idx * FIELD_EXTENSION_DEGREE:(vf1_idx + 1) * FIELD_EXTENSION_DEGREE]
+        challenges[vf1_idx * FIELD_EXTENSION_DEGREE:(vf1_idx + 1) * FIELD_EXTENSION_DEGREE]
     )
     vf2 = ff3_from_numpy_coeffs(
-        params.challenges[vf2_idx * FIELD_EXTENSION_DEGREE:(vf2_idx + 1) * FIELD_EXTENSION_DEGREE]
+        challenges[vf2_idx * FIELD_EXTENSION_DEGREE:(vf2_idx + 1) * FIELD_EXTENSION_DEGREE]
     )
 
     n_opening_points = len(stark_info.opening_points)
@@ -309,7 +308,7 @@ def compute_fri_polynomial_verifier(
             n_cols = stark_info.map_sections_n.get(section, 0)
 
             if stage == 1:
-                buffer = params.trace
+                buffer = trace
                 base_offset = 0
             else:
                 base_offset = 0
@@ -317,7 +316,7 @@ def compute_fri_polynomial_verifier(
                     sec = f"cm{s}"
                     if sec in stark_info.map_sections_n:
                         base_offset += n_queries * stark_info.map_sections_n[sec]
-                buffer = params.auxTrace
+                buffer = aux_trace
 
             poly_raw = np.zeros(n_queries * dim, dtype=np.uint64)
             for q in range(n_queries):
@@ -338,7 +337,7 @@ def compute_fri_polynomial_verifier(
             poly_raw = np.zeros(n_queries * dim, dtype=np.uint64)
             for q in range(n_queries):
                 src_idx = q * n_cols + stage_pos
-                poly_raw[q * dim:(q + 1) * dim] = params.constPols[src_idx:src_idx + dim]
+                poly_raw[q * dim:(q + 1) * dim] = const_pols[src_idx:src_idx + dim]
 
             if dim == 1:
                 return FF3(np.asarray(poly_raw, dtype=np.uint64))
@@ -353,7 +352,7 @@ def compute_fri_polynomial_verifier(
         for q in range(n_queries):
             base = (q * n_opening_points + opening_idx) * FIELD_EXTENSION_DEGREE
             x_div_raw[q * FIELD_EXTENSION_DEGREE:(q + 1) * FIELD_EXTENSION_DEGREE] = \
-                params.xDivXSub[base:base + FIELD_EXTENSION_DEGREE]
+                x_div_x_sub[base:base + FIELD_EXTENSION_DEGREE]
         return ff3_from_interleaved_numpy(x_div_raw, n_queries)
 
     # Group ev_map entries by opening position index
@@ -383,9 +382,9 @@ def compute_fri_polynomial_verifier(
 
             eval_base = ev_idx * FIELD_EXTENSION_DEGREE
             eval_coeffs = [
-                int(params.evals[eval_base]),
-                int(params.evals[eval_base + 1]),
-                int(params.evals[eval_base + 2])
+                int(evals[eval_base]),
+                int(evals[eval_base + 1]),
+                int(evals[eval_base + 2])
             ]
             eval_val = FF3.Vector([eval_coeffs[2], eval_coeffs[1], eval_coeffs[0]])
 
@@ -393,8 +392,8 @@ def compute_fri_polynomial_verifier(
             group_acc = group_acc * vf2 + diff
 
         # Multiply by xDivXSubXi for this opening position
-        x_div_x_sub = get_x_div_x_sub(opening_idx)
-        group_acc = group_acc * x_div_x_sub
+        x_div_x_sub_val = get_x_div_x_sub(opening_idx)
+        group_acc = group_acc * x_div_x_sub_val
         group_results.append(group_acc)
 
     # Combine groups with vf1 powers (Horner accumulation)

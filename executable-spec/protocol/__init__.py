@@ -12,7 +12,6 @@ from protocol.pcs import (
     QueryIndex,
 )
 from protocol.proof import STARKProof
-from protocol.proof_context import ProofContext
 from protocol.prover import gen_proof
 from protocol.stages import Starks
 from protocol.stark_info import StarkInfo
@@ -37,6 +36,5 @@ __all__ = [
     "StarkInfo",
     "AirConfig",
     "ProverHelpers",
-    "ProofContext",
     "STARKProof",
 ]

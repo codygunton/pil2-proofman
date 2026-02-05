@@ -3,7 +3,7 @@
 This module provides the Starks class which manages the polynomial commitment
 phase of STARK proof generation. For each "stage" of the protocol, Starks:
 
-1. Takes polynomial evaluations from ProofContext
+1. Takes polynomial evaluations from explicit buffers
 2. Extends them to the evaluation domain (via NTT)
 3. Builds a Merkle tree commitment
 4. Returns the Merkle root
@@ -28,26 +28,23 @@ from primitives.ntt import NTT
 from primitives.pol_map import EvMap
 from protocol.air_config import FIELD_EXTENSION_DEGREE, AirConfig, ProverHelpers
 from protocol.data import ProverData
-from protocol.proof_context import ProofContext
 
 if TYPE_CHECKING:
     from protocol.stark_info import StarkInfo
 
-# Late imports to avoid circular dependency:
-# - constraints.base imports protocol.data
-# - protocol.__init__ imports protocol.stages
-# So we import get_constraint_module and get_witness_module inside functions
-
-
 # --- Type Aliases ---
 BufferOffset = int
 StageIndex = int
+ChallengesDict = dict[str, FF3]
 
 
 def _build_prover_data_extended(
     stark_info: StarkInfo,
-    params: ProofContext,
-    constPolsExtended: np.ndarray
+    trace: np.ndarray,
+    aux_trace: np.ndarray,
+    const_pols_extended: np.ndarray,
+    challenges: ChallengesDict,
+    airgroup_values_array: np.ndarray | None = None,
 ) -> ProverData:
     """Build ProverData from extended domain buffers.
 
@@ -56,8 +53,11 @@ def _build_prover_data_extended(
 
     Args:
         stark_info: StarkInfo with polynomial mappings
-        params: ProofContext with trace buffers
-        constPolsExtended: Extended constant polynomials
+        trace: Stage 1 trace buffer
+        aux_trace: Auxiliary trace buffer
+        const_pols_extended: Extended constant polynomials
+        challenges: Named challenges dict
+        airgroup_values_array: Airgroup values array (interleaved FF3)
 
     Returns:
         ProverData ready for constraint evaluation
@@ -67,7 +67,7 @@ def _build_prover_data_extended(
     extend = N_ext // N  # Blowup factor for extended domain
     columns = {}
     constants = {}
-    challenges = {}
+    data_challenges = {}
 
     # Extract committed polynomials (all stages)
     for pol_info in stark_info.cm_pols_map:
@@ -84,7 +84,7 @@ def _build_prover_data_extended(
         values = np.zeros(N_ext * dim, dtype=np.uint64)
         for j in range(N_ext):
             src_idx = offset + j * n_cols + stage_pos
-            values[j * dim:(j + 1) * dim] = params.auxTrace[src_idx:src_idx + dim]
+            values[j * dim:(j + 1) * dim] = aux_trace[src_idx:src_idx + dim]
 
         # Find or compute the index for this polynomial name
         # Multiple columns may share the same name (e.g., im_cluster[0], im_cluster[1])
@@ -108,7 +108,7 @@ def _build_prover_data_extended(
         values = np.zeros(N_ext * dim, dtype=np.uint64)
         for j in range(N_ext):
             src_idx = j * n_cols + stage_pos
-            values[j * dim:(j + 1) * dim] = constPolsExtended[src_idx:src_idx + dim]
+            values[j * dim:(j + 1) * dim] = const_pols_extended[src_idx:src_idx + dim]
 
         if dim == 1:
             constants[name] = FF(np.asarray(values, dtype=np.uint64))
@@ -116,32 +116,31 @@ def _build_prover_data_extended(
             # Constants are typically dim=1, but handle dim>1 if needed
             constants[name] = ff3_from_interleaved_numpy(values, N_ext)
 
-    # Extract challenges
-    for i, chal_info in enumerate(stark_info.challenges_map):
-        name = chal_info.name
-        idx = i * FIELD_EXTENSION_DEGREE
-        coeff0 = int(params.challenges[idx])
-        coeff1 = int(params.challenges[idx + 1])
-        coeff2 = int(params.challenges[idx + 2])
-        challenges[name] = FF3.Vector([coeff2, coeff1, coeff0])
+    # Extract challenges from dict
+    for name, value in challenges.items():
+        data_challenges[name] = value
 
     # Extract airgroup values (accumulated results across AIR instances)
     airgroup_values = {}
-    n_airgroup_values = len(stark_info.airgroup_values_map)
-    for i in range(n_airgroup_values):
-        idx = i * FIELD_EXTENSION_DEGREE
-        coeff0 = int(params.airgroupValues[idx])
-        coeff1 = int(params.airgroupValues[idx + 1])
-        coeff2 = int(params.airgroupValues[idx + 2])
-        airgroup_values[i] = FF3.Vector([coeff2, coeff1, coeff0])
+    if airgroup_values_array is not None:
+        n_airgroup_values = len(stark_info.airgroup_values_map)
+        for i in range(n_airgroup_values):
+            idx = i * FIELD_EXTENSION_DEGREE
+            coeff0 = int(airgroup_values_array[idx])
+            coeff1 = int(airgroup_values_array[idx + 1])
+            coeff2 = int(airgroup_values_array[idx + 2])
+            airgroup_values[i] = FF3.Vector([coeff2, coeff1, coeff0])
 
-    return ProverData(columns=columns, constants=constants, challenges=challenges,
+    return ProverData(columns=columns, constants=constants, challenges=data_challenges,
                       airgroup_values=airgroup_values, extend=extend)
 
 
 def _build_prover_data_base(
     stark_info: StarkInfo,
-    params: ProofContext,
+    trace: np.ndarray,
+    aux_trace: np.ndarray,
+    const_pols: np.ndarray,
+    challenges: ChallengesDict,
 ) -> ProverData:
     """Build ProverData from base domain buffers.
 
@@ -150,7 +149,10 @@ def _build_prover_data_base(
 
     Args:
         stark_info: StarkInfo with polynomial mappings
-        params: ProofContext with trace buffers
+        trace: Stage 1 trace buffer
+        aux_trace: Auxiliary trace buffer
+        const_pols: Base domain constant polynomials
+        challenges: Named challenges dict
 
     Returns:
         ProverData ready for witness computation
@@ -158,7 +160,7 @@ def _build_prover_data_base(
     N = 1 << stark_info.stark_struct.n_bits
     columns = {}
     constants = {}
-    challenges = {}
+    data_challenges = {}
 
     # Extract committed polynomials (all stages, base domain)
     for pol_info in stark_info.cm_pols_map:
@@ -172,12 +174,12 @@ def _build_prover_data_base(
 
         if stage == 1:
             # Stage 1: read from trace buffer
-            buffer = params.trace
+            buffer = trace
             base_offset = 0
         else:
             # Stage 2+: read from auxTrace at non-extended offset
             base_offset = stark_info.map_offsets.get((section, False), 0)
-            buffer = params.auxTrace
+            buffer = aux_trace
 
         # Read polynomial values from buffer
         values = np.zeros(N * dim, dtype=np.uint64)
@@ -206,28 +208,24 @@ def _build_prover_data_base(
         values = np.zeros(N * dim, dtype=np.uint64)
         for j in range(N):
             src_idx = j * n_cols + stage_pos
-            values[j * dim:(j + 1) * dim] = params.constPols[src_idx:src_idx + dim]
+            values[j * dim:(j + 1) * dim] = const_pols[src_idx:src_idx + dim]
 
         if dim == 1:
             constants[name] = FF(np.asarray(values, dtype=np.uint64))
         else:
             constants[name] = ff3_from_interleaved_numpy(values, N)
 
-    # Extract challenges
-    for i, chal_info in enumerate(stark_info.challenges_map):
-        name = chal_info.name
-        idx = i * FIELD_EXTENSION_DEGREE
-        coeff0 = int(params.challenges[idx])
-        coeff1 = int(params.challenges[idx + 1])
-        coeff2 = int(params.challenges[idx + 2])
-        challenges[name] = FF3.Vector([coeff2, coeff1, coeff0])
+    # Extract challenges from dict
+    for name, value in challenges.items():
+        data_challenges[name] = value
 
-    return ProverData(columns=columns, constants=constants, challenges=challenges)
+    return ProverData(columns=columns, constants=constants, challenges=data_challenges)
 
 
 def _write_witness_to_buffer(
     stark_info: StarkInfo,
-    params: ProofContext,
+    aux_trace: np.ndarray,
+    airgroup_values: np.ndarray,
     intermediates: dict,
     grand_sums: dict
 ) -> None:
@@ -235,7 +233,8 @@ def _write_witness_to_buffer(
 
     Args:
         stark_info: StarkInfo with polynomial mappings
-        params: ProofContext with auxTrace buffer
+        aux_trace: Auxiliary trace buffer
+        airgroup_values: Airgroup values output array
         intermediates: Dict like {'im_cluster': {0: poly0, 1: poly1, ...}}
         grand_sums: Dict like {'gsum': gsum_poly}
     """
@@ -274,7 +273,7 @@ def _write_witness_to_buffer(
             # Write to buffer
             for j in range(N):
                 dst_idx = base_offset + j * n_cols + stage_pos
-                params.auxTrace[dst_idx:dst_idx + dim] = interleaved[j * dim:(j + 1) * dim]
+                aux_trace[dst_idx:dst_idx + dim] = interleaved[j * dim:(j + 1) * dim]
 
     # Write grand sum columns (gsum, gprod)
     for col_name, values in grand_sums.items():
@@ -294,7 +293,7 @@ def _write_witness_to_buffer(
 
         for j in range(N):
             dst_idx = base_offset + j * n_cols + stage_pos
-            params.auxTrace[dst_idx:dst_idx + dim] = interleaved[j * dim:(j + 1) * dim]
+            aux_trace[dst_idx:dst_idx + dim] = interleaved[j * dim:(j + 1) * dim]
 
     # Write final gsum/gprod values to airgroupValues
     # These are the running sum/product result used in constraint checking
@@ -314,12 +313,16 @@ def _write_witness_to_buffer(
                     coeffs = ff3_to_numpy_coeffs(final_val)
                     # Write to airgroupValues
                     idx = i * FIELD_EXTENSION_DEGREE
-                    params.airgroupValues[idx:idx + FIELD_EXTENSION_DEGREE] = coeffs
+                    airgroup_values[idx:idx + FIELD_EXTENSION_DEGREE] = coeffs
 
 
 def calculate_witness_with_module(
     stark_info: StarkInfo,
-    params: ProofContext,
+    trace: np.ndarray,
+    aux_trace: np.ndarray,
+    const_pols: np.ndarray,
+    challenges: ChallengesDict,
+    airgroup_values: np.ndarray,
 ) -> None:
     """Calculate witness polynomials using per-AIR witness modules.
 
@@ -327,7 +330,11 @@ def calculate_witness_with_module(
 
     Args:
         stark_info: StarkInfo with AIR name and polynomial mappings
-        params: ProofContext with trace buffers and challenges
+        trace: Stage 1 trace buffer
+        aux_trace: Auxiliary trace buffer
+        const_pols: Base domain constant polynomials
+        challenges: Named challenges dict for stage 2
+        airgroup_values: Output array for airgroup values
     """
     from constraints import ProverConstraintContext
     from witness import get_witness_module
@@ -338,7 +345,7 @@ def calculate_witness_with_module(
     witness_module = get_witness_module(air_name)
 
     # Build context with base domain data
-    prover_data = _build_prover_data_base(stark_info, params)
+    prover_data = _build_prover_data_base(stark_info, trace, aux_trace, const_pols, challenges)
     ctx = ProverConstraintContext(prover_data)
 
     # Compute intermediates (im_cluster columns)
@@ -348,7 +355,7 @@ def calculate_witness_with_module(
     grand_sums = witness_module.compute_grand_sums(ctx)
 
     # Write results back to buffer
-    _write_witness_to_buffer(stark_info, params, intermediates, grand_sums)
+    _write_witness_to_buffer(stark_info, aux_trace, airgroup_values, intermediates, grand_sums)
 
 
 class Starks:
@@ -413,8 +420,7 @@ class Starks:
 
     # --- Stage Commitment ---
 
-    def extendAndMerkelize(self, step: int, trace: np.ndarray, auxTrace: np.ndarray,
-                          pBuffHelper: np.ndarray | None = None) -> MerkleRoot:
+    def extendAndMerkelize(self, step: int, trace: np.ndarray, auxTrace: np.ndarray) -> MerkleRoot:
         """Extend polynomial from N to N_ext and build Merkle tree commitment."""
         N = 1 << self.setupCtx.stark_info.stark_struct.n_bits
         NExtended = 1 << self.setupCtx.stark_info.stark_struct.n_bits_ext
@@ -458,23 +464,22 @@ class Starks:
             raise KeyError(f"Stage {step} tree not found. Has commitStage been called?")
         return self.stage_trees[step]
 
-    def commitStage(self, step: int, params: ProofContext,
-                   pBuffHelper: np.ndarray | None = None) -> MerkleRoot:
+    def commitStage(self, step: int, trace: np.ndarray, auxTrace: np.ndarray) -> MerkleRoot:
         """Execute a commitment stage (witness or quotient polynomial).
 
         Args:
             step: Stage number (1 = witness, 2 = intermediate, n_stages+1 = quotient)
-            params: Proof context with polynomial data
-            pBuffHelper: Optional helper buffer (unused, for API compatibility)
+            trace: Stage 1 trace buffer
+            auxTrace: Auxiliary trace buffer
 
         Returns:
             Merkle root (HASH_SIZE integers)
         """
         if step <= self.setupCtx.stark_info.n_stages:
-            return self.extendAndMerkelize(step, params.trace, params.auxTrace, pBuffHelper)
+            return self.extendAndMerkelize(step, trace, auxTrace)
 
         # Quotient polynomial stage - uses extended NTT
-        self.computeFriPol(params, pBuffHelper)
+        self.computeFriPol(auxTrace)
 
         NExtended = 1 << self.setupCtx.stark_info.stark_struct.n_bits_ext
         section = f"cm{step}"
@@ -482,7 +487,7 @@ class Starks:
 
         if nCols > 0:
             cmQOffset = self.setupCtx.stark_info.map_offsets[(section, True)]
-            cmQ = params.auxTrace[cmQOffset:]
+            cmQ = auxTrace[cmQOffset:]
             extendedData = [int(x) for x in cmQ[:NExtended * nCols]]
 
             last_lvl = self.setupCtx.stark_info.stark_struct.last_level_verification
@@ -496,8 +501,7 @@ class Starks:
 
     # --- Quotient Polynomial ---
 
-    def computeFriPol(self, params: ProofContext,
-                     pBuffHelper: np.ndarray | None = None) -> None:
+    def computeFriPol(self, auxTrace: np.ndarray) -> None:
         """Compute quotient polynomial Q for FRI commitment.
 
         1. INTT constraint polynomial (extended domain -> coefficients)
@@ -516,10 +520,10 @@ class Starks:
         nCols = self.setupCtx.stark_info.map_sections_n[section]
 
         qOffset = self.setupCtx.stark_info.map_offsets[("q", True)]
-        qPol = params.auxTrace[qOffset:]
+        qPol = auxTrace[qOffset:]
 
         cmQOffset = self.setupCtx.stark_info.map_offsets[(section, True)]
-        cmQ = params.auxTrace[cmQOffset:]
+        cmQ = auxTrace[cmQOffset:]
 
         # Step 1: INTT constraint polynomial (uses extended NTT)
         qPolReshaped = qPol[:NExtended * qDim].reshape(NExtended, qDim)
@@ -560,27 +564,38 @@ class Starks:
 
     # --- Constraint and FRI Polynomials ---
 
-    def calculateQuotientPolynomial(self, params: ProofContext,
-                                   prover_helpers: ProverHelpers = None) -> None:
+    def calculateQuotientPolynomial(
+        self,
+        trace: np.ndarray,
+        aux_trace: np.ndarray,
+        const_pols_extended: np.ndarray,
+        challenges: ChallengesDict,
+        prover_helpers: ProverHelpers,
+        airgroup_values: np.ndarray | None = None,
+    ) -> None:
         """Evaluate constraint expression across the extended domain.
 
         Args:
-            params: ProofContext with trace buffers
+            trace: Stage 1 trace buffer
+            aux_trace: Auxiliary trace buffer
+            const_pols_extended: Extended constant polynomials
+            challenges: Named challenges dict
             prover_helpers: ProverHelpers with zerofiers
+            airgroup_values: Airgroup values array (interleaved FF3)
         """
         # Late import to avoid circular dependency
         from constraints import ProverConstraintContext, get_constraint_module
         from primitives.field import ff3_to_interleaved_numpy
 
         qOffset = self.setupCtx.stark_info.map_offsets[("q", True)]
-        qPol = params.auxTrace[qOffset:]
+        qPol = aux_trace[qOffset:]
         stark_info = self.setupCtx.stark_info
         N_ext = 1 << stark_info.stark_struct.n_bits_ext
         air_name = stark_info.name
 
         # Use per-AIR constraint modules
         prover_data = _build_prover_data_extended(
-            stark_info, params, params.constPolsExtended
+            stark_info, trace, aux_trace, const_pols_extended, challenges, airgroup_values
         )
 
         # Get constraint module for this AIR
@@ -600,12 +615,27 @@ class Starks:
         result = ff3_to_interleaved_numpy(constraint_poly)
         qPol[:len(result)] = result
 
-    def calculateFRIPolynomial(self, params: ProofContext,
-                              prover_helpers: ProverHelpers = None) -> None:
+    def calculateFRIPolynomial(
+        self,
+        trace: np.ndarray,
+        aux_trace: np.ndarray,
+        const_pols_extended: np.ndarray,
+        evals: np.ndarray,
+        xi: FF3,
+        vf1: FF3,
+        vf2: FF3,
+        prover_helpers: ProverHelpers,
+    ) -> None:
         """Compute FRI polynomial F = linear combination of committed polys at xi*w^offset.
 
         Args:
-            params: ProofContext with trace buffers
+            trace: Stage 1 trace buffer
+            aux_trace: Auxiliary trace buffer
+            const_pols_extended: Extended constant polynomials
+            evals: Polynomial evaluations array
+            xi: Evaluation point challenge
+            vf1: FRI batching challenge 1
+            vf2: FRI batching challenge 2
             prover_helpers: ProverHelpers with precomputed domain values
         """
         from protocol.fri_polynomial import compute_fri_polynomial
@@ -615,13 +645,13 @@ class Starks:
 
         # Compute FRI polynomial on extended domain
         fri_result = compute_fri_polynomial(
-            stark_info, params, N_ext, extended=True,
-            prover_helpers=prover_helpers
+            stark_info, trace, aux_trace, const_pols_extended, evals,
+            xi, vf1, vf2, N_ext, extended=True, prover_helpers=prover_helpers
         )
 
         # Write result to FRI polynomial buffer
         fOffset = stark_info.map_offsets[("f", True)]
-        fPol = params.auxTrace[fOffset:]
+        fPol = aux_trace[fOffset:]
         fPol[:len(fri_result)] = fri_result
 
     # --- Polynomial Evaluations ---
@@ -687,11 +717,27 @@ class Starks:
         LEvCoeffs = self._ntt.intt(LEvReshaped, n_cols=nOpeningPoints * FIELD_EXTENSION_DEGREE)
         return LEvCoeffs.flatten()
 
-    def computeEvals(self, params: ProofContext, LEv: np.ndarray, openingPoints: list) -> None:
+    def computeEvals(
+        self,
+        trace: np.ndarray,
+        aux_trace: np.ndarray,
+        const_pols_extended: np.ndarray,
+        evals: np.ndarray,
+        LEv: np.ndarray,
+        openingPoints: list,
+    ) -> None:
         """Compute polynomial evaluations at opening points."""
-        self.evmap(params, LEv, openingPoints)
+        self.evmap(trace, aux_trace, const_pols_extended, evals, LEv, openingPoints)
 
-    def evmap(self, params: ProofContext, LEv: np.ndarray, openingPoints: list) -> None:
+    def evmap(
+        self,
+        trace: np.ndarray,
+        aux_trace: np.ndarray,
+        const_pols_extended: np.ndarray,
+        evals: np.ndarray,
+        LEv: np.ndarray,
+        openingPoints: list,
+    ) -> None:
         """Evaluate polynomials at opening points using vectorized operations."""
         from primitives.field import ff3_array, ff3_coeffs
 
@@ -725,15 +771,21 @@ class Starks:
             evMap = self.setupCtx.stark_info.ev_map[evMapIdx]
             openingPosIdx = openingPoints.index(evMap.prime)
 
-            pol_arr = self._load_evmap_poly(params, evMap, rows)
+            pol_arr = self._load_evmap_poly(aux_trace, const_pols_extended, evMap, rows)
             products = LEv_arrays[openingPosIdx] * pol_arr
             result = np.sum(products)
 
             dstIdx = evMapIdx * FIELD_EXTENSION_DEGREE
             coeffs = ff3_coeffs(result)
-            params.evals[dstIdx:dstIdx + 3] = coeffs
+            evals[dstIdx:dstIdx + 3] = coeffs
 
-    def _load_evmap_poly(self, params: ProofContext, evMap: EvMap, rows: np.ndarray) -> FF3:
+    def _load_evmap_poly(
+        self,
+        aux_trace: np.ndarray,
+        const_pols_extended: np.ndarray,
+        evMap: EvMap,
+        rows: np.ndarray,
+    ) -> FF3:
         """Load polynomial values for evmap evaluation."""
         from primitives.field import ff3_array, ff3_array_from_base
 
@@ -745,11 +797,11 @@ class Starks:
             base_indices = offset + rows * nCols + polInfo.stage_pos
 
             if polInfo.dim == 1:
-                return ff3_array_from_base(params.auxTrace[base_indices].tolist())
+                return ff3_array_from_base(aux_trace[base_indices].tolist())
             else:
-                c0 = params.auxTrace[base_indices].tolist()
-                c1 = params.auxTrace[base_indices + 1].tolist()
-                c2 = params.auxTrace[base_indices + 2].tolist()
+                c0 = aux_trace[base_indices].tolist()
+                c1 = aux_trace[base_indices + 1].tolist()
+                c2 = aux_trace[base_indices + 2].tolist()
                 return ff3_array(c0, c1, c2)
 
         elif evMap.type == EvMap.Type.const_:
@@ -757,7 +809,7 @@ class Starks:
             offset = self.setupCtx.stark_info.map_offsets[("const", True)]
             nCols = self.setupCtx.stark_info.map_sections_n["const"]
             base_indices = offset + rows * nCols + polInfo.stage_pos
-            return ff3_array_from_base(params.constPolsExtended[base_indices].tolist())
+            return ff3_array_from_base(const_pols_extended[base_indices].tolist())
 
         elif evMap.type == EvMap.Type.custom:
             polInfo = self.setupCtx.stark_info.custom_commits_map[evMap.commit_id][evMap.id]
@@ -766,7 +818,8 @@ class Starks:
             offset = self.setupCtx.stark_info.map_offsets[(section, True)]
             nCols = self.setupCtx.stark_info.map_sections_n[section]
             base_indices = offset + rows * nCols + polInfo.stage_pos
-            return ff3_array_from_base(params.customCommits[base_indices].tolist())
+            # Note: customCommits buffer not passed in - would need to be added if used
+            raise NotImplementedError("Custom commits not supported in explicit buffer mode")
 
         else:
             raise ValueError(f"Unknown evMap type: {evMap.type}")

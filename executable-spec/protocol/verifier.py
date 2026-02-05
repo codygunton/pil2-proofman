@@ -25,7 +25,6 @@ from protocol.air_config import AirConfig
 from protocol.data import VerifierData
 from protocol.fri import FRI
 from protocol.proof import MerkleProof, STARKProof
-from protocol.proof_context import ProofContext
 from protocol.stark_info import StarkInfo
 
 # Late import: get_constraint_module, VerifierConstraintContext imported inside functions
@@ -102,24 +101,9 @@ def stark_verify(
     const_pols_vals = _parse_const_pols_vals(proof, stark_info)
     trace, aux_trace, custom_commits = _parse_trace_values(proof, stark_info)
 
-    # --- Build verifier context ---
+    # --- Compute x_div_x_sub ---
     xi = _find_xi_challenge(stark_info, challenges)
     x_div_x_sub = _compute_x_div_x_sub(stark_info, xi, fri_queries)
-
-    params = ProofContext(
-        trace=trace,
-        auxTrace=aux_trace,
-        publicInputs=publics,
-        proofValues=proof_values,
-        challenges=challenges,
-        airgroupValues=airgroup_values,
-        airValues=air_values,
-        evals=evals,
-        xDivXSub=x_div_x_sub,
-        constPols=const_pols_vals,
-        constPolsExtended=None,
-        customCommits=custom_commits,
-    )
 
     # --- Verification Checks ---
     is_valid = True
@@ -132,7 +116,9 @@ def stark_verify(
 
     # Check 2: FRI polynomial consistency at query points
     print("Verifying FRI queries consistency")
-    if not _verify_fri_consistency(proof, stark_info, params, fri_queries):
+    if not _verify_fri_consistency(
+        proof, stark_info, trace, aux_trace, const_pols_vals, evals, x_div_x_sub, challenges, fri_queries
+    ):
         print("ERROR: Verify FRI query consistency failed")
         is_valid = False
 
@@ -646,8 +632,17 @@ def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
     return True
 
 
-def _verify_fri_consistency(proof: STARKProof, stark_info: StarkInfo, params: ProofContext,
-                            fri_queries: list[QueryIdx]) -> bool:
+def _verify_fri_consistency(
+    proof: STARKProof,
+    stark_info: StarkInfo,
+    trace: np.ndarray,
+    aux_trace: np.ndarray,
+    const_pols: np.ndarray,
+    evals: np.ndarray,
+    x_div_x_sub: np.ndarray,
+    challenges: np.ndarray,
+    fri_queries: list[QueryIdx],
+) -> bool:
     """Verify FRI polynomial matches constraint evaluation at query points."""
     from protocol.fri_polynomial import compute_fri_polynomial_verifier
 
@@ -655,7 +650,9 @@ def _verify_fri_consistency(proof: STARKProof, stark_info: StarkInfo, params: Pr
     n_steps = len(stark_info.stark_struct.fri_fold_steps)
 
     # Compute FRI polynomial at query points using direct computation
-    buff = compute_fri_polynomial_verifier(stark_info, params, n_queries)
+    buff = compute_fri_polynomial_verifier(
+        stark_info, trace, aux_trace, const_pols, evals, x_div_x_sub, challenges, n_queries
+    )
 
     for query_idx in range(n_queries):
         idx = fri_queries[query_idx] % (1 << stark_info.stark_struct.fri_fold_steps[0].domain_bits)
