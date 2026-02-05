@@ -128,17 +128,17 @@ class TestStarkInfoSimple:
         # SimpleLeft has 27 evaluations
         assert len(stark_info.ev_map) == 27
 
-        # Check first evaluation (gsum at prime=-1)
+        # Check first evaluation (gsum at row_offset=-1)
         ev0 = stark_info.ev_map[0]
         assert ev0.type == EvMap.Type.cm
         assert ev0.id == 15
-        assert ev0.prime == -1
+        assert ev0.row_offset == -1
         assert ev0.opening_pos == 0
 
         # Check a const evaluation
         const_ev = next(ev for ev in stark_info.ev_map if ev.type == EvMap.Type.const_)
         assert const_ev.id == 0
-        assert const_ev.prime in [0, 1]
+        assert const_ev.row_offset in [0, 1]
 
     def test_airgroup_values(self, stark_info: StarkInfo) -> None:
         """Verify airgroup values."""

@@ -1,4 +1,21 @@
-"""STARK configuration parser."""
+"""STARK configuration parser.
+
+This module provides two key configuration classes:
+
+**StarkStruct** (from starkstruct.json):
+    Protocol-level parameters that define the STARK proof system structure.
+    Includes: domain sizes (n_bits, n_bits_ext), FRI configuration (fold steps,
+    blowup factor), Merkle tree parameters (arity, last_level_verification),
+    and security parameters (n_queries, pow_bits).
+
+**StarkInfo** (from starkinfo.json):
+    AIR-specific metadata that defines the constraint system and polynomial layout.
+    Includes: polynomial maps (cm_pols_map, const_pols_map), evaluation map (ev_map),
+    challenge derivation (challenges_map), and memory layout (map_sections_n).
+
+The distinction: StarkStruct is reusable across AIRs with the same domain size,
+while StarkInfo is specific to each AIR's constraint polynomial structure.
+"""
 
 import json
 import math
@@ -263,10 +280,11 @@ class StarkInfo:
     def _parse_ev_map(self, j: dict) -> None:
         """Parse evaluation map."""
         for ev_data in j.get("evMap", []):
+            # JSON key is "prime" (C++ naming), Python attr is "row_offset"
             ev = EvMap(
                 type=EvMap.type_from_string(ev_data["type"]),
                 id=ev_data["id"],
-                prime=ev_data["prime"],
+                row_offset=ev_data["prime"],
             )
 
             if ev_data["type"] == "custom":
@@ -276,10 +294,10 @@ class StarkInfo:
                 ev.opening_pos = ev_data["openingPos"]
             else:
                 try:
-                    ev.opening_pos = self.opening_points.index(ev.prime)
+                    ev.opening_pos = self.opening_points.index(ev.row_offset)
                 except ValueError:
                     raise ValueError(
-                        f"Opening point {ev.prime} not found in opening_points"
+                        f"Opening point {ev.row_offset} not found in opening_points"
                     )
 
             self.ev_map.append(ev)

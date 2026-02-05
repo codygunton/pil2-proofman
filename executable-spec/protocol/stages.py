@@ -748,7 +748,7 @@ class Starks:
         # Build evaluation task list
         evalsToCalculate = [
             i for i, evMap in enumerate(self.setupCtx.stark_info.ev_map)
-            if evMap.prime in openingPoints
+            if evMap.row_offset in openingPoints
         ]
 
         if not evalsToCalculate:
@@ -769,7 +769,7 @@ class Starks:
         # Evaluate each polynomial
         for evMapIdx in evalsToCalculate:
             evMap = self.setupCtx.stark_info.ev_map[evMapIdx]
-            openingPosIdx = openingPoints.index(evMap.prime)
+            openingPosIdx = openingPoints.index(evMap.row_offset)
 
             pol_arr = self._load_evmap_poly(aux_trace, const_pols_extended, evMap, rows)
             products = LEv_arrays[openingPosIdx] * pol_arr

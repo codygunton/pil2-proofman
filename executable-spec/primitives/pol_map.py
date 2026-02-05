@@ -71,9 +71,9 @@ class EvMap:
     Attributes:
         type: Source type (cm=committed, const_=constant, custom=custom commit)
         id: Polynomial ID within source type
-        prime: Opening point offset (index into openingPoints array)
-        commitId: Commitment ID (only for custom type)
-        openingPos: Position in opening points array
+        row_offset: Row offset for evaluation (-1, 0, or 1). C++ name: "prime"
+        commit_id: Commitment ID (only for custom type)
+        opening_pos: Position in opening points array
     """
 
     # C++: stark_info.hpp::EvMap::eType (lines 109-114)
@@ -88,7 +88,7 @@ class EvMap:
 
     type: Type
     id: int
-    prime: int
+    row_offset: int  # C++: "prime" - row offset for evaluation point
     commit_id: int = 0
     opening_pos: int = 0
 

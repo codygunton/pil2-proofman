@@ -40,12 +40,31 @@ class FriProof:
 
 @dataclass
 class STARKProof:
-    """Complete STARK proof."""
+    """Complete STARK proof for a single AIR.
+
+    Contains all components needed to verify that a prover knows a valid
+    execution trace satisfying the AIR constraints.
+
+    Attributes:
+        roots: Merkle roots for each stage commitment (stages 1 to n_stages+1).
+               roots[0] is stage 1 (witness), roots[-1] is quotient polynomial.
+        last_levels: Pre-verified Merkle nodes for last_level_verification optimization.
+                     Indexed by tree: [stage_0, ..., stage_n, const_tree].
+        evals: Polynomial evaluations at challenge point xi. Each entry is
+               [c0, c1, c2] coefficients of an FF3 extension field element.
+        airgroup_values: Values shared across all AIRs in an airgroup (e.g., gsum_result).
+                         Used for cross-AIR boundary constraints. Each is [c0, c1, c2].
+        air_values: Values specific to this individual AIR instance.
+                    Stage 1 values are single FF, stage 2+ are FF3 [c0, c1, c2].
+        custom_commits: Names of custom commitment schemes used (if any).
+        fri: FRI protocol data - folding trees, query proofs, and final polynomial.
+        nonce: Proof-of-work nonce satisfying the grinding constraint.
+    """
     roots: list[Hash] = field(default_factory=list)
     last_levels: list[list[int]] = field(default_factory=list)
-    evals: list[list[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
-    airgroup_values: list[list[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
-    air_values: list[list[int]] = field(default_factory=list)  # [[c0,c1,c2], ...]
+    evals: list[list[int]] = field(default_factory=list)
+    airgroup_values: list[list[int]] = field(default_factory=list)
+    air_values: list[list[int]] = field(default_factory=list)
     custom_commits: list[str] = field(default_factory=list)
     fri: FriProof = field(default_factory=FriProof)
     nonce: int = 0

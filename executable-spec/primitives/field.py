@@ -2,6 +2,27 @@
 
 Uses galois library for all field arithmetic. FF and FF3 are the field types.
 
+Type Discipline
+---------------
+When to use FF (base field):
+- Domain generators (omega, omega_extended)
+- Shift values for coset evaluation
+- Single field element constants
+- Hash outputs (4 base field elements)
+
+When to use FF3 (extension field):
+- Polynomial evaluations (prover and verifier)
+- Challenges (derived from Fiat-Shamir transcript)
+- Constraint polynomial values
+- FRI folding values
+- Polynomial batching coefficients (vf1, vf2)
+
+Interleaved Format (InterleavedFF3):
+- Used for C++ compatibility and bulk operations
+- Layout: [c0_0, c1_0, c2_0, c0_1, c1_1, c2_1, ...]
+- Each FF3 element has 3 consecutive coefficients
+- Convert with: ff3_from_interleaved_numpy(), ff3_to_interleaved_numpy()
+
 FF3 is loaded from a pre-computed cache file (ff3_cache.pkl) to avoid the ~7s
 initialization cost of galois.GF() for extension fields. To regenerate the cache:
     python -c "from primitives.field import _regenerate_ff3_cache; _regenerate_ff3_cache()"

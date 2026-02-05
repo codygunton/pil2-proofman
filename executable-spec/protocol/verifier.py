@@ -31,15 +31,15 @@ from protocol.stark_info import StarkInfo
 # Late import: get_constraint_module, VerifierConstraintContext imported inside functions
 
 # --- Type Aliases ---
-# Challenge represents FF3 elements stored as interleaved numpy arrays for performance.
-Challenge = InterleavedFF3      # Extension field element [c0, c1, c2] - interleaved FF3 coefficients
-QueryIdx = int                  # FRI query position in domain
+FRIQueryIndex = int  # Index into FRI query domain (0 to 2^n_bits_ext - 1)
 
 # Query polynomial values: dict mapping PolynomialId -> FF3 array (vectorized over n_queries)
 QueryPolynomials = dict[PolynomialId, FF3]
 
 
-# Poseidon2 linear hash width for evaluation hashing
+# Poseidon2 linear hash width for evaluation hashing.
+# Value matches C++ EVALS_HASH_WIDTH in pil2-stark/src/starkpil/stark_info.hpp
+# Set to 16 for Poseidon2 with arity 16 (the transcript arity).
 EVALS_HASH_WIDTH = 16
 
 # Stage number offsets from n_stages for special protocol stages
@@ -317,12 +317,26 @@ def _build_ev_id_to_poly_id_map(stark_info: StarkInfo) -> dict[int, PolynomialId
     return ev_id_to_poly_id
 
 
-def _find_xi_challenge(stark_info: StarkInfo, challenges: InterleavedFF3) -> Challenge:
-    """Find xi (evaluation point) in challenges array."""
+def _find_xi_challenge(stark_info: StarkInfo, challenges: InterleavedFF3) -> InterleavedFF3:
+    """Find xi (evaluation point) in challenges array.
+
+    Args:
+        stark_info: StarkInfo with challenges_map
+        challenges: Interleaved challenge buffer
+
+    Returns:
+        xi challenge as interleaved FF3 coefficients
+
+    Raises:
+        ValueError: If xi challenge (std_xi) not found in challenges_map
+    """
     for i, challenge_info in enumerate(stark_info.challenges_map):
         if challenge_info.stage == stark_info.n_stages + EVAL_STAGE_OFFSET and challenge_info.stage_id == 0:
             return _get_challenge(challenges, i)
-    return np.zeros(FIELD_EXTENSION_DEGREE, dtype=np.uint64)
+    raise ValueError(
+        f"Challenge 'std_xi' not found in challenges_map. "
+        f"Expected at stage {stark_info.n_stages + EVAL_STAGE_OFFSET}, stage_id 0"
+    )
 
 
 # --- Fiat-Shamir Transcript Reconstruction ---
@@ -434,7 +448,7 @@ def _build_verifier_data(
     for ev_idx, eval_entry in enumerate(stark_info.ev_map):
         ev_type = eval_entry.type
         ev_id = eval_entry.id
-        offset = eval_entry.prime  # Row offset: -1, 0, or 1
+        offset = eval_entry.row_offset  # Row offset: -1, 0, or 1
 
         # Get polynomial name and index
         if ev_type.name == 'cm':
@@ -524,12 +538,14 @@ def _evaluate_constraint_with_module(stark_info: StarkInfo, verifier_data: Verif
     return np.array(ff3_coeffs(quotient_at_xi), dtype=np.uint64)
 
 
-def _compute_x_div_x_sub(stark_info: StarkInfo, xi_challenge: Challenge, fri_queries: list[QueryIdx]) -> InterleavedFF3:
+def _compute_x_div_x_sub(stark_info: StarkInfo, xi_challenge: InterleavedFF3, fri_queries: list[FRIQueryIndex]) -> InterleavedFF3:
     """Compute 1/(x - xi*w^openingPoint) for DEEP-ALI quotient.
 
     For each query point x and each opening point, we compute the denominator
     of the DEEP quotient: 1/(x - xi * w^openingPoint). This is used to
     reconstruct the committed polynomials from their evaluations.
+
+    Matches C++ variable: xDivXSub (stark_verify.hpp, steps.hpp)
     """
     n_queries = stark_info.stark_struct.n_queries
     n_opening_points = len(stark_info.opening_points)
@@ -616,7 +632,7 @@ def _reconstruct_quotient_at_xi(stark_info: StarkInfo, evals: InterleavedFF3, xi
 
 
 def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
-                        xi_challenge: Challenge, challenges: InterleavedFF3,
+                        xi_challenge: InterleavedFF3, challenges: InterleavedFF3,
                         airgroup_values: InterleavedFF3) -> bool:
     """Verify Q(xi) = C(xi) - the core STARK equation.
 
@@ -659,7 +675,7 @@ def _verify_fri_consistency(
     evals: np.ndarray,
     x_div_x_sub: np.ndarray,
     challenges: np.ndarray,
-    fri_queries: list[QueryIdx],
+    fri_queries: list[FRIQueryIndex],
 ) -> bool:
     """Verify FRI polynomial matches constraint evaluation at query points."""
     from protocol.fri_polynomial import compute_fri_polynomial_verifier
@@ -687,6 +703,8 @@ def _verify_fri_consistency(
         computed = buff[query_idx * FIELD_EXTENSION_DEGREE:(query_idx + 1) * FIELD_EXTENSION_DEGREE]
         for j in range(FIELD_EXTENSION_DEGREE):
             if int(proof_coeffs[j]) != int(computed[j]):
+                print(f"  FRI consistency mismatch at query {query_idx}, coefficient {j}")
+                print(f"    proof: {proof_coeffs}, computed: {list(computed)}")
                 return False
 
     return True
@@ -695,7 +713,7 @@ def _verify_fri_consistency(
 # --- Merkle Tree Verification ---
 
 def _verify_stage_merkle(proof: STARKProof, stark_info: StarkInfo, root: MerkleRoot, stage: int,
-                         fri_queries: list[QueryIdx]) -> bool:
+                         fri_queries: list[FRIQueryIndex]) -> bool:
     """Verify stage commitment Merkle tree using MerkleVerifier.
 
     The MerkleVerifier encapsulates all last_level_verification logic internally,
@@ -714,13 +732,14 @@ def _verify_stage_merkle(proof: STARKProof, stark_info: StarkInfo, root: MerkleR
         siblings = query_proof.mp
 
         if not verifier.verify_query(fri_queries[query_idx], values, siblings):
+            print(f"  Stage {stage} Merkle verification failed at query {query_idx}")
             return False
 
     return True
 
 
 def _verify_const_merkle(proof: STARKProof, stark_info: StarkInfo, verkey: MerkleRoot,
-                         fri_queries: list[QueryIdx]) -> bool:
+                         fri_queries: list[FRIQueryIndex]) -> bool:
     """Verify constant polynomial Merkle tree using MerkleVerifier."""
     verifier = MerkleVerifier.for_const(proof, stark_info, verkey)
     n_queries = stark_info.stark_struct.n_queries
@@ -733,19 +752,20 @@ def _verify_const_merkle(proof: STARKProof, stark_info: StarkInfo, verkey: Merkl
         siblings = query_proof.mp
 
         if not verifier.verify_query(fri_queries[query_idx], values, siblings):
+            print(f"  Constant tree Merkle verification failed at query {query_idx}")
             return False
 
     return True
 
 
 def _verify_custom_commit_merkle(proof: STARKProof, stark_info: StarkInfo, root: MerkleRoot, name: str,
-                                 fri_queries: list[QueryIdx]) -> bool:
+                                 fri_queries: list[FRIQueryIndex]) -> bool:
     """Verify custom commit Merkle tree (not implemented for test AIRs)."""
     # Custom commits are not used in test AIRs, return True for now
     return True
 
 
-def _verify_fri_merkle_tree(proof: STARKProof, stark_info: StarkInfo, step: int, fri_queries: list[QueryIdx]) -> bool:
+def _verify_fri_merkle_tree(proof: STARKProof, stark_info: StarkInfo, step: int, fri_queries: list[FRIQueryIndex]) -> bool:
     """Verify FRI layer Merkle tree using MerkleVerifier."""
     verifier = MerkleVerifier.for_fri_step(proof, stark_info, step)
     stark_struct = stark_info.stark_struct
@@ -763,6 +783,7 @@ def _verify_fri_merkle_tree(proof: STARKProof, stark_info: StarkInfo, step: int,
         siblings = query_proof.mp
 
         if not verifier.verify_query(idx, values, siblings):
+            print(f"  FRI step {step} Merkle verification failed at query {query_idx}")
             return False
 
     return True
@@ -771,7 +792,7 @@ def _verify_fri_merkle_tree(proof: STARKProof, stark_info: StarkInfo, step: int,
 # --- FRI Verification ---
 
 def _verify_fri_folding(proof: STARKProof, stark_info: StarkInfo, challenges: InterleavedFF3, step: int,
-                        fri_queries: list[QueryIdx]) -> bool:
+                        fri_queries: list[FRIQueryIndex]) -> bool:
     """Verify FRI folding: P'(y) derived correctly from P(y), P(-y), etc.
 
     FRI soundness relies on correct folding: at each step, the prover commits
@@ -822,6 +843,8 @@ def _verify_fri_folding(proof: STARKProof, stark_info: StarkInfo, challenges: In
             expected = proof.fri.pol[idx]
 
         if value != FF3.Vector([int(expected[2]), int(expected[1]), int(expected[0])]):
+            print(f"  FRI folding mismatch at step {step}, query {query_idx}")
+            print(f"    computed: {ff3_coeffs(value)}, expected: {expected}")
             return False
 
     return True
