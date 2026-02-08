@@ -80,10 +80,9 @@ def stark_verify(
     # --- Parse proof components ---
     evals = _parse_evals(proof, stark_info)
     airgroup_values = _parse_airgroup_values(proof, stark_info)
-    _air_values = _parse_air_values(proof, stark_info)  # Parsed for validation, used in transcript
 
     # --- Reconstruct Fiat-Shamir transcript ---
-    challenges, final_pol = _reconstruct_transcript(proof, stark_info, global_challenge)
+    challenges = _reconstruct_transcript(proof, stark_info, global_challenge)
 
     # --- Verify proof-of-work ---
     grinding_idx = len(stark_info.challenges_map) + len(stark_struct.fri_fold_steps)
@@ -180,21 +179,6 @@ def _parse_airgroup_values(proof: STARKProof, stark_info: StarkInfo) -> Interlea
     if num_airgroup_values == 0:
         return np.zeros(0, dtype=np.uint64)
     return ff3_to_interleaved_numpy(ff3_from_json(proof.airgroup_values[:num_airgroup_values]))
-
-
-def _parse_air_values(proof: STARKProof, stark_info: StarkInfo) -> InterleavedFF3:
-    """Stage 1 values are single Fe, stage 2+ are Fe3."""
-    values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
-    buffer_offset = 0
-    for i, air_value in enumerate(stark_info.air_values_map):
-        if air_value.stage == 1:
-            values[buffer_offset] = int(proof.air_values[i][0])
-            buffer_offset += 1
-        else:
-            for j in range(FIELD_EXTENSION_DEGREE):
-                values[buffer_offset + j] = int(proof.air_values[i][j])
-            buffer_offset += FIELD_EXTENSION_DEGREE
-    return values
 
 
 def _parse_polynomial_values(proof: STARKProof, stark_info: StarkInfo) -> QueryPolynomials:
@@ -341,8 +325,8 @@ def _find_xi_challenge(stark_info: StarkInfo, challenges: InterleavedFF3) -> Int
 
 # --- Fiat-Shamir Transcript Reconstruction ---
 
-def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_challenge: InterleavedFF3) -> tuple[InterleavedFF3, InterleavedFF3]:
-    """Reconstruct Fiat-Shamir transcript, returning (challenges, final_pol).
+def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_challenge: InterleavedFF3) -> InterleavedFF3:
+    """Reconstruct Fiat-Shamir transcript, returning challenges.
 
     Protocol flow:
     1. Initialize transcript with global_challenge
@@ -396,7 +380,6 @@ def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_cha
             challenge_idx += 1
 
     # FRI steps
-    final_pol = None
     for step in range(n_steps):
         if step > 0:
             challenges[challenge_idx * FIELD_EXTENSION_DEGREE:(challenge_idx + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
@@ -405,8 +388,7 @@ def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_cha
         if step < n_steps - 1:
             transcript.put(proof.fri.trees_fri[step].root)
         else:
-            final_pol_ff3 = ff3_from_json(proof.fri.pol)
-            final_pol = ff3_to_interleaved_numpy(final_pol_ff3)
+            final_pol = ff3_to_interleaved_numpy(ff3_from_json(proof.fri.pol))
 
             if not stark_struct.hash_commits:
                 transcript.put(final_pol.tolist())
@@ -418,7 +400,7 @@ def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_cha
     # Grinding challenge
     challenges[challenge_idx * FIELD_EXTENSION_DEGREE:(challenge_idx + 1) * FIELD_EXTENSION_DEGREE] = transcript.get_field()
 
-    return challenges, final_pol
+    return challenges
 
 
 # --- Evaluation Verification ---

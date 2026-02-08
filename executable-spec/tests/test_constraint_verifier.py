@@ -39,7 +39,7 @@ def load_simple_left_fixture() -> tuple:
         vectors = json.load(f)
 
     global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
-    challenges, _ = _reconstruct_transcript(proof, stark_info, global_challenge)
+    challenges = _reconstruct_transcript(proof, stark_info, global_challenge)
 
     # Build airgroup_values as interleaved numpy array
     airgroup_values = np.array([v for av in proof.airgroup_values for v in av], dtype=np.uint64)
