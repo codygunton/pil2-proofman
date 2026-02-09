@@ -7,7 +7,7 @@ Filenames use - (hyphen) for separators, not _ (underscore) whenever possible.
 
 ### Setup
 
-Before running tests, set up the proving keys:
+Before running tests the first time, set up the proving keys:
 
 ```bash
 ./setup.sh              # set up all tests (simple + lookup + permutation)
@@ -38,7 +38,7 @@ The Python implementation in `executable-spec/` is a complete STARK prover and v
 **Run Python tests:**
 ```bash
 cd executable-spec
-./run-tests.sh                # all 164 tests
+./run-tests.sh                # all 171 tests
 ./run-tests.sh e2e            # E2E tests (prover + verifier vs C++)
 ./run-tests.sh prover         # prover E2E only
 ./run-tests.sh verifier       # verifier E2E only
@@ -52,7 +52,7 @@ cd executable-spec
 ./run-tests.sh -k "pattern"   # pytest -k filter
 ```
 
-**Test suite overview (164 tests):**
+**Test suite overview (171 tests):**
 
 | Test File | Description |
 |-----------|-------------|
@@ -67,6 +67,8 @@ cd executable-spec
 | `test_proof.py` | Proof serialization/deserialization |
 | `test_ntt.py` | NTT/INTT operations |
 | `test_batch_inverse.py` | Montgomery batch inversion |
+| `test_expressions_bin.py` | Expression binary parser tests |
+| `test_bytecode_equivalence.py` | Bytecode vs hand-written constraint equivalence |
 
 **Test data directory (`executable-spec/tests/test-data/`):**
 - `*.json` - JSON test vectors with inputs, intermediates, and expected outputs
@@ -105,12 +107,14 @@ After modifying Python code in `executable-spec/`, run these review agents (via 
 executable-spec/
 ├── constraints/         # Per-AIR constraint polynomial modules
 │   ├── base.py          # ConstraintModule ABC, ProverConstraintContext
+│   ├── bytecode_adapter.py # BytecodeConstraintModule (bytecode fallback)
 │   ├── simple_left.py   # SimpleLeft constraint implementation
 │   ├── lookup2_12.py    # Lookup2_12 constraint implementation
 │   └── permutation1_6.py # Permutation1_6 constraint implementation
 │
 ├── witness/             # Per-AIR witness generation modules
 │   ├── base.py          # WitnessModule ABC
+│   ├── bytecode_adapter.py # BytecodeWitnessModule (bytecode fallback)
 │   ├── simple_left.py   # SimpleLeft witness (im_cluster, gsum)
 │   ├── lookup2_12.py    # Lookup2_12 witness
 │   └── permutation1_6.py # Permutation1_6 witness
@@ -119,8 +123,14 @@ executable-spec/
 │   ├── field.py         # Goldilocks field FF and cubic extension FF3
 │   ├── ntt.py           # Number Theoretic Transform
 │   ├── merkle_tree.py   # Merkle tree construction and proofs
+│   ├── merkle_prover.py # Merkle tree prover abstraction
+│   ├── merkle_verifier.py # Merkle tree verifier abstraction
 │   ├── transcript.py    # Fiat-Shamir transcript (Poseidon2)
-│   └── poseidon2-ffi/   # Rust FFI for Poseidon2 hash
+│   ├── poseidon2-ffi/   # Rust FFI for Poseidon2 hash
+│   └── expression_bytecode/ # Recovered bytecode interpreter (isolated)
+│       ├── expressions_bin.py    # Binary expression parser
+│       ├── expression_evaluator.py # Bytecode evaluation engine
+│       └── witness_generation.py  # Hint-driven witness computation
 │
 ├── protocol/            # STARK protocol implementation
 │   ├── prover.py        # Main proof generation entry point
@@ -131,28 +141,17 @@ executable-spec/
 │   ├── fri_polynomial.py # FRI polynomial computation
 │   ├── stark_info.py    # StarkInfo JSON parser
 │   ├── air_config.py    # AIR configuration and ProverHelpers
-│   ├── proof_context.py # Buffer-based prover/verifier state
 │   ├── data.py          # ProverData/VerifierData for constraint modules
 │   └── proof.py         # Proof data structures and serialization
 │
-├── tests/               # Test suite (164 tests)
+├── tests/               # Test suite (171 tests)
 ├── setup.sh             # Environment setup (uv sync + poseidon2-ffi)
 └── run-tests.sh         # Test runner with filters
 ```
 
 ### Data Model
 
-The codebase uses a two-layer data model:
-
-1. **ProofContext** (protocol/proof_context.py)
-   - Buffer-based storage with C++ compatible layout
-   - Used by: Merkle tree building, NTT, FRI polynomial computation
-   - Efficient for bulk protocol operations
-
-2. **ProverData / VerifierData** (protocol/data.py)
-   - Dict-based storage with named columns
-   - Used by: Constraint modules, witness modules
-   - Readable for AIR-specific code
+**ProverData / VerifierData** (protocol/data.py) provide dict-based storage with named columns, used by constraint and witness modules for readable AIR-specific code. Protocol internals (Merkle trees, NTT, FRI) work directly with numpy arrays.
 
 ### Type System
 
