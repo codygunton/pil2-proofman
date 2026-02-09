@@ -158,7 +158,7 @@ class ProverHelpers:
 
                 helpers.zi[i*FIELD_EXTENSION_DEGREE:(i+1)*FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(zi_temp)
 
-        helpers.x_n = np.array([z[0], z[1], z[2]], dtype=np.uint64)
+        helpers.x_n = ff3_to_numpy_coeffs(x_n_ff3)
         return helpers
 
     def compute_x(self, n_bits: int, n_bits_ext: int, pil1: bool) -> None:
