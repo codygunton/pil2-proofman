@@ -88,6 +88,15 @@ To regenerate C++ FRI pinning vectors (for `pil2-stark/tests/fri-pinning/fri_pin
 ./generate-fri-vectors.sh lookup   # regenerate Lookup2_12 only
 ```
 
+## Code Review Agents
+
+After modifying Python code in `executable-spec/`, run these review agents (via the Task tool) before considering work complete:
+
+- **zksnark-python-style** — after writing/modifying Python in executable-spec/
+- **human-simplicity-enforcer** — after writing/refactoring code, check readability
+- **protocol-purity-guardian** — after modifying anything in protocol/
+- **paranoid-skeptic** — after any significant changes, verify no regressions
+
 ## Python Executable Spec Architecture
 
 ### Package Structure
