@@ -157,6 +157,11 @@ def ff3_to_interleaved_numpy(arr: FF3) -> np.ndarray:
 
 # --- Scalar Conversions ---
 
+def ff3(coeffs: list[int]) -> FF3:
+    """Construct FF3 scalar from ascending-order coefficients [c0, c1, c2]."""
+    return FF3.Vector([coeffs[2], coeffs[1], coeffs[0]])
+
+
 def ff3_from_base(val: int) -> FF3:
     """Embed base field element into FF3 as (val, 0, 0)."""
     return FF3(val)

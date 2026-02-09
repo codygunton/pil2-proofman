@@ -91,6 +91,10 @@ class StarkInfo:
         self.q_deg = 0
         self.q_dim = 0
 
+        # Expression IDs (for bytecode interpreter)
+        self.c_exp_id = 0     # Constraint expression ID
+        self.fri_exp_id = 0   # FRI polynomial expression ID
+
         # Memory layout
         self.map_sections_n: dict[str, int] = {}
         self.map_offsets: dict[tuple[str, bool], int] = {}
@@ -158,6 +162,8 @@ class StarkInfo:
         self.n_stages = j["nStages"]
         self.q_deg = j["qDeg"]
         self.q_dim = j["qDim"]
+        self.c_exp_id = j.get("cExpId", 0)
+        self.fri_exp_id = j.get("friExpId", 0)
 
     def _parse_custom_commits(self, j: dict) -> None:
         """Parse custom commits configuration."""
