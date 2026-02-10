@@ -7,7 +7,12 @@ computes intermediate columns and grand sums directly in readable Python code.
 For AIRs without hand-written modules, the bytecode adapter provides a fallback
 using compiled expression bytecode. The BYTECODE_AIRS dict controls which AIRs
 use bytecode vs hand-written modules.
+
+Zisk AIRs are auto-discovered from the proving key directory. All discovered
+AIRs without hand-written modules are registered for bytecode evaluation.
 """
+
+from constraints import _discover_zisk_airs
 
 from .base import WitnessModule
 from .lookup2_12 import Lookup2_12Witness
@@ -22,11 +27,8 @@ WITNESS_REGISTRY: dict[str, type[WitnessModule]] = {
 }
 
 # AIRs that should use bytecode interpreter for witness generation.
-# Same as constraints.BYTECODE_AIRS - kept in sync manually.
-BYTECODE_AIRS: dict[str, str] = {
-    # 'SimpleLeft': '/path/to/SimpleLeft.bin',
-    # 'SomeZiskAir': '/path/to/SomeZiskAir.bin',
-}
+# Includes auto-discovered Zisk AIRs (shared with constraints.BYTECODE_AIRS).
+BYTECODE_AIRS: dict[str, str] = _discover_zisk_airs()
 
 
 def get_witness_module(air_name: str) -> WitnessModule:
