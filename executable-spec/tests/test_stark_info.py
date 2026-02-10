@@ -11,6 +11,7 @@ import pytest
 
 from primitives.pol_map import EvMap
 from protocol.stark_info import FIELD_EXTENSION_DEGREE, StarkInfo
+from tests.conftest import ZISK_PROVING_KEY
 
 # Test data paths
 SIMPLE_STARKINFO = Path(__file__).parent.parent.parent / \
@@ -238,6 +239,82 @@ class TestStarkInfoPermutation:
         info = StarkInfo.from_json(permutation_starkinfo_path)
         assert info is not None
         assert info.stark_struct.n_bits == 6  # 64 rows
+
+
+# --- Zisk AIR Tests ---
+
+ZISK_AIRS_DIR = ZISK_PROVING_KEY / 'zisk' / 'Zisk' / 'airs'
+
+
+def _discover_zisk_air_names() -> list[str]:
+    """Auto-discover AIR names from the proving key directory."""
+    if not ZISK_AIRS_DIR.is_dir():
+        return []
+    return sorted(
+        d.name for d in ZISK_AIRS_DIR.iterdir()
+        if d.is_dir() and (d / 'air' / f'{d.name}.starkinfo.json').exists()
+    )
+
+
+ZISK_AIR_NAMES = _discover_zisk_air_names()
+
+
+class TestStarkInfoZisk:
+    """Test StarkInfo parsing for Zisk AIRs (auto-discovered from proving key)."""
+
+    @staticmethod
+    def _starkinfo_path(air_name: str) -> Path:
+        return ZISK_AIRS_DIR / air_name / 'air' / f'{air_name}.starkinfo.json'
+
+    @pytest.mark.parametrize("air_name", ZISK_AIR_NAMES)
+    def test_loads_successfully(self, air_name: str) -> None:
+        """All Zisk starkinfo files parse without error."""
+        info = StarkInfo.from_json(str(self._starkinfo_path(air_name)))
+        assert info is not None
+        assert info.name == air_name
+
+    @pytest.mark.parametrize("air_name", ZISK_AIR_NAMES)
+    def test_common_params(self, air_name: str) -> None:
+        """All Zisk AIRs share nStages=2, qDim=3, nPublics=68."""
+        info = StarkInfo.from_json(str(self._starkinfo_path(air_name)))
+        assert info.n_stages == 2
+        assert info.q_dim == 3
+        assert info.n_publics == 68
+
+    @pytest.mark.skipif('Rom' not in ZISK_AIR_NAMES, reason='Rom AIR not in proving key')
+    def test_rom_has_custom_commit(self) -> None:
+        """Rom AIR has exactly one custom commit and qDeg=1."""
+        info = StarkInfo.from_json(str(self._starkinfo_path('Rom')))
+        assert info.q_deg == 1
+        assert len(info.custom_commits) == 1
+        assert info.custom_commits[0].name == 'rom'
+        assert info.custom_commits[0].public_values == [0, 1, 2, 3]
+        assert info.custom_commits[0].stage_widths == [11]
+        assert len(info.custom_commits_map) == 1
+        assert len(info.custom_commits_map[0]) == 11
+
+    @pytest.mark.parametrize("air_name", [a for a in ZISK_AIR_NAMES if a != 'Rom'])
+    def test_non_rom_no_custom_commits(self, air_name: str) -> None:
+        """All non-Rom AIRs have qDeg=2 and no custom commits."""
+        info = StarkInfo.from_json(str(self._starkinfo_path(air_name)))
+        assert info.q_deg == 2
+        assert len(info.custom_commits) == 0
+
+    @pytest.mark.skipif('Rom' not in ZISK_AIR_NAMES, reason='Rom AIR not in proving key')
+    def test_rom_ev_map_has_custom_entries(self) -> None:
+        """Rom ev_map contains custom type entries."""
+        info = StarkInfo.from_json(str(self._starkinfo_path('Rom')))
+        custom_entries = [e for e in info.ev_map if e.type == EvMap.Type.custom]
+        assert len(custom_entries) == 11
+        for entry in custom_entries:
+            assert entry.commit_id == 0
+
+    @pytest.mark.skipif('Rom' not in ZISK_AIR_NAMES, reason='Rom AIR not in proving key')
+    def test_rom_map_sections_has_rom0(self) -> None:
+        """Rom starkinfo has rom0 in map_sections_n."""
+        info = StarkInfo.from_json(str(self._starkinfo_path('Rom')))
+        assert 'rom0' in info.map_sections_n
+        assert info.map_sections_n['rom0'] == 11
 
 
 class TestEvMapTypeConversion:

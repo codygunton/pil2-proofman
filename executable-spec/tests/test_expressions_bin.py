@@ -15,6 +15,7 @@ from primitives.expression_bytecode.expressions_bin import (
     ParserArgs,
     ParserParams,
 )
+from tests.conftest import ZISK_PROVING_KEY
 
 # Test data paths
 SIMPLE_LEFT_BIN = "/home/cody/pil2-proofman/pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.bin"
@@ -238,13 +239,13 @@ def test_bytecode_access() -> None:
         if params.n_ops > 0 and params.n_args > 0:
             # Access ops via offset
             ops_slice = expr_bin.expressions_bin_args_expressions.ops[
-                params.ops_offset:params.ops_offset + params.n_ops
+                params.ops_offset : params.ops_offset + params.n_ops
             ]
             assert len(ops_slice) == params.n_ops
 
             # Access args via offset
             args_slice = expr_bin.expressions_bin_args_expressions.args[
-                params.args_offset:params.args_offset + params.n_args
+                params.args_offset : params.args_offset + params.n_args
             ]
             assert len(args_slice) == params.n_args
 
@@ -267,12 +268,15 @@ def test_expression_line_strings() -> None:
         assert isinstance(params.line, str)
         # If non-empty, should be valid UTF-8 and printable
         if params.line:
-            assert params.line.isprintable() or '\n' in params.line
+            assert params.line.isprintable() or "\n" in params.line
 
 
-@pytest.mark.parametrize("air_name,bin_path", [
-    ("SimpleLeft", SIMPLE_LEFT_BIN),
-])
+@pytest.mark.parametrize(
+    "air_name,bin_path",
+    [
+        ("SimpleLeft", SIMPLE_LEFT_BIN),
+    ],
+)
 def test_expressions_bin_faithfulness(air_name: str, bin_path: str) -> None:
     """
     Test that loading is deterministic and preserves data integrity.
@@ -303,19 +307,75 @@ def test_expressions_bin_faithfulness(air_name: str, bin_path: str) -> None:
     # Verify arrays are identical
     assert np.array_equal(
         expr_bin1.expressions_bin_args_expressions.ops,
-        expr_bin2.expressions_bin_args_expressions.ops
+        expr_bin2.expressions_bin_args_expressions.ops,
     )
     assert np.array_equal(
         expr_bin1.expressions_bin_args_expressions.args,
-        expr_bin2.expressions_bin_args_expressions.args
+        expr_bin2.expressions_bin_args_expressions.args,
     )
     assert np.array_equal(
         expr_bin1.expressions_bin_args_expressions.numbers,
-        expr_bin2.expressions_bin_args_expressions.numbers
+        expr_bin2.expressions_bin_args_expressions.numbers,
     )
 
     # Verify hints count matches
     assert len(expr_bin1.hints) == len(expr_bin2.hints)
+
+
+# --- Zisk AIR Bytecode Tests ---
+
+ZISK_AIRS_DIR = ZISK_PROVING_KEY / "zisk" / "Zisk" / "airs"
+
+
+def _discover_zisk_air_names() -> list[str]:
+    """Auto-discover AIR names from the proving key directory."""
+    if not ZISK_AIRS_DIR.is_dir():
+        return []
+    return sorted(
+        d.name for d in ZISK_AIRS_DIR.iterdir()
+        if d.is_dir() and (d / "air" / f"{d.name}.bin").exists()
+    )
+
+
+ZISK_AIR_NAMES = _discover_zisk_air_names()
+
+
+class TestExpressionsBinZisk:
+    """Test bytecode parsing for Zisk AIR .bin files (auto-discovered from proving key)."""
+
+    @staticmethod
+    def _bin_path(air_name: str) -> Path:
+        return ZISK_AIRS_DIR / air_name / "air" / f"{air_name}.bin"
+
+    @pytest.mark.parametrize("air_name", ZISK_AIR_NAMES)
+    def test_loads_successfully(self, air_name: str) -> None:
+        """All Zisk .bin files parse without error."""
+        expr_bin = ExpressionsBin.from_file(str(self._bin_path(air_name)))
+        assert isinstance(expr_bin, ExpressionsBin)
+
+    @pytest.mark.parametrize("air_name", ZISK_AIR_NAMES)
+    def test_has_expressions(self, air_name: str) -> None:
+        """All Zisk .bin files contain expressions (cExpId/friExpId)."""
+        expr_bin = ExpressionsBin.from_file(str(self._bin_path(air_name)))
+        assert len(expr_bin.expressions_info) > 0
+        assert expr_bin.n_ops_total > 0
+        assert expr_bin.n_args_total > 0
+
+    @pytest.mark.parametrize("air_name", ZISK_AIR_NAMES)
+    def test_has_hints(self, air_name: str) -> None:
+        """All Zisk .bin files contain non-empty hints."""
+        expr_bin = ExpressionsBin.from_file(str(self._bin_path(air_name)))
+        assert len(expr_bin.hints) > 0
+
+    @pytest.mark.parametrize("air_name", ZISK_AIR_NAMES)
+    def test_deterministic_loading(self, air_name: str) -> None:
+        """Loading twice produces identical scalar values."""
+        e1 = ExpressionsBin.from_file(str(self._bin_path(air_name)))
+        e2 = ExpressionsBin.from_file(str(self._bin_path(air_name)))
+        assert e1.n_ops_total == e2.n_ops_total
+        assert e1.n_args_total == e2.n_args_total
+        assert len(e1.expressions_info) == len(e2.expressions_info)
+        assert len(e1.hints) == len(e2.hints)
 
 
 if __name__ == "__main__":
