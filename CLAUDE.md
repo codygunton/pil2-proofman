@@ -38,7 +38,7 @@ The Python implementation in `executable-spec/` is a complete STARK prover and v
 **Run Python tests:**
 ```bash
 cd executable-spec
-./run-tests.sh                # all 171 tests
+./run-tests.sh                # all tests (including Zisk)
 ./run-tests.sh e2e            # E2E tests (prover + verifier vs C++)
 ./run-tests.sh prover         # prover E2E only
 ./run-tests.sh verifier       # verifier E2E only
@@ -49,10 +49,11 @@ cd executable-spec
 ./run-tests.sh lookup         # Lookup2_12 AIR tests
 ./run-tests.sh permutation    # Permutation1_6 AIR tests
 ./run-tests.sh unit           # unit tests (non-E2E, fast)
+./run-tests.sh zisk           # Zisk verifier E2E tests only
 ./run-tests.sh -k "pattern"   # pytest -k filter
 ```
 
-**Test suite overview (171 tests):**
+**Test suite overview:**
 
 | Test File | Description |
 |-----------|-------------|
@@ -69,6 +70,7 @@ cd executable-spec
 | `test_batch_inverse.py` | Montgomery batch inversion |
 | `test_expressions_bin.py` | Expression binary parser tests |
 | `test_bytecode_equivalence.py` | Bytecode vs hand-written constraint equivalence |
+| `test_zisk_verifier_e2e.py` | Zisk verifier E2E (13 AIRs, Rom xfail) |
 
 **Test data directory (`executable-spec/tests/test-data/`):**
 - `*.json` - JSON test vectors with inputs, intermediates, and expected outputs
@@ -79,6 +81,7 @@ cd executable-spec
 - `TestStarkE2EComplete` - Full proof generation with binary comparison to C++
 - `TestFullBinaryComparison` - Byte-level proof verification
 - `TestVerifierE2E` - Verifies C++ proofs pass Python verification
+- `TestZiskVerifierE2E` - Verifies C++ Zisk proofs (13 AIRs, Rom xfail)
 
 ### C++ FRI Pinning Vectors
 
@@ -89,6 +92,13 @@ To regenerate C++ FRI pinning vectors (for `pil2-stark/tests/fri-pinning/fri_pin
 ./generate-fri-vectors.sh simple   # regenerate SimpleLeft only
 ./generate-fri-vectors.sh lookup   # regenerate Lookup2_12 only
 ```
+
+## Testing Rules
+
+- **No skipping.** Every test runs, every time. If a test fails, fix it.
+- Use `pytest.param(..., marks=pytest.mark.xfail(...))` for known failures, never `pytest.xfail()` inside the test body.
+- Never use `pytest.skip()` inside test bodies.
+- Zisk proving key path is hardcoded in `tests/conftest.py` and `constraints/__init__.py`.
 
 ## Code Review Agents
 
@@ -144,7 +154,7 @@ executable-spec/
 │   ├── data.py          # ProverData/VerifierData for constraint modules
 │   └── proof.py         # Proof data structures and serialization
 │
-├── tests/               # Test suite (171 tests)
+├── tests/               # Test suite
 ├── setup.sh             # Environment setup (uv sync + poseidon2-ffi)
 └── run-tests.sh         # Test runner with filters
 ```
