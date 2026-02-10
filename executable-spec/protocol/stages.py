@@ -814,11 +814,18 @@ class Starks:
             polInfo = self.setupCtx.stark_info.custom_commits_map[evMap.commit_id][evMap.id]
             commitName = self.setupCtx.stark_info.custom_commits[polInfo.commit_id].name
             section = commitName + "0"
-            offset = self.setupCtx.stark_info.map_offsets[(section, True)]
             nCols = self.setupCtx.stark_info.map_sections_n[section]
+            # Custom commit traces are stored in a separate buffer keyed by commit name.
+            # Full implementation deferred to Group E when witness traces are available.
+            if not hasattr(self, 'custom_commits_extended') or commitName not in self.custom_commits_extended:
+                raise NotImplementedError(
+                    f"Custom commit '{commitName}' buffer not available. "
+                    f"Zisk custom commit prover support requires Group E (witness traces)."
+                )
+            custom_pols = self.custom_commits_extended[commitName]
+            offset = self.setupCtx.stark_info.map_offsets[(section, True)]
             base_indices = offset + rows * nCols + polInfo.stage_pos
-            # Note: customCommits buffer not passed in - would need to be added if used
-            raise NotImplementedError("Custom commits not supported in explicit buffer mode")
+            return ff3_array_from_base(custom_pols[base_indices].tolist())
 
         else:
             raise ValueError(f"Unknown evMap type: {evMap.type}")

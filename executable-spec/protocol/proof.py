@@ -184,14 +184,10 @@ def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
         proof.airgroup_values.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
         idx += FIELD_EXTENSION_DEGREE
 
-    # Section 2: airValues
-    for i in range(len(stark_info.air_values_map)):
-        if stark_info.air_values_map[i].stage == 1:
-            proof.air_values.append([values[idx]])
-            idx += 1
-        else:
-            proof.air_values.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
-            idx += FIELD_EXTENSION_DEGREE
+    # Section 2: airValues (C++ always writes FIELD_EXTENSION uint64s per entry)
+    for _ in range(len(stark_info.air_values_map)):
+        proof.air_values.append(list(values[idx:idx + FIELD_EXTENSION_DEGREE]))
+        idx += FIELD_EXTENSION_DEGREE
 
     # Section 3: roots
     for _ in range(n_stages + 1):
@@ -206,11 +202,13 @@ def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
 
     # Initialize FRI trees structure for pol_queries
     # pol_queries[query_idx][tree_idx] = MerkleProof
-    # tree_idx: 0..(n_stages) for stages 1..(n_stages+1), then n_stages+1 for const
-    proof.fri.trees.pol_queries = [[MerkleProof() for _ in range(n_stages + 2)] for _ in range(n_queries)]
+    # tree_idx: 0..(n_stages) for stages, n_stages+1 for const, n_stages+2+c for custom commit c
+    n_custom = len(stark_info.custom_commits)
+    n_trees = n_stages + 2 + n_custom
+    proof.fri.trees.pol_queries = [[MerkleProof() for _ in range(n_trees)] for _ in range(n_queries)]
 
-    # Pre-allocate last_levels with None placeholders (n_stages+2 slots: stages 0..n_stages and const at n_stages+1)
-    proof.last_levels = [[] for _ in range(n_stages + 2)]
+    # Pre-allocate last_levels (n_trees slots)
+    proof.last_levels = [[] for _ in range(n_trees)]
     const_tree_idx = n_stages + 1
 
     # Sections 5-7: const tree query proofs (stored at tree index n_stages + 1)
@@ -239,7 +237,34 @@ def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
                 idx += HASH_SIZE
             proof.last_levels[const_tree_idx] = const_last_levels
 
-    # Section 8: custom commits (not used in test AIRs)
+    # Section 8: custom commits (mirrors const/stage tree parsing above)
+    for c, custom_commit in enumerate(stark_info.custom_commits):
+        n_custom_cols = stark_info.map_sections_n.get(custom_commit.name + "0", 0)
+        tree_idx = n_stages + 2 + c
+
+        # Values
+        for q in range(n_queries):
+            proof.fri.trees.pol_queries[q][tree_idx].v = [
+                [values[idx + i]] for i in range(n_custom_cols)
+            ]
+            idx += n_custom_cols
+
+        # Merkle paths
+        for q in range(n_queries):
+            for _ in range(n_siblings):
+                proof.fri.trees.pol_queries[q][tree_idx].mp.append(
+                    list(values[idx:idx + n_siblings_per_level])
+                )
+                idx += n_siblings_per_level
+
+        # Last levels
+        if last_level_verification != 0:
+            num_nodes = int(merkle_arity ** last_level_verification)
+            custom_last_levels = []
+            for _ in range(num_nodes):
+                custom_last_levels.append(list(values[idx:idx + HASH_SIZE]))
+                idx += HASH_SIZE
+            proof.last_levels[tree_idx] = custom_last_levels
 
     # Section 9: stage tree proofs (cm1, cm2, ..., cmQ)
     # Stored at tree indices 0..(n_stages)
@@ -586,7 +611,31 @@ def to_bytes_full_from_dict(proof_dict: dict[str, Any], stark_info: Any) -> byte
             else:
                 values.extend([0] * num_nodes)
 
-    # Section 8: custom commits (not implemented)
+    # Section 8: custom commits
+    custom_commit_query_proofs = proof_dict.get('custom_commit_query_proofs', {})
+    for c, custom_commit in enumerate(stark_info.custom_commits):
+        n_custom_cols = stark_info.map_sections_n.get(custom_commit.name + "0", 0)
+        cc_proofs = custom_commit_query_proofs.get(c, [])
+
+        if cc_proofs:
+            for query_proof in cc_proofs:
+                for col in range(n_custom_cols):
+                    values.append(int(query_proof.v[col][0]) if col < len(query_proof.v) else 0)
+
+            for query_proof in cc_proofs:
+                for level_idx in range(n_siblings):
+                    if level_idx < len(query_proof.mp):
+                        values.extend(int(v) for v in query_proof.mp[level_idx][:n_siblings_per_level])
+                    else:
+                        values.extend([0] * n_siblings_per_level)
+
+            if last_level_verification != 0:
+                num_nodes = int(merkle_arity ** last_level_verification) * HASH_SIZE
+                cc_last_lvl = last_level_nodes.get(custom_commit.name, [])
+                if cc_last_lvl:
+                    values.extend(int(v) for v in cc_last_lvl[:num_nodes])
+                else:
+                    values.extend([0] * num_nodes)
 
     # Section 9: stage tree proofs (cm1, cm2, ..., cmQ)
     for stage_num in range(1, n_stages + 2):

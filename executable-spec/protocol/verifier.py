@@ -110,7 +110,8 @@ def stark_verify(
 
     # Check 1: Q(xi) = C(xi)
     print("Verifying evaluations")
-    if not _verify_evaluations(stark_info, evals, xi, challenges, airgroup_values):
+    if not _verify_evaluations(stark_info, evals, xi, challenges, airgroup_values,
+                               publics, proof.air_values, proof_values):
         print("ERROR: Invalid evaluations")
         is_valid = False
 
@@ -236,13 +237,18 @@ def _parse_polynomial_values(proof: STARKProof, stark_info: StarkInfo) -> QueryP
             poly_values[poly_id] = ff3_array(c0, c1, c2)
 
     # --- Parse constant polynomials ---
+    # Constants can share names (e.g. Zisk SpecifiedRanges.RANGE has 33 entries)
+    const_name_indices: dict[str, int] = {}
     for const_pol in stark_info.const_pols_map:
         name = const_pol.name
         stage_pos = const_pol.stage_pos
         dim = const_pol.dim
 
-        # Constants always have index 0 and stage 0
-        poly_id = PolynomialId('const', name, 0, 0)
+        if name not in const_name_indices:
+            const_name_indices[name] = 0
+        index = const_name_indices[name]
+        const_name_indices[name] += 1
+        poly_id = PolynomialId('const', name, index, 0)
 
         if dim == 1:
             vals = [
@@ -255,6 +261,35 @@ def _parse_polynomial_values(proof: STARKProof, stark_info: StarkInfo) -> QueryP
             c1 = [int(proof.fri.trees.pol_queries[q][const_tree_idx].v[stage_pos + 1][0]) for q in range(n_queries)]
             c2 = [int(proof.fri.trees.pol_queries[q][const_tree_idx].v[stage_pos + 2][0]) for q in range(n_queries)]
             poly_values[poly_id] = ff3_array(c0, c1, c2)
+
+    # --- Parse custom commit polynomials ---
+    for commit_idx, cc_pols in enumerate(stark_info.custom_commits_map):
+        tree_idx = stark_info.n_stages + 2 + commit_idx
+        cc_name_indices: dict[str, int] = {}
+
+        for cc_pol in cc_pols:
+            name = cc_pol.name
+            stage_pos = cc_pol.stage_pos
+            dim = cc_pol.dim
+
+            if name not in cc_name_indices:
+                cc_name_indices[name] = 0
+            index = cc_name_indices[name]
+            cc_name_indices[name] += 1
+
+            poly_id = PolynomialId('custom', name, index, cc_pol.stage)
+
+            if dim == 1:
+                vals = [
+                    int(proof.fri.trees.pol_queries[q][tree_idx].v[stage_pos][0])
+                    for q in range(n_queries)
+                ]
+                poly_values[poly_id] = FF3(vals)
+            else:
+                c0 = [int(proof.fri.trees.pol_queries[q][tree_idx].v[stage_pos][0]) for q in range(n_queries)]
+                c1 = [int(proof.fri.trees.pol_queries[q][tree_idx].v[stage_pos + 1][0]) for q in range(n_queries)]
+                c2 = [int(proof.fri.trees.pol_queries[q][tree_idx].v[stage_pos + 2][0]) for q in range(n_queries)]
+                poly_values[poly_id] = ff3_array(c0, c1, c2)
 
     return poly_values
 
@@ -282,10 +317,28 @@ def _build_ev_id_to_poly_id_map(stark_info: StarkInfo) -> dict[int, PolynomialId
 
         cm_id_to_poly_id[cm_idx] = PolynomialId('cm', name, index, stage)
 
-    # Build const mapping
+    # Build const mapping (constants can share names, need incrementing index)
+    const_name_indices: dict[str, int] = {}
     const_id_to_poly_id: dict[int, PolynomialId] = {}
     for const_idx, const_pol in enumerate(stark_info.const_pols_map):
-        const_id_to_poly_id[const_idx] = PolynomialId('const', const_pol.name, 0, 0)
+        name = const_pol.name
+        if name not in const_name_indices:
+            const_name_indices[name] = 0
+        index = const_name_indices[name]
+        const_name_indices[name] += 1
+        const_id_to_poly_id[const_idx] = PolynomialId('const', name, index, 0)
+
+    # Build custom commit mappings: (commit_id, pol_id) -> PolynomialId
+    custom_id_to_poly_id: dict[tuple[int, int], PolynomialId] = {}
+    for commit_idx, cc_pols in enumerate(stark_info.custom_commits_map):
+        cc_name_indices: dict[str, int] = {}
+        for pol_idx, pol in enumerate(cc_pols):
+            name = pol.name
+            if name not in cc_name_indices:
+                cc_name_indices[name] = 0
+            index = cc_name_indices[name]
+            cc_name_indices[name] += 1
+            custom_id_to_poly_id[(commit_idx, pol_idx)] = PolynomialId('custom', name, index, pol.stage)
 
     # Map each ev_map entry to its PolynomialId
     for ev_idx, ev_entry in enumerate(stark_info.ev_map):
@@ -296,7 +349,8 @@ def _build_ev_id_to_poly_id_map(stark_info: StarkInfo) -> dict[int, PolynomialId
             ev_id_to_poly_id[ev_idx] = cm_id_to_poly_id[ev_id]
         elif ev_type == EvMap.Type.const_:
             ev_id_to_poly_id[ev_idx] = const_id_to_poly_id[ev_id]
-        # Skip custom type for now (not used in test AIRs)
+        elif ev_type == EvMap.Type.custom:
+            ev_id_to_poly_id[ev_idx] = custom_id_to_poly_id[(ev_entry.commit_id, ev_id)]
 
     return ev_id_to_poly_id
 
@@ -356,10 +410,9 @@ def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_cha
         # roots[stage_num-1] because roots[0] is root1
         transcript.put(proof.roots[stage_num - 1])
 
-        for air_value in stark_info.air_values_map:
+        for av_idx, air_value in enumerate(stark_info.air_values_map):
             if air_value.stage != 1 and air_value.stage == stage_num:
-                idx = stark_info.air_values_map.index(air_value)
-                transcript.put([int(v) for v in proof.air_values[idx]])
+                transcript.put([int(v) for v in proof.air_values[av_idx]])
 
     # Evals stage (n_stages + EVAL_STAGE_OFFSET)
     for challenge_info in stark_info.challenges_map:
@@ -407,7 +460,10 @@ def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_cha
 
 def _build_verifier_data(
     stark_info: StarkInfo, evals: InterleavedFF3, challenges: InterleavedFF3,
-    airgroup_values: InterleavedFF3 = None
+    airgroup_values: InterleavedFF3 = None,
+    publics: FFArray | None = None,
+    air_values: list | None = None,
+    proof_values: FFArray | None = None,
 ) -> VerifierData:
     """Build VerifierData from proof evaluations and challenges.
 
@@ -418,6 +474,9 @@ def _build_verifier_data(
         evals: Flattened evaluation buffer from proof
         challenges: Flattened challenges buffer
         airgroup_values: Optional airgroup values from proof (for boundary constraints)
+        publics: Optional public inputs as flat numpy array
+        air_values: Optional air values from proof (list of [c0, c1, c2])
+        proof_values: Optional proof values as flat numpy array
 
     Returns:
         VerifierData ready for VerifierConstraintContext
@@ -433,7 +492,7 @@ def _build_verifier_data(
         offset = eval_entry.row_offset  # Row offset: -1, 0, or 1
 
         # Get polynomial name and index
-        if ev_type.name == 'cm':
+        if ev_type == EvMap.Type.cm:
             pol_info = stark_info.cm_pols_map[ev_id]
             name = pol_info.name
             # Find index by counting same-name entries before this one
@@ -441,10 +500,22 @@ def _build_verifier_data(
             for other in stark_info.cm_pols_map[:ev_id]:
                 if other.name == name:
                     index += 1
-        elif ev_type.name == 'const_':
+        elif ev_type == EvMap.Type.const_:
             pol_info = stark_info.const_pols_map[ev_id]
             name = pol_info.name
-            index = 0  # Constants don't have indices
+            # Find index by counting same-name entries before this one
+            index = 0
+            for other in stark_info.const_pols_map[:ev_id]:
+                if other.name == name:
+                    index += 1
+        elif ev_type == EvMap.Type.custom:
+            cc_pols = stark_info.custom_commits_map[eval_entry.commit_id]
+            pol_info = cc_pols[ev_id]
+            name = pol_info.name
+            index = 0
+            for other in cc_pols[:ev_id]:
+                if other.name == name:
+                    index += 1
         else:
             continue  # Skip unknown types
 
@@ -479,10 +550,27 @@ def _build_verifier_data(
                 int(airgroup_values[idx])
             ])
 
+    # Build flat air_values array for bytecode adapter.
+    # Layout uses cumulative offsets: stage-1 values take 1 slot, stage-2+ take 3,
+    # matching the C++ airValues buffer layout (id = cumulative offset).
+    air_values_flat = None
+    if air_values is not None:
+        air_values_flat = np.zeros(stark_info.air_values_size, dtype=np.uint64)
+        offset = 0
+        for i, av_map in enumerate(stark_info.air_values_map):
+            dim = av_map.field_type.value  # 1 for FF (stage 1), 3 for FF3 (stage 2+)
+            for c in range(dim):
+                if i < len(air_values) and c < len(air_values[i]):
+                    air_values_flat[offset + c] = int(air_values[i][c])
+            offset += dim
+
     return VerifierData(
         evals=data_evals,
         challenges=data_challenges,
-        airgroup_values=data_airgroup_values
+        airgroup_values=data_airgroup_values,
+        publics_flat=publics,
+        air_values_flat=air_values_flat,
+        proof_values_flat=proof_values,
     )
 
 
@@ -615,7 +703,10 @@ def _reconstruct_quotient_at_xi(stark_info: StarkInfo, evals: InterleavedFF3, xi
 
 def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
                         xi_challenge: InterleavedFF3, challenges: InterleavedFF3,
-                        airgroup_values: InterleavedFF3) -> bool:
+                        airgroup_values: InterleavedFF3,
+                        publics: FFArray | None = None,
+                        air_values: list | None = None,
+                        proof_values: FFArray | None = None) -> bool:
     """Verify Q(xi) = C(xi) - the core STARK equation.
 
     This checks that the prover correctly computed the quotient polynomial Q
@@ -626,7 +717,8 @@ def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
     xi = FF3.Vector([int(xi_challenge[2]), int(xi_challenge[1]), int(xi_challenge[0])])
 
     # Evaluate constraint polynomial using per-AIR constraint module
-    verifier_data = _build_verifier_data(stark_info, evals, challenges, airgroup_values)
+    verifier_data = _build_verifier_data(stark_info, evals, challenges, airgroup_values,
+                                         publics, air_values, proof_values)
     constraint_buffer = _evaluate_constraint_with_module(stark_info, verifier_data, xi)
     constraint_at_xi = FF3.Vector([int(constraint_buffer[2]), int(constraint_buffer[1]), int(constraint_buffer[0])])
 
@@ -742,8 +834,31 @@ def _verify_const_merkle(proof: STARKProof, stark_info: StarkInfo, verkey: Merkl
 
 def _verify_custom_commit_merkle(proof: STARKProof, stark_info: StarkInfo, root: MerkleRoot, name: str,
                                  fri_queries: list[FRIQueryIndex]) -> bool:
-    """Verify custom commit Merkle tree (not implemented for test AIRs)."""
-    # Custom commits are not used in test AIRs, return True for now
+    """Verify custom commit Merkle tree using MerkleVerifier.
+
+    Custom commits use the same tree structure as stage/const trees.
+    The root comes from publics[custom_commit.public_values[j]] for j in 0..3.
+    Tree index: n_stages + 2 + commit_idx.
+    """
+    # Find the commit index by name
+    commit_idx = next(
+        i for i, cc in enumerate(stark_info.custom_commits)
+        if cc.name == name
+    )
+    verifier = MerkleVerifier.for_custom_commit(proof, stark_info, root, commit_idx)
+    n_queries = stark_info.stark_struct.n_queries
+    tree_idx = stark_info.n_stages + 2 + commit_idx
+    n_cols = stark_info.map_sections_n.get(name + "0", 0)
+
+    for query_idx in range(n_queries):
+        query_proof = proof.fri.trees.pol_queries[query_idx][tree_idx]
+        values = [int(query_proof.v[i][0]) for i in range(n_cols)]
+        siblings = query_proof.mp
+
+        if not verifier.verify_query(fri_queries[query_idx], values, siblings):
+            print(f"  Custom commit '{name}' Merkle verification failed at query {query_idx}")
+            return False
+
     return True
 
 

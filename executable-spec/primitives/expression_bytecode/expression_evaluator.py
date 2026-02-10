@@ -635,10 +635,24 @@ class ExpressionsPack(ExpressionsCtx):
             type_arg < len(self.stark_info.custom_commits) + self.stark_info.n_stages + 4):
             index = type_arg - (self.n_stages + 4)
             stage_pos = args[i_args + 1]
+            opening_idx = args[i_args + 2]
+
+            # Verify mode: load from evals
+            if self.verify and domain_size == 1:
+                from primitives.pol_map import EvMap
+                for idx, e in enumerate(self.stark_info.ev_map):
+                    if (e.type == EvMap.Type.custom and e.id == stage_pos
+                            and e.opening_pos == opening_idx and e.commit_id == index):
+                        base = idx * FIELD_EXTENSION_DEGREE
+                        c0 = int(buffers.evals[base])
+                        c1 = int(buffers.evals[base + 1])
+                        c2 = int(buffers.evals[base + 2])
+                        return ff3([c0, c1, c2])
+
             offset = int(map_offsets_custom_exps[index])
             n_cols = int(self.map_sections_n_custom_fixed[index])
             # o = row offset for shifted polynomial evaluation
-            o = next_strides_exps[args[i_args + 2]]
+            o = next_strides_exps[opening_idx]
 
             if is_cyclic:
                 vals = []

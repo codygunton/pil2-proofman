@@ -22,7 +22,7 @@ class PolynomialId(NamedTuple):
     values are vectorized across all query points.
 
     Attributes:
-        type: 'cm' (committed), 'const' (constant)
+        type: 'cm' (committed), 'const' (constant), 'custom' (custom commit)
         name: Polynomial name from starkinfo (e.g., 'a', 'gsum')
         index: Array index for multi-instance polynomials (0 for scalars)
         stage: Stage number (1+ for committed, 0 for constants)

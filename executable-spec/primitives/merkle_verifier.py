@@ -28,6 +28,7 @@ SiblingHash = list[int]
 
 # --- Configuration ---
 
+
 @dataclass(frozen=True)
 class MerkleConfig:
     """Merkle tree configuration for verification.
@@ -40,6 +41,7 @@ class MerkleConfig:
         domain_bits: Log2 of the number of leaves
         last_level_verification: Number of top levels to skip in per-query verification
     """
+
     arity: int
     domain_bits: int
     last_level_verification: int
@@ -52,7 +54,9 @@ class MerkleConfig:
     @property
     def n_siblings(self) -> int:
         """Number of sibling levels in each query proof."""
-        return int(math.ceil(self.domain_bits / math.log2(self.arity))) - self.last_level_verification
+        return (
+            int(math.ceil(self.domain_bits / math.log2(self.arity))) - self.last_level_verification
+        )
 
     @property
     def siblings_per_level(self) -> int:
@@ -61,6 +65,7 @@ class MerkleConfig:
 
 
 # --- Verifier Class ---
+
 
 class MerkleVerifier:
     """Merkle tree verifier with encapsulated last_level_verification logic.
@@ -78,10 +83,7 @@ class MerkleVerifier:
     """
 
     def __init__(
-        self,
-        root: MerkleRoot,
-        config: MerkleConfig,
-        last_level_nodes: list[int] | None = None
+        self, root: MerkleRoot, config: MerkleConfig, last_level_nodes: list[int] | None = None
     ) -> None:
         """Initialize verifier with root and configuration.
 
@@ -105,12 +107,8 @@ class MerkleVerifier:
 
     @classmethod
     def for_stage(
-        cls,
-        proof: 'STARKProof',
-        stark_info: 'StarkInfo',
-        root: MerkleRoot,
-        stage: int
-    ) -> 'MerkleVerifier':
+        cls, proof: "STARKProof", stark_info: "StarkInfo", root: MerkleRoot, stage: int
+    ) -> "MerkleVerifier":
         """Create verifier for a stage commitment tree.
 
         Args:
@@ -126,7 +124,7 @@ class MerkleVerifier:
         config = MerkleConfig(
             arity=stark_struct.merkle_tree_arity,
             domain_bits=stark_struct.fri_fold_steps[0].domain_bits,
-            last_level_verification=stark_struct.last_level_verification
+            last_level_verification=stark_struct.last_level_verification,
         )
 
         last_level_nodes = None
@@ -139,11 +137,8 @@ class MerkleVerifier:
 
     @classmethod
     def for_const(
-        cls,
-        proof: 'STARKProof',
-        stark_info: 'StarkInfo',
-        verkey: MerkleRoot
-    ) -> 'MerkleVerifier':
+        cls, proof: "STARKProof", stark_info: "StarkInfo", verkey: MerkleRoot
+    ) -> "MerkleVerifier":
         """Create verifier for constant polynomial tree.
 
         Args:
@@ -158,7 +153,7 @@ class MerkleVerifier:
         config = MerkleConfig(
             arity=stark_struct.merkle_tree_arity,
             domain_bits=stark_struct.fri_fold_steps[0].domain_bits,
-            last_level_verification=stark_struct.last_level_verification
+            last_level_verification=stark_struct.last_level_verification,
         )
 
         last_level_nodes = None
@@ -170,12 +165,49 @@ class MerkleVerifier:
         return cls(verkey, config, last_level_nodes)
 
     @classmethod
+    def for_custom_commit(
+        cls, proof: "STARKProof", stark_info: "StarkInfo", root: MerkleRoot, commit_idx: int
+    ) -> "MerkleVerifier":
+        """Create verifier for a custom commit tree.
+
+        Custom commits are additional polynomial commitments beyond the standard
+        stage trees (e.g., the Rom AIR commits its lookup table separately).
+        Each custom commit has its own Merkle tree stored at a distinct index:
+        tree_idx = n_stages + 2 + commit_idx (after stage trees and const tree).
+
+        This is separate from for_stage/for_const because:
+        - The tree index formula differs (stage uses stage-1, const uses n_stages+1)
+        - The root comes from public inputs rather than the proof or verkey
+        - Only certain AIRs have custom commits (e.g., Rom in Zisk)
+
+        Args:
+            proof: STARK proof containing last_levels
+            stark_info: STARK configuration
+            root: Expected root, reconstructed from publics[custom_commit.public_values]
+            commit_idx: Index of the custom commit (0-based)
+
+        Returns:
+            Configured MerkleVerifier for this custom commit tree
+        """
+        stark_struct = stark_info.stark_struct
+        config = MerkleConfig(
+            arity=stark_struct.merkle_tree_arity,
+            domain_bits=stark_struct.fri_fold_steps[0].domain_bits,
+            last_level_verification=stark_struct.last_level_verification,
+        )
+
+        last_level_nodes = None
+        if config.last_level_verification > 0:
+            tree_idx = stark_info.n_stages + 2 + commit_idx
+            if tree_idx < len(proof.last_levels):
+                last_level_nodes = cls._flatten_last_levels(proof.last_levels[tree_idx])
+
+        return cls(root, config, last_level_nodes)
+
+    @classmethod
     def for_fri_step(
-        cls,
-        proof: 'STARKProof',
-        stark_info: 'StarkInfo',
-        step: int
-    ) -> 'MerkleVerifier':
+        cls, proof: "STARKProof", stark_info: "StarkInfo", step: int
+    ) -> "MerkleVerifier":
         """Create verifier for a FRI folding step tree.
 
         Args:
@@ -190,7 +222,7 @@ class MerkleVerifier:
         config = MerkleConfig(
             arity=stark_struct.merkle_tree_arity,
             domain_bits=stark_struct.fri_fold_steps[step].domain_bits,
-            last_level_verification=stark_struct.last_level_verification
+            last_level_verification=stark_struct.last_level_verification,
         )
 
         root = proof.fri.trees_fri[step - 1].root
@@ -206,10 +238,7 @@ class MerkleVerifier:
     # --- Verification ---
 
     def verify_query(
-        self,
-        query_index: int,
-        leaf_values: list[int],
-        siblings: list[list[int]]
+        self, query_index: int, leaf_values: list[int], siblings: list[list[int]]
     ) -> bool:
         """Verify a single query proof.
 
@@ -266,7 +295,7 @@ class MerkleVerifier:
             height,
             self.config.last_level_verification,
             self.config.arity,
-            self.config.sponge_width
+            self.config.sponge_width,
         )
 
         if result:
@@ -275,10 +304,7 @@ class MerkleVerifier:
         return result
 
     def _build_parent_hash_input(
-        self,
-        child_hash: list[int],
-        siblings: list[int],
-        child_position: int
+        self, child_hash: list[int], siblings: list[int], child_position: int
     ) -> list[int]:
         """Build hash input for parent node from child hash and siblings.
 
@@ -309,7 +335,7 @@ class MerkleVerifier:
         if self.config.last_level_verification == 0:
             return computed_hash[:HASH_SIZE] == self.root[:HASH_SIZE]
         else:
-            expected = self._last_level_nodes[node_idx * HASH_SIZE:(node_idx + 1) * HASH_SIZE]
+            expected = self._last_level_nodes[node_idx * HASH_SIZE : (node_idx + 1) * HASH_SIZE]
             return computed_hash[:HASH_SIZE] == expected
 
     @staticmethod

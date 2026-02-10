@@ -239,7 +239,12 @@ def _build_buffers_from_verifier_data(
         elif ev.type == EvMap.Type.const_:
             pol_info = stark_info.const_pols_map[ev.id]
             name = pol_info.name
-            key = (name, 0, ev.row_offset)
+            # Count same-name entries before this one (matching _build_verifier_data)
+            const_index = 0
+            for other in stark_info.const_pols_map[:ev.id]:
+                if other.name == name:
+                    const_index += 1
+            key = (name, const_index, ev.row_offset)
         else:
             continue
 
@@ -266,17 +271,34 @@ def _build_buffers_from_verifier_data(
             coeffs = ff3_to_numpy_coeffs(data.airgroup_values[i])
             airgroup_values[idx:idx + FIELD_EXTENSION_DEGREE] = coeffs
 
+    # Use actual publics/air_values/proof_values from VerifierData if available
+    public_inputs = (
+        np.asarray(data.publics_flat, dtype=np.uint64)
+        if data.publics_flat is not None
+        else np.zeros(stark_info.n_publics, dtype=np.uint64)
+    )
+    air_values = (
+        data.air_values_flat
+        if data.air_values_flat is not None
+        else np.zeros(stark_info.air_values_size, dtype=np.uint64)
+    )
+    proof_values = (
+        np.asarray(data.proof_values_flat, dtype=np.uint64)
+        if data.proof_values_flat is not None
+        else np.zeros(0, dtype=np.uint64)
+    )
+
     return BufferSet(
         trace=np.zeros(0, dtype=np.uint64),
         aux_trace=np.zeros(0, dtype=np.uint64),
         const_pols=np.zeros(0, dtype=np.uint64),
         const_pols_extended=np.zeros(0, dtype=np.uint64),
-        public_inputs=np.zeros(stark_info.n_publics, dtype=np.uint64),
+        public_inputs=public_inputs,
         challenges=challenges,
         evals=evals,
-        air_values=np.zeros(stark_info.air_values_size, dtype=np.uint64),
+        air_values=air_values,
         airgroup_values=airgroup_values,
-        proof_values=np.zeros(0, dtype=np.uint64),
+        proof_values=proof_values,
     )
 
 

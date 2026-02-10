@@ -31,6 +31,8 @@ Usage:
 
 from dataclasses import dataclass, field
 
+import numpy as np
+
 from primitives.field import FF, FF3
 
 # Type aliases
@@ -82,3 +84,7 @@ class VerifierData:
     challenges: dict[str, FF3] = field(default_factory=dict)
     public_inputs: dict[str, FF] = field(default_factory=dict)
     airgroup_values: dict[int, FF3] = field(default_factory=dict)
+    # Raw arrays for bytecode adapter (not used by hand-written modules)
+    publics_flat: np.ndarray | None = None
+    air_values_flat: np.ndarray | None = None
+    proof_values_flat: np.ndarray | None = None
