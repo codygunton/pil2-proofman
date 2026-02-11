@@ -245,6 +245,15 @@ def _build_buffers_from_verifier_data(
                 if other.name == name:
                     const_index += 1
             key = (name, const_index, ev.row_offset)
+        elif ev.type == EvMap.Type.custom:
+            cc_pols = stark_info.custom_commits_map[ev.commit_id]
+            pol_info = cc_pols[ev.id]
+            name = pol_info.name
+            custom_index = 0
+            for other in cc_pols[:ev.id]:
+                if other.name == name:
+                    custom_index += 1
+            key = (name, custom_index, ev.row_offset)
         else:
             continue
 
