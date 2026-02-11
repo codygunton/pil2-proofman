@@ -362,9 +362,7 @@ def _recover_constraint_from_quotient_verifier(
     """
     xi = FF3.Vector([int(z[2]), int(z[1]), int(z[0])])
     N = 1 << n_bits
-    xi_to_n = xi
-    for _ in range(N - 1):
-        xi_to_n = xi_to_n * xi
+    xi_to_n = xi ** N
     zh_xi = xi_to_n - FF3(1)
     return q_xi * zh_xi
 

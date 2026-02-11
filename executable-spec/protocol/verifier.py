@@ -597,9 +597,7 @@ def _evaluate_constraint_with_module(stark_info: StarkInfo, verifier_data: Verif
 
     # Compute Z_H(xi) = xi^N - 1 where N is trace size
     trace_size = 1 << stark_info.stark_struct.n_bits
-    xi_to_n = xi
-    for _ in range(trace_size - 1):
-        xi_to_n = xi_to_n * xi
+    xi_to_n = _compute_xi_to_trace_size(xi, trace_size)
     zh_at_xi = xi_to_n - FF3(1)
 
     # Q(xi) = C(xi) / Z_H(xi)
@@ -653,14 +651,11 @@ def _compute_x_div_x_sub(stark_info: StarkInfo, xi_challenge: InterleavedFF3, fr
 
 
 def _compute_xi_to_trace_size(xi: FF3, trace_size: int) -> FF3:
-    """Compute xi^N where N is the trace size.
+    """Compute xi^N where N is the trace size using repeated squaring.
 
     This is needed to reconstruct the full quotient polynomial from its split pieces.
     """
-    x_power = FF3(1)
-    for _ in range(trace_size):
-        x_power = x_power * xi
-    return x_power
+    return xi ** trace_size
 
 
 def _reconstruct_quotient_at_xi(stark_info: StarkInfo, evals: InterleavedFF3, xi: FF3, xi_to_n: FF3) -> FF3:
@@ -732,13 +727,7 @@ def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
     # Step 4: Verify Q(xi) = C(xi)
     residual = ff3_coeffs(quotient_at_xi - constraint_at_xi)
 
-    if residual[0] != 0 or residual[1] != 0 or residual[2] != 0:
-        print(f"  Q(xi): {ff3_coeffs(quotient_at_xi)}")
-        print(f"  C(xi): {ff3_coeffs(constraint_at_xi)}")
-        print(f"  residual: {residual}")
-        return False
-
-    return True
+    return residual[0] == 0 and residual[1] == 0 and residual[2] == 0
 
 
 def _verify_fri_consistency(
