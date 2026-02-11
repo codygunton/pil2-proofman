@@ -380,6 +380,18 @@ class ExpressionsPack(ExpressionsCtx):
                     dim_a = FIELD_EXTENSION_DEGREE if op_type >= 1 else 1
                     dim_b = FIELD_EXTENSION_DEGREE if op_type == 2 else 1
 
+                    if debug:
+                        a_type = args[i_args + 2]
+                        a_id = args[i_args + 3]
+                        a_open = args[i_args + 4]
+                        b_type = args[i_args + 5]
+                        b_id = args[i_args + 6]
+                        b_open = args[i_args + 7]
+                        op_names = {0: "add", 1: "sub", 2: "mul", 3: "sub(swap)"}
+                        print(f"  [TRACE] op[{op_idx}]: type={op_type} "
+                              f"arith={op_names.get(arith_op, arith_op)} dest={dest_slot} "
+                              f"a=({a_type},{a_id},{a_open}) b=({b_type},{b_id},{b_open})")
+
                     a = self._load_operand(buffers, scalar_params, tmp1_g, tmp3_g, args,
                                            map_offsets_exps, map_offsets_custom_exps,
                                            next_strides_exps, i_args + 2, row, dim_a,
@@ -389,6 +401,15 @@ class ExpressionsPack(ExpressionsCtx):
                                            next_strides_exps, i_args + 5, row, dim_b,
                                            domain_size, domain_extended, is_cyclic, nrows_pack)
                     result = self._apply_op(arith_op, a, b)
+
+                    if debug:
+                        def _dbg_val(v: GaloisValue) -> object:  # noqa: ANN001, ANN202
+                            if _is_ff3(v):
+                                return ff3_coeffs(v)
+                            if hasattr(v, 'ndim') and v.ndim == 0:
+                                return int(v)
+                            return [int(x) for x in v] if hasattr(v, '__len__') else int(v)
+                        print(f"         a={_dbg_val(a)} b={_dbg_val(b)} -> {_dbg_val(result)}")
 
                     if is_last:
                         param_results[k] = result
