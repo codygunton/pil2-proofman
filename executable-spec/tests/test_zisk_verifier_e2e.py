@@ -23,22 +23,14 @@ from tests.conftest import ZISK_PROVING_KEY
 
 TEST_DATA_DIR = Path(__file__).parent / "test-data" / "zisk"
 
-# Rom's custom commit Merkle proof data is inconsistent: the C++ prover
-# generates values+siblings that don't form a valid Merkle path. The C++
-# JSON verifier has a bug (nFieldElements=1 instead of 4 for GL mode) that
-# skips custom commit Merkle verification, masking the issue. Stage/const
-# trees for the same query indices verify correctly, confirming the Python
-# verifier logic is correct.
-_ROM_XFAIL = pytest.mark.xfail(
-    reason="C++ prover generates invalid custom commit Merkle proofs",
-    strict=True,
-)
-
-# AIR name -> (proof filename stem, instance_id)
+# AIR name -> (proof filename stem)
 # Derived from cargo-zisk prove output filenames: {AIRName}_{instanceId}.json
+# Generated from Fibonacci(10) guest program on zisk-for-spec v0.15.0 CPU prover.
+# All 12 AIRs produce valid proofs (including Rom, which was previously xfail
+# with the old ELF/fork). No Arith AIR because Fibonacci doesn't use it.
 ZISK_AIR_PARAMS = [
     pytest.param("Main", "Main_0"),
-    pytest.param("Rom", "Rom_1", marks=_ROM_XFAIL),
+    pytest.param("Rom", "Rom_1"),
     pytest.param("MemAlign", "MemAlign_2"),
     pytest.param("RomData", "RomData_3"),
     pytest.param("InputData", "InputData_4"),
@@ -46,10 +38,9 @@ ZISK_AIR_PARAMS = [
     pytest.param("BinaryExtension", "BinaryExtension_6"),
     pytest.param("BinaryAdd", "BinaryAdd_7"),
     pytest.param("Binary", "Binary_8"),
-    pytest.param("Arith", "Arith_9"),
-    pytest.param("SpecifiedRanges", "SpecifiedRanges_10"),
-    pytest.param("VirtualTable0", "VirtualTable0_11"),
-    pytest.param("VirtualTable1", "VirtualTable1_12"),
+    pytest.param("SpecifiedRanges", "SpecifiedRanges_9"),
+    pytest.param("VirtualTable0", "VirtualTable0_10"),
+    pytest.param("VirtualTable1", "VirtualTable1_11"),
 ]
 
 
