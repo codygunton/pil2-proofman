@@ -1,6 +1,6 @@
 # Zisk AIR Support: Hybrid Bytecode + Hand-Written Plan
 
-> Groups A-E completed. Group F remains (future). Rom xfail under investigation.
+> Groups A-E COMPLETE. All 12 Zisk AIRs pass (including Rom). Group F remains (future).
 
 ## Executive Summary
 
@@ -173,22 +173,17 @@ sufficient for verifier E2E testing. The original detailed plan is preserved in
 
 #### Task #14: Zisk verifier E2E tests ✓
 - Test file: `tests/test_zisk_verifier_e2e.py`
-- 13 AIR test cases, parametrized: `test_verify_zisk_proof[<AirName>-<AirName>_<N>]`
-- 12 AIRs pass, 1 xfail (Rom) — see investigation below
+- 12 AIR test cases (Fibonacci ELF doesn't exercise Arith), parametrized
+- **ALL 12 AIRs PASS** (including Rom!) — no xfails
+- Fixtures: CPU-generated proofs from Fibonacci(10) guest on zisk-for-spec v0.15.0
 - Module-level skip gate: `pytestmark = pytest.mark.skipif` on `ZISK_PROVING_KEY`
-- Rom marked with `pytest.param(..., marks=pytest.mark.xfail(...))`
-- Full test suite: 332 passed, 1 xfailed in ~15 min
+- Full test suite: 320+ passed in ~2 min (excluding Zisk); Zisk E2E ~17 min
 
-**Rom xfail — INVESTIGATION INCOMPLETE:**
-The evaluation check fails for Rom (the only AIR with custom commits). Initial
-investigation attributed this to a C++ prover nFieldElements bug, but this
-conclusion was reached **without comparing the C++ verifier code**. Next steps:
-1. Read `pil2-stark/src/starkpil/stark_verify.hpp` and compare evaluation check
-2. Read `pil2-stark/src/starkpil/verify_constraints.hpp` and compare constraint eval
-3. Read `pil2-stark/src/starkpil/expressions_pack.hpp` and compare verify-mode
-   bytecode evaluation (especially dim handling for custom commit types)
-4. Optionally run the C++ verifier against the Rom proof binary
-See `ai_notes/rom-xfail-investigation.md` for full details.
+**Rom xfail — RESOLVED:**
+Previously Rom failed with evaluation check errors. Root cause was stale/invalid
+proof fixtures from an earlier prover run. Regenerating fixtures with the CPU prover
+(`generate-zisk-test-vectors.sh`) using a fresh Fibonacci(10) ELF on zisk-for-spec
+v0.15.0 resolved the issue. Commit `8808bc99`.
 
 ### Group F: Transpiler Bootstrapping (Future)
 
@@ -208,8 +203,8 @@ See `ai_notes/rom-xfail-investigation.md` for full details.
 | Group C | `uv run pytest tests/test_bytecode_equivalence.py -v` | Bytecode == hand-written ✓ |
 | Group C | Toggle to bytecode, `./run-tests.sh` | 171 tests pass byte-identically ✓ |
 | Group D | `ZISK_PROVING_KEY=... python -c "from constraints import ..."` | 22 AIRs discovered ✓ |
-| Group E | `./run-tests.sh zisk` | 332 passed, 1 xfailed ✓ |
-| Group E | `./run-tests.sh` | 332 passed, 1 xfailed (~15 min) ✓ |
+| Group E | `./run-tests.sh zisk` | 12 Zisk AIRs pass ✓ |
+| Group E | `./run-tests.sh e2e` | 19 E2E tests pass (~35s) ✓ |
 
 ## Execution Order
 
@@ -218,7 +213,7 @@ Group A (#1-4) ──seq──> Group B (#5-7) ──> Group C (#8-9)  ← ALL C
                                                 │
                                       Group D (#10-13) ← COMPLETE (auto-discovery approach)
                                                 │
-                                      Group E (#14) ← COMPLETE (12/13 pass, Rom xfail)
+                                      Group E (#14) ← COMPLETE (12/12 pass, Rom fixed)
                                                 │
                                       Group F (#15) ← FUTURE
 ```
@@ -280,17 +275,14 @@ See `zisk-e2e-fixture-generation.md` for the original detailed plan, now superse
 ### Group E: Zisk Verifier E2E — COMPLETE ✓
 (Verifier-only E2E. Prover E2E deferred — Zisk AIRs too large for JSON witness traces.)
 
-- [x] #14a 13 Zisk AIRs exercised by test ELF (of 22 discovered)
+- [x] #14a 12 Zisk AIRs exercised by Fibonacci(10) ELF (no Arith)
 - [x] #14b Binary proof fixtures generated via `generate-zisk-test-vectors.sh`
-- [x] #14c Python verifier validates C++ proofs: 12/13 pass
+- [x] #14c Python verifier validates C++ proofs: **12/12 pass** (including Rom)
 - [ ] ~~#14d VADCOP coordination validation~~ (deferred — single-AIR verification scope)
-- [x] #14e Test file: `tests/test_zisk_verifier_e2e.py` (332 total tests, 1 xfail)
-  - **Passing**: Main, MemAlign, RomData, InputData, Mem, BinaryExtension,
-    BinaryAdd, Binary, Arith, SpecifiedRanges, VirtualTable0, VirtualTable1
-  - **xfail (Rom)**: Evaluation check fails. INVESTIGATION INCOMPLETE — see
-    `ai_notes/rom-xfail-investigation.md` for status. Need to compare C++ verifier code
-    (`stark_verify.hpp`, `verify_constraints.hpp`, `expressions_pack.hpp`)
-    against Python verifier to rule out Python-side bugs before blaming C++ prover.
+- [x] #14e Test file: `tests/test_zisk_verifier_e2e.py`
+  - **All passing**: Main, MemAlign, RomData, InputData, Mem, BinaryExtension,
+    BinaryAdd, Binary, SpecifiedRanges, VirtualTable0, VirtualTable1, Rom
+  - Rom xfail RESOLVED — was caused by stale fixtures (commit `8808bc99`)
 
 ### Group F: Transpiler (Future)
 - [ ] #15 Evaluate transpiler vs bytecode-only for readability

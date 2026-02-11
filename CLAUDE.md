@@ -70,7 +70,7 @@ cd executable-spec
 | `test_batch_inverse.py` | Montgomery batch inversion |
 | `test_expressions_bin.py` | Expression binary parser tests |
 | `test_bytecode_equivalence.py` | Bytecode vs hand-written constraint equivalence |
-| `test_zisk_verifier_e2e.py` | Zisk verifier E2E (13 AIRs, Rom xfail) |
+| `test_zisk_verifier_e2e.py` | Zisk verifier E2E (12 AIRs, all pass) |
 
 **Test data directory (`executable-spec/tests/test-data/`):**
 - `*.json` - JSON test vectors with inputs, intermediates, and expected outputs
@@ -81,7 +81,25 @@ cd executable-spec
 - `TestStarkE2EComplete` - Full proof generation with binary comparison to C++
 - `TestFullBinaryComparison` - Byte-level proof verification
 - `TestVerifierE2E` - Verifies C++ proofs pass Python verification
-- `TestZiskVerifierE2E` - Verifies C++ Zisk proofs (13 AIRs, Rom xfail)
+- `TestZiskVerifierE2E` - Verifies C++ Zisk proofs (12 AIRs, all pass)
+
+### Zisk Test Fixtures
+
+Generate Zisk verifier E2E test fixtures (binary proof files from GPU prover):
+
+```bash
+./generate-zisk-test-vectors.sh                              # default: uses ../zisk-for-spec
+./generate-zisk-test-vectors.sh --zisk-dir /path/to/zisk     # custom zisk repo
+./generate-zisk-test-vectors.sh --proving-key /path/to/pk    # custom proving key
+```
+
+Uses the GPU-enabled `cargo-zisk` binary from `zisk-for-spec` (v0.15.0). GPU proving generates 12 AIR proofs in ~2 seconds (vs ~17 minutes on CPU). Proofs are byte-identical between GPU and CPU.
+
+**Prerequisites:**
+- Built `cargo-zisk` with `--features gpu` in `zisk-for-spec/`
+- Zisk proving key at `zisk-for-spec/provingKey/`
+- Guest ELF at `zisk-for-spec/witness-computation/rom/zisk.elf`
+- CUDA runtime (`libcudart.so`) available
 
 ### C++ FRI Pinning Vectors
 
