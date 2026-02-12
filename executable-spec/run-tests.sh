@@ -14,6 +14,7 @@
 #   ./run-tests.sh permutation        # Run Permutation1_6 AIR tests
 #   ./run-tests.sh unit               # Run unit tests (non-E2E)
 #   ./run-tests.sh zisk               # Run Zisk verifier E2E tests only
+#   ./run-tests.sh vadcop-final       # Run VADCOP final verifier E2E test
 #   ./run-tests.sh -k "pattern"       # Pass pytest -k filter directly
 #
 # Environment:
@@ -81,11 +82,15 @@ case "$1" in
         ;;
     unit)
         echo "Running unit tests (non-E2E)..."
-        uv run python -m pytest tests/ -v --ignore=tests/test_stark_e2e.py --ignore=tests/test_verifier_e2e.py --ignore=tests/test_zisk_verifier_e2e.py $PARALLEL_ARGS
+        uv run python -m pytest tests/ -v --ignore=tests/test_stark_e2e.py --ignore=tests/test_verifier_e2e.py --ignore=tests/test_zisk_verifier_e2e.py --ignore=tests/test_zisk_vadcop_final_e2e.py $PARALLEL_ARGS
         ;;
     zisk)
         echo "Running Zisk verifier E2E tests..."
         uv run python -m pytest tests/test_zisk_verifier_e2e.py -v $PARALLEL_ARGS
+        ;;
+    vadcop-final)
+        echo "Running VADCOP final verifier E2E test..."
+        uv run python -m pytest tests/test_zisk_vadcop_final_e2e.py -v $PARALLEL_ARGS
         ;;
     -k)
         # Pass through to pytest -k

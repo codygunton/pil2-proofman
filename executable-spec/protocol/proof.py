@@ -6,6 +6,8 @@ import struct
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
+
 from primitives.field import ff3_coeffs, ff3_to_flat_list
 from protocol.stark_info import FIELD_EXTENSION_DEGREE, HASH_SIZE
 
@@ -155,6 +157,25 @@ def load_proof_from_json(path: str) -> tuple[STARKProof, dict[str, Any]]:
 
 
 # --- Binary Deserialization ---
+
+def from_vadcop_final_bytes(data: bytes, stark_info: Any) -> tuple[STARKProof, np.ndarray]:
+    """Parse a VadcopFinal proof binary with embedded publics header.
+
+    VadcopFinal proofs prepend [n_publics: u64] [publics: n_publics * u64]
+    before the standard proof body (ref: recursion.rs lines 622-627).
+
+    Returns:
+        Tuple of (STARKProof, publics_array) where publics_array is numpy uint64.
+    """
+    n_publics = struct.unpack('<Q', data[:8])[0]
+    header_size = 8 + n_publics * 8
+    publics = np.array(
+        struct.unpack(f'<{n_publics}Q', data[8:header_size]),
+        dtype=np.uint64,
+    )
+    proof = from_bytes_full(data[header_size:], stark_info)
+    return proof, publics
+
 
 def from_bytes_full(data: bytes, stark_info: Any) -> STARKProof:
     """Deserialize binary proof to STARKProof structure.

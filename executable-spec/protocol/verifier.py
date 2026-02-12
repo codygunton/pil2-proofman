@@ -59,7 +59,7 @@ def stark_verify(
     proof: STARKProof,
     air_config: AirConfig,
     verkey: MerkleRoot,
-    global_challenge: InterleavedFF3,
+    global_challenge: InterleavedFF3 | None = None,
     publics: FFArray | None = None,
     proof_values: FFArray | None = None,
 ) -> bool:
@@ -82,7 +82,7 @@ def stark_verify(
     airgroup_values = _parse_airgroup_values(proof, stark_info)
 
     # --- Reconstruct Fiat-Shamir transcript ---
-    challenges = _reconstruct_transcript(proof, stark_info, global_challenge)
+    challenges = _reconstruct_transcript(proof, stark_info, global_challenge, verkey, publics)
 
     # --- Verify proof-of-work ---
     grinding_idx = len(stark_info.challenges_map) + len(stark_struct.fri_fold_steps)
@@ -379,11 +379,19 @@ def _find_xi_challenge(stark_info: StarkInfo, challenges: InterleavedFF3) -> Int
 
 # --- Fiat-Shamir Transcript Reconstruction ---
 
-def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_challenge: InterleavedFF3) -> InterleavedFF3:
+def _reconstruct_transcript(
+    proof: STARKProof,
+    stark_info: StarkInfo,
+    global_challenge: InterleavedFF3 | None,
+    verkey: MerkleRoot | None = None,
+    publics: FFArray | None = None,
+) -> InterleavedFF3:
     """Reconstruct Fiat-Shamir transcript, returning challenges.
 
     Protocol flow:
-    1. Initialize transcript with global_challenge
+    1. Initialize transcript:
+       - Per-AIR: seed with global_challenge (3 elements)
+       - VadcopFinal: seed with verkey (4), hashed publics (4), root1 (4)
     2. For each stage 2..n_stages+1: derive challenges, absorb root and air values
     3. Derive evaluation point (xi) challenges
     4. Absorb evals (hashed if hash_commits enabled)
@@ -397,7 +405,24 @@ def _reconstruct_transcript(proof: STARKProof, stark_info: StarkInfo, global_cha
     challenges = np.zeros((n_challenges + n_steps + 1) * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
     transcript = Transcript(arity=stark_struct.transcript_arity, custom=stark_struct.merkle_tree_custom)
-    transcript.put(global_challenge[:3].tolist())
+
+    if global_challenge is not None:
+        # Per-AIR: outer VADCOP transcript already absorbed verkey + publics + root1
+        transcript.put(global_challenge[:3].tolist())
+    else:
+        # VadcopFinal: WE ARE the outer layer (ref: verifier.rs lines 249-261)
+        transcript.put(list(verkey))
+        if publics is not None and len(publics) > 0:
+            if stark_struct.hash_commits:
+                hash_transcript = Transcript(
+                    arity=stark_struct.transcript_arity,
+                    custom=stark_struct.merkle_tree_custom,
+                )
+                hash_transcript.put(publics.tolist())
+                transcript.put(hash_transcript.get_state(HASH_SIZE))
+            else:
+                transcript.put(publics.tolist())
+        transcript.put(proof.roots[0])  # root1
 
     # Stages 2..n_stages+1
     challenge_idx = 0

@@ -50,9 +50,26 @@ def _discover_zisk_airs() -> dict[str, str]:
     }
 
 
+def _discover_vadcop_final() -> dict[str, str]:
+    """Discover VadcopFinal constraint bytecode from the proving key.
+
+    The AIR name comes from starkinfo.json ("FinalVadcop"), matching what
+    AirConfig.from_starkinfo() will set as stark_info.name.
+    """
+    vf_dir = ZISK_PROVING_KEY_DIR / "zisk" / "vadcop_final"
+    bin_path = vf_dir / "vadcop_final.bin"
+    si_path = vf_dir / "vadcop_final.starkinfo.json"
+    if not bin_path.exists() or not si_path.exists():
+        return {}
+    import json
+    with open(si_path) as f:
+        name = json.load(f).get("name", "FinalVadcop")
+    return {name: str(bin_path)}
+
+
 # AIRs that should use bytecode interpreter instead of hand-written modules.
-# Includes auto-discovered Zisk AIRs.
-BYTECODE_AIRS: dict[str, str] = _discover_zisk_airs()
+# Includes auto-discovered Zisk AIRs and VadcopFinal.
+BYTECODE_AIRS: dict[str, str] = {**_discover_zisk_airs(), **_discover_vadcop_final()}
 
 
 def get_constraint_module(air_name: str) -> ConstraintModule:

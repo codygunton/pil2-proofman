@@ -138,19 +138,11 @@ class StarkInfo:
         self.stark_struct.n_bits_ext = ss["nBitsExt"]
         self.stark_struct.n_queries = ss["nQueries"]
         self.stark_struct.verification_hash_type = ss["verificationHashType"]
-        self.stark_struct.pow_bits = ss["powBits"]
-
-        if ss["verificationHashType"] == "BN128":
-            self.stark_struct.merkle_tree_arity = ss.get("merkleTreeArity", 16)
-            self.stark_struct.transcript_arity = ss.get("transcriptArity", 16)
-            self.stark_struct.merkle_tree_custom = ss.get("merkleTreeCustom", False)
-            self.stark_struct.last_level_verification = 0
-        else:
-            self.stark_struct.merkle_tree_arity = ss["merkleTreeArity"]
-            self.stark_struct.transcript_arity = ss["transcriptArity"]
-            self.stark_struct.merkle_tree_custom = ss["merkleTreeCustom"]
-            self.stark_struct.last_level_verification = ss["lastLevelVerification"]
-
+        self.stark_struct.pow_bits = ss.get("powBits", 0)
+        self.stark_struct.merkle_tree_arity = ss.get("merkleTreeArity", 16)
+        self.stark_struct.transcript_arity = ss.get("transcriptArity", 16)
+        self.stark_struct.merkle_tree_custom = ss.get("merkleTreeCustom", False)
+        self.stark_struct.last_level_verification = ss.get("lastLevelVerification", 0)
         self.stark_struct.hash_commits = ss.get("hashCommits", False)
         self.stark_struct.fri_fold_steps = [FriFoldStep(domain_bits=s["nBits"]) for s in ss["steps"]]
 
