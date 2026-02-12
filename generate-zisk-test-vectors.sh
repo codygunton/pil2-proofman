@@ -2,13 +2,14 @@
 # Generate Zisk E2E test fixtures (binary proof files) for the Python executable spec.
 #
 # Usage:
-#   ./generate-zisk-test-vectors.sh [--zisk-dir DIR] [--proving-key DIR] [--elf PATH]
+#   ./generate-zisk-test-vectors.sh [--zisk-dir DIR] [--proving-key DIR] [--elf PATH] [--vadcop]
 #
 # This script:
 #   1. Runs cargo-zisk rom-setup to prepare ROM data
 #   2. Runs cargo-zisk prove (GPU by default) to generate JSON proofs + publics
 #   3. Converts JSON proofs to binary (.proof.bin) via json-proof-to-bin.py
 #   4. Copies all fixtures to executable-spec/tests/test-data/zisk/
+#   5. (--vadcop) Runs cargo-zisk prove --aggregation to generate VADCOP final proof
 #
 # The cargo-zisk binary must be built with --features gpu for GPU proving.
 # GPU proving generates 12 AIR proofs in ~3 seconds vs ~17 minutes on CPU.
@@ -32,13 +33,15 @@ EXEC_SPEC_DIR="$ROOT_DIR/executable-spec"
 TEST_DATA_DIR="$EXEC_SPEC_DIR/tests/test-data/zisk"
 
 # --- Parse arguments ---
+GENERATE_VADCOP=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --zisk-dir)   ZISK_DIR="$2"; shift 2 ;;
         --proving-key) ZISK_PROVING_KEY="$2"; shift 2 ;;
         --elf)        ZISK_ELF="$2"; shift 2 ;;
+        --vadcop)     GENERATE_VADCOP=1; shift ;;
         -h|--help)
-            echo "Usage: $0 [--zisk-dir DIR] [--proving-key DIR] [--elf PATH]"
+            echo "Usage: $0 [--zisk-dir DIR] [--proving-key DIR] [--elf PATH] [--vadcop]"
             exit 0 ;;
         *)
             echo "Unknown option: $1" >&2
@@ -183,31 +186,60 @@ if [ -f "$OUTPUT_DIR/proof_values.json" ]; then
     echo "  Copied proof_values.json"
 fi
 
-# Extract global_challenge from the first JSON proof
-first_proof=$(ls "$OUTPUT_DIR/proofs/"*.json 2>/dev/null | head -1)
-if [ -n "$first_proof" ]; then
-    uv run python -c "
-import json, sys
-with open('$first_proof') as f:
-    p = json.load(f)
-gc = p.get('globalChallenge', p.get('global_challenge', []))
-if gc:
-    json.dump(gc, sys.stdout, indent=4)
-    print()
-" > "$TEST_DATA_DIR/global_challenge.json" 2>/dev/null || true
-    if [ -s "$TEST_DATA_DIR/global_challenge.json" ]; then
-        echo "  Extracted global_challenge.json"
-    fi
-fi
-
 echo ""
 
-# --- Step 5: Verify ---
-echo "=== Step 5: Verify ==="
+# --- Step 5: VADCOP final proof (optional) ---
+if [ "$GENERATE_VADCOP" -eq 1 ]; then
+    echo "=== Step 5: Generate VADCOP final proof ==="
+
+    VADCOP_STARKINFO="$ZISK_PROVING_KEY/zisk/vadcop_final/vadcop_final.starkinfo.json"
+    if [ ! -f "$VADCOP_STARKINFO" ]; then
+        echo "  ERROR: VadcopFinal setup not found at $VADCOP_STARKINFO"
+        echo "  The proving key must include recursive setup artifacts."
+        echo "  Download a complete provingKey with: wget https://storage.googleapis.com/zisk-setup/zisk-provingkey-0.15.0.tar.gz"
+        exit 1
+    fi
+
+    VADCOP_DIR="$(mktemp -d)"
+    mkdir -p "$VADCOP_DIR/proofs"
+    echo "  VADCOP output dir: $VADCOP_DIR"
+
+    # cargo-zisk prove --aggregation generates the VADCOP final proof.
+    # -a = --aggregation, -y = --verify-proofs (verify before saving)
+    "$CARGO_ZISK" prove \
+        --elf "$ZISK_ELF" \
+        --witness-lib "$ZISK_DIR/target/release/libzisk_witness.so" \
+        --proving-key "$ZISK_PROVING_KEY" \
+        --output-dir "$VADCOP_DIR" \
+        --emulator \
+        --aggregation \
+        --verify-proofs \
+        || true
+
+    # cargo-zisk saves the VADCOP proof at the root of output-dir, not in proofs/
+    VADCOP_PROOF="$VADCOP_DIR/vadcop_final_proof.bin"
+    if [ -f "$VADCOP_PROOF" ]; then
+        cp "$VADCOP_PROOF" "$TEST_DATA_DIR/vadcop_final.proof.bin"
+        echo "  Copied vadcop_final.proof.bin ($(stat -c%s "$VADCOP_PROOF") bytes)"
+    else
+        echo "  ERROR: vadcop_final_proof.bin not found in $VADCOP_DIR/"
+        echo "  Available files:"
+        ls -la "$VADCOP_DIR/" 2>/dev/null || echo "    (none)"
+        exit 1
+    fi
+
+    rm -rf "$VADCOP_DIR"
+    echo ""
+fi
+
+# --- Step 6: Verify ---
+echo "=== Step 6: Verify ==="
 BIN_COUNT=$(ls "$TEST_DATA_DIR/proofs/"*.proof.bin 2>/dev/null | wc -l)
 echo "  Binary proofs: $BIN_COUNT"
 echo "  Publics: $([ -f "$TEST_DATA_DIR/publics.json" ] && echo 'yes' || echo 'NO')"
-echo "  Global challenge: $([ -f "$TEST_DATA_DIR/global_challenge.json" ] && echo 'yes' || echo 'NO')"
+echo "  Proof values: $([ -f "$TEST_DATA_DIR/proof_values.json" ] && echo 'yes' || echo 'NO')"
+echo "  VADCOP final: $([ -f "$TEST_DATA_DIR/vadcop_final.proof.bin" ] && echo 'yes' || echo 'NO')"
+echo "  (global_challenge is derived from per-AIR proofs at test time)"
 echo ""
 
 # Clean up temp dir
@@ -219,4 +251,8 @@ echo "Test fixtures in: executable-spec/tests/test-data/zisk/"
 echo ""
 echo "To run Zisk verifier tests:"
 echo "  cd executable-spec"
-echo "  ZISK_PROVING_KEY=$ZISK_PROVING_KEY ./run-tests.sh -k zisk"
+echo "  ./run-tests.sh zisk"
+echo ""
+echo "To run VADCOP final verifier test:"
+echo "  cd executable-spec"
+echo "  ./run-tests.sh vadcop-final"
