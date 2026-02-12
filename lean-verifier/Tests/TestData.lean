@@ -69,10 +69,10 @@ def emptyConstructionTests : TestSeq :=
 
 def structLiteralTests : TestSeq :=
   let vd : VerifierData := {
-    evals := .empty
-    challenges := .empty
-    publicInputs := .empty
-    airgroupValues := .empty
+    evals := {}
+    challenges := {}
+    publicInputs := {}
+    airgroupValues := {}
     publicsFlat := #[1, 2, 3]
     airValuesFlat := #[4, 5]
   }

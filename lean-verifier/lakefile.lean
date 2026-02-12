@@ -43,5 +43,11 @@ lean_exe «test-merkle» where
 lean_exe «test-polynomial» where
   root := `Tests.TestPolynomial
 
+lean_exe «test-fri» where
+  root := `Tests.TestFRI
+
+lean_exe «test-verifier» where
+  root := `Tests.TestVerifier
+
 lean_exe «test-all» where
   root := `Tests.Main
