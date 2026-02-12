@@ -25,5 +25,8 @@ require LSpec from git
 lean_exe «test-field» where
   root := `Tests.TestField
 
+lean_exe «test-transcript» where
+  root := `Tests.TestTranscript
+
 lean_exe «test-all» where
   root := `Tests.Main
