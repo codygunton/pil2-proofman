@@ -28,5 +28,20 @@ lean_exe «test-field» where
 lean_exe «test-transcript» where
   root := `Tests.TestTranscript
 
+lean_exe «test-starkinfo» where
+  root := `Tests.TestStarkInfo
+
+lean_exe «test-data» where
+  root := `Tests.TestData
+
+lean_exe «test-proof» where
+  root := `Tests.TestProof
+
+lean_exe «test-merkle» where
+  root := `Tests.TestMerkle
+
+lean_exe «test-polynomial» where
+  root := `Tests.TestPolynomial
+
 lean_exe «test-all» where
   root := `Tests.Main
