@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from poseidon2_ffi import poseidon2_hash
 
+from primitives.field import GOLDILOCKS_PRIME
 from primitives.transcript import Transcript
 
 if TYPE_CHECKING:
@@ -160,3 +161,68 @@ def derive_global_challenge(
     global_challenge = transcript.get_field()
 
     return global_challenge
+
+
+def accumulate_contributions(
+    contributions: list[list[int]],
+    lattice_size: int = 368,
+) -> list[int]:
+    """Element-wise sum of per-AIR contribution vectors (mod Goldilocks prime).
+
+    Implements C++ add_contributions() for CurveType::None in challenge_accumulation.rs.
+
+    Args:
+        contributions: List of per-AIR contribution vectors (each lattice_size elements).
+        lattice_size: Size of each contribution vector.
+
+    Returns:
+        Accumulated vector of lattice_size elements.
+    """
+    accumulated = [0] * lattice_size
+    for contribution in contributions:
+        for i in range(lattice_size):
+            accumulated[i] = (accumulated[i] + contribution[i]) % GOLDILOCKS_PRIME
+    return accumulated
+
+
+def derive_global_challenge_multi_air(
+    publics: list[int],
+    n_publics: int,
+    proof_values_stage1: list[int],
+    contributions: list[list[int]],
+    transcript_arity: int = 4,
+    merkle_tree_custom: bool = False,
+    lattice_size: int = 368,
+) -> list[int]:
+    """Derive global_challenge from multiple AIR contributions.
+
+    Implements C++ calculate_global_challenge() in challenge_accumulation.rs:
+    1. Accumulate per-AIR contributions via element-wise addition
+    2. Hash [publics, proof_values_stage1, accumulated] via transcript
+    3. Extract 3-element cubic extension challenge
+
+    Args:
+        publics: Public inputs (n_publics elements).
+        n_publics: Number of public inputs to hash.
+        proof_values_stage1: Stage 1 proof values (first component of each FF3).
+        contributions: List of per-AIR expanded contribution vectors.
+        transcript_arity: Transcript Poseidon2 arity (from globalInfo).
+        merkle_tree_custom: Merkle tree custom flag.
+        lattice_size: Contribution vector size (from globalInfo.latticeSize).
+
+    Returns:
+        List of 3 field elements [c0, c1, c2] representing cubic extension challenge.
+    """
+    accumulated = accumulate_contributions(contributions, lattice_size)
+
+    transcript = Transcript(arity=transcript_arity, custom=merkle_tree_custom)
+
+    if n_publics > 0:
+        transcript.put(publics[:n_publics])
+
+    if proof_values_stage1:
+        transcript.put(proof_values_stage1)
+
+    transcript.put(accumulated)
+
+    return transcript.get_field()

@@ -5,11 +5,16 @@ the C++ prover for Zisk zkVM AIRs. Each test loads a binary proof from
 test-data/zisk/proofs/, the corresponding starkinfo and verkey from
 the Zisk proving key, and verifies the proof passes stark_verify().
 
+The global_challenge is derived from per-AIR proof data (verkey, root1,
+air_values) following the C++ challenge_accumulation.rs algorithm, rather
+than loaded from a fixture file.
+
 Requires:
     - Binary proof fixtures in tests/test-data/zisk/proofs/*.proof.bin
-    - publics.json and global_challenge.json in tests/test-data/zisk/
+    - publics.json and proof_values.json in tests/test-data/zisk/
 """
 
+import functools
 import json
 from pathlib import Path
 
@@ -18,6 +23,10 @@ import pytest
 
 from protocol.air_config import AirConfig
 from protocol.proof import from_bytes_full
+from protocol.utils.challenge_utils import (
+    calculate_internal_contribution,
+    derive_global_challenge_multi_air,
+)
 from protocol.verifier import stark_verify
 from tests.conftest import ZISK_PROVING_KEY
 
@@ -25,16 +34,17 @@ TEST_DATA_DIR = Path(__file__).parent / "test-data" / "zisk"
 
 # AIR name -> (proof filename stem)
 # Derived from cargo-zisk prove output filenames: {AIRName}_{instanceId}.json
-# Generated from Fibonacci(10) guest program on zisk-for-spec v0.15.0 CPU prover.
+# Generated from Fibonacci(10) guest program on zisk-for-spec v0.15.0 GPU prover.
 # All 12 AIRs produce valid proofs (including Rom, which was previously xfail
 # with the old ELF/fork). No Arith AIR because Fibonacci doesn't use it.
+# Instance IDs are assigned by the prover and may vary between runs.
 ZISK_AIR_PARAMS = [
     pytest.param("Main", "Main_0"),
     pytest.param("Rom", "Rom_1"),
-    pytest.param("MemAlign", "MemAlign_2"),
+    pytest.param("Mem", "Mem_2"),
     pytest.param("RomData", "RomData_3"),
     pytest.param("InputData", "InputData_4"),
-    pytest.param("Mem", "Mem_5"),
+    pytest.param("MemAlign", "MemAlign_5"),
     pytest.param("BinaryExtension", "BinaryExtension_6"),
     pytest.param("BinaryAdd", "BinaryAdd_7"),
     pytest.param("Binary", "Binary_8"),
@@ -42,6 +52,12 @@ ZISK_AIR_PARAMS = [
     pytest.param("VirtualTable0", "VirtualTable0_10"),
     pytest.param("VirtualTable1", "VirtualTable1_11"),
 ]
+
+# Ordered AIR names for contribution computation (must match ZISK_AIR_PARAMS)
+ZISK_AIR_NAMES = [p.values[0] for p in ZISK_AIR_PARAMS]
+ZISK_PROOF_STEMS = [p.values[1] for p in ZISK_AIR_PARAMS]
+
+GLOBAL_INFO_PATH = ZISK_PROVING_KEY / "pilout.globalInfo.json"
 
 
 def _get_proving_key_dir() -> Path:
@@ -68,11 +84,79 @@ def _load_publics() -> np.ndarray:
         return np.array([int(v) for v in json.load(f)], dtype=np.uint64)
 
 
-def _load_global_challenge() -> np.ndarray:
-    """Load global_challenge from test fixture."""
-    gc_path = TEST_DATA_DIR / "global_challenge.json"
-    with open(gc_path) as f:
-        return np.array([int(v) for v in json.load(f)], dtype=np.uint64)
+@functools.lru_cache(maxsize=1)
+def _derive_global_challenge() -> np.ndarray:
+    """Derive global_challenge from per-AIR proof data.
+
+    Computes the VADCOP global challenge by:
+    1. For each AIR: hash [verkey, root1, stage1_air_values] → 368-element contribution
+    2. Accumulate all contributions via element-wise addition (mod Goldilocks)
+    3. Hash [publics, proof_values_stage1, accumulated] → 3-element challenge
+
+    This matches C++ challenge_accumulation.rs exactly.
+    """
+    pk_dir = _get_proving_key_dir()
+
+    # Load global parameters from pilout.globalInfo.json
+    with open(GLOBAL_INFO_PATH) as f:
+        global_info = json.load(f)
+    lattice_size = global_info["latticeSize"]
+    transcript_arity = global_info["transcriptArity"]
+    n_publics = global_info["nPublics"]
+    proof_values_map = global_info.get("proofValuesMap", [])
+
+    # Compute per-AIR contributions
+    contributions = []
+    for air_name, proof_stem in zip(ZISK_AIR_NAMES, ZISK_PROOF_STEMS):
+        starkinfo_path = _load_starkinfo_path(pk_dir, air_name)
+        air_config = AirConfig.from_starkinfo(str(starkinfo_path))
+        stark_info = air_config.stark_info
+
+        # Parse binary proof to get root1 and air_values
+        bin_path = TEST_DATA_DIR / "proofs" / f"{proof_stem}.proof.bin"
+        with open(bin_path, "rb") as f:
+            proof = from_bytes_full(f.read(), stark_info)
+
+        verkey = _load_verkey(pk_dir, air_name)
+        root1 = proof.roots[0]  # Stage 1 Merkle root
+
+        # Extract stage 1 air_values (first component of each FF3 triple)
+        stage1_air_values = [
+            proof.air_values[i][0]
+            for i, av in enumerate(stark_info.air_values_map)
+            if av.stage == 1
+        ]
+
+        contribution = calculate_internal_contribution(
+            stark_info, verkey, root1,
+            air_values=stage1_air_values or None,
+            lattice_size=lattice_size,
+        )
+        contributions.append(contribution)
+
+    # Load publics and proof_values
+    publics = _load_publics()
+
+    # Extract stage 1 proof values (first component of each FF3)
+    proof_values_path = TEST_DATA_DIR / "proof_values.json"
+    with open(proof_values_path) as f:
+        proof_values_raw = json.load(f)
+    proof_values_stage1 = [
+        int(pv[0])
+        for pv, pvm in zip(proof_values_raw, proof_values_map)
+        if pvm["stage"] == 1
+    ]
+
+    global_challenge = derive_global_challenge_multi_air(
+        publics=publics.tolist(),
+        n_publics=n_publics,
+        proof_values_stage1=proof_values_stage1,
+        contributions=contributions,
+        transcript_arity=transcript_arity,
+        lattice_size=lattice_size,
+    )
+
+    return np.array(global_challenge, dtype=np.uint64)
 
 
 class TestZiskVerifierE2E:
@@ -94,7 +178,7 @@ class TestZiskVerifierE2E:
         proof = from_bytes_full(proof_bytes, stark_info)
         verkey = _load_verkey(pk_dir, air_name)
         publics = _load_publics()
-        global_challenge = _load_global_challenge()
+        global_challenge = _derive_global_challenge()
 
         result = stark_verify(
             proof=proof,
