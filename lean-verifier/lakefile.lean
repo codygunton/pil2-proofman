@@ -5,9 +5,13 @@ package «LeanVerifier» where
   leanOptions := #[
     ⟨`autoImplicit, false⟩
   ]
-  -- Link the Poseidon2 Rust static library into all executables
+  -- Link Rust static libraries into all executables.
+  -- --allow-multiple-definition: both Rust staticlibs embed the Rust runtime;
+  -- the symbols are identical so the linker can safely pick one.
   moreLinkArgs := #[
-    s!"{__dir__}/ffi/poseidon2/target/release/libposeidon2_lean.a"
+    s!"{__dir__}/ffi/poseidon2/target/release/libposeidon2_lean.a",
+    s!"{__dir__}/ffi/constraints/target/release/libconstraints_lean.a",
+    "-Wl,--allow-multiple-definition"
   ]
 
 -- Core libraries mirroring Python package structure
@@ -36,6 +40,18 @@ extern_lib «poseidon2_lean» := Job.async do
     cwd := crateDir
   }
   -- Track the output binary for rebuild detection
+  setTrace (← computeTrace libFile)
+  return libFile
+
+-- Build Constraints Rust FFI static library
+extern_lib «constraints_lean» := Job.async do
+  let crateDir := __dir__ / "ffi" / "constraints"
+  let libFile := crateDir / "target" / "release" / nameToStaticLib "constraints_lean"
+  proc {
+    cmd := "cargo"
+    args := #["build", "--release"]
+    cwd := crateDir
+  }
   setTrace (← computeTrace libFile)
   return libFile
 
@@ -69,6 +85,12 @@ lean_exe «test-verifier» where
 
 lean_exe «test-poseidon2» where
   root := `Tests.TestPoseidon2
+
+lean_exe «test-zisk-verifier» where
+  root := `Tests.TestZiskVerifier
+
+lean_exe «test-vadcop-final» where
+  root := `Tests.TestVadcopFinal
 
 lean_exe «test-all» where
   root := `Tests.Main
