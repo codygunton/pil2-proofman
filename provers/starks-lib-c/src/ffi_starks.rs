@@ -852,6 +852,7 @@ pub fn gen_proof_c(
     p_global_challenge: *mut u8,
     proof_buffer: *mut u64,
     proof_file: &str,
+    proof_bin_file: &str,
     airgroup_id: u64,
     air_id: u64,
     instance_id: u64,
@@ -863,6 +864,9 @@ pub fn gen_proof_c(
 ) -> u64 {
     let proof_file_name = CString::new(proof_file).unwrap();
     let proof_file_ptr = proof_file_name.as_ptr() as *mut std::os::raw::c_char;
+
+    let proof_bin_file_name = CString::new(proof_bin_file).unwrap();
+    let proof_bin_file_ptr = proof_bin_file_name.as_ptr() as *mut std::os::raw::c_char;
 
     let const_filename_name = CString::new(const_pols_path).unwrap();
     let const_filename_ptr = const_filename_name.as_ptr() as *mut std::os::raw::c_char;
@@ -880,6 +884,7 @@ pub fn gen_proof_c(
             p_global_challenge as *mut std::os::raw::c_void,
             proof_buffer,
             proof_file_ptr,
+            proof_bin_file_ptr,
             d_buffers,
             skip_recalculation,
             stream_id,
@@ -1832,6 +1837,7 @@ pub fn gen_proof_c(
     _p_global_challenge: *mut u8,
     _proof_buffer: *mut u64,
     _proof_file: &str,
+    _proof_bin_file: &str,
     _airgroup_id: u64,
     _air_id: u64,
     _instance_id: u64,

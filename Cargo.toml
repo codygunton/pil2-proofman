@@ -40,6 +40,9 @@ members = [
     "examples/fibonacci-square",
     "examples/test-recursive",
     "macros-test",
+
+    # Pinning tests (golden file validation)
+    "tests/pinning",
 ]
 
 default-members = [

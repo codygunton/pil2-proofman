@@ -1,0 +1,2 @@
+# This directory contains generated test vectors
+# Run ./generate-test-vectors.sh from the repo root to populate

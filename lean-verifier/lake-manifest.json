@@ -1,0 +1,15 @@
+{"version": "1.1.0",
+ "packagesDir": ".lake/packages",
+ "packages":
+ [{"url": "https://github.com/argumentcomputer/LSpec",
+   "type": "git",
+   "subDir": null,
+   "scope": "",
+   "rev": "8e6ddb17c2b7e2bbb63585aa4225c5b0701b8ad2",
+   "name": "LSpec",
+   "manifestFile": "lake-manifest.json",
+   "inputRev": "main",
+   "inherited": false,
+   "configFile": "lakefile.toml"}],
+ "name": "LeanVerifier",
+ "lakeDir": ".lake"}

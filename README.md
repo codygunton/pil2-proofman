@@ -14,6 +14,65 @@ If you encounter any errors or unexpected behavior, please report them. Your fee
 
 The Proof Manager is an adaptable Proof Manager designed to assist in the creation of proofs from a PIL2 pilout-formatted file. It is designed to be used in conjunction with the [PIL2](https://github.com/0xPolygonHermez/pilcom) compiler and proofman-js [pil2-proofman-js](https://github.com/0xPolygonHermez/pil2-proofman-js) to generate the setup.
 
+# Python Executable Spec
+
+A complete Python executable specification of the STARK proving system in `executable-spec/`. This provides a readable reference implementation for cross-validating the C++ prover.
+
+### Components
+
+| Module | Description |
+|--------|-------------|
+| `prover.py` | Top-level proof generation |
+| `verifier.py` | Top-level verification |
+| `stages.py` | Proof stage orchestrator |
+| `fri.py`, `pcs.py` | FRI polynomial commitment scheme |
+| `stark_info.py` | STARK configuration parser |
+| `air_config.py` | AIR config and prover helpers |
+| `constraints/*.py` | Per-AIR constraint modules |
+| `witness/*.py` | Per-AIR witness modules |
+
+### Setup
+
+```bash
+cd executable-spec
+./setup.sh                        # install deps + build poseidon2-ffi
+```
+
+### Running Python Tests
+
+```bash
+./run-tests.sh                    # all 164 tests
+./run-tests.sh e2e                # E2E tests (prover + verifier vs C++)
+./run-tests.sh unit               # fast unit tests
+./run-tests.sh simple             # SimpleLeft AIR tests
+./run-tests.sh lookup             # Lookup2_12 AIR tests
+./run-tests.sh permutation        # Permutation1_6 AIR tests
+./run-tests.sh -k "pattern"       # custom pytest filter
+```
+
+See `executable-spec/README.md` for full documentation.
+
+## Rust/C++ Tests
+
+Three test suites validate the C++ implementation:
+
+- **pinning** - Validates C++ prover output is deterministic (SHA256 checksums)
+- **fri** - Validates C++ FRI values match golden vectors
+- **spec** - Validates Python produces identical output to C++
+
+```bash
+cargo test -p pinning              # all pinning tests
+cargo test -p pinning pinning      # proof file checksums
+cargo test -p pinning fri          # FRI output values
+cargo test -p pinning spec         # Python executable spec
+cargo test -p pinning simple       # simple AIR only
+cargo test -p pinning lookup       # lookup AIR only
+```
+
+Prerequisites: `./setup.sh`
+
+Regenerate FRI golden values: `./generate-fri-vectors.sh`
+
 ## License
 
 All crates in this monorepo are licensed under one of the following options:

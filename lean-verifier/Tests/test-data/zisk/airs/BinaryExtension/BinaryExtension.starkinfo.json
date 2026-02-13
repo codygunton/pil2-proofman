@@ -1,0 +1,1266 @@
+{
+ "name": "BinaryExtension",
+ "cmPolsMap": [
+  {
+   "stage": 1,
+   "name": "op",
+   "dim": 1,
+   "polsMapId": 0,
+   "stageId": 0,
+   "stagePos": 0
+  },
+  {
+   "stage": 1,
+   "name": "free_in_a",
+   "dim": 1,
+   "polsMapId": 1,
+   "stageId": 1,
+   "lengths": [
+    0
+   ],
+   "stagePos": 1
+  },
+  {
+   "stage": 1,
+   "name": "free_in_a",
+   "dim": 1,
+   "polsMapId": 2,
+   "stageId": 2,
+   "lengths": [
+    1
+   ],
+   "stagePos": 2
+  },
+  {
+   "stage": 1,
+   "name": "free_in_a",
+   "dim": 1,
+   "polsMapId": 3,
+   "stageId": 3,
+   "lengths": [
+    2
+   ],
+   "stagePos": 3
+  },
+  {
+   "stage": 1,
+   "name": "free_in_a",
+   "dim": 1,
+   "polsMapId": 4,
+   "stageId": 4,
+   "lengths": [
+    3
+   ],
+   "stagePos": 4
+  },
+  {
+   "stage": 1,
+   "name": "free_in_a",
+   "dim": 1,
+   "polsMapId": 5,
+   "stageId": 5,
+   "lengths": [
+    4
+   ],
+   "stagePos": 5
+  },
+  {
+   "stage": 1,
+   "name": "free_in_a",
+   "dim": 1,
+   "polsMapId": 6,
+   "stageId": 6,
+   "lengths": [
+    5
+   ],
+   "stagePos": 6
+  },
+  {
+   "stage": 1,
+   "name": "free_in_a",
+   "dim": 1,
+   "polsMapId": 7,
+   "stageId": 7,
+   "lengths": [
+    6
+   ],
+   "stagePos": 7
+  },
+  {
+   "stage": 1,
+   "name": "free_in_a",
+   "dim": 1,
+   "polsMapId": 8,
+   "stageId": 8,
+   "lengths": [
+    7
+   ],
+   "stagePos": 8
+  },
+  {
+   "stage": 1,
+   "name": "free_in_b",
+   "dim": 1,
+   "polsMapId": 9,
+   "stageId": 9,
+   "stagePos": 9
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 10,
+   "stageId": 10,
+   "lengths": [
+    0,
+    0
+   ],
+   "stagePos": 10
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 11,
+   "stageId": 11,
+   "lengths": [
+    0,
+    1
+   ],
+   "stagePos": 11
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 12,
+   "stageId": 12,
+   "lengths": [
+    1,
+    0
+   ],
+   "stagePos": 12
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 13,
+   "stageId": 13,
+   "lengths": [
+    1,
+    1
+   ],
+   "stagePos": 13
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 14,
+   "stageId": 14,
+   "lengths": [
+    2,
+    0
+   ],
+   "stagePos": 14
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 15,
+   "stageId": 15,
+   "lengths": [
+    2,
+    1
+   ],
+   "stagePos": 15
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 16,
+   "stageId": 16,
+   "lengths": [
+    3,
+    0
+   ],
+   "stagePos": 16
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 17,
+   "stageId": 17,
+   "lengths": [
+    3,
+    1
+   ],
+   "stagePos": 17
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 18,
+   "stageId": 18,
+   "lengths": [
+    4,
+    0
+   ],
+   "stagePos": 18
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 19,
+   "stageId": 19,
+   "lengths": [
+    4,
+    1
+   ],
+   "stagePos": 19
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 20,
+   "stageId": 20,
+   "lengths": [
+    5,
+    0
+   ],
+   "stagePos": 20
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 21,
+   "stageId": 21,
+   "lengths": [
+    5,
+    1
+   ],
+   "stagePos": 21
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 22,
+   "stageId": 22,
+   "lengths": [
+    6,
+    0
+   ],
+   "stagePos": 22
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 23,
+   "stageId": 23,
+   "lengths": [
+    6,
+    1
+   ],
+   "stagePos": 23
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 24,
+   "stageId": 24,
+   "lengths": [
+    7,
+    0
+   ],
+   "stagePos": 24
+  },
+  {
+   "stage": 1,
+   "name": "free_in_c",
+   "dim": 1,
+   "polsMapId": 25,
+   "stageId": 25,
+   "lengths": [
+    7,
+    1
+   ],
+   "stagePos": 25
+  },
+  {
+   "stage": 1,
+   "name": "op_is_shift",
+   "dim": 1,
+   "polsMapId": 26,
+   "stageId": 26,
+   "stagePos": 26
+  },
+  {
+   "stage": 1,
+   "name": "b",
+   "dim": 1,
+   "polsMapId": 27,
+   "stageId": 27,
+   "lengths": [
+    0
+   ],
+   "stagePos": 27
+  },
+  {
+   "stage": 1,
+   "name": "b",
+   "dim": 1,
+   "polsMapId": 28,
+   "stageId": 28,
+   "lengths": [
+    1
+   ],
+   "stagePos": 28
+  },
+  {
+   "stage": 2,
+   "name": "gsum",
+   "dim": 3,
+   "polsMapId": 29,
+   "stageId": 0,
+   "stagePos": 0
+  },
+  {
+   "stage": 2,
+   "name": "im_cluster",
+   "dim": 3,
+   "polsMapId": 30,
+   "stageId": 1,
+   "stagePos": 3
+  },
+  {
+   "stage": 2,
+   "name": "im_cluster",
+   "dim": 3,
+   "polsMapId": 31,
+   "stageId": 2,
+   "stagePos": 6
+  },
+  {
+   "stage": 2,
+   "name": "im_cluster",
+   "dim": 3,
+   "polsMapId": 32,
+   "stageId": 3,
+   "stagePos": 9
+  },
+  {
+   "stage": 2,
+   "name": "im_cluster",
+   "dim": 3,
+   "polsMapId": 33,
+   "stageId": 4,
+   "stagePos": 12
+  },
+  {
+   "stage": 2,
+   "name": "im_single",
+   "dim": 3,
+   "polsMapId": 34,
+   "stageId": 5,
+   "stagePos": 15
+  },
+  {
+   "stage": 3,
+   "name": "Q0",
+   "dim": 3,
+   "polsMapId": 35,
+   "stagePos": 0,
+   "stageId": 0
+  },
+  {
+   "stage": 3,
+   "name": "Q1",
+   "dim": 3,
+   "polsMapId": 36,
+   "stagePos": 3,
+   "stageId": 1
+  }
+ ],
+ "constPolsMap": [
+  {
+   "stage": 0,
+   "name": "__L1__",
+   "dim": 1,
+   "polsMapId": 0,
+   "stageId": 0
+  }
+ ],
+ "challengesMap": [
+  {
+   "name": "std_alpha",
+   "stage": 2,
+   "dim": 3,
+   "stageId": 0
+  },
+  {
+   "name": "std_gamma",
+   "stage": 2,
+   "dim": 3,
+   "stageId": 1
+  },
+  {
+   "name": "std_vc",
+   "stage": 3,
+   "dim": 3,
+   "stageId": 0
+  },
+  {
+   "name": "std_xi",
+   "stage": 4,
+   "dim": 3,
+   "stageId": 0
+  },
+  {
+   "name": "std_vf1",
+   "stage": 5,
+   "dim": 3,
+   "stageId": 0
+  },
+  {
+   "name": "std_vf2",
+   "stage": 5,
+   "dim": 3,
+   "stageId": 1
+  }
+ ],
+ "publicsMap": [
+  {
+   "name": "rom_root",
+   "stage": 1,
+   "lengths": [
+    0
+   ]
+  },
+  {
+   "name": "rom_root",
+   "stage": 1,
+   "lengths": [
+    1
+   ]
+  },
+  {
+   "name": "rom_root",
+   "stage": 1,
+   "lengths": [
+    2
+   ]
+  },
+  {
+   "name": "rom_root",
+   "stage": 1,
+   "lengths": [
+    3
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    0
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    1
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    2
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    3
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    4
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    5
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    6
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    7
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    8
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    9
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    10
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    11
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    12
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    13
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    14
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    15
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    16
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    17
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    18
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    19
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    20
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    21
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    22
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    23
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    24
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    25
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    26
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    27
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    28
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    29
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    30
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    31
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    32
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    33
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    34
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    35
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    36
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    37
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    38
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    39
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    40
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    41
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    42
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    43
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    44
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    45
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    46
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    47
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    48
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    49
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    50
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    51
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    52
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    53
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    54
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    55
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    56
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    57
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    58
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    59
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    60
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    61
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    62
+   ]
+  },
+  {
+   "name": "inputs",
+   "stage": 1,
+   "lengths": [
+    63
+   ]
+  }
+ ],
+ "proofValuesMap": [
+  {
+   "name": "enable_input_data",
+   "stage": 1
+  },
+  {
+   "name": "enable_rom_data",
+   "stage": 1
+  }
+ ],
+ "airgroupValuesMap": [
+  {
+   "name": "Zisk.gsum_result",
+   "stage": 2
+  }
+ ],
+ "airValuesMap": [
+  {
+   "name": "BinaryExtension.padding_size",
+   "stage": 1
+  },
+  {
+   "name": "BinaryExtension.im_direct",
+   "stage": 2,
+   "lengths": [
+    0
+   ]
+  }
+ ],
+ "mapSectionsN": {
+  "const": 1,
+  "cm1": 29,
+  "cm2": 18,
+  "cm3": 6
+ },
+ "airId": 12,
+ "airgroupId": 0,
+ "nConstants": 1,
+ "nPublics": 68,
+ "airGroupValues": [
+  {
+   "aggType": 0,
+   "stage": 2
+  }
+ ],
+ "nStages": 2,
+ "customCommits": [],
+ "customCommitsMap": [],
+ "starkStruct": {
+  "nBits": 22,
+  "merkleTreeArity": 4,
+  "transcriptArity": 4,
+  "merkleTreeCustom": true,
+  "lastLevelVerification": 2,
+  "powBits": 16,
+  "hashCommits": true,
+  "nBitsExt": 23,
+  "verificationHashType": "GL",
+  "steps": [
+   {
+    "nBits": 23
+   },
+   {
+    "nBits": 20
+   },
+   {
+    "nBits": 17
+   },
+   {
+    "nBits": 14
+   },
+   {
+    "nBits": 11
+   },
+   {
+    "nBits": 8
+   },
+   {
+    "nBits": 5
+   }
+  ],
+  "nQueries": 230
+ },
+ "boundaries": [
+  {
+   "name": "everyRow"
+  }
+ ],
+ "openingPoints": [
+  -1,
+  0,
+  1
+ ],
+ "cExpId": 844,
+ "qDim": 3,
+ "qDeg": 2,
+ "nConstraints": 8,
+ "nCommitmentsStage1": 0,
+ "evMap": [
+  {
+   "type": "cm",
+   "id": 29,
+   "prime": -1,
+   "openingPos": 0
+  },
+  {
+   "type": "const",
+   "id": 0,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 0,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 1,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 2,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 3,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 4,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 5,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 6,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 7,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 8,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 9,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 10,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 11,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 12,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 13,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 14,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 15,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 16,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 17,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 18,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 19,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 20,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 21,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 22,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 23,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 24,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 25,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 26,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 27,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 28,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 29,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 30,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 31,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 32,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 33,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 34,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 35,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "cm",
+   "id": 36,
+   "prime": 0,
+   "openingPos": 1
+  },
+  {
+   "type": "const",
+   "id": 0,
+   "prime": 1,
+   "openingPos": 2
+  }
+ ],
+ "friExpId": 845,
+ "security": {
+  "proximityGap": 0.005999999999999999,
+  "proximityParameter": 0.2868932188134525,
+  "regime": "JBR"
+ }
+}

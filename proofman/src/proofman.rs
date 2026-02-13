@@ -3222,6 +3222,7 @@ where
             pctx.get_global_challenge_ptr(),
             proofs[instance_id].read().unwrap().as_ref().unwrap().proof.as_ptr() as *mut u64,
             &proof_file,
+            "",  // proof_bin_file - empty means don't write binary
             airgroup_id as u64,
             air_id as u64,
             instance_id as u64,

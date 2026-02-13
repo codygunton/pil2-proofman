@@ -354,6 +354,7 @@ extern "C" {
         globalChallenge: *mut ::std::os::raw::c_void,
         proofBuffer: *mut u64,
         proofFile: *mut ::std::os::raw::c_char,
+        proofBinFile: *mut ::std::os::raw::c_char,
         d_buffers: *mut ::std::os::raw::c_void,
         skipRecalculation: bool,
         streamId: u64,

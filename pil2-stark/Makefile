@@ -124,6 +124,11 @@ else
     CXXFLAGS += -O3
 endif
 
+# Support for extra flags (e.g., EXTRA_CXXFLAGS="-DCAPTURE_TEST_VECTORS")
+ifdef EXTRA_CXXFLAGS
+    CXXFLAGS += $(EXTRA_CXXFLAGS)
+endif
+
 # Define source files based on platform
 ifeq ($(UNAME_S),Darwin)
     # macOS - exclude assembly files (.asm)

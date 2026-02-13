@@ -2,10 +2,23 @@ target
 tmp
 pil_helpers
 build*/
+**/build/
 *.pilout
-run.sh
+pil2-stark/lib/
 vendor
 .cargo
 MyLogFile.log
 .vscode/settings.json
 .vscode/c_cpp_properties.json
+
+# Generated test vectors (run ./generate-test-vectors.sh to create)
+executable-spec/tests/test-data/*.json
+executable-spec/tests/test-data/*.bin
+
+# Python
+__pycache__/
+*.pyc
+uv.lock
+
+# Git worktrees
+.worktrees/

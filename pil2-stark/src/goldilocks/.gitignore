@@ -7,5 +7,6 @@ testsgpu
 testscpu
 benchcpu
 benchgpu
+benchscpu
 deviceQuery
 *.o

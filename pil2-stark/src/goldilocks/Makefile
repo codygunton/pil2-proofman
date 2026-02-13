@@ -127,16 +127,16 @@ endif
 .PHONY: help
 help:
 	@echo "make [target] [USE_AVX512=1|0]"
-	@echo "  clean         - Remove build artifacts (CPU and, on Linux, GPU)"
-	@echo "  distclean     - Remove all build artifacts and backup files"
-	@echo "  all (default) - Build all CPU (and GPU on Linux) binaries"
-	@echo "  testscpu      - Build the CPU test binary (unit and integration tests)"
-	@echo "  benchscpu     - Build the CPU benchmark binary (Google Benchmark)"
-ifeq ($(UNAME_S),Linux) 
-	@echo "  testsgpu      - Build the GPU test binary (CUDA, Linux only)"
-	@echo "  benchsgpu      - Build the GPU benchmark binary (CUDA, Linux only)"
+	@echo "  clean            - Remove build artifacts (CPU and, on Linux, GPU)"
+	@echo "  distclean        - Remove all build artifacts and backup files"
+	@echo "  all (default)    - Build all CPU (and GPU on Linux) binaries"
+	@echo "  testscpu         - Build the CPU test binary (unit and integration tests)"
+	@echo "  benchscpu        - Build the CPU benchmark binary (Google Benchmark)"
+ifeq ($(UNAME_S),Linux)
+	@echo "  testsgpu         - Build the GPU test binary (CUDA, Linux only)"
+	@echo "  benchsgpu        - Build the GPU benchmark binary (CUDA, Linux only)"
 endif
-	@echo "  USE_AVX512   - Force AVX512 on/off (default: auto-detect on Linux)"
+	@echo "  USE_AVX512       - Force AVX512 on/off (default: auto-detect on Linux)"
 
 -include $(DEPS)
 
