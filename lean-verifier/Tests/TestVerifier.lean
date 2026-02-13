@@ -11,7 +11,7 @@ open Primitives.Field
 open Protocol.Verifier
 open Protocol.StarkInfo (HASH_SIZE FIELD_EXTENSION_DEGREE StarkStruct StarkInfo
   FriFoldStep lookupSection)
-open Protocol.Proof (STARKProof FriProof ProofTree MerkleProof)
+open Protocol.Proof (STARKProof FriProof ProofTree MerkleProof decodeAllUInt64)
 open Primitives.PolMap
 
 -- ============================================================================
@@ -264,12 +264,12 @@ def reconstructQuotientTests : TestSeq :=
   let xiToN := GF3.one  -- doesn't matter for qDeg=1
   group "reconstructQuotientAtXi" (
     -- With qDeg=1, Q(xi) = Q_0(xi) * 1 = evaluation from evals[1]
-    -- evals[1] in descending order: (13, 7, 42) as GF3
+    -- evals[1] in ascending order: (42, 7, 13) as GF3
     test "qDeg=1 returns single evaluation"
       (let result := reconstructQuotientAtXi starkInfo evals xi xiToN
        -- evMap[1] maps to id=1, which is cmPolsMap[1] at stage=2=quotientStage
-       -- Read as GF3.mk (evals[base+2], evals[base+1], evals[base]) = GF3(13, 7, 42)
-       result == GF3.mk (GF.mk 13) (GF.mk 7) (GF.mk 42))
+       -- Read as GF3.mk (evals[base], evals[base+1], evals[base+2]) = GF3(42, 7, 13)
+       result == GF3.mk (GF.mk 42) (GF.mk 7) (GF.mk 13))
   )
 
 -- ============================================================================
@@ -387,41 +387,42 @@ def parseEvalsTests : TestSeq :=
   )
 
 -- ============================================================================
--- Commented-out E2E test (requires FFI linkage)
+-- E2E verification test (Poseidon2 + Constraints FFI)
 -- ============================================================================
 
--- /-- E2E verification test using a real proof file.
---     This test requires:
---     1. Poseidon2 FFI library linked
---     2. Constraints FFI library linked
---     3. Test data files:
---        - starkinfo.json (from test-data/)
---        - proof.bin (from test-data/)
---        - verkey.bin (from test-data/)
---
---     Uncomment when FFI libraries are available.
--- -/
--- def e2eVerificationTest : IO TestSeq := do
---   -- Load starkinfo
---   let starkInfoJson <- IO.FS.readFile "tests/test-data/SimpleLeft/starkinfo.json"
---   let starkInfo <- match Lean.Json.parse starkInfoJson >>= StarkInfo.fromJson? with
---     | .ok si => pure si
---     | .error e => throw (IO.userError s!"Failed to parse starkinfo: {e}")
---
---   -- Load proof binary
---   let proofData <- IO.FS.readBinFile "tests/test-data/SimpleLeft/SimpleLeft.proof.bin"
---   let proof := STARKProof.fromBytes proofData starkInfo
---
---   -- Load verkey
---   let verkeyData <- IO.FS.readBinFile "tests/test-data/SimpleLeft/SimpleLeft.const"
---   let verkey := ... -- parse Merkle root from const tree
---
---   -- Verify
---   let result := starkVerify proof starkInfo verkey
---
---   return group "E2E verification" (
---     test "SimpleLeft proof verifies" result
---   )
+/-- E2E verification test: loads a real SimpleLeft proof and verifies it.
+    Requires Poseidon2 and Constraints FFI libraries linked. -/
+def e2eVerificationTest : IO TestSeq := do
+  let testDataDir := "Tests/test-data"
+  let starkInfoPath := s!"{testDataDir}/SimpleLeft.starkinfo.json"
+  let bytecodePath := s!"{testDataDir}/SimpleLeft.bin"
+
+  -- Load starkinfo
+  let starkInfoJson ← IO.FS.readFile starkInfoPath
+  let starkInfo ← match Lean.Json.parse starkInfoJson >>= StarkInfo.fromJson? with
+    | .ok si => pure si
+    | .error e => throw (IO.userError s!"Failed to parse starkinfo: {e}")
+
+  -- Load proof binary
+  let proofData ← IO.FS.readBinFile s!"{testDataDir}/simple-left.proof.bin"
+  let proof := STARKProof.fromBytes proofData starkInfo
+
+  -- Load verkey (4 uint64 Merkle root)
+  let verkeyData ← IO.FS.readBinFile s!"{testDataDir}/SimpleLeft.verkey.bin"
+  let verkey := decodeAllUInt64 verkeyData
+
+  -- Global challenge from test vectors (interleaved FF3: [c0, c1, c2])
+  let globalChallenge : Array UInt64 := #[
+    1461052753056858962, 17277128619110652023, 18440847142611318128
+  ]
+
+  -- Verify with FFI constraint evaluation
+  let result := starkVerify proof starkInfo verkey starkInfoPath bytecodePath
+    (globalChallenge := some globalChallenge)
+
+  return group "E2E verification" (
+    test "SimpleLeft proof verifies" result
+  )
 
 -- ============================================================================
 -- Main
@@ -439,5 +440,6 @@ def allTests : TestSeq :=
   challengeRoundtripTests ++
   parseEvalsTests
 
-def main : IO UInt32 :=
-  lspecIO (.ofList [("STARK Verifier", [allTests])]) []
+def main : IO UInt32 := do
+  let e2eTests ← e2eVerificationTest
+  lspecIO (.ofList [("STARK Verifier", [allTests ++ e2eTests])]) []

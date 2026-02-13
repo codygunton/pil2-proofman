@@ -571,17 +571,12 @@ def buildVerifierData (starkInfo : StarkInfo) (evals : Array UInt64)
             found := true
 
       if found then
-        -- Extract GF3 from interleaved buffer
-        -- Python uses descending order (c2,c1,c0) for galois FF3.Vector:
-        --   eval_val = FF3.Vector([evals[base+2], evals[base+1], evals[base]])
-        -- Our GF3 stores (c0, c1, c2) with interleaved buffer as [c0, c1, c2].
-        -- For VerifierData used by constraint evaluation, we need to match the
-        -- Python representation where eval access reverses the order.
+        -- Extract GF3 from interleaved buffer (ascending coefficient order [c0,c1,c2]).
         let evalBase := evIdx * FIELD_EXTENSION_DEGREE
         let evalVal := GF3.mk
-          (GF.mk evals[evalBase + 2]!)
-          (GF.mk evals[evalBase + 1]!)
           (GF.mk evals[evalBase]!)
+          (GF.mk evals[evalBase + 1]!)
+          (GF.mk evals[evalBase + 2]!)
         dataEvals := dataEvals.insert { name, index, rowOffset := offset } evalVal
 
     -- Map challenges
@@ -589,9 +584,9 @@ def buildVerifierData (starkInfo : StarkInfo) (evals : Array UInt64)
       let chInfo := starkInfo.challengesMap[chIdx]!
       let chBase := chIdx * FIELD_EXTENSION_DEGREE
       let chVal := GF3.mk
-        (GF.mk challenges[chBase + 2]!)
-        (GF.mk challenges[chBase + 1]!)
         (GF.mk challenges[chBase]!)
+        (GF.mk challenges[chBase + 1]!)
+        (GF.mk challenges[chBase + 2]!)
       dataChallenges := dataChallenges.insert chInfo.name chVal
 
     -- Map airgroup values
@@ -600,9 +595,9 @@ def buildVerifierData (starkInfo : StarkInfo) (evals : Array UInt64)
       let idx := i * FIELD_EXTENSION_DEGREE
       if idx + 2 < airgroupValues.size then
         dataAirgroupValues := dataAirgroupValues.insert i (GF3.mk
-          (GF.mk airgroupValues[idx + 2]!)
+          (GF.mk airgroupValues[idx]!)
           (GF.mk airgroupValues[idx + 1]!)
-          (GF.mk airgroupValues[idx]!))
+          (GF.mk airgroupValues[idx + 2]!))
 
     -- Build flat air_values array for bytecode adapter
     let mut airValuesFlat : Array UInt64 := Array.replicate starkInfo.airValuesSize 0
@@ -638,18 +633,14 @@ def buildVerifierData (starkInfo : StarkInfo) (evals : Array UInt64)
     The FFI evaluator returns Q(xi) = C(xi)/Z_H(xi) directly (zerofier division
     is baked into the bytecode). We return the Q(xi) value as interleaved [c0,c1,c2].
 
-    NOTE: This function uses FFI and will only work when the constraint library
-    is linked. For now it serves as the integration point. -/
-def evaluateConstraintFFI (starkInfo : StarkInfo) (evals : Array UInt64)
-    (challenges : Array UInt64) (publics : Array UInt64)
-    (airgroupValues : Array UInt64) (airValuesFlat : Array UInt64)
-    (proofValuesFlat : Array UInt64)
-    (_bytecodePath : String) : Array UInt64 :=
-  -- TODO: Call FFI.Constraints.evaluateVerifier when linked
-  -- For now, return zeros. E2E tests require FFI linkage.
-  -- evaluateVerifier bytecodePath evals challenges publics airgroupValues airValuesFlat proofValuesFlat
-  dbg_trace "WARNING: evaluateConstraintFFI stub - FFI not linked"
-  #[0, 0, 0]
+    The constraint library (Rust staticlib) must be linked for this to work. -/
+def evaluateConstraintFFI (starkInfoPath : String) (bytecodePath : String)
+    (evals : Array UInt64) (challenges : Array UInt64)
+    (publics : Array UInt64) (airgroupValues : Array UInt64)
+    (airValuesFlat : Array UInt64) (proofValuesFlat : Array UInt64)
+    : Array UInt64 :=
+  evaluateVerifier starkInfoPath bytecodePath
+    evals challenges publics airgroupValues airValuesFlat proofValuesFlat
 
 -- ============================================================================
 -- Quotient polynomial reconstruction
@@ -663,7 +654,7 @@ def evaluateConstraintFFI (starkInfo : StarkInfo) (evals : Array UInt64)
 
     Returns Q(xi) as GF3. -/
 def reconstructQuotientAtXi (starkInfo : StarkInfo) (evals : Array UInt64)
-    (xi : GF3) (xiToN : GF3) : GF3 :=
+    (_xi : GF3) (xiToN : GF3) : GF3 :=
   let quotientStage := starkInfo.nStages + QUOTIENT_STAGE_OFFSET
   Id.run do
     -- Find the start index of quotient polynomial entries in cmPolsMap
@@ -691,12 +682,12 @@ def reconstructQuotientAtXi (starkInfo : StarkInfo) (evals : Array UInt64)
             evalMapIdx := j
             foundEval := true
 
-      -- Extract GF3 from interleaved evals (descending order for galois compat)
+      -- Extract GF3 from interleaved evals (ascending coefficient order [c0,c1,c2])
       let base := evalMapIdx * FIELD_EXTENSION_DEGREE
       let qPieceEval := GF3.mk
-        (GF.mk evals[base + 2]!)
-        (GF.mk evals[base + 1]!)
         (GF.mk evals[base]!)
+        (GF.mk evals[base + 1]!)
+        (GF.mk evals[base + 2]!)
 
       -- Accumulate: Q += xi^(i*N) * Q_i(xi)
       reconstructed := gf3_add reconstructed (gf3_mul xiPower qPieceEval)
@@ -711,17 +702,17 @@ def reconstructQuotientAtXi (starkInfo : StarkInfo) (evals : Array UInt64)
 /-- Verify Q(xi) = C(xi) — the core STARK equation.
     Translates: verifier.py:724-755 _verify_evaluations
 
-    This is a stub that always returns true when FFI is not linked.
-    When FFI is available, it:
-    1. Evaluates constraint polynomial via FFI
-    2. Reconstructs Q(xi) from split quotient pieces
+    Steps:
+    1. Evaluates constraint polynomial C(xi) via FFI bytecode evaluator
+    2. Reconstructs Q(xi) from split quotient pieces in the proof
     3. Checks Q(xi) == C(xi) -/
 def verifyEvaluations (starkInfo : StarkInfo) (evals : Array UInt64)
     (xiChallenge : Array UInt64) (challenges : Array UInt64)
     (airgroupValues : Array UInt64)
     (publics : Option (Array UInt64))
     (airValues : Array FF3Val)
-    (proofValues : Option (Array UInt64)) : Bool :=
+    (proofValues : Option (Array UInt64))
+    (starkInfoPath : String) (bytecodePath : String) : Bool :=
   -- Convert xi from interleaved to GF3
   let xi := GF3.mk (GF.mk xiChallenge[0]!) (GF.mk xiChallenge[1]!) (GF.mk xiChallenge[2]!)
 
@@ -729,14 +720,40 @@ def verifyEvaluations (starkInfo : StarkInfo) (evals : Array UInt64)
   let traceSize := 1 <<< starkInfo.starkStruct.nBits
   let xiToN := computeXiToTraceSize xi traceSize
 
-  -- Reconstruct Q(xi) from split pieces
-  let _quotientAtXi := reconstructQuotientAtXi starkInfo evals xi xiToN
+  -- Reconstruct Q(xi) from split quotient pieces
+  let quotientAtXi := reconstructQuotientAtXi starkInfo evals xi xiToN
 
-  -- TODO: Evaluate constraint polynomial via FFI and compare
-  -- This requires the constraint library to be linked.
-  -- For now, we skip this check (return true) since it depends on FFI.
-  dbg_trace "WARNING: verifyEvaluations - constraint FFI not linked, skipping Q(xi)=C(xi) check"
-  true
+  -- Flatten airValues using variable dimensions from airValuesMap.
+  -- Stage 1 air values have dim=1 (base field, only c0), stage 2+ have dim=3 (FF3).
+  -- This must match the C++ airValues buffer layout used by the bytecode evaluator.
+  let airValuesFlat := Id.run do
+    let mut flat : Array UInt64 := Array.replicate starkInfo.airValuesSize 0
+    let mut offset : Nat := 0
+    for avIdx in [:starkInfo.airValuesMap.size] do
+      let dim := starkInfo.airValuesMap[avIdx]!.dim
+      if avIdx < airValues.size then
+        for c in [:dim] do
+          if c < airValues[avIdx]!.size then
+            flat := flat.set! (offset + c) airValues[avIdx]![c]!
+      offset := offset + dim
+    flat
+  let publicsArr := publics.getD #[]
+  let proofValuesArr := proofValues.getD #[]
+
+  -- Evaluate constraint polynomial via FFI
+  let result := evaluateConstraintFFI starkInfoPath bytecodePath evals challenges
+    publicsArr airgroupValues airValuesFlat proofValuesArr
+
+  -- Parse result as GF3 (ascending coefficient order [c0, c1, c2])
+  let constraintAtXi := GF3.mk (GF.mk result[0]!) (GF.mk result[1]!) (GF.mk result[2]!)
+
+  -- Check Q(xi) == C(xi)
+  if quotientAtXi == constraintAtXi then true
+  else
+    dbg_trace s!"ERROR: Q(xi) ≠ C(xi)"
+    dbg_trace s!"  Q(xi) = ({quotientAtXi.c0.val}, {quotientAtXi.c1.val}, {quotientAtXi.c2.val})"
+    dbg_trace s!"  C(xi) = ({constraintAtXi.c0.val}, {constraintAtXi.c1.val}, {constraintAtXi.c2.val})"
+    false
 
 -- ============================================================================
 -- FRI polynomial computation (verifier side)
@@ -766,18 +783,18 @@ def computeFriPolynomialVerifier
       if ch.name == "std_vf1" then vf1Idx := i
       if ch.name == "std_vf2" then vf2Idx := i
 
-    -- Extract vf1, vf2 as GF3 (interleaved -> descending order for galois compat)
+    -- Extract vf1, vf2 as GF3 (ascending coefficient order [c0,c1,c2])
     let vf1Base := vf1Idx * FIELD_EXTENSION_DEGREE
     let vf1 := GF3.mk
-      (GF.mk challenges[vf1Base + 2]!)
-      (GF.mk challenges[vf1Base + 1]!)
       (GF.mk challenges[vf1Base]!)
+      (GF.mk challenges[vf1Base + 1]!)
+      (GF.mk challenges[vf1Base + 2]!)
 
     let vf2Base := vf2Idx * FIELD_EXTENSION_DEGREE
     let vf2 := GF3.mk
-      (GF.mk challenges[vf2Base + 2]!)
-      (GF.mk challenges[vf2Base + 1]!)
       (GF.mk challenges[vf2Base]!)
+      (GF.mk challenges[vf2Base + 1]!)
+      (GF.mk challenges[vf2Base + 2]!)
 
     -- Group ev_map entries by opening position index
     let mut groupsByOpening : Std.HashMap Nat (Array (Nat × EvMap)) := {}
@@ -809,12 +826,12 @@ def computeFriPolynomialVerifier
           match polyValues[polyId]? with
           | none => pure ()
           | some polyVals =>
-            -- Get claimed evaluation (interleaved -> descending for galois)
+            -- Get claimed evaluation (ascending coefficient order [c0,c1,c2])
             let evalBase := evIdx * FIELD_EXTENSION_DEGREE
             let evalVal := GF3.mk
-              (GF.mk evals[evalBase + 2]!)
-              (GF.mk evals[evalBase + 1]!)
               (GF.mk evals[evalBase]!)
+              (GF.mk evals[evalBase + 1]!)
+              (GF.mk evals[evalBase + 2]!)
 
             -- Horner step: acc = acc * vf2 + (poly - eval)
             for q in [:nQueries] do
@@ -826,9 +843,9 @@ def computeFriPolynomialVerifier
       for q in [:nQueries] do
         let xdsBase := (q * nOpeningPoints + opening) * FIELD_EXTENSION_DEGREE
         let xds := GF3.mk
-          (GF.mk xDivXSub[xdsBase + 2]!)
-          (GF.mk xDivXSub[xdsBase + 1]!)
           (GF.mk xDivXSub[xdsBase]!)
+          (GF.mk xDivXSub[xdsBase + 1]!)
+          (GF.mk xDivXSub[xdsBase + 2]!)
         groupAcc := groupAcc.set! q (gf3_mul groupAcc[q]! xds)
 
       groupResults := groupResults.push groupAcc
@@ -1046,81 +1063,15 @@ def verifyFriMerkleTree (proof : STARKProof) (starkInfo : StarkInfo)
 -- FRI folding verification (Check 7)
 -- ============================================================================
 
-/-- Verify FRI folding: P'(y) derived correctly from P(y), P(-y), etc.
+/-- Verify FRI folding: recompute folded values from siblings and challenge,
+    check they match the next FRI layer (or final polynomial).
     Translates: verifier.py:905-961 _verify_fri_folding
 
-    NOTE: This calls Protocol.FRI.verifyFold which is being implemented in parallel.
-    The function signature is defined here; integration will happen when FRI.lean
-    is complete. For now we provide the verification logic structure. -/
+    Delegates to Protocol.FRI.verify_fri_folding which performs the actual
+    interpolation, coset scaling, and evaluation at the challenge point. -/
 def verifyFriFolding (proof : STARKProof) (starkInfo : StarkInfo)
     (challenges : Array UInt64) (step : Nat) (friQueries : Array Nat) : Bool :=
-  let starkStruct := starkInfo.starkStruct
-  let nQueries := starkStruct.nQueries
-  let nSteps := starkStruct.friFoldSteps.size
-  Id.run do
-    for queryIdx in [:nQueries] do
-      let idx := friQueries[queryIdx]! % (1 <<< starkStruct.friFoldSteps[step]!.domainBits)
-
-      -- Gather sibling evaluations from FRI tree query proof
-      let nX := 1 <<< (starkStruct.friFoldSteps[step - 1]!.domainBits -
-                        starkStruct.friFoldSteps[step]!.domainBits)
-      let friVals := proof.fri.treesFri[step - 1]!.polQueries[queryIdx]![0]!.v
-      let mut siblings : Array (Array UInt64) := Array.mkEmpty nX
-      for i in [:nX] do
-        let mut sibling : Array UInt64 := Array.replicate FIELD_EXTENSION_DEGREE 0
-        for j in [:FIELD_EXTENSION_DEGREE] do
-          sibling := sibling.set! j friVals[i * FIELD_EXTENSION_DEGREE + j]![0]!
-        siblings := siblings.push sibling
-
-      let foldChallengeIdx := starkInfo.challengesMap.size + step
-      let challenge := getChallenge challenges foldChallengeIdx
-
-      -- TODO: Call Protocol.FRI.verifyFold when FRI.lean is complete
-      -- For now, we implement the fold verification inline using the same
-      -- algorithm as fri.py:verify_fold
-      --
-      -- The fold verification:
-      -- 1. Converts siblings to GF3 (descending order for galois compat)
-      -- 2. Interpolates them (INTT if fold_factor > 1)
-      -- 3. Scales by coset adjustment factors
-      -- 4. Evaluates at the challenge point
-      -- 5. Compares with the next layer value
-
-      -- Check against next layer or final polynomial
-      let mut expected : Array UInt64 := #[0, 0, 0]
-      if step < nSteps - 1 then
-        let nextBits := starkStruct.friFoldSteps[step + 1]!.domainBits
-        let siblingPos := idx / (1 <<< nextBits)
-        let nextFriVals := proof.fri.treesFri[step]!.polQueries[queryIdx]![0]!.v
-        for j in [:FIELD_EXTENSION_DEGREE] do
-          expected := expected.set! j nextFriVals[siblingPos * FIELD_EXTENSION_DEGREE + j]![0]!
-      else
-        expected := proof.fri.pol[idx]!
-
-      -- NOTE: Full FRI fold verification requires Protocol.FRI.verifyFold.
-      -- This is being implemented in parallel (Task 7). When available, uncomment:
-      --
-      -- let value := Protocol.FRI.verifyFold
-      --   #[0, 0, 0]  -- value (unused but part of API)
-      --   step          -- fri_round
-      --   starkStruct.nBitsExt
-      --   starkStruct.friFoldSteps[step]!.domainBits   -- current_bits
-      --   starkStruct.friFoldSteps[step-1]!.domainBits -- prev_bits
-      --   challenge
-      --   idx
-      --   siblings
-      --
-      -- Then compare value with expected (in descending order):
-      -- if value != GF3.mk (GF.mk expected[2]!) (GF.mk expected[1]!) (GF.mk expected[0]!) then
-      --   return false
-
-      -- Placeholder: skip actual fold verification until FRI.lean is ready
-      -- We still validate the structural integrity by checking expected exists
-      let _ := expected
-      let _ := siblings
-      let _ := challenge
-
-    return true
+  Protocol.FRI.verify_fri_folding proof starkInfo challenges step friQueries
 
 -- ============================================================================
 -- Final polynomial verification (Check 8)
@@ -1187,6 +1138,8 @@ def starkVerify
     (proof : STARKProof)
     (starkInfo : StarkInfo)
     (verkey : Array UInt64)
+    (starkInfoPath : String)
+    (bytecodePath : String)
     (globalChallenge : Option (Array UInt64) := none)
     (publics : Option (Array UInt64) := none)
     (proofValues : Option (Array UInt64) := none) : Bool :=
@@ -1229,7 +1182,8 @@ def starkVerify
   -- Check 1: Q(xi) = C(xi)
   dbg_trace "Verifying evaluations"
   if !verifyEvaluations starkInfo evals xi challenges airgroupValues
-      publics proof.airValues proofValues then
+      publics proof.airValues proofValues starkInfoPath bytecodePath then
+
     dbg_trace "ERROR: Invalid evaluations"
     isValid := false
 
