@@ -12,9 +12,7 @@
      (instead of global_challenge)
   2. Binary format: prepends [n_publics, publics...] header before standard body
 
-  Requires:
-    - VadcopFinal setup artifacts in provingKey/zisk/vadcop_final/
-    - Binary proof fixture at Tests/test-data/zisk/vadcop_final.proof.bin
+  All test fixtures are self-contained in Tests/test-data/zisk/.
 -/
 import LSpec
 import Protocol.Verifier
@@ -36,17 +34,14 @@ open Primitives.Field
 
 def TEST_DATA_DIR : String := "Tests/test-data/zisk"
 
-def vadcopFinalDir (pkDir : String) : String :=
-  s!"{pkDir}/zisk/vadcop_final"
+def vadcopStarkInfoPath : String :=
+  s!"{TEST_DATA_DIR}/vadcop_final/vadcop_final.starkinfo.json"
 
-def vadcopStarkInfoPath (pkDir : String) : String :=
-  s!"{vadcopFinalDir pkDir}/vadcop_final.starkinfo.json"
+def vadcopVerkeyPath : String :=
+  s!"{TEST_DATA_DIR}/vadcop_final/vadcop_final.verkey.json"
 
-def vadcopVerkeyPath (pkDir : String) : String :=
-  s!"{vadcopFinalDir pkDir}/vadcop_final.verkey.json"
-
-def vadcopBytecodePath (pkDir : String) : String :=
-  s!"{vadcopFinalDir pkDir}/vadcop_final.bin"
+def vadcopBytecodePath : String :=
+  s!"{TEST_DATA_DIR}/vadcop_final/vadcop_final.bin"
 
 def vadcopProofBinPath : String :=
   s!"{TEST_DATA_DIR}/vadcop_final.proof.bin"
@@ -54,13 +49,6 @@ def vadcopProofBinPath : String :=
 -- ============================================================================
 -- Helpers
 -- ============================================================================
-
-/-- Get Zisk proving key directory from env or default. -/
-def getProvingKeyDir : IO String := do
-  let envVar ← IO.getEnv "ZISK_PROVING_KEY"
-  match envVar with
-  | some dir => return dir
-  | none => return "../zisk-for-spec/provingKey"
 
 /-- Load verkey JSON: array of uint64 values. -/
 def loadVerkeyJson (path : String) : IO (Array UInt64) := do
@@ -97,27 +85,23 @@ def parseVadcopFinalProof (data : ByteArray) (starkInfo : StarkInfo)
 -- ============================================================================
 
 def main : IO UInt32 := do
-  let pkDir ← getProvingKeyDir
-
-  -- Check if VadcopFinal setup artifacts exist
-  let siPath := vadcopStarkInfoPath pkDir
-  let siExists ← System.FilePath.pathExists siPath
-  let vkExists ← System.FilePath.pathExists (vadcopVerkeyPath pkDir)
+  -- Check if test fixtures exist
+  let siExists ← System.FilePath.pathExists vadcopStarkInfoPath
+  let vkExists ← System.FilePath.pathExists vadcopVerkeyPath
   let proofExists ← System.FilePath.pathExists vadcopProofBinPath
-  let bcExists ← System.FilePath.pathExists (vadcopBytecodePath pkDir)
+  let bcExists ← System.FilePath.pathExists vadcopBytecodePath
 
   if !siExists || !vkExists || !proofExists || !bcExists then
-    IO.eprintln s!"Skipping VadcopFinal E2E test: artifacts missing"
+    IO.eprintln s!"VadcopFinal E2E test: fixtures missing"
     IO.eprintln s!"  starkinfo: {siExists}"
     IO.eprintln s!"  verkey: {vkExists}"
     IO.eprintln s!"  proof: {proofExists}"
     IO.eprintln s!"  bytecode: {bcExists}"
-    IO.eprintln "Set ZISK_PROVING_KEY env var to the proving key directory"
-    return 0
+    return 1
 
   -- Load starkinfo
   IO.println "Loading VadcopFinal starkinfo..."
-  let siJson ← IO.FS.readFile siPath
+  let siJson ← IO.FS.readFile vadcopStarkInfoPath
   let starkInfo ← match Lean.Json.parse siJson >>= StarkInfo.fromJson? with
     | .ok si => pure si
     | .error e => throw (IO.userError s!"Failed to parse starkinfo: {e}")
@@ -129,11 +113,11 @@ def main : IO UInt32 := do
   IO.println s!"  publics: {publics.size} elements"
 
   -- Load verkey
-  let verkey ← loadVerkeyJson (vadcopVerkeyPath pkDir)
+  let verkey ← loadVerkeyJson vadcopVerkeyPath
 
   -- Verify: globalChallenge = none triggers VadcopFinal transcript path
   IO.println "Verifying VadcopFinal proof..."
-  let result := starkVerify proof starkInfo verkey siPath (vadcopBytecodePath pkDir)
+  let result := starkVerify proof starkInfo verkey vadcopStarkInfoPath vadcopBytecodePath
     (globalChallenge := none)
     (publics := some publics)
 
