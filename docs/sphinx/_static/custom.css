@@ -1,0 +1,43 @@
+/* custom.css — Protocol table and figure styling */
+
+/* Protocol interaction tables: prover | arrow | verifier layout */
+.protocol-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.protocol-table th,
+.protocol-table td {
+    padding: 0.4em 0.6em;
+    vertical-align: top;
+}
+
+/* Prover column (left) */
+.protocol-table td:first-child {
+    width: 42%;
+    text-align: left;
+}
+
+/* Arrow column (center) */
+.protocol-table td:nth-child(2) {
+    width: 8%;
+    text-align: center;
+    font-size: 1.2em;
+}
+
+/* Verifier column (right) */
+.protocol-table td:nth-child(3) {
+    width: 42%;
+    text-align: left;
+}
+
+/* Pre-rendered SVG figures from LaTeX */
+.figure-svg {
+    text-align: center;
+    margin: 1.5em 0;
+}
+
+.figure-svg img {
+    max-width: 100%;
+    height: auto;
+}

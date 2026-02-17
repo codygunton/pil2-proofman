@@ -1,0 +1,6 @@
+_build/
+# autoapi-generated rst files (regenerated on each build)
+api/constraints/
+api/primitives/
+api/protocol/
+api/witness/

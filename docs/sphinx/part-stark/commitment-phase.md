@@ -1,0 +1,563 @@
+(sec:commitment-phase)=
+# STARK Protocol: Commitment Phase
+
+The commitment phase is the first half of the STARK protocol.
+The prover commits to polynomials in stages, derives challenges via the
+Fiat-Shamir transcript, and constructs the FRI polynomial.
+In the non-interactive version, all verifier messages
+are derived deterministically from the transcript $\T$.
+
+**PIL2-STARK: Commitment Phase**
+
+```{list-table}
+:widths: 42 8 42
+:header-rows: 1
+:class: protocol-table
+
+* - **Prover**
+  -
+  - **Verifier**
+* - ***Stage 1: Witness***
+  -
+  -
+* - Hold witness polynomials $f_1, \ldots, f_m$
+  -
+  -
+* - Extend each $f_j$ to $H^*$, commit: $r_1 = \MT(f_1, \ldots, f_m)$
+  - $\longrightarrow$
+  - $r_1$
+* -
+  -
+  - Seed transcript $\T$ from $(\mathrm{vk}, \mathrm{pub}, r_1)$
+* - ***Stage 2: Intermediate polynomials***
+  -
+  -
+* - $(\alpha, \gamma, \ldots)$
+  - $\longleftarrow$
+  - $\alpha, \gamma, \ldots \leftarrow \T.\sq()$
+* - Compute intermediate columns $h_1, \ldots, h_k$ using challenges $\alpha, \gamma$
+  -
+  -
+* - Extend each $h_j$ to $H^*$, commit: $r_2 = \MT(h_1, \ldots, h_k)$
+  - $\longrightarrow$
+  - $r_2$
+* -
+  -
+  - $\T.\abs(r_2)$
+* - ***Stage Q: Quotient polynomial***
+  -
+  -
+* - $v_c$
+  - $\longleftarrow$
+  - $v_c \leftarrow \T.\sq()$
+* - Evaluate combined constraint on $H^*$: $C(x) = \sum_{j=0}^{J-1} v_c^{J-1-j} C_j(x)$. Compute $Q(x) = C(x)/\ZH(x)$. Split: $Q = Q_0 + X^N Q_1 + \cdots + X^{(d-1)N} Q_{d-1}$
+  -
+  -
+* - Commit: $r_Q = \MT(Q_0, \ldots, Q_{d-1})$
+  - $\longrightarrow$
+  - $r_Q$
+* -
+  -
+  - $\T.\abs(r_Q)$
+* - ***Evaluation stage***
+  -
+  -
+* - $\xi$
+  - $\longleftarrow$
+  - $\xi \leftarrow \T.\sq()$
+* - For each polynomial $p$ and offset $o \in \mathcal{O}$: $e_{p,o} = p(\xi \cdot \omega^o) \in \Fext$
+  -
+  -
+* - $\{e_{p,o}\}$
+  - $\longrightarrow$
+  - $\{e_{p,o}\}$
+* -
+  -
+  - $\T.\abs\bigl(\LinHash(\{e_{p,o}\})\bigr)$
+* - ***FRI polynomial***
+  -
+  -
+* - $(v_1, v_2)$
+  - $\longleftarrow$
+  - $v_1, v_2 \leftarrow \T.\sq()$
+* - Compute FRI polynomial $F$ on $H^*$: $F(x) = \sum_{g} v_1^{|\mathcal{G}|-1-g} \cdot \frac{\sum_j v_2^{n_g-j}(p_j(x) - e_j)}{x - \xi\omega^{o_g}}$
+  -
+  -
+* - ***FRI commitment rounds***
+  -
+  -
+* - Set $F_0 = F$
+  -
+  -
+* - Commit: $r_0^{\mathrm{FRI}} = \MT(F_0)$
+  - $\longrightarrow$
+  - $r_0^{\mathrm{FRI}}$; $\T.\abs(r_0^{\mathrm{FRI}})$
+* - $\beta_0$
+  - $\longleftarrow$
+  - $\beta_0 \leftarrow \T.\sq()$
+* - $\Fold$: $F_1 = \Fold(F_0, \beta_0)$
+  -
+  -
+* - $\vdots$
+  -
+  - $\vdots$
+* - Commit: $r_{K-1}^{\mathrm{FRI}} = \MT(F_{K-1})$
+  - $\longrightarrow$
+  - $r_{K-1}^{\mathrm{FRI}}$; $\T.\abs(r_{K-1}^{\mathrm{FRI}})$
+* - $\beta_{K-1}$
+  - $\longleftarrow$
+  - $\beta_{K-1} \leftarrow \T.\sq()$
+* - $\Fold$: $F_K = \Fold(F_{K-1}, \beta_{K-1})$
+  -
+  -
+* - $F_K$
+  - $\longrightarrow$
+  - $F_K$; $\T.\abs\bigl(\LinHash(F_K)\bigr)$. **Check:** $\deg(F_K) < D$
+* - ***Proof of work***
+  -
+  -
+* - $\chi_{\mathrm{grind}}$
+  - $\longleftarrow$
+  - $\chi_{\mathrm{grind}} \leftarrow \T.\sq()$
+* - Find $\eta$ such that $\Poseidon(\chi_{\mathrm{grind}} \| \eta)$ has $b_{\mathrm{pow}}$ leading zero bits
+  -
+  -
+* - $\eta$
+  - $\longrightarrow$
+  - $\eta$. **Check:** $\Poseidon(\chi_{\mathrm{grind}} \| \eta)$ has $b_{\mathrm{pow}}$ leading zeros
+```
+
+**Note on the non-interactive setting.**
+The protocol is presented in the interactive model for clarity.
+In the actual (non-interactive) protocol, the verifier has no role
+during the commitment phase---the right column shows transcript
+operations that the prover executes locally and that the verifier
+will *replay* during the query phase ({ref}`sec:transcript-reconstruction`)
+to rederive all challenges from the proof data.
+All substantive verifier checks
+(constraint verification, Merkle proofs, FRI consistency)
+occur in the query phase ({ref}`protocol:query-phase`).
+
+The following subsections detail each stage shown in the diagram above.
+
+(sec:stage1)=
+## Stage 1: Witness Commitment
+
+The prover holds witness polynomials $f_1, \ldots, f_m : H \to \F$
+representing the execution trace columns.
+
+1. Extend each $f_j$ to the evaluation domain $H^*$.
+2. Build a joint Merkle tree over all stage-1 columns.
+3. Output the commitment $r_1 = \MT(f_1, \ldots, f_m)$.
+
+(sec:seed)=
+## Transcript Seeding
+
+Initialize the Fiat-Shamir transcript.
+The seeding depends on the protocol mode:
+
+- **Multi-AIR (VADCOP) mode.**
+  A global challenge $\chi \in \Fext$ is derived from
+  the verification key, public inputs, and $r_1$
+  via a lattice expansion procedure
+  (see {ref}`sec:challenge-binding`).
+  Seed the transcript:
+
+  $$
+  \T.\abs(\chi).
+  $$
+
+- **Standalone mode.**
+  Seed the transcript directly:
+
+  $$
+  \T.\abs\bigl(\mathrm{vk},\; \Hash(\mathrm{pub}),\; r_1\bigr),
+  $$
+
+  where $\mathrm{vk}$ is the verification key (4 base-field elements),
+  $\Hash(\mathrm{pub})$ is a Poseidon2 hash of the public inputs,
+  and $r_1$ is the stage-1 Merkle root.
+
+(sec:stage2)=
+## Stage 2: Intermediate Polynomials
+
+1. Derive stage-2 challenges from the transcript:
+
+   $$
+   \alpha, \gamma \;\leftarrow\; \T.\sq().
+   $$
+
+   (One $\sq()$ call per challenge specified by the AIR.)
+
+2. Compute intermediate columns $h_1, \ldots, h_k$ using the challenges.
+   The types of intermediate columns are enumerated below.
+
+3. Extend and commit:
+   $r_2 = \MT(h_1, \ldots, h_k)$.
+
+4. Absorb: $\T.\abs(r_2)$.
+
+**Challenges and the compress function.**
+Two extension-field challenges drive all stage-2 computations:
+
+- $\alpha \in \Fext$: random linear combination challenge
+  (Schwartz--Zippel style);
+- $\gamma \in \Fext$: offset challenge preventing zero denominators.
+
+Given a bus identifier $b \in \F$ and column values $c_1, \ldots, c_w$,
+the *compressed expression* is
+
+```{math}
+:label: eq-compress
+\mathrm{compress}(b,\; c_1, \ldots, c_w)
+= \bigl(\cdots\bigl((c_w \cdot \alpha + c_{w-1}) \cdot \alpha + \cdots\bigr)
+  \cdot \alpha + b\bigr) + \gamma.
+```
+
+This maps a tuple $(b, c_1, \ldots, c_w)$ to a single element of $\Fext$.
+
+**Logup terms.**
+Each AIR defines a set of *logup terms*, each consisting of a bus
+identifier, column tuple, and a stored numerator.
+A term can be a *provider* (numerator $= +\mathrm{multiplicity}$,
+the AIR that supplies the lookup entry) or
+a *consumer* (numerator $= -\mathrm{selector}$,
+the AIR that uses the lookup entry).
+The logup argument ensures that $\sum_i s_i / D_i = 0$ across all AIRs
+sharing the same bus, where $D_i = \mathrm{compress}(b_i, \mathbf{c}_i)$.
+
+**Intermediate column types.**
+All stage-2 columns fall into the following types,
+generated by the PIL standard library
+(`std_sum` for logup/sum arguments,
+`std_prod` for permutation/product arguments)
+or by AIR-specific PIL code.
+
+| Type | Description |
+|------|-------------|
+| $\mathrm{im\_cluster}$ | Batched logup: combines $\geq 2$ terms into one column |
+| $\mathrm{im\_single}$ | Single logup term that cannot be batched |
+| $\mathrm{gsum}$ | Running sum accumulator (logup argument) |
+| $\mathrm{gprod}$ | Running product accumulator (permutation argument) |
+| $\mathrm{im\_low}$ | Degree reduction for product argument terms |
+| $\mathrm{ImPol}$ | AIR-specific constraint degree reduction |
+
+All columns below are over $\Fext$ unless noted otherwise.
+
+### Clustered logup intermediate ($\mathrm{im\_cluster}$)
+
+When the compiler groups $t$ logup terms into a single column,
+the clustered intermediate is defined by the constraint
+
+$$
+\mathrm{im\_cluster} \cdot \prod_{j=1}^{t} D_j
+= \sum_{j=1}^{t} s_j \cdot \prod_{\substack{i=1 \\ i \neq j}}^{t} D_i,
+$$
+
+where $D_j = \mathrm{compress}(b_j, \mathbf{c}_j)$ and $s_j$ is the stored
+numerator for term $j$.
+In the common $t = 2$ case this reduces to
+
+$$
+\mathrm{im\_cluster} = \frac{s_1 \cdot D_2 + s_2 \cdot D_1}{D_1 \cdot D_2}.
+$$
+
+Semantically, $\mathrm{im\_cluster}$ equals
+$\sum_j s_j / D_j$ (the sum of individual logup contributions),
+combined into a single column to reduce the number of committed polynomials.
+
+### Single logup intermediate ($\mathrm{im\_single}$)
+
+When a logup term cannot be grouped with others
+(e.g. because the combined degree would exceed the constraint degree bound),
+it gets its own column:
+
+$$
+\mathrm{im\_single} = \frac{s}{D},
+\quad\text{where } D = \mathrm{compress}(b, \mathbf{c}).
+$$
+
+### Grand sum ($\mathrm{gsum}$)
+
+The running cumulative sum of all logup contributions at each row:
+
+$$
+\mathrm{gsum}[i] = \sum_{j=0}^{i}\Bigl(
+  \sum_{\ell} \mathrm{im\_cluster}_\ell[j]
+  + \sum_{\ell} \mathrm{im\_single}_\ell[j]
+  + \frac{s_0[j]}{D_0[j]}
+\Bigr),
+$$
+
+where the last term is the "direct" logup contribution
+(one term that enters the sum without an intermediate column).
+The boundary constraint at the final row asserts that $\mathrm{gsum}[N-1]$
+equals a declared *airgroup value*,
+which is later checked for cross-AIR consistency
+(see {ref}`sec:global-constraints`).
+
+### Grand product ($\mathrm{gprod}$)
+
+For the permutation argument, a running cumulative product:
+
+$$
+\mathrm{gprod}[0] = \frac{n_0}{d_0}, \qquad
+\mathrm{gprod}[i] = \mathrm{gprod}[i-1] \cdot \frac{n_i}{d_i}
+\quad\text{for } i > 0,
+$$
+
+where the numerator and denominator for each row are products of
+terms of the form
+$\mathrm{sel} \cdot (\mathrm{compress}(b, \mathbf{c}) - \gamma + \gamma - 1) + 1$.
+As with $\mathrm{gsum}$, a boundary constraint at the final row checks the
+accumulated product against an airgroup value.
+
+### Low-degree reduction ($\mathrm{im\_low}$)
+
+When a product argument has too many terms whose combined degree
+exceeds the constraint degree bound,
+the compiler introduces $\mathrm{im\_low}$ columns that hold partial
+product ratios:
+
+$$
+\mathrm{im\_low} = \frac{\prod_j n_j}{\prod_j d_j},
+$$
+
+where $\{n_j\}$ and $\{d_j\}$ are subsets of the numerator and denominator
+terms.
+The $\mathrm{gprod}$ recurrence then references $\mathrm{im\_low}$
+instead of the raw product terms.
+
+### Application-level intermediates ($\mathrm{ImPol}$)
+
+Individual AIRs may declare their own stage-2 columns to reduce
+constraint degree.
+For example, if an AIR constraint has the form
+$A \cdot B \cdot C \cdot D = E$
+and the product's degree exceeds the bound,
+the AIR author introduces a column $\mathrm{ImPol} = A \cdot B$
+and checks $\mathrm{ImPol} \cdot C \cdot D = E$.
+These may be over the base field $\F$ or the extension $\Fext$,
+depending on whether the constraint involves challenges.
+
+(sec:stageQ)=
+## Stage Q: Quotient Polynomial
+
+1. Derive the constraint-combination challenge:
+
+   $$
+   v_c \;\leftarrow\; \T.\sq().
+   $$
+
+2. Evaluate the combined constraint polynomial on the extended domain.
+   Let $J$ be the number of individual constraint polynomials
+   defined by the AIR (see {ref}`app:constraints`).
+   For each $x \in H^*$:
+
+   ```{math}
+   :label: eq-constraint
+   C(x) = v_c^{J-1} \cdot C_0(x) + v_c^{J-2} \cdot C_1(x)
+          + \cdots + C_{J-1}(x).
+   ```
+
+   This is computed via Horner's method.
+
+3. Compute the quotient polynomial on the extended domain:
+
+   $$
+   Q(x) = \frac{C(x)}{\ZH(x)} = \frac{C(x)}{x^N - 1}
+   \quad \text{for } x \in H^*.
+   $$
+
+4. Split $Q$ into $d$ pieces of degree $< N$:
+
+   ```{math}
+   :label: eq-quotient-split
+   Q(X) = Q_0(X) + X^N \cdot Q_1(X) + \cdots + X^{(d-1)N} \cdot Q_{d-1}(X).
+   ```
+
+   Concretely:
+
+   a. Convert $Q$ from evaluation form to coefficient form
+      via $\INTT_{N_{\mathrm{ext}}}$.
+
+   b. Extract coefficients: $Q_j$ has coefficients
+      $\hat{q}_{jN}, \hat{q}_{jN+1}, \ldots, \hat{q}_{(j+1)N-1}$.
+
+   c. Apply coset correction: multiply each $Q_j$'s coefficients
+      by $S_j = g^{-jN}$.
+
+   d. Extend each $Q_j$ to the evaluation domain via
+      $\NTT_{N_{\mathrm{ext}}}$.
+
+5. Commit all pieces jointly:
+   $r_Q = \MT(Q_0, \ldots, Q_{d-1})$.
+
+6. Absorb: $\T.\abs(r_Q)$.
+
+(sec:evals)=
+## Polynomial Evaluations
+
+1. Derive the evaluation challenge:
+
+   $$
+   \xi \;\leftarrow\; \T.\sq().
+   $$
+
+   This is an element of $\Fext$.
+
+2. For each committed polynomial $p$ and each opening offset $o \in \mathcal{O}$,
+   compute the evaluation
+
+   ```{math}
+   :label: eq-eval
+   e_{p,o} = p(\xi \cdot \omega^o) \in \Fext.
+   ```
+
+   This includes witness polynomials ($f_j$),
+   intermediate polynomials ($h_j$),
+   quotient pieces ($Q_j$),
+   and constant polynomials ($c_j$).
+
+3. Absorb a hash of all evaluations:
+
+   $$
+   \T.\abs\bigl(\LinHash(e_{p,o} \text{ for all } p, o)\bigr).
+   $$
+
+(sec:fri-poly)=
+## FRI Polynomial Construction
+
+1. Derive the batching challenges:
+
+   $$
+   v_1, v_2 \;\leftarrow\; \T.\sq().
+   $$
+
+2. Group all evaluation-map entries by their opening offset index $g$.
+   Let $\mathcal{G} = \{g_0, g_1, \ldots\}$ be the ordered set of
+   opening-offset indices.
+
+3. For each group $g$ with entries $\{(p_0, e_0), (p_1, e_1), \ldots, (p_{n_g}, e_{n_g})\}$,
+   compute the group polynomial via Horner accumulation with $v_2$:
+
+   ```{math}
+   :label: eq-fri-group
+   G_g(x) = \frac{1}{x - \xi \cdot \omega^{o_g}} \cdot
+            \Bigl(
+              v_2^{n_g}\bigl(p_0(x) - e_0\bigr) +
+              v_2^{n_g-1}\bigl(p_1(x) - e_1\bigr) +
+              \cdots +
+              \bigl(p_{n_g}(x) - e_{n_g}\bigr)
+            \Bigr),
+   ```
+
+   where $o_g$ is the opening offset for group $g$.
+
+4. Combine all groups via Horner accumulation with $v_1$:
+
+   ```{math}
+   :label: eq-fri-polynomial
+   F(x) = v_1^{|\mathcal{G}|-1} \cdot G_{g_0}(x) +
+          v_1^{|\mathcal{G}|-2} \cdot G_{g_1}(x) +
+          \cdots + G_{g_{|\mathcal{G}|-1}}(x).
+   ```
+
+5. Evaluate $F$ on the extended domain $H^*$ to obtain the FRI input polynomial.
+
+See {ref}`app:batching` for the complete batching formula.
+
+(sec:fri-rounds)=
+## FRI Commitment Rounds
+
+The FRI protocol reduces the degree of $F$ through iterated folding.
+Let $F_0 = F$ and $b_0 = n_{\mathrm{ext}}$ be the initial domain size in bits.
+
+For each FRI round $k = 0, 1, \ldots, K-1$:
+
+1. Commit the current polynomial:
+   $r_k^{\mathrm{FRI}} = \MT(F_k)$.
+2. Absorb: $\T.\abs(r_k^{\mathrm{FRI}})$.
+3. Derive the fold challenge: $\beta_k \leftarrow \T.\sq()$.
+4. Fold: $F_{k+1} = \Fold(F_k, \beta_k)$.
+   The domain size decreases from $2^{b_k}$ to $2^{b_{k+1}}$.
+
+After the final round, absorb a hash of the final polynomial:
+$\T.\abs\bigl(\LinHash(F_K)\bigr)$.
+
+**Folding operation.**
+**Input:**
+Polynomial $F_k$ on a domain of size $2^{b_k}$, challenge $\beta_k \in \Fext$.
+**Output:**
+Polynomial $F_{k+1}$ on a domain of size $2^{b_{k+1}}$, where $b_{k+1} < b_k$.
+
+Let $f = 2^{b_k - b_{k+1}}$ be the fold factor.
+For each output index $j \in [2^{b_{k+1}}]$:
+
+1. **Gather** $f$ evaluations from $F_k$:
+
+   $$
+   \bigl\{F_k[j + i \cdot 2^{b_{k+1}}]\bigr\}_{i=0}^{f-1}.
+   $$
+
+2. **Interpolate** to coefficient form $c_0, \ldots, c_{f-1}$
+   (size-$f$ inverse transform).
+
+3. **Coset correction.**
+   For $i = 0, \ldots, f-1$:
+
+   ```{math}
+   :label: eq-coset-correction
+   c_i \;\leftarrow\; c_i \cdot
+     \bigl(g^{-2^{n_{\mathrm{ext}} - b_k}}
+           \cdot \omega_{b_k}^{-j}\bigr)^i,
+   ```
+
+   where $\omega_{b_k}$ is the primitive $2^{b_k}$-th root of unity.
+   Note: $b_0 = n_{\mathrm{ext}}$ for the initial round, so
+   $g^{-2^{n_{\mathrm{ext}} - b_0}} = g^{-1}$.
+
+4. **Evaluate** the polynomial $\sum_{i} c_i \cdot X^i$ at $\beta_k$
+   via Horner's method:
+
+   $$
+   F_{k+1}[j] = c_0 + c_1 \beta_k + c_2 \beta_k^2 + \cdots + c_{f-1}\beta_k^{f-1}.
+   $$
+
+**Commitment per round.**
+After each fold, the prover commits $F_{k+1}$ via a Merkle tree.
+The evaluations are grouped so that each Merkle leaf contains
+the evaluations that will form one coset group in the next fold step:
+
+- Tree height: $2^{b_{k+2}}$ leaves (anticipating the next fold).
+- Each leaf contains $2^{b_{k+1} - b_{k+2}} \cdot 3$ field elements
+  ($3$ elements per $\Fext$ value, grouped for the next round's fold factor).
+
+The root $r_{k+1}^{\mathrm{FRI}} = \MT(F_{k+1})$ is absorbed into the transcript.
+
+(sec:pow)=
+## Proof of Work
+
+1. Derive the grinding challenge:
+   $\chi_{\mathrm{grind}} \leftarrow \T.\sq()$.
+
+2. Find a nonce $\eta \in \mathbb{Z}_{\geq 0}$ such that
+
+   $$
+   \Poseidon(\chi_{\mathrm{grind}} \,\|\, \eta)
+   \text{ has } b_{\mathrm{pow}} \text{ leading zero bits}.
+   $$
+
+**Proof output.**
+The complete proof consists of:
+
+$$
+\pi = \bigl(
+  r_1,\; r_2,\; r_Q,\;
+  \{e_{p,o}\},\;
+  \eta,\;
+  \{r_k^{\mathrm{FRI}}\}_{k=0}^{K-1},\;
+  F_K,\;
+  \{\text{Merkle proofs}\}
+\bigr).
+$$
