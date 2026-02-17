@@ -10,7 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-PORT=7000
+PORT=1234
 WATCH=false
 
 # Parse arguments
