@@ -1,0 +1,583 @@
+%=============================================================================
+\section{Architecture Overview}
+\label{sec:architecture}
+%=============================================================================
+
+Zisk is a zero-knowledge virtual machine that proves correct execution
+of RISC-V programs.
+It decomposes computation into a single \emph{airgroup} named ``Zisk''
+containing 21 specialized AIRs (Algebraic Intermediate Representations),
+each responsible for a different aspect of execution:
+instruction dispatch, memory, arithmetic, bitwise operations,
+cryptographic precompiles, and lookup tables.
+
+The AIRs communicate via \emph{buses}---shared lookup and permutation
+arguments that enforce consistency between components.
+The central interconnect is the \emph{operation bus}: the Main CPU AIR
+dispatches operations to coprocessors (Binary, Arith, etc.) via lookup
+assumes, and each coprocessor proves correctness via lookup proves on
+the same bus.
+
+%-----------------------------------------------------------------------------
+\subsection{Airgroup Structure}
+\label{sec:airgroup}
+
+All 21 AIRs belong to a single airgroup (``Zisk'').
+The aggregation type is \textbf{sum} (logup) at stage~2,
+meaning the global constraint checks that the sum of all $\mathrm{gsum}$
+boundary values across all AIRs equals zero.
+
+Configuration parameters:
+\begin{itemize}[nosep]
+  \item Lattice size: $L = 368$ (no elliptic-curve mode).
+  \item Transcript arity: $a = 4$ (Poseidon2 sponge width $= 16$).
+  \item Number of public inputs: 68
+        (4 for \texttt{rom\_root} $+$ 64 for \texttt{inputs}).
+  \item Stage-2 challenges: 2 ($\alpha, \gamma$).
+  \item Proof values: 2 at stage~1
+        (\texttt{enable\_input\_data}, \texttt{enable\_rom\_data}).
+\end{itemize}
+
+%-----------------------------------------------------------------------------
+\subsection{AIR Inventory}
+\label{sec:air-inventory}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}rlrll@{}}
+  \toprule
+  ID & Name & Trace size & Role & Compressor? \\
+  \midrule
+  0  & Main              & $2^{22}$ & CPU instruction dispatch        & No \\
+  1  & Rom               & $2^{22}$ & Program ROM lookup table        & No \\
+  2  & Mem               & $2^{22}$ & Main memory (sorted by addr+step) & No \\
+  3  & RomData           & $2^{21}$ & Immutable ROM data region       & No \\
+  4  & InputData         & $2^{21}$ & Free input data region          & No \\
+  5  & MemAlign          & $2^{21}$ & Unaligned memory access logic   & No \\
+  6  & MemAlignByte      & $2^{22}$ & Byte-level memory alignment     & No \\
+  7  & MemAlignReadByte  & $2^{22}$ & Read-side byte alignment        & No \\
+  8  & MemAlignWriteByte & $2^{22}$ & Write-side byte alignment       & No \\
+  9  & Arith             & $2^{21}$ & 64-bit multiply/divide          & No \\
+  10 & Binary            & $2^{22}$ & Bitwise AND, OR, XOR, comparisons & No \\
+  11 & BinaryAdd         & $2^{22}$ & Dedicated 64-bit addition       & No \\
+  12 & BinaryExtension   & $2^{22}$ & Shifts, sign-extension          & No \\
+  13 & Add256            & $2^{20}$ & 256-bit addition                & No \\
+  14 & ArithEq           & $2^{20}$ & 256-bit field arithmetic (secp256k1, BN254) & Yes \\
+  15 & ArithEq384        & $2^{20}$ & 384-bit field arithmetic (BLS12-381) & Yes \\
+  16 & Keccakf           & $2^{17}$ & Keccak-f[1600] permutation      & Yes \\
+  17 & Sha256f           & $2^{18}$ & SHA-256 compression function    & Yes \\
+  18 & SpecifiedRanges   & $2^{20}$ & Range check lookup table        & No \\
+  19 & VirtualTable0     & $2^{21}$ & Packed lookup tables (7 tables) & No \\
+  20 & VirtualTable1     & $2^{21}$ & Packed lookup tables (3 tables) & No \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+AIRs marked ``Compressor = Yes'' have STARK verifier circuits exceeding
+$2^{17}$ rows, requiring the optional Compressor stage in the recursion
+pipeline (see the \emph{Recursion Pipeline}).
+
+%-----------------------------------------------------------------------------
+\subsection{STARK Parameters per AIR}
+\label{sec:air-params}
+
+Each AIR defines a STARK instance with concrete parameters.
+All AIRs share: blowup factor $\beta = 2$, Merkle arity $a = 4$,
+quotient degree $d = 2$ (except Rom with $d = 1$), and cubic extension
+$\Fext$ ($q_{\mathrm{dim}} = 3$).
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lrrrrrr@{}}
+  \toprule
+  Name & $n$ & Witness & Intmd & Const & Eval pts & FRI rounds \\
+  \midrule
+  Main              & 22 &  38 &  8 &   3 &   61 & 7 \\
+  Rom               & 22 &   1 &  2 &   1 &   18 & 7 \\
+  Mem               & 22 &  13 &  3 &   2 &   29 & 7 \\
+  RomData           & 21 &   6 &  3 &   2 &   19 & 7 \\
+  InputData         & 21 &   9 &  6 &   2 &   27 & 7 \\
+  MemAlign          & 21 &  29 &  6 &   2 &   59 & 7 \\
+  MemAlignByte      & 22 &  16 &  4 &   1 &   25 & 7 \\
+  MemAlignReadByte  & 22 &  10 &  3 &   1 &   18 & 7 \\
+  MemAlignWriteByte & 22 &  14 &  4 &   1 &   23 & 7 \\
+  Arith             & 21 &  44 & 15 &   1 &   64 & 7 \\
+  Binary            & 22 &  39 &  5 &   1 &   49 & 7 \\
+  BinaryAdd         & 22 &  10 &  3 &   1 &   18 & 7 \\
+  BinaryExtension   & 22 &  29 &  6 &   1 &   40 & 7 \\
+  Add256            & 20 &  47 & 17 &   1 &   69 & 6 \\
+  ArithEq           & 20 &  39 & 14 &   2 &  434 & 6 \\
+  ArithEq384        & 20 &  33 & 14 &   2 &  536 & 6 \\
+  Keccakf           & 17 & 2137 & 293 & 2 & 4065 & 5 \\
+  Sha256f           & 18 & 102 &  7 &   2 & 1265 & 6 \\
+  SpecifiedRanges   & 20 &  33 & 17 &  34 &   88 & 6 \\
+  VirtualTable0     & 21 &   8 &  5 &  52 &   69 & 7 \\
+  VirtualTable1     & 21 &   8 &  5 &  73 &   90 & 7 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{Columns:}
+$n$ = trace size exponent ($N = 2^n$),
+Witness = stage-1 committed columns,
+Intmd = stage-2 intermediate columns,
+Const = constant (setup) columns,
+Eval pts = evaluation map entries (polynomial openings in the FRI batching),
+FRI rounds = number of folding rounds.
+The number of FRI queries ranges from 217 (Keccakf) to 232 (ArithEq384),
+targeting approximately 100 bits of security.
+
+\paragraph{Notable outliers.}
+Keccakf has by far the most columns (2137 witness $+$ 293 intermediate)
+because each Keccak-f round requires extensive bit-level decomposition.
+ArithEq384 has the most evaluation points (536) due to the large number
+of constraint polynomials in its 384-bit modular arithmetic verification.
+The lookup table AIRs (SpecifiedRanges, VirtualTable0, VirtualTable1)
+have many constant columns (up to 73) because the precomputed table values
+are committed as constant polynomials during setup.
+
+%=============================================================================
+\section{Bus Architecture}
+\label{sec:buses}
+%=============================================================================
+
+%-----------------------------------------------------------------------------
+\subsection{Bus Types}
+\label{sec:bus-types}
+
+Zisk uses three types of inter-AIR communication:
+
+\begin{itemize}[nosep]
+  \item \textbf{Lookup (logup sum-check).}
+        One side \emph{proves} rows (provides entries with multiplicities),
+        the other side \emph{assumes} rows (consumes entries with selectors).
+        The logup argument ensures every assumed tuple was proved.
+
+  \item \textbf{Permutation (multiset equality).}
+        Two sides prove/assume with $1{:}1$ matching.
+        The grand product argument ensures the multisets are identical.
+
+  \item \textbf{Direct update.}
+        Degree-0 constraints for segment chaining and global anchors.
+        Used for continuation across execution segments.
+\end{itemize}
+
+%-----------------------------------------------------------------------------
+\subsection{Bus Inventory}
+\label{sec:bus-inventory}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}rlll@{}}
+  \toprule
+  ID & Name & Type & Description \\
+  \midrule
+  5000 & Operation Bus & Lookup & CPU $\leftrightarrow$ coprocessors \\
+  7890 & ROM Bus & Lookup & Main $\leftrightarrow$ Rom \\
+  10   & Memory Bus & Permutation & Memory subsystem interconnect \\
+  88   & Dual Byte Table & Lookup & Byte-pair decomposition \\
+  125  & Binary Table & Lookup & Binary operation lookup \\
+  124  & Binary Extension Table & Lookup & Shift/extension lookup \\
+  126  & Keccakf Table & Lookup & Keccak round constant lookup \\
+  133  & MemAlign ROM & Lookup & Memory alignment microcode \\
+  330  & Arith Range Table & Lookup & Arithmetic range check \\
+  331  & Arith Table & Lookup & Arithmetic operation lookup \\
+  5002 & ArithEq Lt Table & Lookup & Field comparison lookup \\
+  5010 & Arith Frops Table & Lookup & Arith frequent operations \\
+  5011 & Binary Frops Table & Lookup & Binary frequent operations \\
+  5012 & BinaryExt Frops Table & Lookup & BinaryExt frequent operations \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+%-----------------------------------------------------------------------------
+\subsection{Bus Interconnection Summary}
+\label{sec:bus-diagram}
+
+The central bus topology is:
+
+\begin{enumerate}[nosep]
+  \item \textbf{Main CPU} assumes operations on the \emph{Operation Bus} (5000).
+        Every coprocessor (Binary, BinaryAdd, BinaryExtension, Arith,
+        Add256, ArithEq, ArithEq384, Keccakf, Sha256f) proves on this bus.
+
+  \item \textbf{Main CPU} assumes instruction fetches on the \emph{ROM Bus} (7890).
+        The \textbf{Rom} AIR proves instruction tuples.
+        \textbf{RomData} also assumes on the ROM Bus for data reads.
+
+  \item \textbf{Memory operations} use the \emph{Memory Bus} (10) with permutation arguments.
+        Main, Mem, RomData, InputData, MemAlign, and the MemAlign byte variants
+        all participate.
+
+  \item \textbf{Lookup tables} (SpecifiedRanges, VirtualTable0, VirtualTable1)
+        prove on their respective table buses;
+        computation AIRs assume range checks and operation tables.
+\end{enumerate}
+
+%=============================================================================
+\section{CPU: Main AIR}
+\label{sec:main}
+%=============================================================================
+
+The Main AIR ($2^{22}$ rows) is the central instruction dispatch unit.
+
+%-----------------------------------------------------------------------------
+\subsection{Instruction Execution}
+\label{sec:main-execution}
+
+Each row of the Main trace represents one clock cycle.
+The Main AIR decodes the current instruction and dispatches the operation
+to the appropriate coprocessor via the Operation Bus.
+It does not perform computation directly---all arithmetic, bitwise,
+and cryptographic operations are delegated.
+
+%-----------------------------------------------------------------------------
+\subsection{Bus Interactions}
+\label{sec:main-buses}
+
+\begin{itemize}[nosep]
+  \item \textbf{Operation Bus (5000), assumes.}
+        Dispatches operations with the tuple
+        $(\mathrm{opcode},\; \mathrm{step},\; 0,\; \mathrm{addr},\; 0,\; \ldots)$.
+        The coprocessor that handles this opcode proves the matching tuple.
+
+  \item \textbf{ROM Bus (7890), assumes.}
+        Fetches instruction words from the Rom AIR.
+        The tuple includes program counter, immediate values,
+        and operand encodings.
+
+  \item \textbf{Memory Bus (10), permutation.}
+        Issues memory loads and stores.
+        The Mem AIR proves the corresponding memory operations.
+
+  \item \textbf{Operation Bus (5000), direct update.}
+        Provides continuation anchoring: the initial state (boot address)
+        and final state (end address) are published as direct global updates,
+        checked by the global constraints.
+\end{itemize}
+
+%=============================================================================
+\section{Memory Subsystem}
+\label{sec:memory}
+%=============================================================================
+
+%-----------------------------------------------------------------------------
+\subsection{Mem AIR}
+\label{sec:mem}
+
+The Mem AIR ($2^{22}$ rows) implements the main read/write memory.
+Memory accesses are sorted by $(address, step)$ pairs,
+enabling transition constraints that verify temporal consistency:
+\begin{itemize}[nosep]
+  \item A write at step $t$ stores a value.
+  \item A read at step $t' > t$ at the same address returns the most recently written value.
+\end{itemize}
+
+Mem supports both 1-byte and 8-byte (aligned) accesses.
+The memory bus uses a permutation argument (bus ID~10) to match
+loads/stores from the Main AIR and MemAlign subsystem.
+
+%-----------------------------------------------------------------------------
+\subsection{RomData AIR}
+\label{sec:romdata}
+
+The RomData AIR ($2^{21}$ rows) holds immutable program data.
+It follows a \emph{first-write-then-read-only} pattern:
+\begin{itemize}[nosep]
+  \item Data is written once during initialization.
+  \item All subsequent accesses are reads that return the initialized value.
+  \item Proved via both the Memory Bus (10) and ROM Bus (7890).
+\end{itemize}
+
+Gated by the \texttt{enable\_rom\_data} proof value.
+
+%-----------------------------------------------------------------------------
+\subsection{InputData AIR}
+\label{sec:inputdata}
+
+The InputData AIR ($2^{21}$ rows) provides free input to the computation.
+It follows a \emph{first-read-determines-value} pattern:
+\begin{itemize}[nosep]
+  \item The first read at an address determines the value (prover's free input).
+  \item Subsequent reads return the same value.
+  \item Connected via the Memory Bus (10).
+\end{itemize}
+
+Gated by the \texttt{enable\_input\_data} proof value.
+
+%-----------------------------------------------------------------------------
+\subsection{MemAlign Subsystem}
+\label{sec:memalign}
+
+The MemAlign AIR ($2^{21}$ rows) and its three byte-level variants
+(MemAlignByte, MemAlignReadByte, MemAlignWriteByte, each $2^{22}$ rows)
+form a microprocessor for unaligned memory accesses.
+
+When the Main AIR encounters a memory access that is not naturally aligned,
+it delegates to the MemAlign subsystem, which:
+\begin{enumerate}[nosep]
+  \item Decomposes the unaligned access into aligned sub-accesses.
+  \item Performs byte-level read and write operations.
+  \item Reassembles the result for the Main AIR.
+\end{enumerate}
+
+The MemAlign ROM (bus ID~133) provides microcode for the decomposition.
+
+%=============================================================================
+\section{Computation Coprocessors}
+\label{sec:coprocessors}
+%=============================================================================
+
+Each coprocessor proves operations on the Operation Bus (5000).
+The Main AIR assumes tuples of the form
+$(\mathrm{opcode}, a_1, a_2, \ldots, a_k)$,
+and the coprocessor proves matching tuples with the computed result.
+
+%-----------------------------------------------------------------------------
+\subsection{Binary}
+\label{sec:binary}
+
+The Binary AIR ($2^{22}$ rows) handles bitwise operations:
+AND, OR, XOR, and unsigned/signed comparisons (LTU, LT).
+Operations are decomposed into byte-level lookups via the
+Binary Table (bus ID~125).
+
+%-----------------------------------------------------------------------------
+\subsection{BinaryAdd}
+\label{sec:binaryadd}
+
+The BinaryAdd AIR ($2^{22}$ rows) provides dedicated 64-bit addition.
+Separated from the Binary AIR for constraint degree optimization.
+
+%-----------------------------------------------------------------------------
+\subsection{BinaryExtension}
+\label{sec:binaryext}
+
+The BinaryExtension AIR ($2^{22}$ rows) handles shifts
+(logical left/right, arithmetic right) and sign-extension operations.
+Uses the Binary Extension Table (bus ID~124) for byte-level decomposition.
+
+%-----------------------------------------------------------------------------
+\subsection{Arith}
+\label{sec:arith}
+
+The Arith AIR ($2^{21}$ rows) handles 64-bit multiplication and division.
+Operands are decomposed into 16-bit chunks, and the multiplication
+is verified via a schoolbook decomposition with carry propagation.
+Uses the Arith Table (bus ID~331) and Arith Range Table (bus ID~330)
+for chunk-level lookups.
+
+%=============================================================================
+\section{Precompiles}
+\label{sec:precompiles}
+%=============================================================================
+
+Precompile AIRs provide accelerated circuits for cryptographic operations.
+All four precompile AIRs require the Compressor stage in the recursion
+pipeline due to their large verifier circuits.
+
+%-----------------------------------------------------------------------------
+\subsection{Add256}
+\label{sec:add256}
+
+The Add256 AIR ($2^{20}$ rows) provides 256-bit unsigned addition.
+Used as a building block for multi-precision arithmetic.
+
+%-----------------------------------------------------------------------------
+\subsection{ArithEq}
+\label{sec:aritheq}
+
+The ArithEq AIR ($2^{20}$ rows) provides 256-bit modular arithmetic
+for elliptic curve operations over secp256k1 and BN254.
+Supports:
+\begin{itemize}[nosep]
+  \item 256-bit modular addition, subtraction, and multiplication.
+  \item secp256k1 point addition and doubling.
+  \item BN254 curve operations (addition, doubling, complex field arithmetic).
+\end{itemize}
+
+Uses the ArithEq Lt Table (bus ID~5002) for field comparison lookups.
+
+%-----------------------------------------------------------------------------
+\subsection{ArithEq384}
+\label{sec:aritheq384}
+
+The ArithEq384 AIR ($2^{20}$ rows) extends ArithEq to 384-bit fields,
+supporting BLS12-381 elliptic curve operations.
+
+%-----------------------------------------------------------------------------
+\subsection{Keccakf}
+\label{sec:keccakf}
+
+The Keccakf AIR ($2^{17}$ rows) implements the Keccak-f[1600] permutation,
+the core of the Keccak/SHA-3 hash function.
+Each invocation processes a 1600-bit state through 24 rounds.
+Memory operations for reading/writing the state use the Memory Bus (10).
+Uses the Keccakf Table (bus ID~126) for round constant lookups.
+
+%-----------------------------------------------------------------------------
+\subsection{Sha256f}
+\label{sec:sha256f}
+
+The Sha256f AIR ($2^{18}$ rows) implements the SHA-256 compression function.
+Each invocation processes a 512-bit message block with a 256-bit state.
+Memory operations use the Memory Bus (10).
+
+%=============================================================================
+\section{Lookup Tables}
+\label{sec:tables}
+%=============================================================================
+
+%-----------------------------------------------------------------------------
+\subsection{SpecifiedRanges}
+\label{sec:specified-ranges}
+
+The SpecifiedRanges AIR ($2^{20}$ rows) provides range check lookups.
+It proves that values fall within specified ranges,
+used by various AIRs for constraint verification.
+
+%-----------------------------------------------------------------------------
+\subsection{VirtualTable0}
+\label{sec:vt0}
+
+The VirtualTable0 AIR ($2^{21}$ rows) packs 7 lookup tables into a
+single AIR for efficiency:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}rll@{}}
+  \toprule
+  Bus ID & Table & Consumer \\
+  \midrule
+  331  & Arith Table          & Arith \\
+  330  & Arith Range Table    & Arith \\
+  5002 & ArithEq Lt Table     & ArithEq, ArithEq384 \\
+  124  & Binary Extension Table & BinaryExtension \\
+  125  & Binary Table         & Binary \\
+  133  & MemAlign ROM         & MemAlign \\
+  126  & Keccakf Table        & Keccakf \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+%-----------------------------------------------------------------------------
+\subsection{VirtualTable1}
+\label{sec:vt1}
+
+The VirtualTable1 AIR ($2^{21}$ rows) packs 3 frequent-operation
+tables:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}rll@{}}
+  \toprule
+  Bus ID & Table & Consumer \\
+  \midrule
+  5010 & Arith Frops Table        & Arith \\
+  5011 & Binary Frops Table       & Binary \\
+  5012 & BinaryExt Frops Table    & BinaryExtension \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+These ``frequent operations'' tables precompute common sub-expressions
+used by the computation coprocessors to reduce constraint degree.
+
+%=============================================================================
+\section{Global Constraints}
+\label{sec:zisk-global-constraints}
+%=============================================================================
+
+After all per-AIR proofs are generated, the system must verify
+\emph{cross-AIR consistency}: that buses balance, that the execution
+begins and ends at the correct state, and that public inputs match.
+This verification is performed by the VadcopFinal circuit
+(see the \emph{Recursion Pipeline}), which encodes the
+global constraints as a single compiled constraint expression.
+
+%-----------------------------------------------------------------------------
+\subsection{Bus Balance Equations}
+\label{sec:bus-balance}
+
+Each bus connects two or more AIRs via a logup or permutation argument.
+Each participating AIR accumulates a running sum ($\mathrm{gsum}$) or
+running product ($\mathrm{gprod}$) during its own STARK proof.
+The \emph{boundary value} $\mathrm{gsum}^{(a)}[N^{(a)}-1]$
+(the final row of the running sum for AIR~$a$) is exported as an
+\emph{airgroup value} and carried through the Recursive2 aggregation tree.
+
+For each bus, the global constraint checks that the boundary values
+from all participating AIRs cancel:
+
+\begin{itemize}[nosep]
+  \item \textbf{Lookup buses} (Operation Bus, ROM Bus, all table buses):
+        \[
+          \sum_{a \in \mathrm{bus}(b)}
+          \mathrm{gsum}^{(a)}[N^{(a)} - 1] = 0.
+        \]
+        Providers contribute positive multiplicities and consumers
+        contribute negative selectors; if every consumed tuple was
+        provided, the sum is zero.
+
+  \item \textbf{Permutation buses} (Memory Bus):
+        \[
+          \prod_{a \in \mathrm{bus}(b)}
+          \mathrm{gprod}^{(a)}[N^{(a)} - 1] = 1.
+        \]
+        The two sides form identical multisets;
+        the grand product ratio equals one.
+\end{itemize}
+
+\noindent
+Concretely, Zisk has 14 buses (\Cref{sec:bus-inventory}),
+producing 14 balance equations that the global constraint must enforce.
+The single compiled global constraint expression (53{,}890 bytecode
+operations) evaluates all 14 balance equations simultaneously,
+verifying the entire bus fabric in one check.
+
+%-----------------------------------------------------------------------------
+\subsection{Continuation Anchoring}
+\label{sec:continuation}
+
+Direct-update constraints anchor the execution to known boundary values:
+
+\begin{itemize}[nosep]
+  \item \textbf{Main continuation.}
+        The initial program counter equals the boot address.
+        The final program counter equals the designated end address.
+        Published via direct global updates on the Operation Bus.
+
+  \item \textbf{Memory continuation.}
+        Memory base addresses and final states are anchored.
+
+  \item \textbf{Public output.}
+        The 64 public input/output values (\texttt{inputs[0..63]}) are
+        published via direct global updates, binding the execution trace
+        to the claimed public inputs.
+\end{itemize}
+
+%-----------------------------------------------------------------------------
+\subsection{Airgroup Value Aggregation}
+\label{sec:agg-values}
+
+The single airgroup uses sum-type aggregation at stage~2.
+During recursive aggregation (see \emph{Recursion Pipeline}, Recursive2),
+per-AIR $\mathrm{gsum}$ boundary values are added together.
+VadcopFinal checks that the final aggregated sum equals zero
+for each bus, confirming cross-AIR consistency.
+
+The aggregation flow is:
+\begin{enumerate}[nosep]
+  \item Each AIR computes $\mathrm{gsum}^{(a)}[N-1] \in \Fext$
+        as a boundary value of its running logup sum.
+  \item Recursive2 adds boundary values from child proofs:
+        \[
+          \mathrm{gsum}_{\mathrm{agg}} = \sum_{a \in \mathrm{children}}
+          \mathrm{gsum}^{(a)}.
+        \]
+  \item VadcopFinal receives the fully aggregated sum and verifies:
+        \[
+          \mathrm{gsum}_{\mathrm{agg}} = 0 \quad\text{(for each bus)}.
+        \]
+\end{enumerate}

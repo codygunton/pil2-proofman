@@ -1,0 +1,33 @@
+\documentclass[11pt,a4paper]{article}
+\input{preamble}
+
+% --- Document ---
+\title{PIL2-STARK: Protocol Specification}
+\author{Derived from the Python Executable Specification}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document describes the PIL2 FRI-STARK proving system:
+a parametric protocol that works with any AIR over the Goldilocks field.
+It specifies \emph{exactly} what the prover and verifier compute, in sequence,
+using mathematical notation.
+It contains no proofs and no security analysis---only the concrete protocol.
+
+For the Zisk zkVM chip architecture (a concrete instantiation of this protocol),
+see the \emph{Zisk Machine Specification}.
+For the recursive aggregation pipeline from per-AIR STARKs to an
+Ethereum-verifiable proof, see the \emph{Recursion Specification}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\input{stark-body}
+
+\appendix
+\input{stark-appendix}
+
+\end{document}

@@ -1,0 +1,30 @@
+\documentclass[11pt,a4paper]{article}
+\input{preamble}
+
+% --- Document ---
+\title{Zisk Machine Specification}
+\author{Derived from the PIL Sources and Proving Key Configuration}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document describes the Zisk zkVM as a concrete instantiation of the
+PIL2-STARK proving system.
+It specifies the chip architecture: the 21~AIRs, bus interconnections,
+memory layout, computation coprocessors, precompile circuits,
+lookup tables, and global constraints.
+
+For the core FRI-STARK protocol that generates and verifies individual
+AIR proofs, see the \emph{STARK Protocol Specification}.
+For the recursive aggregation pipeline from per-AIR STARKs to an
+Ethereum-verifiable proof, see the \emph{Recursion Specification}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\input{machine-body}
+
+\end{document}

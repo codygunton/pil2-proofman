@@ -1,0 +1,30 @@
+\documentclass[11pt,a4paper]{article}
+\input{preamble}
+
+% --- Document ---
+\title{PIL2-STARK: Recursion Specification}
+\author{Derived from the Python Executable Specification}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document describes the VADCOP recursive aggregation pipeline:
+the sequence of proof transformations that takes per-AIR STARK proofs
+and produces a single Ethereum-verifiable proof.
+It covers the Compressor, Recursive1, Recursive2, VadcopFinal,
+RecursiveF, and fflonk stages.
+
+For the core FRI-STARK protocol used to generate and verify individual
+AIR proofs, see the \emph{STARK Protocol Specification}.
+For the concrete Zisk zkVM chip architecture,
+see the \emph{Zisk Machine Specification}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\input{recursion-body}
+
+\end{document}

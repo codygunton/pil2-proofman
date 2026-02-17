@@ -1,0 +1,16 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Individual spec PDFs (only track the combined protocol-spec.pdf)
+stark-spec.pdf
+machine-spec.pdf
+recursion-spec.pdf
+
+# Preview / sharing artifacts
+index.html

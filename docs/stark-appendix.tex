@@ -1,0 +1,102 @@
+%=============================================================================
+% Appendix sections for the STARK Protocol specification.
+% Included after \appendix in wrapper documents.
+%=============================================================================
+
+\section{Constraint Polynomial Structure}
+\label{app:constraints}
+
+Each AIR (Algebraic Intermediate Representation) defines a set of constraint
+polynomials $C_0, C_1, \ldots, C_{J-1}$.
+Each $C_j$ is a polynomial expression over:
+\begin{itemize}[nosep]
+  \item Committed columns $f_i(X)$, $f_i(X \cdot \omega)$, $f_i(X \cdot \omega^{-1})$
+        (current, next, and previous row evaluations);
+  \item Constant polynomials $c_i(X)$;
+  \item Challenges $\alpha, \gamma, \ldots \in \Fext$.
+\end{itemize}
+
+\paragraph{Constraint types.}
+\begin{itemize}[nosep]
+  \item \emph{Transition constraints}: relate row $i$ to row $i+1$,
+        e.g.\ $f(X \cdot \omega) - f(X) - 1 = 0$.
+  \item \emph{Boundary constraints}: fix specific rows,
+        typically row $0$ or row $N-1$,
+        enforced via Lagrange polynomials $L_0(X)$, $L_{N-1}(X)$.
+  \item \emph{Lookup / permutation constraints}:
+        grand-sum or grand-product accumulation polynomials
+        using compressed expressions
+        $(\text{col}_2 \cdot \alpha + \text{col}_1) \cdot \alpha + \text{busid} + \gamma$.
+\end{itemize}
+
+\paragraph{Combination.}
+The individual constraints are combined into a single polynomial using
+a random challenge $v_c \in \Fext$ via Horner's method:
+\begin{equation}
+  \label{eq:combine}
+  C(X) = \bigl(\cdots\bigl(\bigl(C_0 \cdot v_c + C_1\bigr) \cdot v_c + C_2\bigr)
+         \cdot v_c + \cdots\bigr) + C_{J-1}
+       = \sum_{j=0}^{J-1} v_c^{J-1-j} \cdot C_j(X).
+\end{equation}
+
+If the AIR is satisfied, then $C(x) = 0$ for all $x \in H$,
+meaning $\ZH(X) = X^N - 1$ divides $C(X)$ and
+the quotient $Q(X) = C(X)/\ZH(X)$ is a polynomial.
+
+%=============================================================================
+\section{FRI Polynomial Batching Formula}
+\label{app:batching}
+%=============================================================================
+
+The FRI polynomial $F$ batches all polynomial openings into a single polynomial
+using challenges $v_1, v_2 \in \Fext$.
+
+\paragraph{Setup.}
+The evaluation map specifies triples $(p_i, o_i, e_i)$ where
+$p_i$ is a committed polynomial,
+$o_i \in \mathcal{O}$ is an opening offset, and
+$e_i = p_i(\xi \cdot \omega^{o_i})$ is the claimed evaluation.
+
+Group these triples by opening offset index.
+Let $\mathcal{G} = \{g_0, g_1, \ldots, g_{|\mathcal{G}|-1}\}$
+be the ordered set of distinct opening indices,
+and for each $g \in \mathcal{G}$ let
+$(p_{g,0}, e_{g,0}), \ldots, (p_{g,n_g}, e_{g,n_g})$
+be the entries in that group (in evaluation-map order).
+
+\paragraph{Intra-group accumulation} (Horner with $v_2$).
+For each group $g$ and evaluation point $x \in H^*$:
+\begin{equation}
+  \label{eq:intra-group}
+  \hat{G}_g(x)
+  = v_2^{n_g}\bigl(p_{g,0}(x) - e_{g,0}\bigr)
+  + v_2^{n_g-1}\bigl(p_{g,1}(x) - e_{g,1}\bigr)
+  + \cdots
+  + \bigl(p_{g,n_g}(x) - e_{g,n_g}\bigr).
+\end{equation}
+This is computed via Horner's method:
+start with accumulator $A = 0$;
+for each entry $(p_{g,j}, e_{g,j})$ in order,
+set $A \leftarrow A \cdot v_2 + \bigl(p_{g,j}(x) - e_{g,j}\bigr)$.
+
+Then divide by the DEEP quotient denominator:
+\[
+  G_g(x) = \frac{\hat{G}_g(x)}{x - \xi \cdot \omega^{o_g}}.
+\]
+
+\paragraph{Inter-group accumulation} (Horner with $v_1$).
+Combine groups:
+\begin{equation}
+  \label{eq:inter-group}
+  F(x) = v_1^{|\mathcal{G}|-1} \cdot G_{g_0}(x)
+       + v_1^{|\mathcal{G}|-2} \cdot G_{g_1}(x)
+       + \cdots
+       + G_{g_{|\mathcal{G}|-1}}(x).
+\end{equation}
+Again via Horner: start with $A = 0$;
+for each group $g_i$ in order,
+set $A \leftarrow A \cdot v_1 + G_{g_i}(x)$.
+
+\paragraph{Result.}
+$F$ is evaluated on all of $H^*$ to produce the FRI input polynomial of
+degree $< N_{\mathrm{ext}}$.

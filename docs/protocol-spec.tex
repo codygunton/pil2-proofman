@@ -1,0 +1,72 @@
+\documentclass[11pt,a4paper]{report}
+\input{preamble}
+
+% Fix section numbering: report class without \chapter produces "0.1" style.
+% Override to plain numeric sections.
+\renewcommand{\thesection}{\arabic{section}}
+
+% --- Document ---
+\title{Zisk Prover Specification}
+\author{Derived from the Python Executable Specification}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document is the complete specification for the PIL2 proving system
+as used by the Zisk zkVM.
+It specifies \emph{exactly} what the prover and verifier compute, in sequence,
+using mathematical notation.
+It contains no proofs and no security analysis---only the concrete protocol.
+
+The specification comprises three parts:
+\begin{enumerate}[nosep]
+  \item \textbf{STARK Protocol} --- the parametric FRI-STARK proving system
+        that works with any AIR over the Goldilocks field.
+  \item \textbf{Zisk Machine} --- the concrete chip architecture:
+        21~AIRs, bus interconnections, memory layout, coprocessors,
+        precompile circuits, lookup tables, and global constraints.
+  \item \textbf{Recursion Pipeline} --- the VADCOP recursive aggregation
+        from per-AIR STARKs to a single Ethereum-verifiable proof.
+\end{enumerate}
+
+This specification is accompanied by a Python executable specification
+that implements the complete STARK prover and verifier,
+producing byte-identical proofs to the production C++ implementation.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%=============================================================================
+\part{STARK Protocol}
+\label{part:stark}
+%=============================================================================
+
+\input{stark-body}
+
+%=============================================================================
+\part{Zisk Machine}
+\label{part:machine}
+%=============================================================================
+
+\input{machine-body}
+
+%=============================================================================
+\part{Recursion Pipeline}
+\label{part:recursion}
+%=============================================================================
+
+\input{recursion-body}
+
+%=============================================================================
+\appendix
+% Restore letter-based section numbering for appendices
+\renewcommand{\thesection}{\Alph{section}}
+\part{Appendices}
+%=============================================================================
+
+\input{stark-appendix}
+
+\end{document}

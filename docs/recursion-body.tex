@@ -1,0 +1,571 @@
+%=============================================================================
+\section{Pipeline Overview}
+\label{sec:pipeline}
+%=============================================================================
+
+A multi-AIR computation produces $A$ independent STARK proofs,
+one per AIR instance.
+The aggregation pipeline transforms these into a single proof
+through up to seven stages:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}clll@{}}
+  \toprule
+  Stage & Name & Input & Output \\
+  \midrule
+  1 & Basic          & AIR witness           & Per-AIR STARK proof \\
+  2 & Compressor     & Basic STARK proof     & Compressed STARK proof \\
+  3 & Recursive1     & Basic/Compressor      & Normalized SNARK proof \\
+  4 & Recursive2     & $\leq 3$ Recursive1/2 & Aggregated SNARK proof \\
+  5 & VadcopFinal    & One R2 per airgroup   & Cross-AIR verified STARK proof \\
+  \midrule
+  \multicolumn{4}{@{}l}{\itshape The following stages are not currently deployed
+    (see note below):} \\
+  6 & RecursiveF     & VadcopFinal           & BN254-native STARK proof \\
+  7 & fflonk         & RecursiveF            & Ethereum-verifiable SNARK \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+
+Stages 1--5 operate entirely over the Goldilocks field $\F$ with Poseidon2 hashing.
+Stage 6 would transition to BN254 with Poseidon hashing over the BN254 scalar field.
+Stage 7 would produce a pairing-based SNARK verifiable by an on-chain Solidity contract.
+
+\paragraph{Current deployment.}
+In the current Zisk ethproofs integration, the pipeline terminates at
+Stage~5 (VadcopFinal).
+The coordinator sets \texttt{final\_snark\,=\,false}, which skips
+Stages~6 and~7 entirely.
+The VadcopFinal STARK proof---a Goldilocks-native proof with no
+elliptic curve cryptography---is submitted directly to the
+ethproofs aggregation service.
+Stages~6 and~7 (RecursiveF and fflonk) are implemented but reserved
+for a future configuration where on-chain STARK verification
+is replaced by a constant-size pairing-based SNARK.
+
+\bigskip
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    % Node styles
+    basic/.style={draw, rounded corners=2pt, minimum width=1.4cm, minimum height=0.7cm,
+                  font=\footnotesize, fill=blue!8},
+    comp/.style={draw, rounded corners=2pt, minimum width=1.4cm, minimum height=0.7cm,
+                 font=\footnotesize, fill=orange!12},
+    r1/.style={draw, rounded corners=2pt, minimum width=1.4cm, minimum height=0.7cm,
+               font=\footnotesize, fill=green!10},
+    r2/.style={draw, rounded corners=2pt, minimum width=1.8cm, minimum height=0.7cm,
+               font=\footnotesize, fill=violet!10},
+    final/.style={draw, rounded corners=3pt, minimum width=2.2cm, minimum height=0.8cm,
+                  font=\footnotesize\bfseries, fill=red!8},
+    stage/.style={font=\footnotesize\itshape, text=black!60},
+    arr/.style={-{Stealth[length=4pt]}, thick, black!70},
+    dotarr/.style={-{Stealth[length=4pt]}, thick, black!70, densely dashed},
+  ]
+
+  % --- Stage labels (left margin) ---
+  \node[stage] at (-4.8, 0)    {Stage 1};
+  \node[stage] at (-4.8,-1.5)  {Stage 2};
+  \node[stage] at (-4.8,-3.0)  {Stage 3};
+  \node[stage] at (-4.8,-4.8)  {Stage 4};
+  \node[stage] at (-4.8,-7.2)  {Stage 5};
+  \node[stage] at (-4.8,-8.7)  {Stage 6};
+  \node[stage] at (-4.8,-10.2) {Stage 7};
+
+  % --- Stage 1: Basic proofs ---
+  % Small AIRs (no compressor needed)
+  \node[basic] (b1) at (-3.2, 0) {Main};
+  \node[basic] (b2) at (-1.6, 0) {Rom};
+  \node[basic] (b3) at ( 0.0, 0) {Mem};
+  \node[basic] (b4) at ( 1.6, 0) {Binary};
+  % Large AIRs (need compressor)
+  \node[basic] (b5) at ( 3.2, 0) {Keccakf};
+  \node[basic, minimum width=0.8cm] (bdots) at (4.5, 0) {$\cdots$};
+
+  % --- Stage 2: Compressor (only for large AIRs) ---
+  \node[comp] (c5) at (3.2, -1.5) {Compr.};
+
+  % Arrows: small AIRs skip compressor
+  \draw[arr] (b1) -- ++(0,-0.6) -| ([xshift=-0.4cm]b1.south |- 0,-3.0);
+  \draw[arr] (b2) -- ++(0,-0.6) -| ([xshift=-0.4cm]b2.south |- 0,-3.0);
+  \draw[arr] (b3) -- ++(0,-0.6) -| ([xshift=-0.4cm]b3.south |- 0,-3.0);
+  \draw[arr] (b4) -- ++(0,-0.6) -| ([xshift=-0.4cm]b4.south |- 0,-3.0);
+  % Arrow: large AIR goes through compressor
+  \draw[arr] (b5) -- (c5);
+  \draw[arr] (c5) -- ++(0,-0.6) -| ([xshift=-0.4cm]c5.south |- 0,-3.0);
+
+  % "skip" annotation
+  \node[font=\tiny, text=black!50] at (-0.8, -1.5) {(skip if verifier $\leq 2^{17}$ rows)};
+
+  % --- Stage 3: Recursive1 ---
+  \node[r1] (r1a) at (-3.2, -3.0) {R1};
+  \node[r1] (r1b) at (-1.6, -3.0) {R1};
+  \node[r1] (r1c) at ( 0.0, -3.0) {R1};
+  \node[r1] (r1d) at ( 1.6, -3.0) {R1};
+  \node[r1] (r1e) at ( 3.2, -3.0) {R1};
+  \node[r1, minimum width=0.8cm] (r1dots) at (4.5, -3.0) {$\cdots$};
+
+  % --- Stage 4: Recursive2 tree ---
+  % First level: groups of 3
+  \node[r2] (r2a) at (-1.6, -4.5) {Recursive2};
+  \node[r2] (r2b) at ( 1.6, -4.5) {Recursive2};
+
+  \draw[arr] (r1a) -- (r2a);
+  \draw[arr] (r1b) -- (r2a);
+  \draw[arr] (r1c) -- (r2a);
+  \draw[arr] (r1d) -- (r2b);
+  \draw[arr] (r1e) -- (r2b);
+  \draw[dotarr] (r1dots) -- (r2b);
+
+  % Second level: merge
+  \node[r2] (r2final) at (0, -6.3) {Recursive2};
+
+  \draw[arr] (r2a) -- (r2final);
+  \draw[arr] (r2b) -- (r2final);
+
+  % "3-to-1 tree" annotation
+  \node[font=\tiny, text=black!50, anchor=west] at (3.0, -5.4) {$\lceil\log_3 A\rceil$ levels};
+
+  % Airgroup brace
+  \begin{scope}[on background layer]
+    \node[draw=black!20, fill=black!3, rounded corners=4pt,
+          fit=(b1)(bdots)(r2final), inner sep=6pt] (airgroup) {};
+  \end{scope}
+  \node[font=\scriptsize, text=black!50, anchor=south] at (airgroup.north) {Airgroup ``Zisk'' (21 AIRs)};
+
+  % --- Stage 5: VadcopFinal ---
+  \node[final] (vf) at (0, -7.8) {VadcopFinal};
+  \draw[arr] (r2final) -- (vf);
+  \node[font=\tiny, text=black!50, anchor=west] at (1.5, -7.8) {global challenge + global constraints};
+
+  % --- Stages 6--7: not currently deployed ---
+  \draw[densely dashed, black!30] (-4.0, -8.6) -- (5.0, -8.6);
+  \node[font=\tiny\itshape, text=black!40, anchor=west] at (-4.0, -8.85)
+    {not currently deployed};
+
+  % --- Stage 6: RecursiveF ---
+  \node[final, fill=yellow!10, draw=black!30, text=black!40] (rf) at (0, -9.3) {RecursiveF};
+  \draw[dotarr, black!30] (vf) -- (rf);
+  \node[font=\tiny, text=black!35, anchor=west] at (1.5, -9.3) {Goldilocks $\to$ BN254};
+
+  % --- Stage 7: fflonk ---
+  \node[final, fill=green!8, draw=black!30, text=black!40] (ff) at (0, -10.8) {fflonk};
+  \draw[dotarr, black!30] (rf) -- (ff);
+  \node[font=\tiny, text=black!35, anchor=west] at (1.5, -10.8) {Ethereum-verifiable};
+
+\end{tikzpicture}
+\caption{VADCOP recursive aggregation pipeline.
+  Each per-AIR Basic proof is optionally compressed,
+  normalized by Recursive1,
+  then aggregated via a Recursive2 tree within each airgroup.
+  VadcopFinal verifies the global challenge and cross-AIR constraints.
+  Stages below the dashed line (RecursiveF, fflonk) are not currently deployed.}
+\label{fig:pipeline}
+\end{figure}
+
+%-----------------------------------------------------------------------------
+\subsection{Proof Type Table}
+\label{sec:proof-types}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}llp{0.48\textwidth}@{}}
+  \toprule
+  Type & System & Description \\
+  \midrule
+  Basic & STARK & Per-AIR STARK proof
+    (see the \emph{STARK Protocol}) \\
+  Compressor & STARK & Optional compression for large Basic proofs \\
+  Recursive1 & Circom SNARK & Wraps one Basic/Compressor STARK
+                                in a Groth16-style circuit \\
+  Recursive2 & Circom SNARK & Aggregates $\leq 3$ proofs of the same airgroup
+                                into 1 (tree reduction) \\
+  VadcopFinal & STARK & Combines one Recursive2 per airgroup;
+                          verifies global challenge and global constraints \\
+  RecursiveF & STARK & Re-proves VadcopFinal over BN254 for pairing-friendly verification \\
+  fflonk & SNARK & Ethereum-verifiable proof (fflonk variant of PLONK) \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+%-----------------------------------------------------------------------------
+\subsection{Field Transitions}
+\label{sec:field-transitions}
+
+\begin{itemize}[nosep]
+  \item \textbf{Stages 1--5} (Basic through VadcopFinal):
+        Goldilocks field $\F = \mathbb{F}_{2^{64} - 2^{32} + 1}$,
+        Poseidon2 hashing, cubic extension $\Fext$.
+        In the current deployment, the entire pipeline uses this single field.
+  \item \textbf{Stage 6} (RecursiveF, not deployed):
+        BN254 scalar field $\mathbb{F}_r$ where
+        $r$ is the order of the BN254 curve group.
+        Poseidon hashing over $\mathbb{F}_r$.
+        Goldilocks arithmetic is emulated within BN254 circuits.
+  \item \textbf{Stage 7} (fflonk, not deployed):
+        BN254 pairing-based SNARK.
+        The output would be a constant-size proof verifiable by
+        a Solidity smart contract.
+\end{itemize}
+
+%=============================================================================
+\section{Basic STARK Proof (Stage 1)}
+\label{sec:basic}
+%=============================================================================
+
+Each AIR instance produces an independent STARK proof using the protocol
+described in the \emph{STARK Protocol}.
+
+\begin{enumerate}[label=(\roman*)]
+  \item The prover commits stage-1 polynomials and computes a
+        contribution $\kappa^{(a)}$ for challenge aggregation
+        (see the \emph{STARK Protocol}, Multi-AIR Challenge Binding).
+
+  \item After the global challenge $\chi$ is derived from all contributions
+        (see the \emph{STARK Protocol}, Challenge Aggregation),
+        each AIR seeds its transcript with $\chi$ and runs the full
+        commitment and query phases.
+
+  \item The output is a binary proof $\pi^{(a)}_{\mathrm{Basic}}$
+        containing Merkle roots, polynomial evaluations,
+        FRI layers, proof-of-work nonce, and Merkle opening proofs.
+\end{enumerate}
+
+%=============================================================================
+\section{Compressor (Stage 2, Optional)}
+\label{sec:compressor}
+%=============================================================================
+
+The Compressor is an optional stage applied when the STARK verifier circuit
+for a particular AIR exceeds $2^{17}$ rows.
+
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Circuit.}
+        A Circom circuit over the Goldilocks field that verifies one Basic STARK proof.
+        The circuit's execution trace forms a new AIR.
+
+  \item \textbf{When needed.}
+        If the number of verifier circuit rows is $\leq 2^{17}$,
+        the Compressor is skipped and the Basic proof proceeds directly
+        to Recursive1.
+
+  \item \textbf{Output.}
+        A new STARK proof $\pi^{(a)}_{\mathrm{Comp}}$ with a smaller
+        verification circuit than the original Basic proof.
+
+  \item \textbf{stage1Hash.}
+        The Compressor computes a commitment hash:
+        \[
+          \mathrm{stage1Hash}^{(a)} = \Poseidon\bigl(\mathrm{vk}^{(a)},\;
+          r_1^{(a)},\; \mathrm{airValues}^{(a)}\bigr),
+        \]
+        which chains through subsequent recursive layers.
+\end{enumerate}
+
+%=============================================================================
+\section{Recursive1: Per-AIR Normalization (Stage 3)}
+\label{sec:recursive1}
+%=============================================================================
+
+Recursive1 wraps each Basic or Compressor STARK proof in a SNARK circuit,
+producing a normalized proof format suitable for tree aggregation.
+
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Circuit.}
+        A Circom SNARK circuit that verifies one STARK proof.
+        The verification key is selected based on the input proof's circuit type:
+        \begin{itemize}[nosep]
+          \item Circuit type = ``basic'': use the Basic STARK verification key.
+          \item Circuit type = ``compressor'': use the Compressor verification key.
+        \end{itemize}
+
+  \item \textbf{Input.}
+        One STARK proof $\pi^{(a)}$ (either Basic or Compressor).
+
+  \item \textbf{Output.}
+        A normalized proof $\pi^{(a)}_{\mathrm{R1}}$ with a standardized
+        output format containing:
+        \begin{itemize}[nosep]
+          \item Public inputs and proof values.
+          \item The global challenge $\chi$.
+          \item The root of the aggregated challenge computation $\mathrm{rootCAgg}$.
+          \item The $\mathrm{stage1Hash}$ for this AIR instance.
+        \end{itemize}
+\end{enumerate}
+
+%=============================================================================
+\section{Recursive2: Tree Aggregation (Stage 4)}
+\label{sec:recursive2}
+%=============================================================================
+
+Recursive2 aggregates proofs within the same airgroup using a 3-to-1
+tree reduction.
+
+%-----------------------------------------------------------------------------
+\subsection{Aggregation Structure}
+\label{sec:r2-structure}
+
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Fan-in.}
+        Each Recursive2 circuit takes up to
+        $N_{\mathrm{agg}} = 3$ input proofs.
+        These may be Recursive1 proofs or other Recursive2 proofs
+        from the same airgroup.
+
+  \item \textbf{Null-proof padding.}
+        If the number of proofs is not divisible by~3,
+        null proofs are used as padding.
+        The circuit distinguishes null proofs via a circuit type flag
+        (circuit type $= 0$ indicates a null proof that is not verified).
+
+  \item \textbf{Verification key selection.}
+        The circuit selects the appropriate verification key based on
+        the circuit type of each input:
+        \begin{itemize}[nosep]
+          \item Type 0: null proof (skip verification).
+          \item Type 1: aggregated proof (Recursive2 verification key).
+          \item Type $\geq 2$: basic proof (Recursive1 verification key,
+                with type encoding the specific AIR).
+        \end{itemize}
+\end{enumerate}
+
+%-----------------------------------------------------------------------------
+\subsection{Airgroup Value Aggregation}
+\label{sec:r2-airgroup-values}
+
+Each input proof carries airgroup values (accumulated $\mathrm{gsum}$ and
+$\mathrm{gprod}$ boundary values).
+Recursive2 aggregates these:
+
+\begin{itemize}[nosep]
+  \item \textbf{Sum type} ($\mathrm{gsum}$):
+        add the values from all non-null inputs.
+  \item \textbf{Product type} ($\mathrm{gprod}$):
+        multiply the values from all non-null inputs.
+\end{itemize}
+
+%-----------------------------------------------------------------------------
+\subsection{stage1Hash Chaining}
+\label{sec:r2-stage1hash}
+
+The $\mathrm{stage1Hash}$ values from input proofs are chained
+using Poseidon2:
+\[
+  \mathrm{stage1Hash}_{\mathrm{out}}
+  = \Poseidon\bigl(\mathrm{stage1Hash}_A \;\|\; \mathrm{stage1Hash}_B\bigr).
+\]
+For three inputs $A, B, C$:
+first combine $A$ and $B$, then combine the result with $C$.
+Null proofs contribute a zero hash.
+
+%-----------------------------------------------------------------------------
+\subsection{Tree Depth}
+\label{sec:r2-depth}
+
+For an airgroup with $N_{\mathrm{AIR}}$ instances, the tree has depth
+\[
+  D = \lceil \log_3(N_{\mathrm{AIR}}) \rceil.
+\]
+The output is a single proof $\pi^{(g)}_{\mathrm{R2}}$ per airgroup~$g$.
+
+%=============================================================================
+\section{VadcopFinal (Stage 5)}
+\label{sec:vadcop-final}
+%=============================================================================
+
+The VadcopFinal circuit is itself an AIR whose constraints enforce
+cross-airgroup consistency.
+It takes one Recursive2 proof per airgroup and produces a single STARK proof.
+
+%-----------------------------------------------------------------------------
+\subsection{STARK Verification}
+\label{sec:vf-stark}
+
+For each airgroup $g$, the VadcopFinal circuit verifies the Recursive2 proof
+$\pi^{(g)}_{\mathrm{R2}}$
+using the appropriate verification key
+(selected between Basic and aggregation keys
+depending on the circuit type flag).
+
+%-----------------------------------------------------------------------------
+\subsection{Global Challenge Recomputation}
+\label{sec:vf-challenge}
+
+The circuit recomputes the global challenge from the public inputs:
+\[
+  \chi' = \T_G\bigl(\mathrm{publics},\;
+                    \mathrm{proofValues},\;
+                    \mathrm{stage1Hash}^{(0)}, \ldots,
+                    \mathrm{stage1Hash}^{(G-1)}\bigr),
+\]
+where each $\mathrm{stage1Hash}^{(g)}$ is the chained Poseidon2 hash
+accumulated through the Recursive2 tree for airgroup~$g$.
+
+\textbf{Check:} $\chi' = \chi$ (the global challenge used by all per-AIR proofs).
+
+%-----------------------------------------------------------------------------
+\subsection{Global Constraint Verification}
+\label{sec:vf-global}
+
+The circuit enforces all cross-airgroup constraints.
+For a concrete machine, these are defined by the machine specification
+(e.g.\ bus balance equations, continuation anchoring;
+see the \emph{Zisk Machine} specification).
+
+In general, global constraints take two forms:
+
+\begin{itemize}[nosep]
+  \item \textbf{Sum type (logup):}
+        the sum of all $\mathrm{gsum}$ boundary values across AIRs
+        sharing a bus equals zero.
+        \[
+          \sum_{a \in \mathrm{bus}(b)} \mathrm{gsum}^{(a)}[N-1] = 0
+          \quad \text{for each bus } b.
+        \]
+
+  \item \textbf{Product type (permutation):}
+        the product of all $\mathrm{gprod}$ boundary values across AIRs
+        sharing a bus equals one.
+        \[
+          \prod_{a \in \mathrm{bus}(b)} \mathrm{gprod}^{(a)}[N-1] = 1
+          \quad \text{for each bus } b.
+        \]
+\end{itemize}
+
+%-----------------------------------------------------------------------------
+\subsection{Output}
+\label{sec:vf-output}
+
+The VadcopFinal proof $\pi_{\mathrm{VF}}$ is itself a STARK proof
+over the Goldilocks field,
+verified by the standard STARK verifier
+(see the \emph{STARK Protocol}, Query Phase).
+Its transcript is seeded directly with
+$(\mathrm{vk},\; \Hash(\mathrm{pub}),\; r_1)$
+rather than with a global challenge,
+since it \emph{is} the outermost layer.
+
+In the current deployment, this is the \textbf{final proof} submitted to
+the ethproofs service.
+The proof is serialized as a flat array of Goldilocks field elements
+(\texttt{Vec<u64>}) and transmitted as base64-encoded binary.
+
+%=============================================================================
+\section{RecursiveF: Field Transition (Stage 6, Not Deployed)}
+\label{sec:recursivef}
+%=============================================================================
+
+\emph{This stage is implemented but not currently deployed.
+The pipeline terminates at VadcopFinal (Stage~5) in the current configuration.}
+
+\medskip
+
+RecursiveF re-proves the VadcopFinal STARK over the BN254 scalar field,
+enabling verification by a pairing-based SNARK in the final stage.
+
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Purpose.}
+        The Goldilocks-based STARK proof from VadcopFinal cannot be
+        directly verified by a BN254 pairing check.
+        RecursiveF ``translates'' the proof to BN254-native arithmetic.
+
+  \item \textbf{BN254-native Merkle hashing.}
+        The Merkle trees in the RecursiveF proof use Poseidon over the
+        BN254 scalar field $\mathbb{F}_r$ instead of Poseidon2 over Goldilocks.
+
+  \item \textbf{Goldilocks emulation.}
+        Goldilocks field arithmetic ($p = 2^{64} - 2^{32} + 1$) is
+        emulated within BN254 circuits.
+        This is the computational bottleneck of the recursion pipeline.
+
+  \item \textbf{Output.}
+        A STARK proof $\pi_{\mathrm{RF}}$ over BN254,
+        ready for the fflonk stage.
+\end{enumerate}
+
+%=============================================================================
+\section{fflonk: Ethereum-Verifiable Proof (Stage 7, Not Deployed)}
+\label{sec:fflonk}
+%=============================================================================
+
+\emph{This stage is implemented but not currently deployed.
+The pipeline terminates at VadcopFinal (Stage~5) in the current configuration.}
+
+\medskip
+
+The final stage would produce a constant-size proof verifiable on Ethereum.
+
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{System.}
+        A BN254 SNARK using the fflonk variant of PLONK,
+        which requires only one pairing check for verification.
+
+  \item \textbf{publicsHash.}
+        The public inputs are hashed via SHA-256 to produce a single
+        $\mathrm{publicsHash}$ value that the on-chain verifier checks.
+
+  \item \textbf{On-chain verifier.}
+        A Solidity smart contract that:
+        \begin{enumerate}[label=(\alph*)]
+          \item Recomputes $\mathrm{publicsHash}$ from the provided public inputs.
+          \item Verifies the fflonk proof using the BN254 precompiles
+                (ecAdd, ecMul, ecPairing).
+        \end{enumerate}
+
+  \item \textbf{Output.}
+        A constant-size proof $\pi_{\mathrm{fflonk}}$
+        (typically $\sim$768 bytes)
+        plus the public inputs.
+\end{enumerate}
+
+%=============================================================================
+\section{Distributed Proving}
+\label{sec:distributed}
+%=============================================================================
+
+The VADCOP architecture enables distributed proving:
+workers independently compute per-AIR proofs
+and contribute to challenge aggregation
+without sharing witness data.
+The three-phase workflow is:
+
+\begin{enumerate}[label=\textbf{Phase \arabic*:}]
+  \item \textbf{Contributions.}
+        Each worker computes stage-1 commitments and
+        lattice contributions for its assigned AIR instances.
+        Contributions are sent to the coordinator.
+
+  \item \textbf{Prove.}
+        The coordinator aggregates all contributions
+        into the global challenge $\chi$
+        and distributes it to all workers.
+        Workers generate per-AIR STARK proofs (Basic stage)
+        and perform internal Recursive1/Recursive2 aggregation
+        for their assigned airgroups.
+
+  \item \textbf{Aggregate.}
+        A designated aggregator receives all per-airgroup
+        Recursive2 proofs, performs final Recursive2 tree reduction
+        (if needed), and generates the VadcopFinal proof.
+        In the current deployment this is the terminal stage;
+        when \texttt{final\_snark} is enabled,
+        RecursiveF and fflonk would follow sequentially.
+\end{enumerate}
+
+\paragraph{MPI worker aggregation.}
+In the MPI deployment model, each worker process handles a subset
+of AIR instances.
+The coordinator process (rank 0) performs the aggregation
+of contributions and final proof assembly.
+
+\paragraph{Coordinator-mediated multi-machine proving.}
+For large computations spanning multiple machines,
+the coordinator mediates challenge distribution and proof collection
+over the network.
+Each machine runs an independent set of workers,
+and only the aggregated contributions and final proofs
+traverse machine boundaries.

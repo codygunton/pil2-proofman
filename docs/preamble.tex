@@ -1,0 +1,44 @@
+% preamble.tex — shared macros for PIL2 specification documents
+% Usage: \input{preamble}  (after \documentclass)
+
+% --- Packages ---
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, fit, backgrounds, calc}
+
+\newcolumntype{L}{>{\raggedright\arraybackslash}p{0.40\textwidth}}
+\newcolumntype{C}{>{\centering\arraybackslash}p{0.06\textwidth}}
+
+\newcommand{\longto}{\longrightarrow}
+\newcommand{\longfrom}{\longleftarrow}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=blue!70!black,
+  urlcolor=blue!70!black,
+}
+
+% --- Custom Commands ---
+\newcommand{\F}{\mathbb{F}_p}
+\newcommand{\Fext}{\mathbb{F}_{p^3}}
+\newcommand{\ZH}{Z_H}
+\newcommand{\MT}{\textsf{MT}}
+\newcommand{\Hash}{\textsf{H}}
+\newcommand{\Poseidon}{\textsf{Poseidon2}}
+\newcommand{\LinHash}{\textsf{LinearHash}}
+\newcommand{\T}{\mathcal{T}}
+\newcommand{\abs}{\textsf{absorb}}
+\newcommand{\sq}{\textsf{squeeze}}
+\newcommand{\sqidx}{\textsf{squeeze\_indices}}
+\newcommand{\Fold}{\textsf{Fold}}
+\newcommand{\INTT}{\textsf{INTT}}
+\newcommand{\NTT}{\textsf{NTT}}
