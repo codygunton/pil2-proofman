@@ -11,7 +11,7 @@
     lean_poseidon2_hash         -- full permutation
     lean_poseidon2_linear_hash  -- sponge-based variable-length hash
     lean_poseidon2_hash_seq     -- permutation returning only capacity elements
-    lean_poseidon2_verify_grinding -- proof-of-work verification
+    lean_poseidon2_verify_grinding -- grinding verification
 -/
 namespace FFI.Poseidon2
 
@@ -56,7 +56,7 @@ opaque linearHash (input : @& Array UInt64) (width : UInt64) : Array UInt64
 @[extern "lean_poseidon2_hash_seq"]
 opaque hashSeq (input : @& Array UInt64) (width : UInt64) : Array UInt64
 
-/-- Verify a proof-of-work nonce.
+/-- Verify a grinding nonce.
 
     Checks that hash(challenge || nonce)[0] < 2^(64 - powBits).
     Challenge must have exactly 3 elements (width-1 for width=4).

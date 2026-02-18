@@ -147,7 +147,7 @@ class TestProofLoading:
         # Check expected proof components
         assert "final_pol" in expected
         assert "nonce" in expected
-        assert expected["nonce"] > 0  # Should have proof-of-work
+        assert expected["nonce"] > 0  # Should have grinding nonce
 
         # The test data format doesn't match proof JSON format exactly,
         # so we just verify it has the expected structure

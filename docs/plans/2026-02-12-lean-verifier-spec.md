@@ -660,7 +660,7 @@ opaque linear_hash (input : @& Array UInt64) (width : UInt64) : Array UInt64
 @[extern "lean_poseidon2_hash_seq"]
 opaque hash_seq (input : @& Array UInt64) (width : UInt64) : Array UInt64
 
-/-- Verify proof-of-work nonce.
+/-- Verify grinding nonce.
     Python: verify_grinding(challenge, nonce, pow_bits) -/
 @[extern "lean_poseidon2_verify_grinding"]
 opaque verify_grinding (challenge : @& Array UInt64) (nonce : UInt64)
@@ -1273,7 +1273,7 @@ def main : IO UInt32 := lspecIO <|
   This is the main entry point. Verification phases:
   1. Parse proof components (evals, air values)
   2. Reconstruct Fiat-Shamir transcript to derive challenges
-  3. Verify proof-of-work
+  3. Verify grinding
   4. Derive FRI query indices
   5. Run verification checks:
      a. Q(xi) = C(xi): quotient matches constraint evaluation

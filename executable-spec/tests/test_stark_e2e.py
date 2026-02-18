@@ -272,7 +272,7 @@ class TestStarkE2E:
         """Test that FRI output is generated.
 
         Verifies that gen_proof successfully generates FRI components
-        including proof-of-work and final polynomial.
+        including grinding and final polynomial.
         """
         vectors = load_test_vectors(air_name)
         if vectors is None:

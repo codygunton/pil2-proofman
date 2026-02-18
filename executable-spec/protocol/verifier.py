@@ -84,7 +84,7 @@ def stark_verify(
     # --- Reconstruct Fiat-Shamir transcript ---
     challenges = _reconstruct_transcript(proof, stark_info, global_challenge, verkey, publics)
 
-    # --- Verify proof-of-work ---
+    # --- Verify grinding ---
     grinding_idx = len(stark_info.challenges_map) + len(stark_struct.fri_fold_steps)
     grinding_challenge = _get_challenge(challenges, grinding_idx)
     if not verify_grinding(list(grinding_challenge), proof.nonce, stark_struct.pow_bits):
@@ -397,7 +397,7 @@ def _reconstruct_transcript(
     4. Absorb evals (hashed if hash_commits enabled)
     5. Derive FRI polynomial challenges
     6. For each FRI step: derive fold challenge, absorb next root (or final poly)
-    7. Derive grinding challenge for proof-of-work
+    7. Derive grinding challenge
     """
     stark_struct = stark_info.stark_struct
     n_challenges = len(stark_info.challenges_map)

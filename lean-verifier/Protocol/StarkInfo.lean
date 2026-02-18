@@ -52,7 +52,7 @@ instance : ToString FriFoldStep where
     - `merkleTreeCustom`: Whether to use custom Merkle tree
     - `transcriptArity`: Transcript Merkle tree arity
     - `lastLevelVerification`: Number of last levels verified directly
-    - `powBits`: Proof-of-work difficulty bits
+    - `powBits`: Grinding difficulty bits
     - `hashCommits`: Whether to hash commitments -/
 structure StarkStruct where
   nBits : Nat

@@ -92,7 +92,7 @@ structure FriProof where
     - `airValues`: Values specific to this individual AIR instance.
     - `customCommits`: Names of custom commitment schemes used (if any).
     - `fri`: FRI protocol data.
-    - `nonce`: Proof-of-work nonce satisfying the grinding constraint. -/
+    - `nonce`: Grinding nonce satisfying the grinding constraint. -/
 structure STARKProof where
   roots : Array Hash := #[]
   lastLevels : Array (Array (Array UInt64)) := #[]

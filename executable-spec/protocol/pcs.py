@@ -94,7 +94,7 @@ class FriPcs:
         else:
             transcript.put(final_pol_flat)
 
-        # --- Grinding (proof-of-work) ---
+        # --- Grinding ---
         grinding_challenge = transcript.get_state(3)
         nonce = grinding(grinding_challenge, cfg.pow_bits)
 

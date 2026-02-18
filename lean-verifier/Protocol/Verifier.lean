@@ -6,7 +6,7 @@
   This is the main entry point for STARK verification. It implements:
   1. Proof component parsing (evals, airgroup values, polynomial values)
   2. Fiat-Shamir transcript reconstruction to derive all challenges
-  3. Proof-of-work verification
+  3. Grinding verification
   4. FRI query index derivation
   5. Eight verification checks:
      a. Q(xi) = C(xi) — quotient matches constraint evaluation
@@ -1123,7 +1123,7 @@ def verifyFinalPolynomial (proof : STARKProof) (starkInfo : StarkInfo) : Bool :=
     Verification phases:
     1. Parse proof components (evals, air values, trace values)
     2. Reconstruct Fiat-Shamir transcript to derive challenges
-    3. Verify proof-of-work
+    3. Verify grinding
     4. Derive FRI query indices
     5. Run 8 verification checks:
        a. Q(xi) = C(xi)
@@ -1153,7 +1153,7 @@ def starkVerify
   -- Phase 2: Reconstruct Fiat-Shamir transcript
   let challenges := reconstructTranscript proof starkInfo globalChallenge verkey publics
 
-  -- Phase 3: Verify proof-of-work
+  -- Phase 3: Verify grinding
   let grindingIdx := starkInfo.challengesMap.size + starkStruct.friFoldSteps.size
   let grindingChallenge := getChallenge challenges grindingIdx
   let powOk := verifyGrinding grindingChallenge proof.nonce starkStruct.powBits.toUInt32

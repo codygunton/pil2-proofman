@@ -12,7 +12,7 @@ JSON Schema:
             "n_bits_ext": int,         # Extended domain size (log2)
             "fri_round_log_sizes": List[int],    # Domain bits at each FRI step
             "n_queries": int,          # Number of FRI queries
-            "pow_bits": int,           # Proof-of-work difficulty
+            "pow_bits": int,           # Grinding difficulty
             "merkle_arity": int,       # Merkle tree branching factor
             "transcript_arity": int,   # Fiat-Shamir sponge arity
         },

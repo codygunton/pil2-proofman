@@ -63,7 +63,7 @@ The \emph{blowup factor} is $\beta = N_{\mathrm{ext}} / N$.
   $d$ & Number of quotient polynomial pieces ($Q$ split degree) \\
   $K$ & Number of FRI folding rounds \\
   $Q_{\mathrm{queries}}$ & Number of FRI query repetitions \\
-  $b_{\mathrm{pow}}$ & Proof-of-work difficulty (number of leading zero bits) \\
+  $b_{\mathrm{pow}}$ & Grinding difficulty (number of leading zero bits) \\
   $a$ & Merkle tree arity (2, 3, or 4) \\
   \bottomrule
 \end{tabular}
@@ -302,7 +302,7 @@ $F_K$
   \par $\T.\abs\bigl(\LinHash(F_K)\bigr)$
   \par \textbf{Check:} $\deg(F_K) < D$
 \\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\multicolumn{3}{@{}l}{\rule{0pt}{8pt}\emph{Proof of work (\Cref{sec:pow})}} \\[4pt]
+\multicolumn{3}{@{}l}{\rule{0pt}{8pt}\emph{Grinding (\Cref{sec:pow})}} \\[4pt]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $\chi_{\mathrm{grind}}$
   & $\longfrom$
@@ -726,7 +726,7 @@ the evaluations that will form one coset group in the next fold step:
 The root $r_{k+1}^{\mathrm{FRI}} = \MT(F_{k+1})$ is absorbed into the transcript.
 
 %-----------------------------------------------------------------------------
-\subsection{Proof of Work}
+\subsection{Grinding}
 \label{sec:pow}
 
 \begin{enumerate}[label=(\roman*)]
@@ -784,7 +784,7 @@ then performs the checks shown below.
   \par Reconstruct $Q(\xi) = \sum_j \xi^{jN} e_{Q_j,0}$
   \par \textbf{Check:} $Q(\xi) = C(\xi)/\ZH(\xi)$
 \\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\multicolumn{3}{@{}l}{\rule{0pt}{8pt}\emph{Proof-of-work check (\Cref{sec:pow-check})}} \\[4pt]
+\multicolumn{3}{@{}l}{\rule{0pt}{8pt}\emph{Grinding check (\Cref{sec:pow-check})}} \\[4pt]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   &
   & \textbf{Check:} $\Poseidon(\chi_{\mathrm{grind}} \| \eta)$
@@ -899,7 +899,7 @@ Verify that the quotient polynomial is consistent with the constraint polynomial
 \end{enumerate}
 
 %-----------------------------------------------------------------------------
-\subsection{Proof-of-Work Check}
+\subsection{Grinding Check}
 \label{sec:pow-check}
 
 \textbf{Check:}

@@ -71,7 +71,7 @@ class TestProveEndToEnd:
         4. Compares ALL FRI outputs against C++ golden values:
            - fri_roots (Merkle commitments at each fold step)
            - final_pol (polynomial after all FRI folds)
-           - nonce (proof-of-work grinding result)
+           - nonce (grinding result)
 
     If this test passes, Python FRI is byte-identical to C++ FRI.
     """

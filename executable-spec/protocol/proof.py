@@ -60,7 +60,7 @@ class STARKProof:
                     Stage 1 values are single FF, stage 2+ are FF3 [c0, c1, c2].
         custom_commits: Names of custom commitment schemes used (if any).
         fri: FRI protocol data - folding trees, query proofs, and final polynomial.
-        nonce: Proof-of-work nonce satisfying the grinding constraint.
+        nonce: Grinding nonce satisfying the grinding constraint.
     """
     roots: list[Hash] = field(default_factory=list)
     last_levels: list[list[int]] = field(default_factory=list)
