@@ -13,6 +13,7 @@ notation
 building-blocks
 commitment-phase
 query-phase
+full-protocol
 challenge-binding
 appendix-constraints
 appendix-batching

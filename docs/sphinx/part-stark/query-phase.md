@@ -8,61 +8,9 @@ the public inputs, and the AIR constraint definitions.
 It first replays the prover's transcript to rederive all challenges,
 then performs the checks shown below.
 
-**PIL2-STARK: Query Phase**
-
-```{list-table}
-:widths: 42 8 42
-:header-rows: 1
-:class: protocol-table
-
-* - **Prover**
-  -
-  - **Verifier**
-* - ***Setup: Transcript reconstruction***
-  -
-  -
-* -
-  -
-  - Replay transcript from proof data to rederive all challenges $(\alpha, \gamma, v_c, \xi, v_1, v_2, \{\beta_k\}, \chi_{\mathrm{grind}})$
-* - ***Constraint check***
-  -
-  -
-* -
-  -
-  - Evaluate $C(\xi)$ from $\{e_{p,o}\}$. Reconstruct $Q(\xi) = \sum_j \xi^{jN} e_{Q_j,0}$. **Check:** $Q(\xi) = C(\xi)/\ZH(\xi)$
-* - ***Proof-of-work check***
-  -
-  -
-* -
-  -
-  - **Check:** $\Poseidon(\chi_{\mathrm{grind}} \| \eta)$ has $b_{\mathrm{pow}}$ leading zeros
-* - ***Final polynomial degree check***
-  -
-  -
-* -
-  -
-  - $\hat{F}_K = \INTT(F_K)$. **Check:** $\hat{F}_K[i] = 0$ for $i \geq D$
-* - ***Query derivation and verification***
-  -
-  -
-* - Both sides hold all commitments, challenges, and $\eta$
-  - $=$
-  - Both sides hold all commitments, challenges, and $\eta$
-* -
-  -
-  - Seed $\T'$ from $(\chi_{\mathrm{grind}}, \eta)$
-* - $(q_1, \ldots, q_{Q_{\mathrm{queries}}})$
-  - $\longleftarrow$
-  - $(q_1, \ldots, q_{Q_{\mathrm{queries}}}) \leftarrow \T'.\sqidx(Q_{\mathrm{queries}}, b_0)$
-* - For each query $q_i$ and each commitment tree (stages $1, 2, Q$, constants, FRI layers $0, \ldots, K-1$): compute Merkle opening proof at the appropriate index
-  - $\longrightarrow$
-  - For each query $q_i$: **Check:** all Merkle proofs verify against committed roots. Let $x_{q_i} = g \cdot \omega_{\mathrm{ext}}^{q_i}$. **Check:** $F(x_{q_i})$ from batching formula matches FRI layer 0 at $q_i$. For each FRI round $k = 1, \ldots, K$: interpolate coset siblings, apply coset correction, evaluate at $\hat\beta_k$. **Check:** result matches layer $k$
-* -
-  -
-  - **Accept** iff all checks pass
-```
-
-The following subsections detail each check shown in the diagram above.
+The following subsections detail each verification check.
+For the complete protocol as a single self-contained description,
+see {ref}`sec:full-protocol`.
 
 (sec:transcript-reconstruction)=
 ## Transcript Reconstruction
