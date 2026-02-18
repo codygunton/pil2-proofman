@@ -1,0 +1,58 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches: [python-spec]
+    paths:
+      - 'docs/sphinx/**'
+      - 'executable-spec/**/*.py'
+      - '.github/workflows/docs.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install \
+            'sphinx>=7.0' \
+            'myst-parser>=3.0' \
+            'sphinx-book-theme>=1.1' \
+            'sphinx-copybutton>=0.5' \
+            'sphinx-design>=0.6' \
+            'sphinxcontrib-mermaid>=1.0' \
+            'sphinx-autoapi>=3.7' \
+            'numpy>=1.24.0'
+
+      - name: Build HTML
+        run: sphinx-build -b html docs/sphinx docs/sphinx/_build/html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/sphinx/_build/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
