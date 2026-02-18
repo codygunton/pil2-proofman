@@ -3,42 +3,11 @@
 
 This section presents the complete PIL2-STARK protocol
 as a single self-contained reference.
-It draws on {ref}`app:constraints` for constraint structure,
-{ref}`app:batching` for the FRI batching formula,
-and {ref}`sec:challenge-binding` for multi-AIR challenge derivation.
-
-**Notation.**
-
-- $\F = \mathbb{F}_p$ (Goldilocks, $p = 2^{64} - 2^{32} + 1$),
-  $\Fext = \mathbb{F}_{p^3}$ (cubic extension).
-- $H = \{1, \omega, \ldots, \omega^{N-1}\}$ (trace domain),
-  $H^* = \{g, g\omega, \ldots, g\omega^{N_{\mathrm{ext}}-1}\}$
-  (evaluation domain, $N_{\mathrm{ext}} = 4N$, $g = \mathsf{SHIFT}$).
-- $\ZH(X) = X^N - 1$, $\MT(\cdot) = $ Merkle commitment via $\Poseidon$,
-  $\LinHash = $ Poseidon2 linear hash.
-
-**Common preprocessed input.**
-
-$$
-\begin{array}{l}
-N,\; N_{\mathrm{ext}} = 4N,\; g = \mathsf{SHIFT},\quad
-\text{constraint polynomials } C_0, \ldots, C_{J-1}
-  \text{ ({ref}`app:constraints`)}, \\[4pt]
-\text{constant polynomials } c_1, \ldots, c_s : H \to \F,\quad
-d = \lceil \deg(C) / N \rceil, \\[4pt]
-\text{evaluation map } \mathcal{E} = \{(p, o)\},\quad
-\text{FRI schedule } (b_0, \ldots, b_K),\;
-  b_0 = \log_2 N_{\mathrm{ext}}, \\[4pt]
-\mathrm{vk} \in \F^4,\quad
-Q_{\mathrm{queries}},\quad
-b_{\mathrm{pow}}.
-\end{array}
-$$
-
-**Public input.** $\mathrm{pub} \in \F^{\ell}$.
-**Witness.** $(w_{j,i})$ defining $f_j : H \to \F$, $f_j(\omega^i) = w_{j,i}$.
-
----
+All notation and parameters follow {ref}`sec:notation`.
+The table references
+{ref}`app:constraints`,
+{ref}`app:batching`,
+and {ref}`sec:challenge-binding`.
 
 ```{list-table}
 :widths: 42 8 42
