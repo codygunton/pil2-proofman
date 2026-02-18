@@ -155,7 +155,53 @@ def _add_pdf_header_button(app, pagename, templatename, context, doctree):
         "label": "download-pdf-button",
     })
 
+def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None):
+    """Inline role for linking to viewcode source lines.
+
+    Usage in MyST:  {src}`protocol/prover.py:202`
+    Renders as:     prover.py:202  (clickable link to viewcode page, line 202)
+    """
+    import posixpath
+    from docutils import nodes
+    # Parse "package/file.py:line"
+    file_path, line_str = text.rsplit(":", 1)
+    module_path = file_path.replace(".py", "")  # "protocol/prover"
+    display = file_path.rsplit("/", 1)[-1] + ":" + line_str
+    # Compute relative path from current document to _modules/
+    env = inliner.document.settings.env
+    docname = env.docname  # e.g., "part-stark/commitment-phase"
+    target = f"_modules/{module_path}"
+    rel = posixpath.relpath(target, posixpath.dirname(docname))
+    url = f"{rel}.html#L-{line_str}"
+    node = nodes.reference(rawtext, "", refuri=url, **(options or {}))
+    node += nodes.literal(display, display)
+    return [node], []
+
+
+def _patch_viewcode_line_anchors(app):
+    """Patch Sphinx's Pygments bridge so viewcode pages get per-line anchors.
+
+    Sphinx Issue #747: viewcode doesn't expose HtmlFormatter's lineanchors option.
+    This monkey-patch injects lineanchors='L' so each line gets an id like #L-42,
+    enabling GitHub-style line-level permalink links from the spec prose.
+    """
+    from sphinx.highlighting import PygmentsBridge
+    _orig_init = PygmentsBridge.__init__
+
+    def _patched_init(self, *args, **kwargs):
+        _orig_init(self, *args, **kwargs)
+        if hasattr(self, 'formatter') and self.formatter is not None:
+            self.formatter.lineanchors = 'L'
+            self.formatter.anchorlinenos = True
+        if hasattr(self, 'formatter_args'):
+            self.formatter_args['lineanchors'] = 'L'
+            self.formatter_args['anchorlinenos'] = True
+
+    PygmentsBridge.__init__ = _patched_init
+
 def setup(app):
+    _patch_viewcode_line_anchors(app)
+    app.add_role("src", _src_role)
     app.connect("html-page-context", _add_pdf_header_button, priority=600)
 
 # -- Mermaid (diagrams) -------------------------------------------------------
