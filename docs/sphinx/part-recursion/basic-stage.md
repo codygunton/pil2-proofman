@@ -15,4 +15,4 @@ described in the *STARK Protocol*.
 
 3. The output is a binary proof $\pi^{(a)}_{\mathrm{Basic}}$
    containing Merkle roots, polynomial evaluations,
-   FRI layers, proof-of-work nonce, and Merkle opening proofs.
+   FRI layers, grinding nonce, and Merkle opening proofs.

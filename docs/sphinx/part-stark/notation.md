@@ -63,7 +63,7 @@ The *blowup factor* is $\beta = N_{\mathrm{ext}} / N$.
 | $d$ | Number of quotient polynomial pieces ($Q$ split degree) |
 | $K$ | Number of FRI folding rounds |
 | $Q_{\mathrm{queries}}$ | Number of FRI query repetitions |
-| $b_{\mathrm{pow}}$ | Proof-of-work difficulty (number of leading zero bits) |
+| $b_{\mathrm{pow}}$ | Grinding difficulty (number of leading zero bits) |
 | $a$ | Merkle tree arity (2, 3, or 4) |
 
 ## Notation Conventions

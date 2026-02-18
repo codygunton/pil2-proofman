@@ -423,10 +423,10 @@ the evaluations that will form one coset group in the next fold step:
 
 The root $r_{k+1}^{\mathrm{FRI}} = \MT(F_{k+1})$ is absorbed into the transcript.
 
-(sec:pow)=
-## Proof of Work
+(sec:grinding)=
+## Grinding
 
-Proof-of-work grinding is part of
+Grinding is part of
 {src}`protocol/pcs.py:98`.
 
 1. Derive the grinding challenge:

@@ -73,8 +73,8 @@ Verify that the quotient polynomial is consistent with the constraint polynomial
    \boxed{Q(\xi) = \frac{C(\xi)}{\ZH(\xi)}.}
    ```
 
-(sec:pow-check)=
-## Proof-of-Work Check
+(sec:grinding-check)=
+## Grinding Check
 
 **Check:**
 
@@ -181,4 +181,4 @@ For each FRI round $k = 1, \ldots, K$ and each query $q$:
 
 **Acceptance.**
 The verifier accepts if and only if all checks in
-{ref}`sec:constraint-check`, {ref}`sec:pow-check`, {ref}`sec:degree-check`, {ref}`sec:merkle-check`, {ref}`sec:fri-consistency`, {ref}`sec:fri-fold-verify` pass.
+{ref}`sec:constraint-check`, {ref}`sec:grinding-check`, {ref}`sec:degree-check`, {ref}`sec:merkle-check`, {ref}`sec:fri-consistency`, {ref}`sec:fri-fold-verify` pass.

@@ -135,7 +135,7 @@ $$
 * - $F_K$
   - $\longrightarrow$
   - $F_K$; $\T.\abs\bigl(\LinHash(F_K)\bigr)$
-* - ***Proof of work*** ({src}`protocol/pcs.py:98`)
+* - ***Grinding*** ({src}`protocol/pcs.py:98`)
   -
   -
 * - $\chi_{\mathrm{grind}}$
