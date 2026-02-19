@@ -1,9 +1,9 @@
 (sec:architecture)=
 # Architecture Overview
 
-Zisk is a zero-knowledge virtual machine that proves correct execution
+ZisK is a zero-knowledge virtual machine that proves correct execution
 of RISC-V programs.
-It decomposes computation into a single *airgroup* named "Zisk"
+It decomposes computation into a single *airgroup* named "ZisK"
 containing 21 specialized AIRs (Algebraic Intermediate Representations),
 each responsible for a different aspect of execution:
 instruction dispatch, memory, arithmetic, bitwise operations,
@@ -19,7 +19,7 @@ the same bus.
 (sec:airgroup)=
 ## Airgroup Structure
 
-All 21 AIRs belong to a single airgroup ("Zisk").
+All 21 AIRs belong to a single airgroup ("ZisK").
 The aggregation type is **sum** (logup) at stage 2,
 meaning the global constraint checks that the sum of all $\mathrm{gsum}$
 boundary values across all AIRs equals zero.

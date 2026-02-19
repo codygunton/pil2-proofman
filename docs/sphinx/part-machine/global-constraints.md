@@ -83,7 +83,7 @@ from all participating AIRs cancel:
   The two sides form identical multisets;
   the grand product ratio equals one.
 
-Concretely, Zisk has 14 buses ({ref}`sec:bus-inventory`),
+Concretely, ZisK has 14 buses ({ref}`sec:bus-inventory`),
 producing 14 balance equations that the global constraint must enforce.
 The single compiled global constraint expression (53,890 bytecode
 operations) evaluates all 14 balance equations simultaneously,

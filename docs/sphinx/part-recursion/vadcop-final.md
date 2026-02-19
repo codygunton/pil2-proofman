@@ -37,7 +37,7 @@ accumulated through the Recursive2 tree for airgroup $g$.
 The circuit enforces all cross-airgroup constraints.
 For a concrete machine, these are defined by the machine specification
 (e.g. bus balance equations, continuation anchoring;
-see the *Zisk Machine* specification).
+see the *ZisK Machine* specification).
 
 In general, global constraints take two forms:
 

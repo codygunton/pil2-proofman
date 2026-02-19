@@ -4,7 +4,7 @@
 (sec:bus-types)=
 ## Bus Types
 
-Zisk uses three types of inter-AIR communication:
+ZisK uses three types of inter-AIR communication:
 
 - **Lookup (logup sum-check).**
   One side *proves* rows (provides entries with multiplicities),

@@ -23,7 +23,7 @@ ethproofs aggregation service.
 :caption: "VADCOP recursive aggregation pipeline. Each per-AIR Basic proof is optionally compressed, normalized by Recursive1, then aggregated via a Recursive2 tree within each airgroup. VadcopFinal verifies the global challenge and cross-AIR constraints."
 
 graph TD
-    subgraph airgroup ["Airgroup &laquo;Zisk&raquo; (21 AIRs)"]
+    subgraph airgroup ["Airgroup &laquo;ZisK&raquo; (21 AIRs)"]
         direction TB
 
         subgraph stage1 ["Stage 1: Basic"]

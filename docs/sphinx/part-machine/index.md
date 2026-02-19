@@ -1,5 +1,5 @@
 (part:machine)=
-# Zisk Machine
+# ZisK Machine
 
 ````{only} html
 The concrete chip architecture:

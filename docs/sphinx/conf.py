@@ -1,4 +1,4 @@
-# conf.py — Sphinx configuration for Zisk Prover Specification
+# conf.py — Sphinx configuration for ZisK Prover Specification
 #
 # Build HTML:  cd docs/sphinx && uv run --group docs make html
 # Build PDF:   cd docs/sphinx && uv run --group docs make latexpdf
@@ -34,7 +34,7 @@ def _safe_pickle_load(f, **kwargs):
 pickle.load = _safe_pickle_load
 
 # -- Project information ------------------------------------------------------
-project = "Zisk Prover Specification"
+project = "ZisK Prover Specification"
 author = "Derived from the Python Executable Specification"
 release = ""  # intentionally blank — suppresses "Release X" in PDF header
 
@@ -101,7 +101,7 @@ autoapi_ignore = [
 html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_title = "Zisk Prover Spec"
+html_title = "ZisK Prover Spec"
 html_theme_options = {
     "repository_url": "https://github.com/pil2-proofman/pil2-proofman",
     "use_repository_button": True,
@@ -261,7 +261,7 @@ latex_elements = {
 \begin{titlepage}
 \centering
 \vspace*{3cm}
-{\Huge\bfseries Zisk Prover Specification\par}
+{\Huge\bfseries ZisK Prover Specification\par}
 \vspace{1.5cm}
 {\Large Derived from the Python Executable Specification\par}
 \vspace{2cm}
@@ -269,7 +269,7 @@ latex_elements = {
 \vspace{3cm}
 \begin{minipage}{0.85\textwidth}
 \noindent This document is the complete specification for the PIL2
-proving system as used by the Zisk zkVM.
+proving system as used by the ZisK zkVM.
 It specifies \emph{exactly} what the prover and verifier compute,
 in sequence, using mathematical notation.
 It contains no proofs and no security analysis---only the concrete protocol.
@@ -279,7 +279,7 @@ It contains no proofs and no security analysis---only the concrete protocol.
 \begin{enumerate}[nosep]
   \item \textbf{STARK Protocol} --- the parametric FRI-STARK proving system
         that works with any AIR over the Goldilocks field.
-  \item \textbf{Zisk Machine} --- the concrete chip architecture:
+  \item \textbf{ZisK Machine} --- the concrete chip architecture:
         21~AIRs, bus interconnections, memory layout, coprocessors,
         precompile circuits, lookup tables, and global constraints.
   \item \textbf{Recursion Pipeline} --- the VADCOP recursive aggregation
