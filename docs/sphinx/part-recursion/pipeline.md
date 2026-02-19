@@ -88,8 +88,8 @@ VADCOP recursive aggregation pipeline.
 |------|--------|-------------|
 | Basic | STARK | Per-AIR STARK proof (see the *STARK Protocol*) |
 | Compressor | STARK | Optional compression for large Basic proofs |
-| Recursive1 | Circom SNARK | Wraps one Basic/Compressor STARK in a Groth16-style circuit |
-| Recursive2 | Circom SNARK | Aggregates $\leq 3$ proofs of the same airgroup into 1 (tree reduction) |
+| Recursive1 | Circom + STARK | Verifies one Basic/Compressor STARK inside a Circom (R1CS) circuit, proved with a STARK |
+| Recursive2 | Circom + STARK | Aggregates $\leq 3$ proofs of the same airgroup into 1 (tree reduction) |
 | VadcopFinal | STARK | Combines one Recursive2 per airgroup; verifies global challenge and global constraints |
 
 (sec:field-transitions)=
