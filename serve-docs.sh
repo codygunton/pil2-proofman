@@ -33,8 +33,9 @@ case "${1:-}" in
         "${SPHINX_DIR}/render-figures.sh"
         ;;
     *)
-        ${SPHINX_BUILD} -b html "${SPHINX_DIR}" "${BUILD_DIR}/html"
-        echo "Serving at http://localhost:1234"
-        python3 -m http.server 1234 --directory "${BUILD_DIR}/html"
+        echo "Live-reload server at http://localhost:1234"
+        uv run --project "${SPEC_DIR}" --group docs \
+            sphinx-autobuild "${SPHINX_DIR}" "${BUILD_DIR}/html" \
+            --port 1234 --open-browser
         ;;
 esac

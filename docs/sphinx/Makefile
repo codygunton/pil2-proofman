@@ -4,15 +4,16 @@
 #   make all        Build HTML website with downloadable PDF
 #   make html       Build HTML website only
 #   make latexpdf   Build PDF via LaTeX
-#   make serve      Build all + serve on localhost:8000
+#   make serve      Live-reload dev server on localhost:8000
 #   make clean      Remove build artifacts
 
-SPHINXBUILD = uv run --project ../../executable-spec --group docs sphinx-build
-SOURCEDIR   = .
-BUILDDIR    = _build
-PDF_NAME    = zisk-prover-spec.pdf
+SPHINXBUILD   = uv run --project ../../executable-spec --group docs sphinx-build
+AUTOBUILD     = uv run --project ../../executable-spec --group docs sphinx-autobuild
+SOURCEDIR     = .
+BUILDDIR      = _build
+PDF_NAME      = zisk-prover-spec.pdf
 
-.PHONY: all html latexpdf serve clean help figures
+.PHONY: all html latexpdf serve livehtml clean help figures
 
 help:
 	@echo "Targets: all  html  latexpdf  serve  clean"
@@ -38,9 +39,10 @@ latexpdf: figures
 	$(SPHINXBUILD) -b latex $(SOURCEDIR) $(BUILDDIR)/latex
 	$(MAKE) -C $(BUILDDIR)/latex all-pdf
 
-serve: all
-	@echo "Serving at http://localhost:8000"
-	python3 -m http.server 8000 --directory $(BUILDDIR)/html
+serve:
+	$(AUTOBUILD) $(SOURCEDIR) $(BUILDDIR)/html --port 8000 --open-browser
+
+livehtml: serve
 
 clean:
 	rm -rf $(BUILDDIR)
