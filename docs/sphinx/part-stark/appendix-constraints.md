@@ -10,6 +10,10 @@ Each $C_j$ is a polynomial expression over:
 - Constant polynomials $c_i(X)$;
 - Challenges $\alpha, \gamma, \ldots \in \Fext$.
 
+Column and challenge access is mediated by a `ConstraintContext` ABC
+({src}`constraints/base.py:43`) that provides a uniform interface
+for both prover (array) and verifier (scalar) evaluation.
+
 **Constraint types.**
 
 - *Transition constraints*: relate row $i$ to row $i+1$,
@@ -20,11 +24,22 @@ Each $C_j$ is a polynomial expression over:
 - *Lookup / permutation constraints*:
   grand-sum or grand-product accumulation polynomials
   using compressed expressions
-  $(\text{col}_2 \cdot \alpha + \text{col}_1) \cdot \alpha + \text{busid} + \gamma$.
+  $(\text{col}_2 \cdot \alpha + \text{col}_1) \cdot \alpha + \text{busid} + \gamma$
+  ({src}`constraints/base.py:32`).
+
+**Per-AIR modules.**
+Each AIR implements the `ConstraintModule` ABC
+({src}`constraints/base.py:238`), which defines a single
+`constraint_polynomial(ctx)` method returning the combined $C(X)$.
+The Python spec provides hand-written modules for the test AIRs
+(e.g., {src}`constraints/simple_left.py:24`) and a bytecode adapter
+({src}`constraints/bytecode_adapter.py:375`) that wraps the compiled
+expression interpreter for Zisk AIRs.
 
 **Combination.**
 The individual constraints are combined into a single polynomial using
-a random challenge $v_c \in \Fext$ via Horner's method:
+a random challenge $v_c \in \Fext$ via Horner's method
+({src}`constraints/base.py:259`):
 
 ```{math}
 :label: eq-combine

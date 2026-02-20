@@ -10,30 +10,36 @@ A polynomial $f$ of degree $< N$ is committed as follows.
    Compute coefficients $\hat{f} = \INTT_N(f)$, zero-pad to $N_{\mathrm{ext}}$
    coefficients, and evaluate on the coset domain:
    $\tilde{f} = \NTT_{N_{\mathrm{ext}}}(\hat{f})$.
-   This yields $N_{\mathrm{ext}}$ evaluations $\tilde{f}(x)$ for $x \in H^*$.
+   This yields $N_{\mathrm{ext}}$ evaluations $\tilde{f}(x)$ for $x \in H^*$
+   ({src}`primitives/ntt.py:95`, {src}`protocol/stages.py:424`).
 
 2. **Build Merkle tree.**
    When committing multiple polynomials $f_1, \ldots, f_w$ jointly:
 
    a. Form row $i$ as the concatenation of all polynomial values at domain
       point $i$:
-      $\ell_i = \bigl(\tilde{f}_1(x_i),\; \tilde{f}_2(x_i),\; \ldots,\; \tilde{f}_w(x_i)\bigr)$.
+      $\ell_i = \bigl(\tilde{f}_1(x_i),\; \tilde{f}_2(x_i),\; \ldots,\; \tilde{f}_w(x_i)\bigr)$
+      ({src}`primitives/merkle_tree.py:47`).
 
    b. Hash each row: $h_i = \LinHash(\ell_i)$ using Poseidon2 linear hashing.
 
-   c. Build an arity-$a$ Merkle tree over leaves $h_0, \ldots, h_{N_{\mathrm{ext}}-1}$.
+   c. Build an arity-$a$ Merkle tree over leaves $h_0, \ldots, h_{N_{\mathrm{ext}}-1}$
+      ({src}`primitives/merkle_tree.py:89`).
 
 3. **Output.**
-   The commitment is the Merkle root $r = \MT(\tilde{f}_1, \ldots, \tilde{f}_w)$.
+   The commitment is the Merkle root $r = \MT(\tilde{f}_1, \ldots, \tilde{f}_w)$
+   ({src}`primitives/merkle_tree.py:60`).
 
 **Opening proof at index $j$.**
 The prover reveals the leaf values $\ell_j$ together with the authentication path
-(sibling hashes along the path from leaf $j$ to the root).
+(sibling hashes along the path from leaf $j$ to the root)
+({src}`primitives/merkle_tree.py:161`, {src}`primitives/merkle_prover.py:16`).
 
 **Verification.**
 The verifier recomputes $h_j = \LinHash(\ell_j)$, walks the authentication path
 using the provided siblings, and checks that the computed root matches the
-committed root $r$.
+committed root $r$
+({src}`primitives/merkle_verifier.py:70`).
 
 (sec:transcript)=
 ## Fiat-Shamir Transcript
@@ -41,23 +47,27 @@ committed root $r$.
 The transcript $\T$ is a Poseidon2 sponge with width $w = 4a$,
 where $a \in \{2, 3, 4\}$ is the sponge arity.
 The state is partitioned into a *rate* portion of $4(a-1)$ elements
-and a *capacity* portion of $4$ elements.
+and a *capacity* portion of $4$ elements
+({src}`primitives/transcript.py:27`).
 
 **Operations.**
 
 - $\T.\abs(x_1, \ldots, x_k)$:
   Feed field elements into the rate portion one at a time,
-  applying the Poseidon2 permutation whenever the rate portion is full.
+  applying the Poseidon2 permutation whenever the rate portion is full
+  ({src}`primitives/transcript.py:49`).
 
 - $\T.\sq() \to (c_0, c_1, c_2) \in \Fext$:
   Squeeze three base-field elements from the sponge output
   (applying a permutation if needed),
   interpreted as a single extension-field challenge
-  $c_0 + c_1\alpha + c_2\alpha^2$.
+  $c_0 + c_1\alpha + c_2\alpha^2$
+  ({src}`primitives/transcript.py:54`).
 
 - $\T.\sqidx(q, b) \to (i_1, \ldots, i_q)$:
   Squeeze enough field elements to extract $q$ pseudorandom $b$-bit
   indices via bit packing.
   Specifically, squeeze $\lceil q \cdot b / 63 \rceil$ field elements
   and extract $b$ bits per index from the binary representations,
-  using 63 bits per field element.
+  using 63 bits per field element
+  (called `get_permutations` in the Python spec; {src}`primitives/transcript.py:68`).
