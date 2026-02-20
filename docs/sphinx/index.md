@@ -18,7 +18,7 @@ The specification comprises three parts:
    from per-AIR STARKs to a single proof.
 
 This specification is accompanied by a
-[Python executable specification](https://github.com/codygunton/pil2-proofman/tree/python-spec/executable-spec)
+[Python executable specification](https://github.com/codygunton/pil2-proofman/tree/executable-specs/executable-spec)
 that implements the complete STARK prover and verifier,
 producing byte-identical proofs to the production C++ implementation.
 ````
