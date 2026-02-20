@@ -103,7 +103,7 @@ html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_title = "ZisK Prover Spec"
 html_theme_options = {
-    "repository_url": "https://github.com/pil2-proofman/pil2-proofman",
+    "repository_url": "https://github.com/codygunton/pil2-proofman",
     "use_repository_button": True,
     "use_fullscreen_button": False,
     "use_download_button": False,
