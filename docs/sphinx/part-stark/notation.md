@@ -1,5 +1,18 @@
 (sec:notation)=
-# Notation and Algebraic Setup
+# Primitives
+
+## Implementation
+
+The Python executable spec implements field arithmetic using the
+[galois](https://mhostetter.github.io/galois/) library.
+`FF` is `GF(p)` (the Goldilocks prime field) and `FF3` is `GF(p^3)` (the cubic extension).
+The extension field object is cached in `ff3_cache.pkl` for fast startup, avoiding the
+~7 s initialization cost of `galois.GF()` for extension fields.
+
+Key definitions:
+- `GOLDILOCKS_PRIME` ({src}`primitives/field.py:39`)
+- `FF` ({src}`primitives/field.py:43`)
+- `FF3` ({src}`primitives/field.py:47`)
 
 ## Fields
 
@@ -8,6 +21,8 @@ The base field is the Goldilocks prime field
 $$
 \F = \mathbb{Z}/p\mathbb{Z}, \qquad p = 2^{64} - 2^{32} + 1.
 $$
+
+({src}`primitives/field.py:39` `GOLDILOCKS_PRIME`, {src}`primitives/field.py:43` `FF`)
 
 The cubic extension field is
 
@@ -18,6 +33,8 @@ $$
 where $\alpha$ is a root of the irreducible polynomial $X^3 - X - 1$ over $\F$.
 An element of $\Fext$ is written as $a_0 + a_1\alpha + a_2\alpha^2$ with $a_i \in \F$.
 
+({src}`primitives/field.py:47` `FF3`)
+
 ## Domains
 
 Let $N = 2^n$ be the *trace size* (number of rows in the execution trace).
@@ -27,7 +44,8 @@ $$
 H = \bigl\{\omega^i : i = 0, \ldots, N-1\bigr\},
 $$
 
-where $\omega \in \F$ is a primitive $N$-th root of unity.
+where $\omega \in \F$ is a primitive $N$-th root of unity
+({src}`primitives/field.py:289` `get_omega()`).
 
 The *extended evaluation domain* is a coset
 
@@ -35,7 +53,8 @@ $$
 H^* = \bigl\{g \cdot \omega_{\mathrm{ext}}^{\,i} : i = 0, \ldots, N_{\mathrm{ext}}-1\bigr\},
 $$
 
-where $g = 7 \in \F$ is the coset shift,
+where $g = 7 \in \F$ is the coset shift
+({src}`primitives/field.py:211` `SHIFT`),
 $\omega_{\mathrm{ext}}$ is a primitive $N_{\mathrm{ext}}$-th root of unity,
 and $N_{\mathrm{ext}} = 2^{n_{\mathrm{ext}}}$.
 The *blowup factor* is $\beta = N_{\mathrm{ext}} / N$.
@@ -53,28 +72,5 @@ The *blowup factor* is $\beta = N_{\mathrm{ext}} / N$.
 - *FRI polynomial* $F$:
   a linear combination of all committed polynomials used as input to FRI.
 
-## Key Quantities
-
-| Symbol | Meaning |
-|--------|---------|
-| $\ZH(X) = X^N - 1$ | Vanishing polynomial on $H$ |
-| $\mathcal{O} = \{o_0, o_1, \ldots\}$ | Opening point offsets (typically $\subseteq \{-1,0,1\}$) |
-| $J$ | Number of constraint polynomials in the AIR |
-| $d$ | Number of quotient polynomial pieces ($Q$ split degree) |
-| $K$ | Number of FRI folding rounds |
-| $Q_{\mathrm{queries}}$ | Number of FRI query repetitions |
-| $b_{\mathrm{pow}}$ | Grinding difficulty (number of leading zero bits) |
-| $a$ | Merkle tree arity (2, 3, or 4) |
-
-## Notation Conventions
-
-| Notation | Meaning |
-|----------|---------|
-| $[n]$ | The set $\{0, 1, \ldots, n-1\}$ |
-| $\MT(\cdot)$ | Merkle tree root |
-| $\T$ | Fiat-Shamir transcript |
-| $\T.\abs(\cdot)$ | Absorb elements into transcript |
-| $\T.\sq()$ | Squeeze one $\Fext$ challenge |
-| $\T.\sqidx(q, b)$ | Squeeze $q$ pseudorandom $b$-bit indices |
-| $\xi, \beta_k, v_1, v_2, v_c$ | Challenges in $\Fext$ |
-| $\alpha, \gamma$ | Lookup/permutation challenges in $\Fext$ |
+For a complete table of symbols used throughout the specification,
+see {ref}`sec:glossary`.
