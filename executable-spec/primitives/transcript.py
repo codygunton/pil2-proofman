@@ -27,6 +27,7 @@ def _to_int(v: Any) -> int:
 class Transcript:
     """Fiat-Shamir transcript using Poseidon2 sponge construction."""
 
+    # <doc-anchor id="transcript-init">
     def __init__(self, arity: int = 4, custom: bool = False) -> None:
         if arity not in [2, 3, 4]:
             raise ValueError(f"arity must be 2, 3, or 4, got {arity}")
@@ -46,11 +47,13 @@ class Transcript:
 
     # --- Core Operations ---
 
+    # <doc-anchor id="absorb">
     def put(self, elements: list[int] | list) -> None:
         """Absorb field elements into the sponge."""
         for elem in elements:
             self._absorb_one(_to_int(elem))
 
+    # <doc-anchor id="squeeze">
     def get_field(self) -> Challenge:
         """Squeeze 3 field elements as a cubic extension challenge."""
         return [self._squeeze_one() for _ in range(3)]
@@ -65,6 +68,7 @@ class Transcript:
 
         return self.state[:n_outputs]
 
+    # <doc-anchor id="squeeze-indices">
     def get_permutations(self, n: int, n_bits: int) -> list[int]:
         """Generate n pseudorandom indices, each using n_bits bits."""
         n_fields = ((n * n_bits - 1) // 63) + 1

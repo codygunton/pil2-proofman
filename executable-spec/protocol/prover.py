@@ -198,12 +198,14 @@ def gen_proof(
 
     # === STAGE 1: Witness Commitment ===
 
+    # <doc-anchor id="witness-commit">
     computed_roots: list[MerkleRoot] = []
     root1 = starks.commitStage(1, trace, aux_trace)
     computed_roots.append(list(root1))
 
     # === STAGE 0: Seed Fiat-Shamir Transcript ===
 
+    # <doc-anchor id="transcript-seed-vadcop">
     if global_challenge is not None:
         transcript.put(global_challenge[:3])
     elif compute_global_challenge:
@@ -226,6 +228,7 @@ def gen_proof(
 
         transcript.put(computed_challenge[:3])
     else:
+        # <doc-anchor id="transcript-seed-standalone">
         transcript.put(verkey)
         if stark_info.n_publics > 0 and public_inputs is not None:
             if stark_info.stark_struct.hash_commits:
@@ -241,6 +244,7 @@ def gen_proof(
 
     # === STAGE 2: Intermediate Polynomials ===
 
+    # <doc-anchor id="derive-stage2-challenges">
     # Derive stage 2 challenges
     stage2_challenges: ChallengesDict = {}
     if not skip_challenge_derivation:
@@ -268,6 +272,7 @@ def gen_proof(
         stage2_challenges, airgroup_values
     )
 
+    # <doc-anchor id="intermediate-commit">
     # Commit stage 2
     root2 = starks.commitStage(2, trace, aux_trace)
     computed_roots.append(list(root2))
@@ -277,6 +282,7 @@ def gen_proof(
 
     q_stage = stark_info.n_stages + 1
 
+    # <doc-anchor id="derive-stageq-challenges">
     # Derive stage Q challenges
     stageQ_challenges: ChallengesDict = {}
     if not skip_challenge_derivation:
@@ -304,6 +310,7 @@ def gen_proof(
         trace, aux_trace, const_pols_extended, all_challenges, prover_helpers, airgroup_values
     )
 
+    # <doc-anchor id="quotient-commit">
     # Commit quotient stage
     rootQ = starks.commitStage(q_stage, trace, aux_trace)
     computed_roots.append(list(rootQ))
@@ -311,6 +318,7 @@ def gen_proof(
 
     # === STAGE EVALS: Polynomial Evaluations ===
 
+    # <doc-anchor id="derive-eval-challenges">
     # Derive evaluation stage challenges (xi)
     xi: FF3 | None = None
     eval_stage = stark_info.n_stages + 2
@@ -407,6 +415,7 @@ def gen_proof(
 
     # === STAGE QUERY PROOFS ===
 
+    # <doc-anchor id="collect-query-proofs">
     query_indices = fri_proof.query_indices
     const_query_proofs = _collect_const_query_proofs(starks, query_indices)
     stage_query_proofs = _collect_stage_query_proofs(starks, stark_info, query_indices)

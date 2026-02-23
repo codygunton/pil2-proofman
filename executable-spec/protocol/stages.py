@@ -317,6 +317,7 @@ def _write_witness_to_buffer(
                     airgroup_values[idx:idx + FIELD_EXTENSION_DEGREE] = coeffs
 
 
+# <doc-anchor id="calc-witness">
 def calculate_witness_with_module(
     stark_info: StarkInfo,
     trace: np.ndarray,
@@ -349,9 +350,11 @@ def calculate_witness_with_module(
     prover_data = _build_prover_data_base(stark_info, trace, aux_trace, const_pols, challenges)
     ctx = ProverConstraintContext(prover_data)
 
+    # <doc-anchor id="compute-intermediates">
     # Compute intermediates (im_cluster columns)
     intermediates = witness_module.compute_intermediates(ctx)
 
+    # <doc-anchor id="compute-grand-sums">
     # Compute grand sums (gsum/gprod columns)
     grand_sums = witness_module.compute_grand_sums(ctx)
 
@@ -421,6 +424,7 @@ class Starks:
 
     # --- Stage Commitment ---
 
+    # <doc-anchor id="extend-to-coset">
     def extendAndMerkelize(self, step: int, trace: np.ndarray, auxTrace: np.ndarray) -> MerkleRoot:
         """Extend polynomial from N to N_ext and build Merkle tree commitment."""
         N = 1 << self.setupCtx.stark_info.stark_struct.n_bits
@@ -500,6 +504,7 @@ class Starks:
 
     # --- Quotient Polynomial ---
 
+    # <doc-anchor id="quotient-split">
     def computeFriPol(self, auxTrace: np.ndarray) -> None:
         """Compute quotient polynomial Q for FRI commitment.
 
@@ -524,6 +529,7 @@ class Starks:
         cmQOffset = self.setupCtx.stark_info.map_offsets[(section, True)]
         cmQ = auxTrace[cmQOffset:]
 
+        # <doc-anchor id="intt-to-coeffs">
         # Step 1: INTT constraint polynomial (uses extended NTT)
         qPolReshaped = qPol[:NExtended * qDim].reshape(NExtended, qDim)
         qCoeffs = self._ntt_extended.intt(qPolReshaped, n_cols=qDim)
@@ -556,6 +562,7 @@ class Starks:
         # Step 4: Zero-pad remaining coefficients
         cmQ[N * qDeg * qDim:NExtended * qDeg * qDim] = 0
 
+        # <doc-anchor id="ntt-quotient-pieces">
         # Step 5: NTT to extended domain (uses extended NTT)
         cmQReshaped = cmQ[:NExtended * nCols].reshape(NExtended, nCols)
         cmQEvaluations = self._ntt_extended.ntt(cmQReshaped, n_cols=nCols)
@@ -563,6 +570,7 @@ class Starks:
 
     # --- Constraint and FRI Polynomials ---
 
+    # <doc-anchor id="calc-constraint-polynomial">
     def calculateQuotientPolynomial(
         self,
         trace: np.ndarray,
@@ -604,6 +612,7 @@ class Starks:
         ctx = ProverConstraintContext(prover_data)
         constraint_poly = constraint_module.constraint_polynomial(ctx)
 
+        # <doc-anchor id="divide-by-zerofier">
         # Multiply by zerofier 1/Z_H(x) to get the quotient polynomial
         # zi contains 1/(x^N - 1) for "everyRow" boundary (index 0)
         zi_np = np.asarray(prover_helpers.zi[:N_ext], dtype=np.uint64)
@@ -716,6 +725,7 @@ class Starks:
         LEvCoeffs = self._ntt.intt(LEvReshaped, n_cols=nOpeningPoints * FIELD_EXTENSION_DEGREE)
         return LEvCoeffs.flatten()
 
+    # <doc-anchor id="compute-evals">
     def computeEvals(
         self,
         trace: np.ndarray,

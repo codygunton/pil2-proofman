@@ -11,7 +11,7 @@ Each $C_j$ is a polynomial expression over:
 - Challenges $\alpha, \gamma, \ldots \in \Fext$.
 
 Column and challenge access is mediated by a `ConstraintContext` ABC
-({src}`constraints/base.py:43`) that provides a uniform interface
+({src}`constraints.base.ConstraintContext`) that provides a uniform interface
 for both prover (array) and verifier (scalar) evaluation.
 
 **Constraint types.**
@@ -25,21 +25,21 @@ for both prover (array) and verifier (scalar) evaluation.
   grand-sum or grand-product accumulation polynomials
   using compressed expressions
   $(\text{col}_2 \cdot \alpha + \text{col}_1) \cdot \alpha + \text{busid} + \gamma$
-  ({src}`constraints/base.py:32`).
+  ({src}`constraints.base.compress_2col`).
 
 **Per-AIR modules.**
 Each AIR implements the `ConstraintModule` ABC
-({src}`constraints/base.py:238`), which defines a single
+({src}`constraints.base.ConstraintModule`), which defines a single
 `constraint_polynomial(ctx)` method returning the combined $C(X)$.
 The Python spec provides hand-written modules for the test AIRs
-(e.g., {src}`constraints/simple_left.py:24`) and a bytecode adapter
-({src}`constraints/bytecode_adapter.py:375`) that wraps the compiled
+(e.g., {src}`constraints.simple_left.SimpleLeftConstraints`) and a bytecode adapter
+({src}`constraints.bytecode_adapter.BytecodeConstraintModule`) that wraps the compiled
 expression interpreter for Zisk AIRs.
 
 **Combination.**
 The individual constraints are combined into a single polynomial using
 a random challenge $v_c \in \Fext$ via Horner's method
-({src}`constraints/base.py:259`):
+({src}`constraints.base.ConstraintModule._combine_constraints`):
 
 ```{math}
 :label: eq-combine

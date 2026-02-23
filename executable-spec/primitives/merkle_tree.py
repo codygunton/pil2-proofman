@@ -44,6 +44,7 @@ class QueryProof:
 
 # --- Data Layout ---
 
+# <doc-anchor id="form-row">
 def transpose_for_merkle(data: list[int], height: int, width: int, elem_size: int) -> list[int]:
     """Transpose data layout for Merkle tree construction.
 
@@ -86,6 +87,7 @@ class MerkleTree:
 
     # --- Core Operations ---
 
+    # <doc-anchor id="build-tree">
     def merkelize(self, source: LeafData, height: int, width: int, n_cols: int = 0) -> None:
         """Build Merkle tree from source data.
 
@@ -146,6 +148,7 @@ class MerkleTree:
             next_index += (pending + extra_zeros) * HASH_SIZE
             pending = next_n
 
+    # <doc-anchor id="merkle-root">
     def get_root(self) -> MerkleRoot:
         """Return the Merkle root commitment."""
         if self.num_nodes == 0:
@@ -158,6 +161,7 @@ class MerkleTree:
         self._collect_proof_siblings(proof, idx, 0, self.height)
         return proof
 
+    # <doc-anchor id="opening-proof">
     def get_query_proof(self, idx: int, elem_size: int = 1) -> QueryProof:
         """Extract complete query proof with leaf values and Merkle path.
 

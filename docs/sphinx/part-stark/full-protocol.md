@@ -17,10 +17,10 @@ and {ref}`sec:challenge-binding`.
 * - **Prover**
   -
   - **Verifier**
-* - ***Round 1: Witness commitment*** ({src}`protocol/prover.py:202`)
+* - ***Round 1: Witness commitment*** ({src}`protocol/prover.py#witness-commit`)
   -
   -
-* - Extend each $f_j$ from $H$ to $H^*$ via $\NTT$ ({src}`protocol/stages.py:424`).
+* - Extend each $f_j$ from $H$ to $H^*$ via $\NTT$ ({src}`protocol/stages.py#extend-to-coset`).
     <br>$r_1 := \MT(f_1, \ldots, f_m)$.
   -
   -
@@ -29,70 +29,70 @@ and {ref}`sec:challenge-binding`.
   - $r_1$
 * -
   -
-  - **Seed transcript** ({src}`protocol/verifier.py:382`).
-    <br>Standalone: $\T.\abs(\mathrm{vk},\; \Hash(\mathrm{pub}),\; r_1)$ ({src}`protocol/prover.py:229`).
-    <br>VADCOP: $\T.\abs(\chi)$, $\chi$ = global challenge ({ref}`sec:challenge-binding`, {src}`protocol/prover.py:208`).
-* - ***Round 2: Intermediate polynomials*** ({src}`protocol/prover.py:247`)
+  - **Seed transcript** ({src}`protocol/verifier.py#transcript-reconstruct`).
+    <br>Standalone: $\T.\abs(\mathrm{vk},\; \Hash(\mathrm{pub}),\; r_1)$ ({src}`protocol/prover.py#transcript-seed-standalone`).
+    <br>VADCOP: $\T.\abs(\chi)$, $\chi$ = global challenge ({ref}`sec:challenge-binding`, {src}`protocol/prover.py#transcript-seed-vadcop`).
+* - ***Round 2: Intermediate polynomials*** ({src}`protocol/prover.py#derive-stage2-challenges`)
   -
   -
 * - $(\alpha, \gamma)$
   - $\longleftarrow$
   - $\alpha \leftarrow \T.\sq(),\; \gamma \leftarrow \T.\sq()$, both $\in \Fext$.
-* - $\mathrm{compress}(b, c_1, \ldots, c_w) := ((\cdots((c_w \alpha + c_{w-1})\alpha + \cdots)\alpha + b) + \gamma$ ({src}`constraints/base.py:32`).
+* - $\mathrm{compress}(b, c_1, \ldots, c_w) := ((\cdots((c_w \alpha + c_{w-1})\alpha + \cdots)\alpha + b) + \gamma$ ({src}`constraints.base.compress_2col`).
     <br>$D_j := \mathrm{compress}(b_j, \mathbf{c}_j)$ for bus $b_j$, columns $\mathbf{c}_j$, numerator $s_j$.
-    <br>$\mathrm{im\_cluster} \cdot \prod D_j = \sum s_j \prod_{i \ne j} D_i$ ({src}`protocol/stages.py:353`).
+    <br>$\mathrm{im\_cluster} \cdot \prod D_j = \sum s_j \prod_{i \ne j} D_i$ ({src}`protocol/stages.py#compute-intermediates`).
     <br>$\mathrm{im\_single} = s/D$.
-    <br>$\mathrm{gsum}[i] = \sum_{j \le i} (\sum_\ell \mathrm{im}_\ell[j] + s_0[j]/D_0[j])$ ({src}`protocol/stages.py:356`).
+    <br>$\mathrm{gsum}[i] = \sum_{j \le i} (\sum_\ell \mathrm{im}_\ell[j] + s_0[j]/D_0[j])$ ({src}`protocol/stages.py#compute-grand-sums`).
     <br>$\mathrm{gprod}[i] = \mathrm{gprod}[i{-}1] \cdot n_i/d_i$.
-    <br>Extend $h_1, \ldots, h_k$ to $H^*$ ({src}`protocol/stages.py:424`).
+    <br>Extend $h_1, \ldots, h_k$ to $H^*$ ({src}`protocol/stages.py#extend-to-coset`).
     <br>$r_2 := \MT(h_1, \ldots, h_k)$.
   -
   -
 * - $r_2$
   - $\longrightarrow$
   - $r_2$; $\T.\abs(r_2)$
-* - ***Round Q: Quotient polynomial*** ({src}`protocol/prover.py:283`)
+* - ***Round Q: Quotient polynomial*** ({src}`protocol/prover.py#derive-stageq-challenges`)
   -
   -
 * - $v_c$
   - $\longleftarrow$
   - $v_c \leftarrow \T.\sq()$, $v_c \in \Fext$
-* - $C(x) := v_c^{J-1} C_0(x) + v_c^{J-2} C_1(x) + \cdots + C_{J-1}(x)$ ({ref}`app:constraints`, {src}`protocol/stages.py:566`).
-    <br>$Q(x) := C(x) / \ZH(x)$ ({src}`protocol/stages.py:607`).
-    <br>$\INTT_{N_{\mathrm{ext}}}$ to coefficients ({src}`protocol/stages.py:529`).
-    <br>$Q(X) = Q_0(X) + X^N Q_1(X) + \cdots + X^{(d{-}1)N} Q_{d-1}(X)$, $S_j := g^{-jN}$ ({src}`protocol/stages.py:503`).
-    <br>$\NTT_{N_{\mathrm{ext}}}$ each $Q_j$ to $H^*$ ({src}`protocol/stages.py:561`).
+* - $C(x) := v_c^{J-1} C_0(x) + v_c^{J-2} C_1(x) + \cdots + C_{J-1}(x)$ ({ref}`app:constraints`, {src}`protocol/stages.py#calc-constraint-polynomial`).
+    <br>$Q(x) := C(x) / \ZH(x)$ ({src}`protocol/stages.py#divide-by-zerofier`).
+    <br>$\INTT_{N_{\mathrm{ext}}}$ to coefficients ({src}`protocol/stages.py#intt-to-coeffs`).
+    <br>$Q(X) = Q_0(X) + X^N Q_1(X) + \cdots + X^{(d{-}1)N} Q_{d-1}(X)$, $S_j := g^{-jN}$ ({src}`protocol/stages.py#quotient-split`).
+    <br>$\NTT_{N_{\mathrm{ext}}}$ each $Q_j$ to $H^*$ ({src}`protocol/stages.py#ntt-quotient-pieces`).
     <br>$r_Q := \MT(Q_0, \ldots, Q_{d-1})$.
   -
   -
 * - $r_Q$
   - $\longrightarrow$
   - $r_Q$; $\T.\abs(r_Q)$
-* - ***Evaluation stage*** ({src}`protocol/prover.py:318`)
+* - ***Evaluation stage*** ({src}`protocol/prover.py#derive-eval-challenges`)
   -
   -
 * - $\xi$
   - $\longleftarrow$
   - $\xi \leftarrow \T.\sq()$, $\xi \in \Fext$
-* - $e_{p,o} := p(\xi \cdot \omega^o) \in \Fext$ for each polynomial $p$, offset $o \in \mathcal{O}$ ({src}`protocol/stages.py:719`).
+* - $e_{p,o} := p(\xi \cdot \omega^o) \in \Fext$ for each polynomial $p$, offset $o \in \mathcal{O}$ ({src}`protocol/stages.py#compute-evals`).
     <br>Includes witness $f_j$, intermediate $h_j$, quotient $Q_j$, constant $c_j$.
   -
   -
 * - $\{e_{p,o}\}$
   - $\longrightarrow$
   - $\{e_{p,o}\}$; $\T.\abs\bigl(\LinHash(\{e_{p,o}\})\bigr)$
-* - ***FRI polynomial*** ({src}`protocol/fri_polynomial.py:129`)
+* - ***FRI polynomial*** ({src}`protocol/fri_polynomial.py#batching-prover`)
   -
   -
 * - $(v_1, v_2)$
   - $\longleftarrow$
   - $v_1, v_2 \leftarrow \T.\sq()$, both $\in \Fext$
-* - $\mathcal{G} := \{g_0, g_1, \ldots\}$ grouped by opening offset ({src}`protocol/fri_polynomial.py:129`).
+* - $\mathcal{G} := \{g_0, g_1, \ldots\}$ grouped by opening offset ({src}`protocol/fri_polynomial.py#group-by-opening`).
     <br>$G_g(x) := \frac{1}{x - \xi\omega^{o_g}} \bigl(v_2^{n_g}(p_0(x) - e_0) + \cdots + (p_{n_g}(x) - e_{n_g})\bigr)$.
     <br>$F(x) := v_1^{|\mathcal{G}|-1} G_{g_0}(x) + v_1^{|\mathcal{G}|-2} G_{g_1}(x) + \cdots + G_{g_{|\mathcal{G}|-1}}(x)$ ({ref}`app:batching`).
   -
   -
-* - ***FRI commitment rounds*** ({src}`protocol/pcs.py:77`)
+* - ***FRI commitment rounds*** ({src}`protocol.pcs.FriPcs.prove`)
   -
   -
 * - Set $F_0 = F$, $b_0 = \log_2 N_{\mathrm{ext}}$.
@@ -104,11 +104,11 @@ and {ref}`sec:challenge-binding`.
 * - $\beta_0$
   - $\longleftarrow$
   - $\beta_0 \leftarrow \T.\sq()$, $\beta_0 \in \Fext$
-* - $\Fold$ ({src}`protocol/fri.py:25`):
+* - $\Fold$ ({src}`protocol.fri.FRI.fold`):
     <br>$f_0 := 2^{b_0 - b_1}$; gather $\{F_0[j + i \cdot 2^{b_1}]\}_{i=0}^{f_0 - 1}$ per $j \in [2^{b_1}]$.
-    <br>Interpolate to $(c_0, \ldots, c_{f_0-1})$ ({src}`protocol/fri.py:52`).
-    <br>$c_i \leftarrow c_i \cdot (g^{-1} \cdot \omega_{b_0}^{-j})^i$ ({src}`protocol/fri.py:55`).
-    <br>$F_1[j] := \sum_i c_i \beta_0^i$ ({src}`protocol/fri.py:62`).
+    <br>Interpolate to $(c_0, \ldots, c_{f_0-1})$.
+    <br>$c_i \leftarrow c_i \cdot (g^{-1} \cdot \omega_{b_0}^{-j})^i$.
+    <br>$F_1[j] := \sum_i c_i \beta_0^i$.
   -
   -
 * - $\vdots$
@@ -130,63 +130,63 @@ and {ref}`sec:challenge-binding`.
 * - $F_K$
   - $\longrightarrow$
   - $F_K$; $\T.\abs\bigl(\LinHash(F_K)\bigr)$
-* - ***Grinding*** ({src}`protocol/pcs.py:98`)
+* - ***Grinding*** ({src}`protocol.pcs.FriPcs.prove`)
   -
   -
 * - $\chi_{\mathrm{grind}}$
   - $\longleftarrow$
   - $\chi_{\mathrm{grind}} \leftarrow \T.\sq()$
-* - Find $\eta$: $\Poseidon(\chi_{\mathrm{grind}} \| \eta)$ has $b_{\mathrm{pow}}$ leading zeros ({src}`protocol/pcs.py:99`).
+* - Find $\eta$: $\Poseidon(\chi_{\mathrm{grind}} \| \eta)$ has $b_{\mathrm{pow}}$ leading zeros.
   -
   -
 * - $\eta$
   - $\longrightarrow$
   - $\eta$.
     <br>**Check:** $\Poseidon(\chi_{\mathrm{grind}} \| \eta)$ has $b_{\mathrm{pow}}$ leading zeros.
-* - ***Constraint check*** ({src}`protocol/verifier.py:724`)
+* - ***Constraint check*** ({src}`protocol/verifier.py#constraint-check`)
   -
   -
 * -
   -
-  - $C(\xi) := v_c^{J-1} C_0(\xi) + \cdots + C_{J-1}(\xi)$ from $\{e_{p,o}\}$ ({ref}`app:constraints`, {src}`protocol/verifier.py:742`).
-    <br>$\ZH(\xi) := \xi^N - 1$ ({src}`protocol/verifier.py:747`).
-    <br>$Q(\xi) := \sum_{j=0}^{d-1} \xi^{jN} e_{Q_j, 0}$ ({src}`protocol/verifier.py:686`).
-    <br>**Check:** $Q(\xi) = C(\xi)/\ZH(\xi)$ ({src}`protocol/verifier.py:753`).
-* - ***Degree check*** ({src}`protocol/verifier.py:964`)
+  - $C(\xi) := v_c^{J-1} C_0(\xi) + \cdots + C_{J-1}(\xi)$ from $\{e_{p,o}\}$ ({ref}`app:constraints`, {src}`protocol/verifier.py#compute-constraint`).
+    <br>$\ZH(\xi) := \xi^N - 1$ ({src}`protocol/verifier.py#compute-vanishing`).
+    <br>$Q(\xi) := \sum_{j=0}^{d-1} \xi^{jN} e_{Q_j, 0}$ ({src}`protocol/verifier.py#quotient-reconstruct`).
+    <br>**Check:** $Q(\xi) = C(\xi)/\ZH(\xi)$ ({src}`protocol/verifier.py#verify-quotient-div`).
+* - ***Degree check*** ({src}`protocol/verifier.py#degree-check`)
   -
   -
 * -
   -
-  - $\hat{F}_K := \INTT(F_K)$ ({src}`protocol/verifier.py:982`).
-    <br>$D := 2^{b_K - (n_{\mathrm{ext}} - n)}$ ({src}`protocol/verifier.py:987`).
-    <br>**Check:** $\hat{F}_K[i] = 0$ for $i \ge D$ ({src}`protocol/verifier.py:989`).
-* - ***Query phase*** ({src}`protocol/verifier.py:94`)
+  - $\hat{F}_K := \INTT(F_K)$ ({src}`protocol/verifier.py#final-poly-intt`).
+    <br>$D := 2^{b_K - (n_{\mathrm{ext}} - n)}$ ({src}`protocol/verifier.py#degree-bound`).
+    <br>**Check:** $\hat{F}_K[i] = 0$ for $i \ge D$ ({src}`protocol/verifier.py#check-high-coeffs`).
+* - ***Query phase*** ({src}`protocol.verifier.verify`)
   -
   -
 * - Both sides derive query indices
   - $=$
-  - $\T'.\abs(\chi_{\mathrm{grind}}, \eta)$ ({src}`protocol/verifier.py:95`).
-    <br>$(q_1, \ldots, q_{Q_{\mathrm{queries}}}) \leftarrow \T'.\sqidx(Q_{\mathrm{queries}}, b_0)$ ({src}`protocol/verifier.py:98`).
-* - Merkle opening proof at $q_i$ for each tree ({src}`protocol/prover.py:411`).
+  - $\T'.\abs(\chi_{\mathrm{grind}}, \eta)$ ({src}`protocol/verifier.py#derive-queries`).
+    <br>$(q_1, \ldots, q_{Q_{\mathrm{queries}}}) \leftarrow \T'.\sqidx(Q_{\mathrm{queries}}, b_0)$ ({src}`protocol/verifier.py#verifier-squeeze-query-indices`).
+* - Merkle opening proof at $q_i$ for each tree ({src}`protocol/prover.py#collect-query-proofs`).
   - $\longrightarrow$
   - $\{\text{Merkle proofs}\}$
-* - ***Per-query checks*** ({src}`protocol/verifier.py:803`)
+* - ***Per-query checks*** ({src}`protocol/verifier.py#stage-merkle-check`)
   -
   -
 * -
   -
   - For each query $q$:
-    <br>**Merkle.** Hash leaf, walk path for each tree (stages 1, 2, Q, constants, FRI $0, \ldots, K{-}1$) ({src}`protocol/verifier.py:803`).
+    <br>**Merkle.** Hash leaf, walk path for each tree (stages 1, 2, Q, constants, FRI $0, \ldots, K{-}1$) ({src}`protocol/verifier.py#stage-merkle-check`).
     <br>**Check:** root $=$ committed root.
 * -
   -
-  - **FRI polynomial consistency** ({src}`protocol/verifier.py:758`).
+  - **FRI polynomial consistency** ({src}`protocol.verifier._verify_fri_consistency`).
     <br>$x_q := g \cdot \omega_{\mathrm{ext}}^q$.
-    <br>$F(x_q) := \sum_{g \in \mathcal{G}} v_1^{|\mathcal{G}|-1-g} \bigl(\frac{1}{x_q - \xi\omega^{o_g}} \sum_{j} v_2^{n_g-j} (p_j(x_q) - e_j)\bigr)$ ({ref}`app:batching`, {src}`protocol/fri_polynomial.py:246`).
+    <br>$F(x_q) := \sum_{g \in \mathcal{G}} v_1^{|\mathcal{G}|-1-g} \bigl(\frac{1}{x_q - \xi\omega^{o_g}} \sum_{j} v_2^{n_g-j} (p_j(x_q) - e_j)\bigr)$ ({ref}`app:batching`, {src}`protocol/fri_polynomial.py#batching-formula`).
     <br>**Check:** $F(x_q) = F_0[q]$.
 * -
   -
-  - **FRI fold verification** ({src}`protocol/verifier.py:905`, {src}`protocol/fri.py:86`).
+  - **FRI fold verification** ({src}`protocol.verifier._verify_fri_folding`, {src}`protocol.fri.FRI.verify_fold`).
     <br>$f_k := 2^{b_{k-1}-b_k}$ siblings from layer-$(k{-}1)$ proof, per round $k = 1, \ldots, K$.
     <br>Interpolate to $(c_0, \ldots, c_{f_k-1})$.
     <br>$\hat\beta_k := \beta_{k-1} / (g^{2^{n_{\mathrm{ext}}-b_{k-1}}} \cdot \omega_{b_{k-1}}^q)$.

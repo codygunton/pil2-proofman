@@ -1,0 +1,1 @@
+/home/cody/zisk/regenerate-proving-key.sh

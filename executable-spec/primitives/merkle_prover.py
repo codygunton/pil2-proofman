@@ -67,6 +67,7 @@ class MerkleProver:
 
     # --- Operations ---
 
+    # <doc-anchor id="gen-proof">
     def commit(self, data: list[int], height: int, n_cols: int) -> MerkleRoot:
         """Build Merkle tree and return root.
 

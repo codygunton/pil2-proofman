@@ -17,7 +17,7 @@ see {ref}`sec:full-protocol`.
 ## Transcript Reconstruction
 
 The verifier replays the prover's Fiat-Shamir transcript to rederive all challenges
-({src}`protocol/verifier.py:382`).
+({src}`protocol/verifier.py#transcript-reconstruct`).
 The transcript operations must occur in exactly the same order as during proving:
 
 1. Seed the transcript (same as prover: multi-AIR or standalone mode).
@@ -43,11 +43,11 @@ The transcript operations must occur in exactly the same order as during proving
 ## Constraint Check
 
 Verify that the quotient polynomial is consistent with the constraint polynomial
-({src}`protocol/verifier.py:724`).
+({src}`protocol/verifier.py#constraint-check`).
 
 1. Evaluate the combined constraint polynomial at $\xi$
    using the claimed evaluations $\{e_{p,o}\}$
-   ({src}`protocol/verifier.py:742`):
+   ({src}`protocol/verifier.py#compute-constraint`):
 
    $$
    C(\xi) = v_c^{J-1} \cdot C_0(\xi) + v_c^{J-2} \cdot C_1(\xi)
@@ -58,14 +58,14 @@ Verify that the quotient polynomial is consistent with the constraint polynomial
    AIR constraint expressions and $J$ is the number of constraints.
 
 2. Compute the vanishing polynomial at $\xi$
-   ({src}`protocol/verifier.py:747`):
+   ({src}`protocol/verifier.py#compute-vanishing`):
 
    $$
    \ZH(\xi) = \xi^N - 1.
    $$
 
 3. Reconstruct the quotient evaluation from the split pieces
-   ({src}`protocol/verifier.py:686`):
+   ({src}`protocol/verifier.py#quotient-reconstruct`):
 
    ```{math}
    :label: eq-quotient-reconstruct
@@ -73,7 +73,7 @@ Verify that the quotient polynomial is consistent with the constraint polynomial
    ```
 
 4. **Check**
-   ({src}`protocol/verifier.py:753`):
+   ({src}`protocol/verifier.py#verify-quotient-div`):
 
    ```{math}
    :label: eq-constraint-check
@@ -84,7 +84,7 @@ Verify that the quotient polynomial is consistent with the constraint polynomial
 ## Grinding Check
 
 **Check**
-({src}`protocol/verifier.py:90`):
+({src}`protocol/verifier.py#grinding-check`):
 
 $$
 \Poseidon(\chi_{\mathrm{grind}} \,\|\, \eta)
@@ -94,17 +94,17 @@ $$
 (sec:degree-check)=
 ## Final Polynomial Degree Check
 
-({src}`protocol/verifier.py:964`)
+({src}`protocol/verifier.py#degree-check`)
 
 1. Convert the final polynomial $F_K$ from evaluation form to coefficient form
    via $\INTT$
-   ({src}`protocol/verifier.py:982`).
+   ({src}`protocol/verifier.py#final-poly-intt`).
 
 2. Let $D = 2^{b_K - (n_{\mathrm{ext}} - n)}$ be the degree bound
-   ({src}`protocol/verifier.py:987`).
+   ({src}`protocol/verifier.py#degree-bound`).
 
 3. **Check:** all coefficients above degree $D$ are zero
-   ({src}`protocol/verifier.py:989`):
+   ({src}`protocol/verifier.py#check-high-coeffs`):
 
    $$
    \hat{F}_K[i] = 0 \quad \text{for all } i \geq D.
@@ -114,14 +114,14 @@ $$
 ## Query Derivation
 
 1. Initialize a fresh transcript $\T'$ and seed it
-   ({src}`protocol/verifier.py:95`):
+   ({src}`protocol/verifier.py#derive-queries`):
 
    $$
    \T'.\abs(\chi_{\mathrm{grind}},\; \eta).
    $$
 
 2. Derive $Q_{\mathrm{queries}}$ query indices
-   ({src}`protocol/verifier.py:98`):
+   ({src}`protocol/verifier.py#verifier-squeeze-query-indices`):
 
    $$
    (q_1, \ldots, q_{Q_{\mathrm{queries}}})
@@ -137,21 +137,21 @@ For each query $q$ and each commitment
 1. Hash the leaf values via Poseidon2 linear hashing.
 2. Walk the authentication path using the provided siblings.
 3. **Check:** the computed root matches the committed root
-   ({src}`protocol/verifier.py:803` for stage trees,
-   {src}`protocol/verifier.py:829` for constants,
-   {src}`protocol/verifier.py:879` for FRI layers).
+   ({src}`protocol/verifier.py#stage-merkle-check` for stage trees,
+   {src}`protocol/verifier.py#stage-merkle-check` for constants,
+   {src}`protocol/verifier.py#fri-merkle-check` for FRI layers).
 
 (sec:fri-consistency)=
 ## FRI Polynomial Consistency
 
 For each query point $q \in \{q_1, \ldots, q_{Q_{\mathrm{queries}}}\}$
-({src}`protocol/verifier.py:758`):
+({src}`protocol.verifier._verify_fri_consistency`):
 
 1. Let $x_q = g \cdot \omega_{\mathrm{ext}}^q \in H^*$ be the evaluation point.
 
 2. Using the polynomial values extracted from Merkle proofs at index $q$,
    compute $F(x_q)$ via the batching formula {eq}`eq-fri-polynomial`
-   ({src}`protocol/fri_polynomial.py:246`):
+   ({src}`protocol/fri_polynomial.py#batching-formula`):
 
    $$
    F(x_q) = \sum_{g \in \mathcal{G}} v_1^{|\mathcal{G}|-1-g}
@@ -169,7 +169,7 @@ For each query point $q \in \{q_1, \ldots, q_{Q_{\mathrm{queries}}}\}$
 ## FRI Folding Verification
 
 For each FRI round $k = 1, \ldots, K$ and each query $q$
-({src}`protocol/verifier.py:905`):
+({src}`protocol.verifier._verify_fri_folding`):
 
 1. Extract the $f = 2^{b_{k-1} - b_k}$ sibling evaluations from the
    layer-$(k-1)$ Merkle proof (all members of the coset group
@@ -179,7 +179,7 @@ For each FRI round $k = 1, \ldots, K$ and each query $q$
    (size-$f$ interpolation).
 
 3. Apply coset correction and evaluate at the transformed challenge point
-   ({src}`protocol/fri.py:86`):
+   ({src}`protocol.fri.FRI.verify_fold`):
 
    $$
    \hat{\beta}_k = \frac{\beta_{k-1}}{g^{\,2^{n_{\mathrm{ext}} - b_{k-1}}} \cdot \omega_{b_{k-1}}^{\,q}},

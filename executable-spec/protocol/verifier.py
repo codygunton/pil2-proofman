@@ -85,6 +85,7 @@ def stark_verify(
     challenges = _reconstruct_transcript(proof, stark_info, global_challenge, verkey, publics)
 
     # --- Verify grinding ---
+    # <doc-anchor id="grinding-check">
     grinding_idx = len(stark_info.challenges_map) + len(stark_struct.fri_fold_steps)
     grinding_challenge = _get_challenge(challenges, grinding_idx)
     if not verify_grinding(list(grinding_challenge), proof.nonce, stark_struct.pow_bits):
@@ -92,9 +93,11 @@ def stark_verify(
         return False
 
     # --- Derive FRI query indices ---
+    # <doc-anchor id="derive-queries">
     transcript_perm = Transcript(arity=stark_struct.transcript_arity, custom=stark_struct.merkle_tree_custom)
     transcript_perm.put(list(grinding_challenge))
     transcript_perm.put([proof.nonce])
+    # <doc-anchor id="verifier-squeeze-query-indices">
     fri_queries = transcript_perm.get_permutations(stark_struct.n_queries, stark_struct.fri_fold_steps[0].domain_bits)
 
     # --- Parse query polynomial values ---
@@ -379,6 +382,7 @@ def _find_xi_challenge(stark_info: StarkInfo, challenges: InterleavedFF3) -> Int
 
 # --- Fiat-Shamir Transcript Reconstruction ---
 
+# <doc-anchor id="transcript-reconstruct">
 def _reconstruct_transcript(
     proof: STARKProof,
     stark_info: StarkInfo,
@@ -683,6 +687,7 @@ def _compute_xi_to_trace_size(xi: FF3, trace_size: int) -> FF3:
     return xi ** trace_size
 
 
+# <doc-anchor id="quotient-reconstruct">
 def _reconstruct_quotient_at_xi(stark_info: StarkInfo, evals: InterleavedFF3, xi: FF3, xi_to_n: FF3) -> FF3:
     """Reconstruct Q(xi) from split quotient pieces Q_0, Q_1, ..., Q_{d-1}.
 
@@ -721,6 +726,7 @@ def _reconstruct_quotient_at_xi(stark_info: StarkInfo, evals: InterleavedFF3, xi
     return reconstructed_quotient
 
 
+# <doc-anchor id="constraint-check">
 def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
                         xi_challenge: InterleavedFF3, challenges: InterleavedFF3,
                         airgroup_values: InterleavedFF3,
@@ -739,10 +745,12 @@ def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
     # Evaluate constraint polynomial using per-AIR constraint module
     verifier_data = _build_verifier_data(stark_info, evals, challenges, airgroup_values,
                                          publics, air_values, proof_values)
+    # <doc-anchor id="compute-constraint">
     constraint_buffer = _evaluate_constraint_with_module(stark_info, verifier_data, xi)
     constraint_at_xi = FF3.Vector([int(constraint_buffer[2]), int(constraint_buffer[1]), int(constraint_buffer[0])])
 
     # Step 2: Compute powers of xi needed for reconstruction
+    # <doc-anchor id="compute-vanishing">
     trace_size = 1 << stark_info.stark_struct.n_bits
     xi_to_n = _compute_xi_to_trace_size(xi, trace_size)
 
@@ -750,6 +758,7 @@ def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
     quotient_at_xi = _reconstruct_quotient_at_xi(stark_info, evals, xi, xi_to_n)
 
     # Step 4: Verify Q(xi) = C(xi)
+    # <doc-anchor id="verify-quotient-div">
     residual = ff3_coeffs(quotient_at_xi - constraint_at_xi)
 
     return residual[0] == 0 and residual[1] == 0 and residual[2] == 0
@@ -800,6 +809,7 @@ def _verify_fri_consistency(
 
 # --- Merkle Tree Verification ---
 
+# <doc-anchor id="stage-merkle-check">
 def _verify_stage_merkle(proof: STARKProof, stark_info: StarkInfo, root: MerkleRoot, stage: int,
                          fri_queries: list[FRIQueryIndex]) -> bool:
     """Verify stage commitment Merkle tree using MerkleVerifier.
@@ -876,6 +886,7 @@ def _verify_custom_commit_merkle(proof: STARKProof, stark_info: StarkInfo, root:
     return True
 
 
+# <doc-anchor id="fri-merkle-check">
 def _verify_fri_merkle_tree(proof: STARKProof, stark_info: StarkInfo, step: int, fri_queries: list[FRIQueryIndex]) -> bool:
     """Verify FRI layer Merkle tree using MerkleVerifier."""
     verifier = MerkleVerifier.for_fri_step(proof, stark_info, step)
@@ -961,6 +972,7 @@ def _verify_fri_folding(proof: STARKProof, stark_info: StarkInfo, challenges: In
     return True
 
 
+# <doc-anchor id="degree-check">
 def _verify_final_polynomial(proof: STARKProof, stark_info: StarkInfo) -> bool:
     """Verify final polynomial has correct degree bound.
 
@@ -978,13 +990,17 @@ def _verify_final_polynomial(proof: STARKProof, stark_info: StarkInfo) -> bool:
     final_pol_size = len(final_pol_ff3)
 
     # Convert from evaluation form to coefficient form
+    # <doc-anchor id="final-poly-intt">
     final_pol_reshaped = final_pol.reshape(final_pol_size, FIELD_EXTENSION_DEGREE)
     final_pol_coeffs = to_coefficients(final_pol_reshaped, final_pol_size, n_cols=FIELD_EXTENSION_DEGREE)
 
     # High-degree coefficients must be zero
+    # <doc-anchor id="degree-bound">
     last_step = stark_struct.fri_fold_steps[-1].domain_bits
     blowup_factor = stark_struct.n_bits_ext - stark_struct.n_bits
     init = 0 if blowup_factor > last_step else (1 << (last_step - blowup_factor))
+
+    # <doc-anchor id="check-high-coeffs">
 
     for i in range(init, final_pol_size):
         if any(int(final_pol_coeffs[i, j]) != 0 for j in range(FIELD_EXTENSION_DEGREE)):

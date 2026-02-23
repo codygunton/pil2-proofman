@@ -92,6 +92,7 @@ class NTT:
 
         return result.flatten() if input_is_1d else result
 
+    # <doc-anchor id="intt-extend-ntt">
     def extend_pol(
         self,
         src: np.ndarray,

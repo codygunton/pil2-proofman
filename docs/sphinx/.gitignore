@@ -4,3 +4,5 @@ api/constraints/
 api/primitives/
 api/protocol/
 api/witness/
+# anchor scanner cache (regenerated on each build)
+_anchor_cache.pkl

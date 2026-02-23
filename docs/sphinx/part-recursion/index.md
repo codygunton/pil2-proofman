@@ -8,6 +8,7 @@ into a single proof through five stages.
 
 ```{toctree}
 :maxdepth: 2
+:hidden:
 
 pipeline
 basic-stage

@@ -126,6 +126,7 @@ def _get_polynomial_on_domain(
         raise ValueError(f"Unknown evMap type: {ev_type}")
 
 
+# <doc-anchor id="batching-prover">
 def compute_fri_polynomial(
     stark_info: 'StarkInfo',
     trace: np.ndarray,
@@ -179,6 +180,7 @@ def compute_fri_polynomial(
         x_vals = [int(shift * (g_ext ** j)) for j in range(domain_size)]
         x_domain = FF3(np.asarray(x_vals, dtype=np.uint64))
 
+    # <doc-anchor id="compute-denominators">
     # Precompute 1/(x - xi_i) for each opening position
     x_div_x_sub_xi = []
     for xi_val in xis:
@@ -186,6 +188,7 @@ def compute_fri_polynomial(
         inv_diff = batch_inverse(diff)
         x_div_x_sub_xi.append(inv_diff)
 
+    # <doc-anchor id="group-by-opening">
     # Group ev_map entries by opening position index
     # ev_map[i].opening_pos is the INDEX into opening_points, not the actual value
     # Each group contains (ev_idx, ev_entry) pairs in ev_map order
@@ -199,6 +202,7 @@ def compute_fri_polynomial(
     # Get ordered list of opening indices (sorted numerically)
     ordered_opening_indices = sorted(groups_by_opening_idx.keys())
 
+    # <doc-anchor id="horner-within-groups">
     # Compute each group using Horner's method (first entry gets highest vf2 power)
     group_results = []
     for opening_idx in ordered_opening_indices:
@@ -233,6 +237,7 @@ def compute_fri_polynomial(
         group_acc = group_acc * x_div_x_sub_xi[opening_idx]
         group_results.append(group_acc)
 
+    # <doc-anchor id="horner-between-groups">
     # Combine groups with vf1 powers (first group gets highest vf1 power)
     # Horner accumulation: result = 0
     # For each group: result = result * vf1 + group
@@ -243,6 +248,7 @@ def compute_fri_polynomial(
     return ff3_to_interleaved_numpy(result)
 
 
+# <doc-anchor id="batching-formula">
 def compute_fri_polynomial_verifier(
     stark_info: 'StarkInfo',
     poly_values: QueryPolynomials,
@@ -318,6 +324,7 @@ def compute_fri_polynomial_verifier(
     # Get ordered list of opening indices
     ordered_opening_indices = sorted(groups_by_opening_idx.keys())
 
+    # <doc-anchor id="horner-verifier-groups">
     # Compute each group using Horner's method
     group_results = []
     for opening_idx in ordered_opening_indices:

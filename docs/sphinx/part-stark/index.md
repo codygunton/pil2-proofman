@@ -2,10 +2,6 @@
 # STARK Protocol
 
 ````{only} html
-The parametric FRI-STARK proving system that works with any AIR
-over the Goldilocks field $\F$.
-````
-
 The protocol proceeds in five phases:
 
 1. **Setup** — field definitions, domain construction, and Merkle tree / transcript primitives ({ref}`sec:notation`, {ref}`sec:building-blocks`).
@@ -19,6 +15,7 @@ see {ref}`sec:full-protocol`.
 
 ```{toctree}
 :maxdepth: 2
+:hidden:
 
 notation
 building-blocks

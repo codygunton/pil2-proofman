@@ -3,8 +3,8 @@
 
 The FRI polynomial $F$ batches all polynomial openings into a single polynomial
 using challenges $v_1, v_2 \in \Fext$
-({src}`protocol/fri_polynomial.py:129` for the prover,
-{src}`protocol/fri_polynomial.py:246` for the verifier).
+({src}`protocol/fri_polynomial.py#batching-prover` for the prover,
+{src}`protocol/fri_polynomial.py#batching-formula` for the verifier).
 
 **Setup.**
 The evaluation map specifies triples $(p_i, o_i, e_i)$ where
@@ -37,7 +37,7 @@ for each entry $(p_{g,j}, e_{g,j})$ in order,
 set $A \leftarrow A \cdot v_2 + \bigl(p_{g,j}(x) - e_{g,j}\bigr)$.
 
 Then divide by the DEEP quotient denominator
-({src}`protocol/verifier.py:634`):
+({src}`protocol.verifier._compute_x_div_x_sub`):
 
 $$
 G_g(x) = \frac{\hat{G}_g(x)}{x - \xi \cdot \omega^{o_g}}.

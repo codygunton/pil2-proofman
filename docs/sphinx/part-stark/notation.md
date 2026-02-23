@@ -9,7 +9,7 @@ $$
 \F = \mathbb{Z}/p\mathbb{Z}, \qquad p = 2^{64} - 2^{32} + 1.
 $$
 
-({src}`primitives/field.py:39` `GOLDILOCKS_PRIME`, {src}`primitives/field.py:43` `FF`)
+({src}`primitives.field.GOLDILOCKS_PRIME` constant, {src}`primitives.field.FF` type)
 
 The cubic extension field is
 
@@ -34,7 +34,7 @@ H = \bigl\{\omega^i : i = 0, \ldots, N-1\bigr\},
 $$
 
 where $\omega \in \F$ is a primitive $N$-th root of unity
-({src}`primitives/field.py:289` `get_omega()`).
+({src}`primitives.field.get_omega`).
 
 The *extended evaluation domain* is a coset
 
@@ -43,7 +43,7 @@ H^* = \bigl\{g \cdot \omega_{\mathrm{ext}}^{\,i} : i = 0, \ldots, N_{\mathrm{ext
 $$
 
 where $g = 7 \in \F$ is the coset shift
-({src}`primitives/field.py:211` `SHIFT`),
+({src}`primitives.field.SHIFT` constant),
 $\omega_{\mathrm{ext}}$ is a primitive $N_{\mathrm{ext}}$-th root of unity,
 and $N_{\mathrm{ext}} = 2^{n_{\mathrm{ext}}}$.
 The *blowup factor* is $\beta = N_{\mathrm{ext}} / N$.

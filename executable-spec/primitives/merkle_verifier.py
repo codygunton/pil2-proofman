@@ -237,6 +237,7 @@ class MerkleVerifier:
 
     # --- Verification ---
 
+    # <doc-anchor id="verify-proof">
     def verify_query(
         self, query_index: int, leaf_values: list[int], siblings: list[list[int]]
     ) -> bool:

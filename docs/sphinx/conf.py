@@ -12,6 +12,8 @@ from unittest.mock import MagicMock
 # -- Path setup ---------------------------------------------------------------
 # Add executable-spec to sys.path so autodoc can import Python modules.
 sys.path.insert(0, os.path.abspath("../../executable-spec"))
+# Add docs/sphinx to sys.path so _ext can be imported.
+sys.path.insert(0, os.path.abspath("."))
 
 # -- Mock galois and FFI for autodoc/viewcode ---------------------------------
 # The executable-spec uses galois (Galois field arithmetic) and poseidon2_ffi
@@ -158,21 +160,113 @@ def _add_pdf_header_button(app, pagename, templatename, context, doctree):
 def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None):
     """Inline role for linking to viewcode source lines.
 
-    Usage in MyST:  {src}`protocol/prover.py:202`
-    Renders as:     prover.py:202  (clickable link to viewcode page, line 202)
+    Supports three reference formats:
+    1. Legacy line number:  {src}`protocol/prover.py:202`
+       - Direct line number reference (backwards compatible)
+       - Works without anchor cache
+       - Brittle: breaks when code changes
+
+    2. Symbol reference:    {src}`protocol.prover.gen_proof`
+       - Automatic function/class definition lookup via AST
+       - Requires anchor cache (built by anchor_scanner.py)
+       - Survives code refactoring
+
+    3. Anchor reference:    {src}`protocol/prover.py#witness-commit`
+       - Links to code anchor comments: # <doc-anchor id="witness-commit">
+       - Requires anchor cache (built by anchor_scanner.py)
+       - Self-documenting, survives refactoring
+
+    All formats render as clickable links to the viewcode page at the correct line.
+
+    Error Handling:
+    - Missing anchor cache: Clear error for symbol/anchor refs
+    - Missing file/anchor/symbol: Detailed error with suggestions
+    - Invalid format: Clear error message with expected formats
+    - Legacy refs always work (backwards compatible)
     """
     import posixpath
     from docutils import nodes
-    # Parse "package/file.py:line"
-    file_path, line_str = text.rsplit(":", 1)
-    module_path = file_path.replace(".py", "")  # "protocol/prover"
-    display = file_path.rsplit("/", 1)[-1] + ":" + line_str
-    # Compute relative path from current document to _modules/
+
     env = inliner.document.settings.env
     docname = env.docname  # e.g., "part-stark/commitment-phase"
+
+    # Detect reference format and resolve to (file_path, line_number)
+    if '#' in text:
+        # Anchor format: protocol/prover.py#witness-commit
+        file_path, anchor_id = text.rsplit('#', 1)
+        if not file_path.endswith('.py'):
+            file_path += '.py'
+
+        # Look up anchor in cache
+        anchor_cache = getattr(env.config, 'anchor_cache', None)
+        if anchor_cache is None:
+            msg = f"Anchor cache not available for reference '{text}'"
+            return [inliner.reporter.error(msg, line=lineno)], []
+
+        if file_path not in anchor_cache:
+            msg = f"File '{file_path}' not found in anchor cache for reference '{text}'"
+            return [inliner.reporter.error(msg, line=lineno)], []
+
+        if anchor_id not in anchor_cache[file_path]:
+            available = ', '.join(sorted(anchor_cache[file_path].keys())[:5])
+            msg = f"Anchor '{anchor_id}' not found in {file_path}. Available anchors: {available}..."
+            return [inliner.reporter.error(msg, line=lineno)], []
+
+        line_num = anchor_cache[file_path][anchor_id]
+        display = f"{file_path.rsplit('/', 1)[-1]}#{anchor_id}"
+
+    elif '.' in text and ':' not in text and '#' not in text:
+        # Symbol format: protocol.prover.gen_proof
+        anchor_cache = getattr(env.config, 'anchor_cache', None)
+        if anchor_cache is None:
+            msg = f"Anchor cache not available for symbol reference '{text}'"
+            return [inliner.reporter.error(msg, line=lineno)], []
+
+        # Convert module path to file path
+        # Symbols are stored as full paths (e.g., "protocol.prover.gen_proof")
+        # in the cache, so we need to find which file contains this symbol
+        parts = text.split('.')
+        file_path = None
+        symbol_name = text  # Full symbol path for lookup
+        line_num = None
+
+        # Try longest path first (most specific): protocol/prover/gen_proof.py -> protocol/prover.py -> protocol.py
+        for i in range(len(parts) - 1, 0, -1):
+            candidate_path = '/'.join(parts[:i]) + '.py'
+
+            if candidate_path in anchor_cache:
+                # Symbols are stored with full module path as key
+                if symbol_name in anchor_cache[candidate_path]:
+                    file_path = candidate_path
+                    line_num = anchor_cache[candidate_path][symbol_name]
+                    break
+
+        if file_path is None or line_num is None:
+            msg = f"Symbol '{text}' not found in anchor cache. Tried module paths: {', '.join(['/'.join(parts[:i]) + '.py' for i in range(len(parts)-1, 0, -1)])}"
+            return [inliner.reporter.error(msg, line=lineno)], []
+
+        display = f"{parts[-1]}" if len(parts) > 1 else text
+
+    elif ':' in text:
+        # Legacy format: protocol/prover.py:202
+        file_path, line_str = text.rsplit(':', 1)
+        try:
+            line_num = int(line_str)
+        except ValueError:
+            msg = f"Invalid line number in reference '{text}'"
+            return [inliner.reporter.error(msg, line=lineno)], []
+        display = file_path.rsplit('/', 1)[-1] + ':' + line_str
+
+    else:
+        msg = f"Invalid reference format '{text}'. Expected 'path:line', 'module.symbol', or 'path#anchor'"
+        return [inliner.reporter.error(msg, line=lineno)], []
+
+    # Generate viewcode link
+    module_path = file_path.replace('.py', '')  # "protocol/prover"
     target = f"_modules/{module_path}"
     rel = posixpath.relpath(target, posixpath.dirname(docname))
-    url = f"{rel}.html#L-{line_str}"
+    url = f"{rel}.html#L-{line_num}"
+
     node = nodes.reference(rawtext, "", refuri=url, **(options or {}))
     node += nodes.literal(display, display)
     return [node], []
@@ -199,10 +293,40 @@ def _patch_viewcode_line_anchors(app):
 
     PygmentsBridge.__init__ = _patched_init
 
+def _init_anchor_cache(app, config):
+    """Initialize anchor cache on config-inited event (before env is available)."""
+    from pathlib import Path
+
+    # Build anchor cache for symbol and anchor references
+    try:
+        # Import the scanner from the _ext directory
+        from _ext.anchor_scanner import load_anchor_cache
+
+        base_path = Path(__file__).parent.parent.parent / "executable-spec"
+        cache_path = Path(__file__).parent / "_anchor_cache.pkl"
+
+        # Load the anchor cache (rebuilds if stale or missing)
+        anchor_cache = load_anchor_cache(cache_path, base_path)
+
+        # Store in config for later retrieval by _src_role
+        config.anchor_cache = anchor_cache
+
+    except ImportError as e:
+        # Scanner not yet implemented - anchor/symbol refs will fail gracefully
+        config.anchor_cache = None
+        print(f"Warning: anchor_scanner not available ({e})")
+    except Exception as e:
+        # Cache build failed - log but don't break the build
+        config.anchor_cache = None
+        print(f"Warning: Failed to build anchor cache: {e}")
+
+
 def setup(app):
+    """Sphinx setup hook: initialize anchor cache and register custom roles."""
     _patch_viewcode_line_anchors(app)
     app.add_role("src", _src_role)
     app.connect("html-page-context", _add_pdf_header_button, priority=600)
+    app.connect("config-inited", _init_anchor_cache)
 
 # -- Mermaid (diagrams) -------------------------------------------------------
 # HTML uses client-side JS rendering (default "raw" mode).

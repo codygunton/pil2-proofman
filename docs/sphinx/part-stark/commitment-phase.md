@@ -19,15 +19,15 @@ representing the execution trace columns.
 
 1. Extend each $f_j$ to the evaluation domain $H^*$
    and build a joint Merkle tree
-   ({src}`protocol/stages.py:424`).
+   ({src}`protocol/stages.py#extend-to-coset`).
 2. Output the commitment $r_1 = \MT(f_1, \ldots, f_m)$
-   ({src}`protocol/prover.py:202`).
+   ({src}`protocol/prover.py#witness-commit`).
 
 (sec:seed)=
 ## Transcript Seeding
 
 Initialize the Fiat-Shamir transcript
-({src}`protocol/prover.py:207`).
+({src}`protocol/prover.py#transcript-seed-vadcop`).
 The seeding depends on the protocol mode:
 
 - **Standalone mode.**
@@ -56,7 +56,7 @@ The seeding depends on the protocol mode:
 ## Stage 2: Intermediate Polynomials
 
 1. Derive stage-2 challenges from the transcript
-   ({src}`protocol/prover.py:247`):
+   ({src}`protocol/prover.py#derive-stage2-challenges`):
 
    $$
    \alpha, \gamma \;\leftarrow\; \T.\sq().
@@ -65,12 +65,12 @@ The seeding depends on the protocol mode:
    (One $\sq()$ call per challenge specified by the AIR.)
 
 2. Compute intermediate columns $h_1, \ldots, h_k$ using the challenges
-   ({src}`protocol/stages.py:320`).
+   ({src}`protocol/stages.py#calc-witness`).
    The types of intermediate columns are enumerated below.
 
 3. Extend and commit:
    $r_2 = \MT(h_1, \ldots, h_k)$
-   ({src}`protocol/prover.py:272`).
+   ({src}`protocol/prover.py#intermediate-commit`).
 
 4. Absorb: $\T.\abs(r_2)$.
 
@@ -221,14 +221,14 @@ depending on whether the constraint involves challenges.
 ## Stage Q: Quotient Polynomial
 
 1. Derive the constraint-combination challenge
-   ({src}`protocol/prover.py:283`):
+   ({src}`protocol/prover.py#derive-stageq-challenges`):
 
    $$
    v_c \;\leftarrow\; \T.\sq().
    $$
 
 2. Evaluate the combined constraint polynomial on the extended domain
-   ({src}`protocol/stages.py:566`).
+   ({src}`protocol/stages.py#calc-constraint-polynomial`).
    Let $J$ be the number of individual constraint polynomials
    defined by the AIR (see {ref}`app:constraints`).
    For each $x \in H^*$:
@@ -249,7 +249,7 @@ depending on whether the constraint involves challenges.
    $$
 
 4. Split $Q$ into $d$ pieces of degree $< N$
-   ({src}`protocol/stages.py:503`):
+   ({src}`protocol/stages.py#quotient-split`):
 
    ```{math}
    :label: eq-quotient-split
@@ -272,7 +272,7 @@ depending on whether the constraint involves challenges.
 
 5. Commit all pieces jointly:
    $r_Q = \MT(Q_0, \ldots, Q_{d-1})$
-   ({src}`protocol/prover.py:308`).
+   ({src}`protocol/prover.py#quotient-commit`).
 
 6. Absorb: $\T.\abs(r_Q)$.
 
@@ -280,7 +280,7 @@ depending on whether the constraint involves challenges.
 ## Polynomial Evaluations
 
 1. Derive the evaluation challenge
-   ({src}`protocol/prover.py:318`):
+   ({src}`protocol/prover.py#derive-eval-challenges`):
 
    $$
    \xi \;\leftarrow\; \T.\sq().
@@ -290,7 +290,7 @@ depending on whether the constraint involves challenges.
 
 2. For each committed polynomial $p$ and each opening offset $o \in \mathcal{O}$,
    compute the evaluation
-   ({src}`protocol/stages.py:719`)
+   ({src}`protocol/stages.py#compute-evals`)
 
    ```{math}
    :label: eq-eval
@@ -312,7 +312,7 @@ depending on whether the constraint involves challenges.
 ## FRI Polynomial Construction
 
 The FRI polynomial is computed by
-{src}`protocol/fri_polynomial.py:129`.
+{src}`protocol/fri_polynomial.py#batching-prover`.
 
 1. Derive the batching challenges:
 
@@ -357,7 +357,7 @@ See {ref}`app:batching` for the complete batching formula.
 ## FRI Commitment Rounds
 
 The FRI protocol reduces the degree of $F$ through iterated folding
-({src}`protocol/pcs.py:77`).
+({src}`protocol.pcs.FriPcs.prove`).
 Let $F_0 = F$ and $b_0 = n_{\mathrm{ext}}$ be the initial domain size in bits.
 The protocol performs $K$ folding rounds, where $K$ is the number of FRI folding rounds
 (see {ref}`sec:glossary`).
@@ -375,7 +375,7 @@ After the final round, absorb a hash of the final polynomial:
 $\T.\abs\bigl(\LinHash(F_K)\bigr)$.
 
 **Folding operation**
-({src}`protocol/fri.py:25`)**.**
+({src}`protocol.fri.FRI.fold`)**.**
 **Input:**
 Polynomial $F_k$ on a domain of size $2^{b_k}$, challenge $\beta_k \in \Fext$.
 **Output:**
@@ -429,7 +429,7 @@ The root $r_{k+1}^{\mathrm{FRI}} = \MT(F_{k+1})$ is absorbed into the transcript
 ## Grinding
 
 Grinding is part of
-{src}`protocol/pcs.py:98`.
+{src}`protocol.pcs.FriPcs.prove`.
 
 1. Derive the grinding challenge:
    $\chi_{\mathrm{grind}} \leftarrow \T.\sq()$.
