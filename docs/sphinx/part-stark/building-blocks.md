@@ -1,6 +1,21 @@
 (sec:building-blocks)=
 # Building Blocks
 
+## Witness Generation
+
+In Part I of this specification, witness generation is treated as a black box.
+This part focuses exclusively on the STARK protocol parameterized by the AIR
+(Algebraic Intermediate Representation), which defines the constraint system
+and execution trace structure.
+
+In the Python implementation, witness generation is handled by per-AIR witness
+modules that implement the `WitnessModule` abstract base class
+({src}`witness/base.py:9`). The prover calls these modules during Stage 1 via
+`calculate_witness_with_module` ({src}`protocol/stages.py:320`).
+
+Part II (ZisK Machine) covers the specific witness generation logic for each
+of the ZisK AIRs.
+
 (sec:commitment)=
 ## Polynomial Commitment via Merkle Trees
 

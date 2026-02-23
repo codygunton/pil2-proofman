@@ -30,17 +30,6 @@ Initialize the Fiat-Shamir transcript
 ({src}`protocol/prover.py:207`).
 The seeding depends on the protocol mode:
 
-- **Multi-AIR (VADCOP) mode.**
-  A global challenge $\chi \in \Fext$ is derived from
-  the verification key, public inputs, and $r_1$
-  via a lattice expansion procedure
-  (see {ref}`sec:challenge-binding`).
-  Seed the transcript:
-
-  $$
-  \T.\abs(\chi).
-  $$
-
 - **Standalone mode.**
   Seed the transcript directly:
 
@@ -51,6 +40,17 @@ The seeding depends on the protocol mode:
   where $\mathrm{vk}$ is the verification key (4 base-field elements),
   $\Hash(\mathrm{pub})$ is a Poseidon2 hash of the public inputs,
   and $r_1$ is the stage-1 Merkle root.
+
+- **Multi-AIR (VADCOP) mode.**
+  A global challenge $\chi \in \Fext$ is derived from
+  the verification key, public inputs, and $r_1$
+  via a lattice expansion procedure
+  (see {ref}`sec:challenge-binding`).
+  Seed the transcript:
+
+  $$
+  \T.\abs(\chi).
+  $$
 
 (sec:stage2)=
 ## Stage 2: Intermediate Polynomials
@@ -359,6 +359,8 @@ See {ref}`app:batching` for the complete batching formula.
 The FRI protocol reduces the degree of $F$ through iterated folding
 ({src}`protocol/pcs.py:77`).
 Let $F_0 = F$ and $b_0 = n_{\mathrm{ext}}$ be the initial domain size in bits.
+The protocol performs $K$ folding rounds, where $K$ is the number of FRI folding rounds
+(see {ref}`sec:glossary`).
 
 For each FRI round $k = 0, 1, \ldots, K-1$:
 

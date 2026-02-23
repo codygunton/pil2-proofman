@@ -1,19 +1,6 @@
 (sec:notation)=
 # Primitives
 
-## Implementation
-
-The Python executable spec implements field arithmetic using the
-[galois](https://mhostetter.github.io/galois/) library.
-`FF` is `GF(p)` (the Goldilocks prime field) and `FF3` is `GF(p^3)` (the cubic extension).
-The extension field object is cached in `ff3_cache.pkl` for fast startup, avoiding the
-~7 s initialization cost of `galois.GF()` for extension fields.
-
-Key definitions:
-- `GOLDILOCKS_PRIME` ({src}`primitives/field.py:39`)
-- `FF` ({src}`primitives/field.py:43`)
-- `FF3` ({src}`primitives/field.py:47`)
-
 ## Fields
 
 The base field is the Goldilocks prime field
@@ -33,7 +20,9 @@ $$
 where $\alpha$ is a root of the irreducible polynomial $X^3 - X - 1$ over $\F$.
 An element of $\Fext$ is written as $a_0 + a_1\alpha + a_2\alpha^2$ with $a_i \in \F$.
 
-({src}`primitives/field.py:47` `FF3`)
+The Python executable spec implements field arithmetic using the
+[galois](https://mhostetter.github.io/galois/) library. The extension field object is cached in `ff3_cache.pkl` to speed up testing, avoiding the
+~7 s initialization cost of `galois.GF()` for extension fields.
 
 ## Domains
 
@@ -60,6 +49,7 @@ and $N_{\mathrm{ext}} = 2^{n_{\mathrm{ext}}}$.
 The *blowup factor* is $\beta = N_{\mathrm{ext}} / N$.
 
 ## Polynomials
+The following terms for polynomials are in use:
 
 - *Witness polynomials* $f_1, \ldots, f_m$:
   stage 1 committed columns (execution trace), each of degree $< N$.
@@ -72,5 +62,5 @@ The *blowup factor* is $\beta = N_{\mathrm{ext}} / N$.
 - *FRI polynomial* $F$:
   a linear combination of all committed polynomials used as input to FRI.
 
-For a complete table of symbols used throughout the specification,
-see {ref}`sec:glossary`.
+For a complete table of symbols used throughout the specification, see {ref}`sec:glossary`.
+

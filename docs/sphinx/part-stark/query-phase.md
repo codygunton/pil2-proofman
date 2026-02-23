@@ -3,12 +3,13 @@
 # STARK Protocol: Query Phase
 
 The query phase is the second half of the STARK protocol.
-The verifier receives the proof $\pi$, the verification key $\mathrm{vk}$,
+At the start of verification, the verifier receives:
+the proof $\pi$, the verification key $\mathrm{vk}$,
 the public inputs, and the AIR constraint definitions.
-It first replays the prover's transcript to rederive all challenges,
-then performs the checks shown below.
+The verifier first replays the prover's transcript to rederive all challenges
+(using the same sequence of absorbs and squeezes shown in {ref}`sec:commitment-phase`),
+then performs the checks detailed below.
 
-The following subsections detail each verification check.
 For the complete protocol as a single self-contained description,
 see {ref}`sec:full-protocol`.
 
