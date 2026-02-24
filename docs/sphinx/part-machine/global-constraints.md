@@ -4,14 +4,14 @@
 (sec:specified-ranges)=
 ## SpecifiedRanges
 
-The SpecifiedRanges AIR ($2^{20}$ rows) provides range check lookups.
+The SpecifiedRanges AIR ({src}`zisk/state-machines/frequent-ops/src/lib.rs:1`, $2^{20}$ rows) provides range check lookups.
 It proves that values fall within specified ranges,
 used by various AIRs for constraint verification.
 
 (sec:vt0)=
 ## VirtualTable0
 
-The VirtualTable0 AIR ($2^{21}$ rows) packs 7 lookup tables into a
+The VirtualTable0 AIR ({src}`zisk/state-machines/frequent-ops/src/lib.rs:1`, $2^{21}$ rows) packs 7 lookup tables into a
 single AIR for efficiency:
 
 | Bus ID | Table                   | Consumer                |
@@ -27,7 +27,7 @@ single AIR for efficiency:
 (sec:vt1)=
 ## VirtualTable1
 
-The VirtualTable1 AIR ($2^{21}$ rows) packs 3 frequent-operation
+The VirtualTable1 AIR ({src}`zisk/state-machines/frequent-ops/src/lib.rs:1`, $2^{21}$ rows) packs 3 frequent-operation
 tables:
 
 | Bus ID | Table                     | Consumer        |
