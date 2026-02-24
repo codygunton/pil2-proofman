@@ -1,7 +1,8 @@
 (sec:recursive1)=
 # Recursive1: Per-AIR Normalization (Stage 3)
 
-Recursive1 wraps each Basic or Compressor STARK proof in a SNARK circuit,
+Recursive1 wraps each Basic or Compressor STARK proof in a SNARK circuit
+({src}`stark-recurser/src/pil2circom/pil2circom.js#pil2circom`),
 producing a normalized proof format suitable for tree aggregation.
 
 1. **Circuit.**
@@ -15,7 +16,9 @@ producing a normalized proof format suitable for tree aggregation.
 
 3. **Output.**
    A normalized proof $\pi^{(a)}_{\mathrm{R1}}$ with a standardized
-   output format containing:
+   output format
+   ({src}`stark-recurser/src/pil2circom/proof2zkin.js#proof2zkin`)
+   containing:
    - Public inputs and proof values.
    - The global challenge $\chi$.
    - The root of the aggregated challenge computation $\mathrm{rootCAgg}$.

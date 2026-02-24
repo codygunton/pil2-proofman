@@ -49,6 +49,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "_ext.rust_viewcode",  # Rust source code viewer
+    "_ext.js_viewcode",    # JavaScript source code viewer
     "sphinxcontrib.mermaid",
 ]
 
@@ -197,6 +198,9 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
     # Check if this is a Rust file reference
     is_rust = text.endswith('.rs') or text.startswith('zisk/')
 
+    # Check if this is a JavaScript file reference
+    is_js = text.endswith('.js') or text.startswith('stark-recurser/')
+
     # Rust files: support both #anchor and :line syntax
     if is_rust:
         if '#' in text:
@@ -231,6 +235,46 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
 
         else:
             msg = f"Rust references require #anchor or :line syntax: {text}"
+            return [inliner.reporter.error(msg, line=lineno)], []
+
+        node = nodes.reference(rawtext, "", refuri=url, **(options or {}))
+        node += nodes.literal(display, display)
+        return [node], []
+
+    # JavaScript files: support both #anchor and :line syntax
+    if is_js:
+        if '#' in text:
+            # Anchor format: stark-recurser/src/vadcop/is_compressor_needed.js#isCompressorNeeded
+            file_path, anchor_name = text.rsplit('#', 1)
+
+            # Display: filename#anchor
+            display = file_path.rsplit('/', 1)[-1] + '#' + anchor_name
+
+            # Generate link to JS viewcode with anchor
+            # Remove .js extension from file_path for target (Sphinx adds .html)
+            target = f"_modules/{file_path.replace('.js', '')}"
+            rel = posixpath.relpath(target, posixpath.dirname(docname))
+            url = f"{rel}.html#{anchor_name}"
+
+        elif ':' in text:
+            # Line number format: stark-recurser/src/vadcop/is_compressor_needed.js:14
+            file_path, line_str = text.rsplit(':', 1)
+            try:
+                line_num = int(line_str)
+            except ValueError:
+                msg = f"Invalid line number in JavaScript reference '{text}'"
+                return [inliner.reporter.error(msg, line=lineno)], []
+
+            # Display: filename:line
+            display = file_path.rsplit('/', 1)[-1] + ':' + line_str
+
+            # Generate link to JS viewcode with line anchor
+            target = f"_modules/{file_path.replace('.js', '')}"
+            rel = posixpath.relpath(target, posixpath.dirname(docname))
+            url = f"{rel}.html#L-{line_num}"
+
+        else:
+            msg = f"JavaScript references require #anchor or :line syntax: {text}"
             return [inliner.reporter.error(msg, line=lineno)], []
 
         node = nodes.reference(rawtext, "", refuri=url, **(options or {}))

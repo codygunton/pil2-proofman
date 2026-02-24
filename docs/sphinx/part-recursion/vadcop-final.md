@@ -3,7 +3,9 @@
 
 The VadcopFinal circuit is itself an AIR whose constraints enforce
 cross-airgroup consistency.
-It takes one Recursive2 proof per airgroup and produces a single STARK proof.
+It takes one Recursive2 proof per airgroup
+({src}`stark-recurser/src/pil2circom/joinzkinFinal.js#joinZkinFinal`)
+and produces a single STARK proof.
 
 (sec:vf-stark)=
 ## STARK Verification
@@ -17,7 +19,8 @@ depending on the circuit type flag).
 (sec:vf-challenge)=
 ## Global Challenge Recomputation
 
-The circuit recomputes the global challenge from the public inputs:
+The circuit recomputes the global challenge from the public inputs
+({src}`stark-recurser/src/pil2circom/publics2zkin.js#publics2zkin`):
 
 $$
 \chi' = \T_G\bigl(\mathrm{publics},\;
