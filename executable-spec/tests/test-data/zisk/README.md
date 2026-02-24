@@ -66,38 +66,47 @@ To generate fixtures for untested AIRs:
 
 ## Running Tests
 
+**Always use `-n auto` for parallel execution** (8.5x faster - 2 minutes vs 17 minutes):
+
 ```bash
-# Run all ZisK AIR tests
-pytest tests/test_zisk_*_verifier.py
+# Run all ZisK AIR tests (recommended - parallel execution)
+pytest tests/test_zisk_*_verifier.py -n auto -v
 
 # Run specific AIR test
-pytest tests/test_zisk_main_verifier.py
-
-# Run with verbose output
-pytest tests/test_zisk_rom_verifier.py -v
+pytest tests/test_zisk_main_verifier.py -n auto -v
 
 # Run multiple specific AIRs
-pytest tests/test_zisk_main_verifier.py tests/test_zisk_rom_verifier.py tests/test_zisk_mem_verifier.py
+pytest tests/test_zisk_main_verifier.py tests/test_zisk_rom_verifier.py tests/test_zisk_mem_verifier.py -n auto -v
+
+# Sequential execution (slower, for debugging only)
+pytest tests/test_zisk_*_verifier.py -v
 ```
+
+**Performance:**
+- Parallel (`-n auto`): ~2 minutes for all 12 AIRs
+- Sequential: ~17 minutes for all 12 AIRs
 
 ## Test Infrastructure
 
 - `tests/zisk_test_utils/` - Shared utilities for fixture loading and challenge derivation
   - `fixture_loader.py` - Load starkinfo, verkey, proofs, publics
   - `challenge_utils.py` - Derive VADCOP global challenge from per-AIR proofs
+  - `GLOBAL_CHALLENGE` - Pre-computed global challenge (computed once at import time)
 - `tests/test_zisk_verifier_e2e.py` - Original multi-AIR test (kept for regression)
+
+**Performance optimization:** The global challenge is computed once when the test module is imported, then shared across all tests. This eliminates duplicate proof loading (12 loads instead of 144).
 
 ## Test Pattern
 
 Each per-AIR test follows this structure:
 
 ```python
-from zisk_test_utils import (
-    load_starkinfo,
+from tests.zisk_test_utils import (
+    load_air_config,
     load_verkey,
     load_publics,
     load_binary_proof,
-    derive_global_challenge_from_proofs,
+    GLOBAL_CHALLENGE,  # Pre-computed, shared across all tests
 )
 from protocol.verifier import stark_verify
 
@@ -106,23 +115,18 @@ def test_<air_name>_verifier():
     air_name = "<AIR_NAME>"
     proof_stem = "<AIR_NAME>_<ID>"
 
-    # Derive global VADCOP challenge from all 12 per-AIR proofs
-    air_names = ["Main", "Rom", "Mem", ...]
-    proof_stems = ["Main_0", "Rom_1", "Mem_2", ...]
-    global_challenge = derive_global_challenge_from_proofs(air_names, proof_stems)
-
     # Load AIR-specific fixtures
-    starkinfo = load_starkinfo(air_name)
+    air_config = load_air_config(air_name)
     verkey = load_verkey(air_name)
     publics = load_publics()
-    proof = load_binary_proof(proof_stem)
+    proof = load_binary_proof(proof_stem, air_config.stark_info)
 
-    # Verify proof
+    # Verify proof (using shared global challenge)
     result = stark_verify(
         proof=proof,
-        starkinfo=starkinfo,
-        const_root=verkey,
-        global_challenge=global_challenge,
+        air_config=air_config,
+        verkey=verkey,
+        global_challenge=GLOBAL_CHALLENGE,
         publics=publics,
     )
 
@@ -137,7 +141,8 @@ When you generate fixtures for one of the untested AIRs:
 2. **Update the air_name and proof_stem** in the test function
 3. **Update the function name** to match (e.g., `test_keccakf_verifier`)
 4. **Update the docstring** to describe the AIR
-5. **Run the test** to verify it passes
+5. **Add the AIR to ZISK_AIR_PARAMS** in `tests/zisk_test_utils/__init__.py`
+6. **Run the test** to verify it passes
 
 Example for adding Keccakf AIR test:
 
@@ -145,12 +150,17 @@ Example for adding Keccakf AIR test:
 # After generating Keccakf fixtures
 cp tests/test_zisk_main_verifier.py tests/test_zisk_keccakf_verifier.py
 
-# Edit the file:
+# Edit tests/test_zisk_keccakf_verifier.py:
 # - Change air_name = "Keccakf"
 # - Change proof_stem = "Keccakf_<ID>"  (check actual ID in proofs/ directory)
 # - Change function name to test_keccakf_verifier()
 # - Update docstring
 
-# Run the test
-pytest tests/test_zisk_keccakf_verifier.py -v
+# Edit tests/zisk_test_utils/__init__.py:
+# - Add ("Keccakf", "Keccakf_<ID>") to ZISK_AIR_PARAMS list
+
+# Run the test with parallel execution
+pytest tests/test_zisk_keccakf_verifier.py -n auto -v
 ```
+
+**Important:** When adding a new AIR, you must update `ZISK_AIR_PARAMS` in `tests/zisk_test_utils/__init__.py` so the global challenge includes the new AIR's proof.

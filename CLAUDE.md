@@ -51,6 +51,10 @@ cd executable-spec
 ./run-tests.sh unit           # unit tests (non-E2E, fast)
 ./run-tests.sh zisk           # Zisk verifier E2E tests only
 ./run-tests.sh -k "pattern"   # pytest -k filter
+
+# Per-AIR ZisK tests (ALWAYS use -n auto for 8.5x speedup)
+uv run pytest tests/test_zisk_*_verifier.py -n auto -v  # All 12 AIRs (~2 min)
+uv run pytest tests/test_zisk_main_verifier.py -n auto -v  # Specific AIR
 ```
 
 **Test suite overview:**
@@ -71,6 +75,7 @@ cd executable-spec
 | `test_expressions_bin.py` | Expression binary parser tests |
 | `test_bytecode_equivalence.py` | Bytecode vs hand-written constraint equivalence |
 | `test_zisk_verifier_e2e.py` | Zisk verifier E2E (12 AIRs, all pass) |
+| `test_zisk_*_verifier.py` | Per-AIR Zisk tests (12 files, one per AIR, run with `-n auto`) |
 
 **Test data directory (`executable-spec/tests/test-data/`):**
 - `*.json` - JSON test vectors with inputs, intermediates, and expected outputs
