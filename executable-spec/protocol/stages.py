@@ -85,7 +85,7 @@ def _build_prover_data_extended(
         values = np.zeros(N_ext * dim, dtype=np.uint64)
         for j in range(N_ext):
             src_idx = offset + j * n_cols + stage_pos
-            values[j * dim:(j + 1) * dim] = aux_trace[src_idx:src_idx + dim]
+            values[j * dim : (j + 1) * dim] = aux_trace[src_idx : src_idx + dim]
 
         # Find or compute the index for this polynomial name
         # Multiple columns may share the same name (e.g., im_cluster[0], im_cluster[1])
@@ -109,7 +109,7 @@ def _build_prover_data_extended(
         values = np.zeros(N_ext * dim, dtype=np.uint64)
         for j in range(N_ext):
             src_idx = j * n_cols + stage_pos
-            values[j * dim:(j + 1) * dim] = const_pols_extended[src_idx:src_idx + dim]
+            values[j * dim : (j + 1) * dim] = const_pols_extended[src_idx : src_idx + dim]
 
         if dim == 1:
             constants[name] = FF(np.asarray(values, dtype=np.uint64))
@@ -132,8 +132,13 @@ def _build_prover_data_extended(
             coeff2 = int(airgroup_values_array[idx + 2])
             airgroup_values[i] = FF3.Vector([coeff2, coeff1, coeff0])
 
-    return ProverData(columns=columns, constants=constants, challenges=data_challenges,
-                      airgroup_values=airgroup_values, extend=extend)
+    return ProverData(
+        columns=columns,
+        constants=constants,
+        challenges=data_challenges,
+        airgroup_values=airgroup_values,
+        extend=extend,
+    )
 
 
 def _build_prover_data_base(
@@ -186,7 +191,7 @@ def _build_prover_data_base(
         values = np.zeros(N * dim, dtype=np.uint64)
         for j in range(N):
             src_idx = base_offset + j * n_cols + stage_pos
-            values[j * dim:(j + 1) * dim] = buffer[src_idx:src_idx + dim]
+            values[j * dim : (j + 1) * dim] = buffer[src_idx : src_idx + dim]
 
         # Find or compute the index for this polynomial name
         index = 0
@@ -209,7 +214,7 @@ def _build_prover_data_base(
         values = np.zeros(N * dim, dtype=np.uint64)
         for j in range(N):
             src_idx = j * n_cols + stage_pos
-            values[j * dim:(j + 1) * dim] = const_pols[src_idx:src_idx + dim]
+            values[j * dim : (j + 1) * dim] = const_pols[src_idx : src_idx + dim]
 
         if dim == 1:
             constants[name] = FF(np.asarray(values, dtype=np.uint64))
@@ -228,7 +233,7 @@ def _write_witness_to_buffer(
     aux_trace: np.ndarray,
     airgroup_values: np.ndarray,
     intermediates: dict,
-    grand_sums: dict
+    grand_sums: dict,
 ) -> None:
     """Write witness module results back to auxTrace buffer.
 
@@ -274,7 +279,7 @@ def _write_witness_to_buffer(
             # Write to buffer
             for j in range(N):
                 dst_idx = base_offset + j * n_cols + stage_pos
-                aux_trace[dst_idx:dst_idx + dim] = interleaved[j * dim:(j + 1) * dim]
+                aux_trace[dst_idx : dst_idx + dim] = interleaved[j * dim : (j + 1) * dim]
 
     # Write grand sum columns (gsum, gprod)
     for col_name, values in grand_sums.items():
@@ -294,18 +299,19 @@ def _write_witness_to_buffer(
 
         for j in range(N):
             dst_idx = base_offset + j * n_cols + stage_pos
-            aux_trace[dst_idx:dst_idx + dim] = interleaved[j * dim:(j + 1) * dim]
+            aux_trace[dst_idx : dst_idx + dim] = interleaved[j * dim : (j + 1) * dim]
 
     # Write final gsum/gprod values to airgroupValues
     # These are the running sum/product result used in constraint checking
     from primitives.field import FIELD_EXTENSION_DEGREE, ff3_to_numpy_coeffs
+
     for i, av in enumerate(stark_info.airgroup_values_map):
         # airgroupValues names are like "Simple.gsum_result" or "Permutation.gprod_result"
         # Extract the column name (gsum or gprod) from the name
-        if '_result' in av.name:
-            parts = av.name.rsplit('.', 1)
+        if "_result" in av.name:
+            parts = av.name.rsplit(".", 1)
             if len(parts) == 2:
-                col_type = parts[1].replace('_result', '')  # 'gsum' or 'gprod'
+                col_type = parts[1].replace("_result", "")  # 'gsum' or 'gprod'
                 if col_type in grand_sums:
                     values = grand_sums[col_type]
                     # Get the final value (last row)
@@ -314,7 +320,7 @@ def _write_witness_to_buffer(
                     coeffs = ff3_to_numpy_coeffs(final_val)
                     # Write to airgroupValues
                     idx = i * FIELD_EXTENSION_DEGREE
-                    airgroup_values[idx:idx + FIELD_EXTENSION_DEGREE] = coeffs
+                    airgroup_values[idx : idx + FIELD_EXTENSION_DEGREE] = coeffs
 
 
 # <doc-anchor id="calc-witness">
@@ -373,6 +379,7 @@ def calculate_witness_with_module(
     return airgroup_values
 
 
+# DOCTASK: this is a terrible name, it's vague and also not even appropriate. Come up with something more informative.
 class Starks:
     """Polynomial commitment orchestrator for STARK proof generation.
 
@@ -420,7 +427,7 @@ class Starks:
         if nCols == 0:
             return [0] * 4
 
-        constData = [int(x) for x in constPolsExtended[:NExtended * nCols]]
+        constData = [int(x) for x in constPolsExtended[: NExtended * nCols]]
         self._const_prover = MerkleProver.for_const(self.setupCtx.stark_info)
         root = self._const_prover.commit(constData, NExtended, nCols)
         self.const_tree = self._const_prover.tree
@@ -455,12 +462,12 @@ class Starks:
         pBuffExtended = auxTrace[offsetExt:]
 
         # Extend: INTT(pBuff) -> coeffs -> zero-pad -> NTT(coeffs_extended)
-        pBuff_2d = pBuff[:N * nCols].reshape(N, nCols)
+        pBuff_2d = pBuff[: N * nCols].reshape(N, nCols)
         pBuffExtended_result = self._ntt.extend_pol(pBuff_2d, NExtended, N, nCols)
-        pBuffExtended[:NExtended * nCols] = pBuffExtended_result.flatten()
+        pBuffExtended[: NExtended * nCols] = pBuffExtended_result.flatten()
 
         # Build Merkle tree
-        extendedData = [int(x) for x in pBuffExtended[:NExtended * nCols]]
+        extendedData = [int(x) for x in pBuffExtended[: NExtended * nCols]]
         prover = MerkleProver.for_stage(self.setupCtx.stark_info)
         root = prover.commit(extendedData, NExtended, nCols)
         self.stage_trees[step] = prover.tree
@@ -503,7 +510,7 @@ class Starks:
         if nCols > 0:
             cmQOffset = self.setupCtx.stark_info.map_offsets[(section, True)]
             cmQ = auxTrace[cmQOffset:]
-            extendedData = [int(x) for x in cmQ[:NExtended * nCols]]
+            extendedData = [int(x) for x in cmQ[: NExtended * nCols]]
 
             prover = MerkleProver.for_stage(self.setupCtx.stark_info)
             root = prover.commit(extendedData, NExtended, nCols)
@@ -542,9 +549,9 @@ class Starks:
 
         # <doc-anchor id="intt-to-coeffs">
         # Step 1: INTT constraint polynomial (uses extended NTT)
-        qPolReshaped = qPol[:NExtended * qDim].reshape(NExtended, qDim)
+        qPolReshaped = qPol[: NExtended * qDim].reshape(NExtended, qDim)
         qCoeffs = self._ntt_extended.intt(qPolReshaped, n_cols=qDim)
-        qPol[:NExtended * qDim] = qCoeffs.flatten()
+        qPol[: NExtended * qDim] = qCoeffs.flatten()
 
         # Step 2: Compute shift factors S[p] = (shift^-1)^(N*p)
         shiftIn = FF(SHIFT_INV) ** N
@@ -571,13 +578,13 @@ class Starks:
             ff3_store_to_buffer(results, cmQ, write_indices)
 
         # Step 4: Zero-pad remaining coefficients
-        cmQ[N * qDeg * qDim:NExtended * qDeg * qDim] = 0
+        cmQ[N * qDeg * qDim : NExtended * qDeg * qDim] = 0
 
         # <doc-anchor id="ntt-quotient-pieces">
         # Step 5: NTT to extended domain (uses extended NTT)
-        cmQReshaped = cmQ[:NExtended * nCols].reshape(NExtended, nCols)
+        cmQReshaped = cmQ[: NExtended * nCols].reshape(NExtended, nCols)
         cmQEvaluations = self._ntt_extended.ntt(cmQReshaped, n_cols=nCols)
-        cmQ[:NExtended * nCols] = cmQEvaluations.flatten()
+        cmQ[: NExtended * nCols] = cmQEvaluations.flatten()
 
     # --- Constraint and FRI Polynomials ---
 
@@ -632,7 +639,7 @@ class Starks:
 
         # Convert FF3 result to interleaved numpy format
         result = ff3_to_interleaved_numpy(constraint_poly)
-        qPol[:len(result)] = result
+        qPol[: len(result)] = result
 
     def calculateFRIPolynomial(
         self,
@@ -664,14 +671,23 @@ class Starks:
 
         # Compute FRI polynomial on extended domain
         fri_result = compute_fri_polynomial(
-            stark_info, trace, aux_trace, const_pols_extended, evals,
-            xi, vf1, vf2, N_ext, extended=True, prover_helpers=prover_helpers
+            stark_info,
+            trace,
+            aux_trace,
+            const_pols_extended,
+            evals,
+            xi,
+            vf1,
+            vf2,
+            N_ext,
+            extended=True,
+            prover_helpers=prover_helpers,
         )
 
         # Write result to FRI polynomial buffer
         fOffset = stark_info.map_offsets[("f", True)]
         fPol = aux_trace[fOffset:]
-        fPol[:len(fri_result)] = fri_result
+        fPol[: len(fri_result)] = fri_result
 
     # --- Polynomial Evaluations ---
 
@@ -710,7 +726,7 @@ class Starks:
         for openingPoint in openingPoints:
             wPower = w ** abs(openingPoint)
             if openingPoint < 0:
-                wPower = wPower ** -1
+                wPower = wPower**-1
             wPowers.append(int(wPower))
 
         # Embed in extension field and multiply by xi * shift^-1
@@ -729,7 +745,11 @@ class Starks:
         LEv = np.zeros(N * nOpeningPoints * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
         for k in range(N):
             row_interleaved = ff3_to_interleaved_numpy(LEv_rows[k])
-            LEv[k * nOpeningPoints * FIELD_EXTENSION_DEGREE:(k + 1) * nOpeningPoints * FIELD_EXTENSION_DEGREE] = row_interleaved
+            LEv[
+                k * nOpeningPoints * FIELD_EXTENSION_DEGREE : (k + 1)
+                * nOpeningPoints
+                * FIELD_EXTENSION_DEGREE
+            ] = row_interleaved
 
         # INTT to coefficient form (uses base domain NTT)
         LEvReshaped = LEv.reshape(N, nOpeningPoints * FIELD_EXTENSION_DEGREE)
@@ -762,12 +782,16 @@ class Starks:
         from primitives.field import ff3_array, ff3_coeffs
 
         N = 1 << self.setupCtx.stark_info.stark_struct.n_bits
-        extendBits = self.setupCtx.stark_info.stark_struct.n_bits_ext - self.setupCtx.stark_info.stark_struct.n_bits
+        extendBits = (
+            self.setupCtx.stark_info.stark_struct.n_bits_ext
+            - self.setupCtx.stark_info.stark_struct.n_bits
+        )
         nOpeningPoints = len(openingPoints)
 
         # Build evaluation task list
         evalsToCalculate = [
-            i for i, evMap in enumerate(self.setupCtx.stark_info.ev_map)
+            i
+            for i, evMap in enumerate(self.setupCtx.stark_info.ev_map)
             if evMap.row_offset in openingPoints
         ]
 
@@ -797,7 +821,7 @@ class Starks:
 
             dstIdx = evMapIdx * FIELD_EXTENSION_DEGREE
             coeffs = ff3_coeffs(result)
-            evals[dstIdx:dstIdx + 3] = coeffs
+            evals[dstIdx : dstIdx + 3] = coeffs
 
     def _load_evmap_poly(
         self,
@@ -838,7 +862,10 @@ class Starks:
             nCols = self.setupCtx.stark_info.map_sections_n[section]
             # Custom commit traces are stored in a separate buffer keyed by commit name.
             # Full implementation deferred to Group E when witness traces are available.
-            if not hasattr(self, 'custom_commits_extended') or commitName not in self.custom_commits_extended:
+            if (
+                not hasattr(self, "custom_commits_extended")
+                or commitName not in self.custom_commits_extended
+            ):
                 raise NotImplementedError(
                     f"Custom commit '{commitName}' buffer not available. "
                     f"Zisk custom commit prover support requires Group E (witness traces)."

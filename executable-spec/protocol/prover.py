@@ -1,6 +1,5 @@
 """Top-level STARK proof generation."""
 
-
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -34,6 +33,7 @@ POSEIDON2_LINEAR_HASH_WIDTH = 16
 
 # --- Helper Functions ---
 
+
 def _get_air_values_stage1(stark_info: StarkInfo, air_values: np.ndarray | None) -> list[int]:
     """Extract stage 1 air_values for global_challenge computation.
 
@@ -42,7 +42,11 @@ def _get_air_values_stage1(stark_info: StarkInfo, air_values: np.ndarray | None)
     For simple AIRs, this returns an empty list.
     """
     result = []
-    if hasattr(stark_info, 'air_values_map') and stark_info.air_values_map and air_values is not None:
+    if (
+        hasattr(stark_info, "air_values_map")
+        and stark_info.air_values_map
+        and air_values is not None
+    ):
         for i, av in enumerate(stark_info.air_values_map):
             if av.stage == 1:
                 # Stage 1 air_values are single field elements
@@ -60,18 +64,16 @@ def _get_proof_values_stage1(stark_info: StarkInfo) -> list[int]:
     result = []
     # proofValuesMap is typically empty for simple AIRs
     # When populated, extract stage 1 values
-    if hasattr(stark_info, 'proofValuesMap') and stark_info.proofValuesMap:
+    if hasattr(stark_info, "proofValuesMap") and stark_info.proofValuesMap:
         for pv in stark_info.proofValuesMap:
-            if pv.get('stage') == 1:
+            if pv.get("stage") == 1:
                 # Would extract from proof_values
                 pass
     return result
 
 
 def derive_challenges_for_stage(
-    transcript: Transcript,
-    challenges_map: list["ChallengeMap"],
-    stage: int
+    transcript: Transcript, challenges_map: list["ChallengeMap"], stage: int
 ) -> ChallengesDict:
     """Derive all challenges for a stage from the transcript.
 
@@ -93,8 +95,7 @@ def derive_challenges_for_stage(
 
 
 def challenges_dict_to_array(
-    challenges_dict: ChallengesDict,
-    challenges_map: list["ChallengeMap"]
+    challenges_dict: ChallengesDict, challenges_map: list["ChallengeMap"]
 ) -> np.ndarray:
     """Convert a challenges dict to interleaved numpy array.
 
@@ -106,16 +107,18 @@ def challenges_dict_to_array(
         Numpy array in interleaved format [c0, c1, c2, ...]
     """
     from primitives.field import ff3_coeffs
+
     n_challenges = len(challenges_map)
     result = np.zeros(n_challenges * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
     for i, cm in enumerate(challenges_map):
         if cm.name in challenges_dict:
             coeffs = ff3_coeffs(challenges_dict[cm.name])
-            result[i * 3:(i + 1) * 3] = coeffs
+            result[i * 3 : (i + 1) * 3] = coeffs
     return result
 
 
 # --- Main Entry Point ---
+
 
 def gen_proof(
     air_config: AirConfig,
@@ -154,24 +157,21 @@ def gen_proof(
         - Non-VADCOP: Seeds transcript with verkey + publics + root1 directly
         - For byte-identical proofs with C++ proofman, use internal or external VADCOP
     """
+    # DOCTASK: say what this does
     stark_info = air_config.stark_info
 
     # === INITIALIZATION ===
 
     # Allocate shared mutable buffers used across multiple stages
 
-    # Auxiliary trace buffer: Written by stages 2, Q, and FRI at different offsets
-    # stark_info.map_total_n = total size in field elements for all auxiliary polynomials
-    # Computed from: stage offsets + quotient (q_dim * N_extended) + FRI poly (3 * N_extended)
-    aux_trace = np.zeros(stark_info.map_total_n, dtype=np.uint64)
-
     # Master challenges array: Accumulated stage-by-stage via Fiat-Shamir
     # stark_info.challenges_map: List[ChallengeMap] defining challenge names and stages
     # Each challenge is an FF3 element (3 field elements)
     n_challenges = len(stark_info.challenges_map)
     challenges = np.zeros(n_challenges * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
+    # QUESTION: are these injected challenges needed or are they just diagnostic?
     if injected_challenges is not None:
-        challenges[:len(injected_challenges)] = injected_challenges
+        challenges[: len(injected_challenges)] = injected_challenges
 
     # ProverHelpers contains precomputed tables for constraint evaluation
     # Includes: L1(x) roots, zerofier roots, NTT twiddle factors
@@ -185,7 +185,7 @@ def gen_proof(
     # Converts commitments into verifier challenges deterministically
     transcript = Transcript(
         arity=stark_info.stark_struct.transcript_arity,
-        custom=stark_info.stark_struct.merkle_tree_custom
+        custom=stark_info.stark_struct.merkle_tree_custom,
     )
 
     # === STAGE 0: Initialize Constant Polynomials and Transcript ===
@@ -194,6 +194,7 @@ def gen_proof(
     # verkey = Merkle root (4 field elements) serving as verification key
     # Used in non-VADCOP mode to seed transcript
     verkey = None
+    # QUESTION: why do we need this task?
     if const_pols_extended is not None and len(const_pols_extended) > 0:
         verkey = starks.build_const_tree(const_pols_extended)
     else:
@@ -204,6 +205,12 @@ def gen_proof(
     # Commit stage 1 witness trace via Merkle tree
     # Input: trace buffer (N * n_cm1_cols, already populated by caller)
     # Output: root1 = Merkle root (4 field elements)
+
+    # Auxiliary trace buffer: Written by stages 2, Q, and FRI at different offsets
+    # stark_info.map_total_n = total size in field elements for all auxiliary polynomials
+    # Computed from: stage offsets + quotient (q_dim * N_extended) + FRI poly (3 * N_extended)
+    aux_trace = np.zeros(stark_info.map_total_n, dtype=np.uint64)
+
     # <doc-anchor id="witness-commit">
     computed_roots: list[MerkleRoot] = []
     root1 = starks.commitStage(1, trace, aux_trace)
@@ -211,6 +218,7 @@ def gen_proof(
 
     # === STAGE 0: Seed Fiat-Shamir Transcript ===
     # Three modes for transcript initialization:
+    # QUESTION: which of these modes do we actually use? Which do we actually need?
     # 1. External VADCOP: Use externally-provided global_challenge
     # 2. Internal VADCOP: Compute global_challenge via lattice expansion
     # 3. Standalone: Seed with verkey + publics + root1 directly
@@ -248,7 +256,7 @@ def gen_proof(
             verkey=verkey,
             air_values=air_values_stage1,
             proof_values_stage1=proof_values_stage1,
-            lattice_size=lattice_size
+            lattice_size=lattice_size,
         )
 
         transcript.put(computed_challenge[:3])
@@ -267,12 +275,12 @@ def gen_proof(
                 # Hash public inputs first if AIR requires it
                 publics_transcript = Transcript(
                     arity=stark_info.stark_struct.transcript_arity,
-                    custom=stark_info.stark_struct.merkle_tree_custom
+                    custom=stark_info.stark_struct.merkle_tree_custom,
                 )
-                publics_transcript.put(public_inputs[:stark_info.n_publics].tolist())
+                publics_transcript.put(public_inputs[: stark_info.n_publics].tolist())
                 transcript.put(publics_transcript.get_state(4))
             else:
-                transcript.put(public_inputs[:stark_info.n_publics].tolist())
+                transcript.put(public_inputs[: stark_info.n_publics].tolist())
         transcript.put(list(root1))
 
     # === STAGE 2: Intermediate Polynomials ===
@@ -291,8 +299,9 @@ def gen_proof(
         for i, cm in enumerate(stark_info.challenges_map):
             if cm.name in stage2_challenges:
                 from primitives.field import ff3_coeffs
+
                 coeffs = ff3_coeffs(stage2_challenges[cm.name])
-                challenges[i * 3:(i + 1) * 3] = coeffs
+                challenges[i * 3 : (i + 1) * 3] = coeffs
     else:
         # Testing mode: extract from pre-injected challenges
         for i, cm in enumerate(stark_info.challenges_map):
@@ -337,8 +346,9 @@ def gen_proof(
         for i, cm in enumerate(stark_info.challenges_map):
             if cm.name in stageQ_challenges:
                 from primitives.field import ff3_coeffs
+
                 coeffs = ff3_coeffs(stageQ_challenges[cm.name])
-                challenges[i * 3:(i + 1) * 3] = coeffs
+                challenges[i * 3 : (i + 1) * 3] = coeffs
     else:
         # Testing mode: extract from pre-injected challenges
         for i, cm in enumerate(stark_info.challenges_map):
@@ -384,8 +394,9 @@ def gen_proof(
         for i, cm in enumerate(stark_info.challenges_map):
             if cm.name in eval_challenges:
                 from primitives.field import ff3_coeffs
+
                 coeffs = ff3_coeffs(eval_challenges[cm.name])
-                challenges[i * 3:(i + 1) * 3] = coeffs
+                challenges[i * 3 : (i + 1) * 3] = coeffs
                 if cm.stage_id == 0:
                     xi = eval_challenges[cm.name]
         all_challenges.update(eval_challenges)
@@ -403,6 +414,7 @@ def gen_proof(
 
     # Convert xi to list of coefficients for polynomial evaluation functions
     from primitives.field import ff3_coeffs
+
     xi_coeffs = ff3_coeffs(xi)
 
     # Compute all polynomial evaluations at points defined by ev_map
@@ -436,7 +448,7 @@ def gen_proof(
         for i, cm in enumerate(stark_info.challenges_map):
             if cm.name in fri_challenges:
                 coeffs = ff3_coeffs(fri_challenges[cm.name])
-                challenges[i * 3:(i + 1) * 3] = coeffs
+                challenges[i * 3 : (i + 1) * 3] = coeffs
         all_challenges.update(fri_challenges)
     else:
         # Testing mode: extract from pre-injected challenges
@@ -450,8 +462,8 @@ def gen_proof(
     # Extract standard FRI challenges by name
     # vf1: First folding coefficient (combines polynomial with shifted evaluations)
     # vf2: Second folding coefficient (for boundary constraint)
-    vf1 = all_challenges['std_vf1']
-    vf2 = all_challenges['std_vf2']
+    vf1 = all_challenges["std_vf1"]
+    vf2 = all_challenges["std_vf2"]
 
     # Calculate FRI polynomial f(x) as random linear combination
     # f(x) = vf1 * Q(x) + vf2 * boundary_terms(x) + evaluation_terms(x)
@@ -467,7 +479,7 @@ def gen_proof(
     fri_pol_offset = stark_info.map_offsets[("f", True)]
     n_fri_elements = 1 << stark_info.stark_struct.fri_fold_steps[0].domain_bits
     fri_pol_size = n_fri_elements * FIELD_EXTENSION_DEGREE
-    fri_pol_numpy = aux_trace[fri_pol_offset:fri_pol_offset + fri_pol_size]
+    fri_pol_numpy = aux_trace[fri_pol_offset : fri_pol_offset + fri_pol_size]
     fri_pol = ff3_from_interleaved_numpy(fri_pol_numpy, n_fri_elements)
 
     # Configure FRI protocol parameters
@@ -515,20 +527,21 @@ def gen_proof(
     # === ASSEMBLE PROOF ===
 
     return {
-        'evals': [int(v) for v in evals],
-        'airgroup_values': airgroup_values,
-        'air_values': air_values,
-        'nonce': fri_proof.nonce,
-        'fri_proof': fri_proof,
-        'roots': computed_roots,
-        'stage_query_proofs': stage_query_proofs,
-        'const_query_proofs': const_query_proofs,
-        'query_indices': query_indices,
-        'last_level_nodes': last_level_nodes,
+        "evals": [int(v) for v in evals],
+        "airgroup_values": airgroup_values,
+        "air_values": air_values,
+        "nonce": fri_proof.nonce,
+        "fri_proof": fri_proof,
+        "roots": computed_roots,
+        "stage_query_proofs": stage_query_proofs,
+        "const_query_proofs": const_query_proofs,
+        "query_indices": query_indices,
+        "last_level_nodes": last_level_nodes,
     }
 
 
 # --- Polynomial Evaluations ---
+
 
 def _compute_all_evals(
     stark_info: StarkInfo,
@@ -536,7 +549,7 @@ def _compute_all_evals(
     trace: np.ndarray,
     aux_trace: np.ndarray,
     const_pols_extended: np.ndarray,
-    xi: list[int]
+    xi: list[int],
 ) -> np.ndarray:
     """Compute polynomial evaluations at all opening points in batches of 4.
 
@@ -569,21 +582,23 @@ def _compute_all_evals(
 
     batch_size = 4
     for i in range(0, len(stark_info.opening_points), batch_size):
-        batch = stark_info.opening_points[i:i + batch_size]
+        batch = stark_info.opening_points[i : i + batch_size]
         # Compute Lagrange basis evaluations L_j(xi^offset) for this batch of offsets
         # These are shared across all polynomials evaluated at the same offset
         lagrange_evaluations = starks.computeLEv(xi, batch)
         # Evaluate all polynomials in ev_map that use offsets in this batch
         # Results written directly into evals array at appropriate indices
-        starks.computeEvals(trace, aux_trace, const_pols_extended, evals, lagrange_evaluations, batch)
+        starks.computeEvals(
+            trace, aux_trace, const_pols_extended, evals, lagrange_evaluations, batch
+        )
 
     return evals
 
 
 # --- Query Proof Collection ---
 
-def _collect_const_query_proofs(starks: Starks,
-                                query_indices: list[int]) -> list[QueryProof]:
+
+def _collect_const_query_proofs(starks: Starks, query_indices: list[int]) -> list[QueryProof]:
     """Collect Merkle query proofs for constant polynomials.
 
     Args:
@@ -599,8 +614,9 @@ def _collect_const_query_proofs(starks: Starks,
     return [starks.get_const_query_proof(idx, elem_size=1) for idx in query_indices]
 
 
-def _collect_stage_query_proofs(starks: Starks, stark_info: StarkInfo,
-                                query_indices: list[int]) -> dict[StageNum, list[QueryProof]]:
+def _collect_stage_query_proofs(
+    starks: Starks, stark_info: StarkInfo, query_indices: list[int]
+) -> dict[StageNum, list[QueryProof]]:
     """Collect Merkle query proofs for all polynomial commitment stages.
 
     Args:
@@ -621,8 +637,9 @@ def _collect_stage_query_proofs(starks: Starks, stark_info: StarkInfo,
     return result
 
 
-def _collect_last_level_nodes(starks: Starks, stark_info: StarkInfo,
-                              fri_pcs: FriPcs) -> dict[str, list[int]]:
+def _collect_last_level_nodes(
+    starks: Starks, stark_info: StarkInfo, fri_pcs: FriPcs
+) -> dict[str, list[int]]:
     """Collect last-level Merkle nodes for all trees if verification is enabled.
 
     When last_level_verification > 0, this optimization sends the bottom k levels
@@ -644,20 +661,20 @@ def _collect_last_level_nodes(starks: Starks, stark_info: StarkInfo,
     if starks.const_tree is not None:
         nodes = starks.const_tree.get_last_level_nodes()
         if nodes:
-            result['const'] = nodes
+            result["const"] = nodes
 
     # Collect stage commitment tree nodes (stages 1, 2, Q)
     for stage in range(1, stark_info.n_stages + 2):
         if stage in starks.stage_trees:
             nodes = starks.stage_trees[stage].get_last_level_nodes()
             if nodes:
-                result[f'cm{stage}'] = nodes
+                result[f"cm{stage}"] = nodes
 
     # Collect FRI folding round tree nodes (all rounds except final)
     for step_idx in range(len(stark_info.stark_struct.fri_fold_steps) - 1):
         if step_idx < len(fri_pcs.fri_trees):
             nodes = fri_pcs.fri_trees[step_idx].get_last_level_nodes()
             if nodes:
-                result[f'fri{step_idx}'] = nodes
+                result[f"fri{step_idx}"] = nodes
 
     return result
