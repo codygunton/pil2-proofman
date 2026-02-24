@@ -1,7 +1,11 @@
 (sec:main)=
 # CPU: Main AIR
 
-The Main AIR ($2^{22}$ rows) is the central instruction dispatch unit.
+The Main AIR ({src}`zisk/state-machines/main/src/main_sm.rs:1`, $2^{22}$ rows) is the central instruction dispatch unit.
+It processes RISC-V instructions ({src}`zisk/state-machines/main/src/main_planner.rs:1`),
+dispatches operations to coprocessors via the Operation Bus,
+and maintains the program counter and register state.
+
 Constraints are evaluated via the
 {class}`~constraints.base.ConstraintModule` interface;
 Main uses the {class}`~constraints.bytecode_adapter.BytecodeConstraintModule`
