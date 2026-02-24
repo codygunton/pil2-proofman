@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
 # --- Prover Helpers ---
 
+
 class ProverHelpers:
     """Precomputed zerofiers and evaluation points for constraint evaluation.
 
@@ -67,13 +68,14 @@ class ProverHelpers:
         self.x_n: FF | np.ndarray | None = None
 
     @classmethod
-    def from_stark_info(cls, stark_info: 'StarkInfo', pil1: bool = False) -> 'ProverHelpers':
+    def from_stark_info(cls, stark_info: "StarkInfo", pil1: bool = False) -> "ProverHelpers":
         """Initialize from StarkInfo for prover mode.
 
         Precomputes zerofiers and evaluation points for the extended domain.
 
         Args:
             stark_info: AIR specification with domain sizes and boundaries
+            DOCTASK do we actually use this pil1 compatiblity?
             pil1: Enable PIL1 compatibility mode (computes x_n powers)
 
         Returns:
@@ -90,7 +92,7 @@ class ProverHelpers:
         return helpers
 
     @classmethod
-    def from_challenge(cls, stark_info: 'StarkInfo', z: np.ndarray) -> 'ProverHelpers':
+    def from_challenge(cls, stark_info: "StarkInfo", z: np.ndarray) -> "ProverHelpers":
         """Initialize from challenge point z for verifier mode.
 
         Computes zerofiers at the random challenge point z (in extension field).
@@ -119,7 +121,7 @@ class ProverHelpers:
 
         # Z_H(z) = z^N - 1
         z_n_minus_one = x_n_ff3 - one_ff3
-        z_n_inv = z_n_minus_one ** -1
+        z_n_inv = z_n_minus_one**-1
 
         # First boundary: 1/(z^N - 1)
         helpers.zi[0:3] = ff3_to_numpy_coeffs(z_n_inv)
@@ -131,7 +133,9 @@ class ProverHelpers:
             if boundary.name == "firstRow":
                 # (z - 1)^(-1) * (z^N - 1)
                 zi_temp = (z_ff3 - one_ff3) ** -1 * z_n_minus_one
-                helpers.zi[i*FIELD_EXTENSION_DEGREE:(i+1)*FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(zi_temp)
+                helpers.zi[i * FIELD_EXTENSION_DEGREE : (i + 1) * FIELD_EXTENSION_DEGREE] = (
+                    ff3_to_numpy_coeffs(zi_temp)
+                )
 
             elif boundary.name == "lastRow":
                 # (z - w^(N-1))^(-1) * (z^N - 1)
@@ -139,7 +143,9 @@ class ProverHelpers:
                 root = w ** (N - 1)
                 root_ff3 = FF3(int(root))
                 zi_temp = (z_ff3 - root_ff3) ** -1 * z_n_minus_one
-                helpers.zi[i*FIELD_EXTENSION_DEGREE:(i+1)*FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(zi_temp)
+                helpers.zi[i * FIELD_EXTENSION_DEGREE : (i + 1) * FIELD_EXTENSION_DEGREE] = (
+                    ff3_to_numpy_coeffs(zi_temp)
+                )
 
             elif boundary.name == "everyRow":
                 # Product of (z - w^k) for excluded rows
@@ -148,7 +154,7 @@ class ProverHelpers:
 
                 # Rows [0, offset_min)
                 for k in range(boundary.offset_min):
-                    root_ff3 = FF3(int(w ** k))
+                    root_ff3 = FF3(int(w**k))
                     zi_temp = zi_temp * (z_ff3 - root_ff3)
 
                 # Rows [N - offset_max, N)
@@ -156,7 +162,9 @@ class ProverHelpers:
                     root_ff3 = FF3(int(w ** (N - k - 1)))
                     zi_temp = zi_temp * (z_ff3 - root_ff3)
 
-                helpers.zi[i*FIELD_EXTENSION_DEGREE:(i+1)*FIELD_EXTENSION_DEGREE] = ff3_to_numpy_coeffs(zi_temp)
+                helpers.zi[i * FIELD_EXTENSION_DEGREE : (i + 1) * FIELD_EXTENSION_DEGREE] = (
+                    ff3_to_numpy_coeffs(zi_temp)
+                )
 
         helpers.x_n = ff3_to_numpy_coeffs(x_n_ff3)
         return helpers
@@ -180,7 +188,7 @@ class ProverHelpers:
             ones_n[1:] = w_n
             self.x_n = np.cumprod(ones_n)  # [1, w, w^2, ..., w^(N-1)]
 
-    def compute_zerofier(self, n_bits: int, n_bits_ext: int, boundaries: list['Boundary']) -> None:
+    def compute_zerofier(self, n_bits: int, n_bits_ext: int, boundaries: list["Boundary"]) -> None:
         """Compute zerofier inverses 1/Z_H(x) for all boundaries."""
         N = 1 << n_bits
         N_extended = 1 << n_bits_ext
@@ -195,8 +203,9 @@ class ProverHelpers:
             elif boundary.name == "lastRow":
                 self.build_one_row_zerofier_inv(n_bits, n_bits_ext, i, N)
             elif boundary.name == "everyFrame":
-                self.build_frame_zerofier_inv(n_bits, n_bits_ext, i,
-                                              boundary.offset_min, boundary.offset_max)
+                self.build_frame_zerofier_inv(
+                    n_bits, n_bits_ext, i, boundary.offset_min, boundary.offset_max
+                )
 
     def build_zh_inv(self, n_bits: int, n_bits_ext: int) -> None:
         """Build 1/(x^N - 1) for all coset points. Writes to zi[0:N_ext]."""
@@ -222,27 +231,29 @@ class ProverHelpers:
         for i in range(extend, N_extended):
             self.zi[i] = self.zi[i % extend]
 
-    def build_one_row_zerofier_inv(self, n_bits: int, n_bits_ext: int,
-                                   offset: int, row_index: int) -> None:
+    def build_one_row_zerofier_inv(
+        self, n_bits: int, n_bits_ext: int, offset: int, row_index: int
+    ) -> None:
         """Build 1/((x - w^row) * Z_H(x)). Reads Z_H^(-1) from zi[0:N_ext]."""
         N_extended = 1 << n_bits_ext
         w = FF(get_omega(n_bits))
-        root = w ** row_index
+        root = w**row_index
 
         # (x - root) * zh_inv, then invert
         diffs = self.x - root
         zh_inv = self.zi[:N_extended]
-        self.zi[offset * N_extended:(offset + 1) * N_extended] = batch_inverse(diffs * zh_inv)
+        self.zi[offset * N_extended : (offset + 1) * N_extended] = batch_inverse(diffs * zh_inv)
 
-    def build_frame_zerofier_inv(self, n_bits: int, n_bits_ext: int, offset: int,
-                                 offset_min: int, offset_max: int) -> None:
+    def build_frame_zerofier_inv(
+        self, n_bits: int, n_bits_ext: int, offset: int, offset_min: int, offset_max: int
+    ) -> None:
         """Build frame zerofier (NOT inverted): product of (x - w^k) for excluded rows."""
         N = 1 << n_bits
         N_extended = 1 << n_bits_ext
         w = FF(get_omega(n_bits))
 
         # Excluded roots: [0, offset_min) and [N - offset_max, N)
-        roots = [w ** k for k in range(offset_min)]
+        roots = [w**k for k in range(offset_min)]
         roots += [w ** (N - k - 1) for k in range(offset_max)]
 
         # Start with ones
@@ -251,10 +262,11 @@ class ProverHelpers:
         for root in roots:
             result = result * (self.x - root)
 
-        self.zi[offset * N_extended:(offset + 1) * N_extended] = result
+        self.zi[offset * N_extended : (offset + 1) * N_extended] = result
 
 
 # --- AIR Configuration ---
+
 
 class AirConfig:
     """Configuration bundle for STARK proving and verification.
@@ -273,16 +285,14 @@ class AirConfig:
         proof = gen_proof(config, params)
     """
 
-    def __init__(
-        self,
-        stark_info: 'StarkInfo',
-        global_info: Optional['GlobalInfo'] = None
-    ) -> None:
+    def __init__(self, stark_info: "StarkInfo", global_info: Optional["GlobalInfo"] = None) -> None:
         self.stark_info = stark_info
         self.global_info = global_info
 
     @classmethod
-    def from_starkinfo(cls, starkinfo_path: str, global_info_path: str | None = None) -> 'AirConfig':
+    def from_starkinfo(
+        cls, starkinfo_path: str, global_info_path: str | None = None
+    ) -> "AirConfig":
         """Load AIR configuration from starkinfo.json.
 
         Args:
@@ -305,4 +315,4 @@ class AirConfig:
 
 
 # Re-export FIELD_EXTENSION_DEGREE for modules that import it from here
-__all__ = ['AirConfig', 'ProverHelpers', 'FIELD_EXTENSION_DEGREE']
+__all__ = ["AirConfig", "ProverHelpers", "FIELD_EXTENSION_DEGREE"]

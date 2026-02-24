@@ -37,12 +37,14 @@ def _field_type_from_dim(dim: int) -> FieldType:
 @dataclass
 class FriFoldStep:
     """FRI recursive folding layer configuration."""
+
     domain_bits: int
 
 
 @dataclass
 class StarkStruct:
     """Core STARK protocol parameters."""
+
     n_bits: int
     n_bits_ext: int
     n_queries: int
@@ -58,6 +60,7 @@ class StarkStruct:
 
 # --- StarkInfo ---
 class StarkInfo:
+    # DOCTASK: more useful docstring, summarize what this specifies
     """STARK configuration loaded from starkinfo.json."""
 
     def __init__(self) -> None:
@@ -92,8 +95,8 @@ class StarkInfo:
         self.q_dim = 0
 
         # Expression IDs (for bytecode interpreter)
-        self.c_exp_id = 0     # Constraint expression ID
-        self.fri_exp_id = 0   # FRI polynomial expression ID
+        self.c_exp_id = 0  # Constraint expression ID
+        self.fri_exp_id = 0  # FRI polynomial expression ID
 
         # Memory layout
         self.map_sections_n: dict[str, int] = {}
@@ -144,7 +147,9 @@ class StarkInfo:
         self.stark_struct.merkle_tree_custom = ss.get("merkleTreeCustom", False)
         self.stark_struct.last_level_verification = ss.get("lastLevelVerification", 0)
         self.stark_struct.hash_commits = ss.get("hashCommits", False)
-        self.stark_struct.fri_fold_steps = [FriFoldStep(domain_bits=s["nBits"]) for s in ss["steps"]]
+        self.stark_struct.fri_fold_steps = [
+            FriFoldStep(domain_bits=s["nBits"]) for s in ss["steps"]
+        ]
 
     def _parse_basic_params(self, j: dict) -> None:
         """Parse basic polynomial parameters."""
@@ -294,9 +299,7 @@ class StarkInfo:
                 try:
                     ev.opening_pos = self.opening_points.index(ev.row_offset)
                 except ValueError:
-                    raise ValueError(
-                        f"Opening point {ev.row_offset} not found in opening_points"
-                    )
+                    raise ValueError(f"Opening point {ev.row_offset} not found in opening_points")
 
             self.ev_map.append(ev)
 
@@ -356,7 +359,9 @@ class StarkInfo:
                 - ss.last_level_verification
             )
             n_siblings_per_level = (ss.merkle_tree_arity - 1) * HASH_SIZE
-            fold_factor = 1 << (ss.fri_fold_steps[i - 1].domain_bits - ss.fri_fold_steps[i].domain_bits)
+            fold_factor = 1 << (
+                ss.fri_fold_steps[i - 1].domain_bits - ss.fri_fold_steps[i].domain_bits
+            )
             self.proof_size += ss.n_queries * fold_factor * FIELD_EXTENSION_DEGREE
             self.proof_size += ss.n_queries * n_siblings * n_siblings_per_level
 
@@ -378,16 +383,12 @@ class StarkInfo:
         self.map_total_n_custom_commits_fixed = 0
         for cc in self.custom_commits:
             if cc.stage_widths and cc.stage_widths[0] > 0:
-                self.map_offsets[(cc.name + "0", False)] = (
-                    self.map_total_n_custom_commits_fixed
-                )
+                self.map_offsets[(cc.name + "0", False)] = self.map_total_n_custom_commits_fixed
                 self.map_total_n_custom_commits_fixed += cc.stage_widths[0] * N
-                self.map_offsets[(cc.name + "0", True)] = (
-                    self.map_total_n_custom_commits_fixed
-                )
-                self.map_total_n_custom_commits_fixed += (
-                    cc.stage_widths[0] * N_extended + self._merkle_tree_nodes(N_extended)
-                )
+                self.map_offsets[(cc.name + "0", True)] = self.map_total_n_custom_commits_fixed
+                self.map_total_n_custom_commits_fixed += cc.stage_widths[
+                    0
+                ] * N_extended + self._merkle_tree_nodes(N_extended)
 
         # Stage offsets (non-extended, then extended)
         self.map_total_n = 0
