@@ -324,7 +324,7 @@ def _write_witness_to_buffer(
 
 
 # <doc-anchor id="calc-witness">
-def calculate_witness_with_module(
+def calculate_witness(
     stark_info: StarkInfo,
     trace: np.ndarray,
     aux_trace: np.ndarray,
@@ -333,7 +333,7 @@ def calculate_witness_with_module(
 ) -> np.ndarray:
     """Calculate witness polynomials using per-AIR witness modules.
 
-    Replaces calculate_witness_std for computing im_cluster and gsum columns.
+    Computes im_cluster and gsum columns using the AIR-specific witness module.
 
     Args:
         stark_info: StarkInfo with AIR name and polynomial mappings

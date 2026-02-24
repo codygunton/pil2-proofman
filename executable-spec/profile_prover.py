@@ -109,13 +109,13 @@ def patch_prover() -> None:
     stages_module.Starks.evmap = timed_evmap
 
     # Patch witness generation (now uses witness modules)
-    original_calculate_witness_with_module = stages_module.calculate_witness_with_module
+    original_calculate_witness = stages_module.calculate_witness
 
-    @timed("calculate_witness_with_module")
-    def timed_calculate_witness_with_module(*args: Any, **kwargs: Any) -> Any:
-        return original_calculate_witness_with_module(*args, **kwargs)
+    @timed("calculate_witness")
+    def timed_calculate_witness(*args: Any, **kwargs: Any) -> Any:
+        return original_calculate_witness(*args, **kwargs)
 
-    stages_module.calculate_witness_with_module = timed_calculate_witness_with_module
+    stages_module.calculate_witness = timed_calculate_witness
 
     # Patch expression evaluator
     original_calculate_expressions = expr_module.ExpressionsPack.calculate_expressions
