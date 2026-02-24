@@ -197,26 +197,41 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
     # Check if this is a Rust file reference
     is_rust = text.endswith('.rs') or text.startswith('zisk/')
 
-    # Rust files: simpler handling (line numbers only, no anchors yet)
+    # Rust files: support both #anchor and :line syntax
     if is_rust:
-        if ':' not in text:
-            msg = f"Rust references require line numbers: {text}:LINE"
+        if '#' in text:
+            # Anchor format: zisk/state-machines/main/src/main_sm.rs#MainInstance
+            file_path, anchor_name = text.rsplit('#', 1)
+
+            # Display: filename#anchor
+            display = file_path.rsplit('/', 1)[-1] + '#' + anchor_name
+
+            # Generate link to Rust viewcode with anchor
+            # Remove .rs extension from file_path for target (Sphinx adds .html)
+            target = f"_modules/{file_path.replace('.rs', '')}"
+            rel = posixpath.relpath(target, posixpath.dirname(docname))
+            url = f"{rel}.html#{anchor_name}"
+
+        elif ':' in text:
+            # Line number format: zisk/state-machines/main/src/main_sm.rs:40
+            file_path, line_str = text.rsplit(':', 1)
+            try:
+                line_num = int(line_str)
+            except ValueError:
+                msg = f"Invalid line number in Rust reference '{text}'"
+                return [inliner.reporter.error(msg, line=lineno)], []
+
+            # Display: filename:line
+            display = file_path.rsplit('/', 1)[-1] + ':' + line_str
+
+            # Generate link to Rust viewcode with line anchor
+            target = f"_modules/{file_path.replace('.rs', '')}"
+            rel = posixpath.relpath(target, posixpath.dirname(docname))
+            url = f"{rel}.html#L-{line_num}"
+
+        else:
+            msg = f"Rust references require #anchor or :line syntax: {text}"
             return [inliner.reporter.error(msg, line=lineno)], []
-
-        file_path, line_str = text.rsplit(':', 1)
-        try:
-            line_num = int(line_str)
-        except ValueError:
-            msg = f"Invalid line number in Rust reference '{text}'"
-            return [inliner.reporter.error(msg, line=lineno)], []
-
-        # Display: just filename and line
-        display = file_path.rsplit('/', 1)[-1] + ':' + line_str
-
-        # Generate link to Rust viewcode: _modules/zisk/path/to/file.rs.html#L-line
-        target = f"_modules/{file_path}"
-        rel = posixpath.relpath(target, posixpath.dirname(docname))
-        url = f"{rel}.html#L-{line_num}"
 
         node = nodes.reference(rawtext, "", refuri=url, **(options or {}))
         node += nodes.literal(display, display)

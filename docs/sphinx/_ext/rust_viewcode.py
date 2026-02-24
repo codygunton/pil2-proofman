@@ -1,43 +1,38 @@
 """Rust source code viewer extension for Sphinx.
 
 Mimics sphinx.ext.viewcode for Rust source files:
-- Copies Rust source files from the zisk submodule
-- Generates syntax-highlighted HTML with per-line anchors
-- Enables {src}`path/to/file.rs:line` references in documentation
+- Generates syntax-highlighted HTML pages with full Sphinx theme
+- Creates named anchors for struct/enum/impl/function definitions
+- Enables {src}`path/to/file.rs#SymbolName` references in documentation
 """
 
 from pathlib import Path
-from typing import Dict, Set
+from typing import Dict, Set, Iterator, Tuple, Any
 from sphinx.application import Sphinx
 from sphinx.util import logging
+from sphinx.builders.html import StandaloneHTMLBuilder
 from pygments import highlight
 from pygments.lexers import RustLexer
 from pygments.formatters import HtmlFormatter
+from _ext.rust_analyzer import RustAnalyzer
 
 logger = logging.getLogger(__name__)
 
+OUTPUT_DIRNAME = '_modules'
 
-def copy_rust_sources(app: Sphinx, exception: Exception) -> None:
-    """Copy and highlight Rust source files during build.
 
-    Called at build-finished event.
+def collect_rust_files(app: Sphinx) -> Dict[str, Tuple[str, Dict, Path]]:
+    """Collect all Rust files to process.
+
+    Returns:
+        Dict mapping relative path to (code, tags, source_path)
     """
-    if exception is not None:
-        return  # Build failed, skip
-
-    if app.builder.name != 'html':
-        return  # Only for HTML builds
-
-    # Paths
     zisk_root = Path(app.confdir).parent.parent / 'zisk'
     if not zisk_root.exists():
         logger.warning(f"[rust_viewcode] zisk submodule not found at {zisk_root}")
-        return
+        return {}
 
-    output_dir = Path(app.outdir) / '_modules' / 'zisk'
-    rust_source_paths = getattr(app.config, 'rust_source_paths', ['state-machines'])
-
-    logger.info("[rust_viewcode] Copying and highlighting Rust sources...")
+    rust_source_paths = getattr(app.config, 'rust_source_paths', ['state-machines', 'precompiles', 'data-bus'])
 
     # Find all Rust files
     rust_files: Set[Path] = set()
@@ -48,65 +43,102 @@ def copy_rust_sources(app: Sphinx, exception: Exception) -> None:
 
     if not rust_files:
         logger.warning(f"[rust_viewcode] No Rust files found in {rust_source_paths}")
-        return
+        return {}
 
-    # Highlight and copy each file
-    formatter = HtmlFormatter(
-        linenos='table',
-        lineanchors='L',  # Line anchors like #L-42
-        anchorlinenos=True,
-        cssclass='highlight',
-        style='friendly'
-    )
-    lexer = RustLexer()
-
+    # Analyze each file
+    result = {}
     for rust_file in sorted(rust_files):
         try:
             # Relative path from zisk root
-            rel_path = rust_file.relative_to(zisk_root)
+            rel_path = str(rust_file.relative_to(zisk_root))
 
-            # Output path
-            out_file = output_dir / f"{rel_path}.html"
-            out_file.parent.mkdir(parents=True, exist_ok=True)
+            # Analyze for symbol definitions
+            analyzer = RustAnalyzer.for_file(rust_file)
 
-            # Read and highlight
-            source_code = rust_file.read_text(encoding='utf-8')
-            highlighted = highlight(source_code, lexer, formatter)
-
-            # Wrap in minimal HTML
-            html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>{rel_path}</title>
-    <link rel="stylesheet" href="{'../' * (len(rel_path.parts) - 1)}_static/pygments.css">
-    <style>
-        body {{ font-family: monospace; margin: 20px; }}
-        .highlight {{ font-size: 14px; }}
-        h1 {{ font-size: 18px; margin-bottom: 20px; }}
-    </style>
-</head>
-<body>
-    <h1>{rel_path}</h1>
-    {highlighted}
-</body>
-</html>
-"""
-            out_file.write_text(html, encoding='utf-8')
+            result[rel_path] = (analyzer.code, analyzer.tags, rust_file)
 
         except Exception as e:
-            logger.warning(f"[rust_viewcode] Failed to process {rust_file}: {e}")
+            logger.warning(f"[rust_viewcode] Failed to analyze {rust_file}: {e}")
 
-    logger.info(f"[rust_viewcode] Processed {len(rust_files)} Rust files")
+    return result
+
+
+def collect_pages(app: Sphinx) -> Iterator[Tuple[str, Dict[str, Any], str]]:
+    """Generate Rust source code pages with full Sphinx theme.
+
+    Yields:
+        Tuples of (pagename, context, template) for Sphinx to render
+    """
+    if app.builder.name != 'html':
+        return
+
+    builder = app.builder
+    if not isinstance(builder, StandaloneHTMLBuilder):
+        return
+
+    highlighter = builder.highlighter
+    urito = builder.get_relative_uri
+
+    # Collect all Rust files
+    rust_modules = collect_rust_files(app)
+
+    if not rust_modules:
+        return
+
+    logger.info(f"[rust_viewcode] Generating pages for {len(rust_modules)} Rust files...")
+
+    # Process each Rust file
+    for rel_path, (code, tags, source_path) in rust_modules.items():
+        # Page name: _modules/zisk/state-machines/main/src/main_sm.rs
+        # (without .rs extension for the pagename, Sphinx adds .html)
+        pagename = f"{OUTPUT_DIRNAME}/zisk/{rel_path.replace('.rs', '')}"
+
+        # Highlight the source
+        highlighted = highlighter.highlight_block(code, 'rust', linenos='inline')
+
+        # Split into lines
+        lines = highlighted.splitlines()
+
+        # Split off wrap markup from the first line
+        if lines and '<pre>' in lines[0]:
+            before, after = lines[0].split('<pre>')
+            lines[0:1] = [before + '<pre>', after]
+
+        # Insert named anchors for symbols
+        max_index = len(lines) - 1
+        for name, (symbol_type, start, end) in tags.items():
+            if 0 < start <= len(lines):
+                # Insert anchor div at start line (1-indexed)
+                lines[start - 1] = (
+                    f'<div class="viewcode-block" id="{name}">\n'
+                    + lines[start - 1]
+                )
+
+                # Close div at end line
+                end_idx = min(end - 1, max_index)
+                if 0 <= end_idx < len(lines):
+                    lines[end_idx] += '\n</div>'
+
+        # Prepare context for template
+        title = f"zisk/{rel_path}"
+        body_html = f'<h1>Source code for {title}</h1>\n' + '\n'.join(lines)
+
+        context = {
+            'title': title,
+            'body': body_html,
+        }
+
+        # Yield for Sphinx to render with page.html template
+        yield pagename, context, 'page.html'
 
 
 def setup(app: Sphinx) -> Dict[str, any]:
     """Register the extension."""
-    app.add_config_value('rust_source_paths', ['state-machines'], 'html')
-    app.connect('build-finished', copy_rust_sources)
+    app.add_config_value('rust_source_paths', ['state-machines', 'precompiles', 'data-bus'], 'html')
+    app.connect('html-collect-pages', collect_pages)
 
     return {
-        'version': '0.1',
+        'version': '0.2',
         'parallel_read_safe': True,
-        'parallel_write_safe': True,
+        'parallel_write_safe': False,  # collect_pages is not parallel-safe
     }
