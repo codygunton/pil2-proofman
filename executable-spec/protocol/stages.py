@@ -324,8 +324,7 @@ def calculate_witness_with_module(
     aux_trace: np.ndarray,
     const_pols: np.ndarray,
     challenges: ChallengesDict,
-    airgroup_values: np.ndarray,
-) -> None:
+) -> np.ndarray:
     """Calculate witness polynomials using per-AIR witness modules.
 
     Replaces calculate_witness_std for computing im_cluster and gsum columns.
@@ -336,12 +335,22 @@ def calculate_witness_with_module(
         aux_trace: Auxiliary trace buffer
         const_pols: Base domain constant polynomials
         challenges: Named challenges dict for stage 2
-        airgroup_values: Output array for airgroup values
+
+    Returns:
+        airgroup_values: Cross-AIR accumulator values (gsum/gprod boundaries)
+            Array of FF3 elements in interleaved format, empty for standalone AIRs
     """
+    from primitives.field import FIELD_EXTENSION_DEGREE
     from constraints import ProverConstraintContext
     from witness import get_witness_module
 
     air_name = stark_info.name
+
+    # Allocate cross-AIR accumulator values
+    # stark_info.airgroup_values_map: List[PolMap] defining gsum/gprod boundary values
+    # Used for VADCOP cross-AIR constraints (bus balance, permutation)
+    n_airgroup_values = len(stark_info.airgroup_values_map)
+    airgroup_values = np.zeros(n_airgroup_values * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
     # Get witness module for this AIR
     witness_module = get_witness_module(air_name)
@@ -358,8 +367,10 @@ def calculate_witness_with_module(
     # Compute grand sums (gsum/gprod columns)
     grand_sums = witness_module.compute_grand_sums(ctx)
 
-    # Write results back to buffer
+    # Write results back to buffers
     _write_witness_to_buffer(stark_info, aux_trace, airgroup_values, intermediates, grand_sums)
+
+    return airgroup_values
 
 
 class Starks:

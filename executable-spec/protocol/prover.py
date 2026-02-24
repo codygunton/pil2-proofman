@@ -158,35 +158,16 @@ def gen_proof(
 
     # === INITIALIZATION ===
 
-    # Allocate auxiliary trace buffer (stages 2+, quotient, FRI polynomial)
+    # Allocate shared mutable buffers used across multiple stages
+
+    # Auxiliary trace buffer: Written by stages 2, Q, and FRI at different offsets
     # stark_info.map_total_n = total size in field elements for all auxiliary polynomials
     # Computed from: stage offsets + quotient (q_dim * N_extended) + FRI poly (3 * N_extended)
-    # See stark_info.py:_compute_map_offsets() for layout calculation
     aux_trace = np.zeros(stark_info.map_total_n, dtype=np.uint64)
 
-    # Allocate cross-AIR accumulator values (VADCOP aggregation)
-    # stark_info.airgroup_values_map: List[PolMap] defining gsum/gprod boundary values
-    # Used for cross-AIR constraints (bus balance, permutation) in VADCOP recursion
-    # Empty for standalone (non-VADCOP) proofs
-    n_airgroup_values = len(stark_info.airgroup_values_map)
-    airgroup_values = np.zeros(n_airgroup_values * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
-
-    # Allocate per-AIR instance values (internal accumulators)
-    # stark_info.air_values_size: Total field elements needed for air_values
-    # Computed as sum of field dimensions from air_values_map entries
-    # Examples: lookup multiplicities, internal state boundaries
-    air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
-
-    # Allocate polynomial evaluations at opening points
-    # stark_info.ev_map: List[EvMap] defining which polynomials to evaluate and at what offsets
-    # Each evaluation is an FF3 element (3 field elements in interleaved format)
-    n_evals = len(stark_info.ev_map)
-    evals = np.zeros(n_evals * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
-
-    # Master challenges array (populated stage-by-stage via Fiat-Shamir)
+    # Master challenges array: Accumulated stage-by-stage via Fiat-Shamir
     # stark_info.challenges_map: List[ChallengeMap] defining challenge names and stages
     # Each challenge is an FF3 element (3 field elements)
-    # Examples: stage2 challenges for witness generation, stageQ for quotient, xi for evaluation
     n_challenges = len(stark_info.challenges_map)
     challenges = np.zeros(n_challenges * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
     if injected_challenges is not None:
@@ -237,6 +218,8 @@ def gen_proof(
     # Mode 1: External VADCOP (global_challenge provided by coordinator)
     # <doc-anchor id="transcript-seed-vadcop">
     if global_challenge is not None:
+        # Allocate air_values (may be populated externally or empty)
+        air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
         transcript.put(global_challenge[:3])
 
     # Mode 2: Internal VADCOP (compute global_challenge ourselves)
@@ -247,6 +230,11 @@ def gen_proof(
         lattice_size = DEFAULT_LATTICE_SIZE
         if air_config.global_info is not None:
             lattice_size = air_config.global_info.lattice_size
+
+        # Allocate per-AIR instance values for global challenge computation
+        # stark_info.air_values_size: Total field elements (sum of air_values_map dimensions)
+        # Most AIRs have empty air_values_map, resulting in zero-sized array
+        air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
 
         # Extract stage-1 values for lattice (most AIRs: empty lists)
         air_values_stage1 = _get_air_values_stage1(stark_info, air_values)
@@ -267,6 +255,9 @@ def gen_proof(
 
     # Mode 3: Standalone (no VADCOP aggregation)
     else:
+        # Allocate air_values (may be empty but needed for proof assembly)
+        air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
+
         # Seed transcript directly with verification key, public inputs, and stage-1 root
         # No lattice expansion - simpler but incompatible with C++ VADCOP proofs
         # <doc-anchor id="transcript-seed-standalone">
@@ -312,12 +303,11 @@ def gen_proof(
                 stage2_challenges[cm.name] = FF3.Vector([c2, c1, c0])
 
     # Calculate AIR-specific witness polynomials using stage-2 challenges
-    # Dispatches to constraint module for AIR (SimpleLeft, Lookup2_12, etc.)
+    # Dispatches to witness module for AIR (SimpleLeft, Lookup2_12, etc.)
     # Writes: im_cluster, gsum columns into aux_trace buffer
-    # Updates: airgroup_values with cross-AIR boundary values
-    calculate_witness_with_module(
-        stark_info, trace, aux_trace, const_pols,
-        stage2_challenges, airgroup_values
+    # Returns: airgroup_values (cross-AIR boundary values for VADCOP)
+    airgroup_values = calculate_witness_with_module(
+        stark_info, trace, aux_trace, const_pols, stage2_challenges
     )
 
     # <doc-anchor id="intermediate-commit">
@@ -418,16 +408,16 @@ def gen_proof(
     # Compute all polynomial evaluations at points defined by ev_map
     # For each EvMap entry: evaluates polynomial(type, id) at xi^row_offset
     # Examples: cm1[0](xi), cm2[3](xi*omega), const[1](xi*omega^2)
-    # Results stored in evals array (n_evals * 3 field elements, interleaved)
-    _compute_all_evals(stark_info, starks, trace, aux_trace, const_pols_extended, evals, xi_coeffs)
+    # Returns: evals array (n_evals * 3 field elements, interleaved)
+    evals = _compute_all_evals(stark_info, starks, trace, aux_trace, const_pols_extended, xi_coeffs)
 
     # Feed evaluations into transcript for next round
     if not stark_info.stark_struct.hash_commits:
         # Direct mode: put all evaluation elements
-        transcript.put(evals[:n_evals * FIELD_EXTENSION_DEGREE])
+        transcript.put(evals)
     else:
         # Hashed mode: compress evaluations with Poseidon2 linear hash
-        evals_as_ints = [int(v) for v in evals[:n_evals * FIELD_EXTENSION_DEGREE]]
+        evals_as_ints = [int(v) for v in evals]
         evals_hash = list(linear_hash(evals_as_ints, width=POSEIDON2_LINEAR_HASH_WIDTH))
         transcript.put(evals_hash)
 
@@ -525,7 +515,7 @@ def gen_proof(
     # === ASSEMBLE PROOF ===
 
     return {
-        'evals': [int(v) for v in evals[:n_evals * FIELD_EXTENSION_DEGREE]],
+        'evals': [int(v) for v in evals],
         'airgroup_values': airgroup_values,
         'air_values': air_values,
         'nonce': fri_proof.nonce,
@@ -546,9 +536,8 @@ def _compute_all_evals(
     trace: np.ndarray,
     aux_trace: np.ndarray,
     const_pols_extended: np.ndarray,
-    evals: np.ndarray,
     xi: list[int]
-) -> None:
+) -> np.ndarray:
     """Compute polynomial evaluations at all opening points in batches of 4.
 
     For each EvMap entry, evaluates the specified polynomial at xi^row_offset.
@@ -561,13 +550,23 @@ def _compute_all_evals(
         trace: Stage 1 trace buffer (committed polynomials on base domain)
         aux_trace: Auxiliary trace buffer (stages 2+, quotient on extended domain)
         const_pols_extended: Constant polynomials on extended domain
-        evals: Output array for evaluations (n_evals * 3 field elements, interleaved)
         xi: FRI challenge point (extension field element as 3 ints)
+
+    Returns:
+        evals: Polynomial evaluations at opening points (n_evals * 3 field elements, interleaved)
+            Each evaluation is an FF3 element corresponding to an EvMap entry
 
     Notes:
         Batch size of 4 matches C++ implementation for consistency.
         Each batch shares Lagrange evaluations L_j(xi^offset) to reduce computation.
     """
+    from primitives.field import FIELD_EXTENSION_DEGREE
+
+    # Allocate evaluations buffer
+    # stark_info.ev_map: List[EvMap] defining which polynomials to evaluate and at what offsets
+    n_evals = len(stark_info.ev_map)
+    evals = np.zeros(n_evals * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
+
     batch_size = 4
     for i in range(0, len(stark_info.opening_points), batch_size):
         batch = stark_info.opening_points[i:i + batch_size]
@@ -577,6 +576,8 @@ def _compute_all_evals(
         # Evaluate all polynomials in ev_map that use offsets in this batch
         # Results written directly into evals array at appropriate indices
         starks.computeEvals(trace, aux_trace, const_pols_extended, evals, lagrange_evaluations, batch)
+
+    return evals
 
 
 # --- Query Proof Collection ---
