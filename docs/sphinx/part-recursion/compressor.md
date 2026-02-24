@@ -1,18 +1,15 @@
 (sec:compressor)=
 # Compressor (Stage 2, Optional)
 
-The Compressor is an optional stage applied when the STARK verifier circuit
-for a particular AIR exceeds $2^{17}$ rows
-({src}`stark-recurser/src/vadcop/is_compressor_needed.js#isCompressorNeeded`).
+The Compressor is an optional stage applied when the {src}`STARK verifier circuit
+for a particular AIR exceeds $2^{17}$ rows <stark-recurser/src/vadcop/is_compressor_needed.js#isCompressorNeeded>`.
 
 1. **Circuit.**
-   A Circom circuit over the Goldilocks field that verifies one Basic STARK proof
-   ({src}`stark-recurser/src/circom2pil/compressor_exec.js#compressorExec`).
+   A {src}`Circom circuit <stark-recurser/src/circom2pil/compressor_exec.js#compressorExec>` over the Goldilocks field that verifies one Basic STARK proof.
    The circuit's execution trace forms a new AIR.
 
 2. **When needed.**
-   If the number of verifier circuit rows is $\leq 2^{17}$
-   ({src}`stark-recurser/src/circom2pil/compressor_constraints.js#getCompressorConstraints`),
+   If the {src}`number of verifier circuit rows <stark-recurser/src/circom2pil/compressor_constraints.js#getCompressorConstraints>` is $\leq 2^{17}$,
    the Compressor is skipped and the Basic proof proceeds directly
    to Recursive1.
 

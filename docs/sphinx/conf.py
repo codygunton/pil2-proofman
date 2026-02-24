@@ -50,6 +50,7 @@ extensions = [
     "sphinx_design",
     "_ext.rust_viewcode",  # Rust source code viewer
     "_ext.js_viewcode",    # JavaScript source code viewer
+    "_ext.pil_viewcode",   # PIL source code viewer
     "sphinxcontrib.mermaid",
 ]
 
@@ -195,11 +196,52 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
     env = inliner.document.settings.env
     docname = env.docname  # e.g., "part-stark/commitment-phase"
 
+    # Check for custom display text: {src}`Custom Text <path#anchor>`
+    custom_text = None
+    if '<' in text and text.endswith('>'):
+        custom_text, path_part = text.rsplit('<', 1)
+        custom_text = custom_text.strip()
+        text = path_part.rstrip('>')
+
+    # Check if this is a PIL file reference (check before Rust since zisk/ overlaps)
+    is_pil = '.pil' in text
+
     # Check if this is a Rust file reference
-    is_rust = text.endswith('.rs') or text.startswith('zisk/')
+    is_rust = (text.endswith('.rs') or text.startswith('zisk/')) and not is_pil
 
     # Check if this is a JavaScript file reference
     is_js = text.endswith('.js') or text.startswith('stark-recurser/')
+
+    # PIL files: support :line syntax (anchors not implemented yet)
+    if is_pil:
+        if ':' in text:
+            # Line number format: zisk/pil/zisk.pil:40
+            file_path, line_str = text.rsplit(':', 1)
+            try:
+                line_num = int(line_str)
+            except ValueError:
+                msg = f"Invalid line number in PIL reference '{text}'"
+                return [inliner.reporter.error(msg, line=lineno)], []
+
+            # Display: custom text or filename:line
+            display = custom_text if custom_text else (file_path.rsplit('/', 1)[-1] + ':' + line_str)
+
+            # Generate link to PIL viewcode with line anchor
+            target = f"_modules/{file_path.replace('.pil', '')}"
+            rel = posixpath.relpath(target, posixpath.dirname(docname))
+            url = f"{rel}.html#L-{line_num}"
+
+        else:
+            msg = f"PIL references require :line syntax: {text}"
+            return [inliner.reporter.error(msg, line=lineno)], []
+
+        node = nodes.reference(rawtext, "", refuri=url, **(options or {}))
+        # Use inline text for custom display, literal (code) for default
+        if custom_text:
+            node += nodes.inline(display, display)
+        else:
+            node += nodes.literal(display, display)
+        return [node], []
 
     # Rust files: support both #anchor and :line syntax
     if is_rust:
@@ -207,8 +249,8 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
             # Anchor format: zisk/state-machines/main/src/main_sm.rs#MainInstance
             file_path, anchor_name = text.rsplit('#', 1)
 
-            # Display: filename#anchor
-            display = file_path.rsplit('/', 1)[-1] + '#' + anchor_name
+            # Display: custom text or filename#anchor
+            display = custom_text if custom_text else (file_path.rsplit('/', 1)[-1] + '#' + anchor_name)
 
             # Generate link to Rust viewcode with anchor
             # Remove .rs extension from file_path for target (Sphinx adds .html)
@@ -225,8 +267,8 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
                 msg = f"Invalid line number in Rust reference '{text}'"
                 return [inliner.reporter.error(msg, line=lineno)], []
 
-            # Display: filename:line
-            display = file_path.rsplit('/', 1)[-1] + ':' + line_str
+            # Display: custom text or filename:line
+            display = custom_text if custom_text else (file_path.rsplit('/', 1)[-1] + ':' + line_str)
 
             # Generate link to Rust viewcode with line anchor
             target = f"_modules/{file_path.replace('.rs', '')}"
@@ -238,7 +280,11 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
             return [inliner.reporter.error(msg, line=lineno)], []
 
         node = nodes.reference(rawtext, "", refuri=url, **(options or {}))
-        node += nodes.literal(display, display)
+        # Use inline text for custom display, literal (code) for default
+        if custom_text:
+            node += nodes.inline(display, display)
+        else:
+            node += nodes.literal(display, display)
         return [node], []
 
     # JavaScript files: support both #anchor and :line syntax
@@ -247,8 +293,8 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
             # Anchor format: stark-recurser/src/vadcop/is_compressor_needed.js#isCompressorNeeded
             file_path, anchor_name = text.rsplit('#', 1)
 
-            # Display: filename#anchor
-            display = file_path.rsplit('/', 1)[-1] + '#' + anchor_name
+            # Display: custom text or filename#anchor
+            display = custom_text if custom_text else (file_path.rsplit('/', 1)[-1] + '#' + anchor_name)
 
             # Generate link to JS viewcode with anchor
             # Remove .js extension from file_path for target (Sphinx adds .html)
@@ -265,8 +311,8 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
                 msg = f"Invalid line number in JavaScript reference '{text}'"
                 return [inliner.reporter.error(msg, line=lineno)], []
 
-            # Display: filename:line
-            display = file_path.rsplit('/', 1)[-1] + ':' + line_str
+            # Display: custom text or filename:line
+            display = custom_text if custom_text else (file_path.rsplit('/', 1)[-1] + ':' + line_str)
 
             # Generate link to JS viewcode with line anchor
             target = f"_modules/{file_path.replace('.js', '')}"
@@ -278,7 +324,11 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
             return [inliner.reporter.error(msg, line=lineno)], []
 
         node = nodes.reference(rawtext, "", refuri=url, **(options or {}))
-        node += nodes.literal(display, display)
+        # Use inline text for custom display, literal (code) for default
+        if custom_text:
+            node += nodes.inline(display, display)
+        else:
+            node += nodes.literal(display, display)
         return [node], []
 
     # Python files: full anchor/symbol support

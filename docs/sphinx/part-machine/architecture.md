@@ -39,29 +39,29 @@ Configuration parameters:
 
 Each AIR is implemented as a Rust state machine in `zisk/state-machines/`.
 
-| ID | Name              | Trace size | Role                                          | Source | Compressor? |
-|----|-------------------|------------|-----------------------------------------------|--------|-------------|
-| 0  | Main              | $2^{22}$   | CPU instruction dispatch                      | {src}`zisk/state-machines/main/src/main_sm.rs#MainSM` | No          |
-| 1  | Rom               | $2^{22}$   | Program ROM lookup table                      | {src}`zisk/state-machines/rom/src/rom.rs#RomSM` | No          |
-| 2  | Mem               | $2^{22}$   | Main memory (sorted by addr+step)             | {src}`zisk/state-machines/mem/src/mem.rs#Mem` | No          |
-| 3  | RomData           | $2^{21}$   | Immutable ROM data region                     | {src}`zisk/state-machines/mem/src/rom_data_sm.rs#RomDataSM` | No          |
-| 4  | InputData         | $2^{21}$   | Free input data region                        | {src}`zisk/state-machines/mem/src/input_data_sm.rs#InputDataSM` | No          |
-| 5  | MemAlign          | $2^{21}$   | Unaligned memory access logic                 | {src}`zisk/state-machines/mem/src/mem_align_sm.rs#MemAlignSM` | No          |
-| 6  | MemAlignByte      | $2^{22}$   | Byte-level memory alignment                   | {src}`zisk/state-machines/mem/src/mem_align_byte_sm.rs#MemAlignByteSM` | No          |
-| 7  | MemAlignReadByte  | $2^{22}$   | Read-side byte alignment                      | {src}`zisk/state-machines/mem/src/mem_align_read_byte_instance.rs#MemAlignReadByteInstance` | No          |
-| 8  | MemAlignWriteByte | $2^{22}$   | Write-side byte alignment                     | {src}`zisk/state-machines/mem/src/mem_align_write_byte_instance.rs#MemAlignWriteByteInstance` | No          |
-| 9  | Arith             | $2^{21}$   | 64-bit multiply/divide                        | {src}`zisk/state-machines/arith/src/arith.rs#ArithSM` | No          |
-| 10 | Binary            | $2^{22}$   | Bitwise AND, OR, XOR, comparisons             | {src}`zisk/state-machines/binary/src/binary.rs#BinarySM` | No          |
-| 11 | BinaryAdd         | $2^{22}$   | Dedicated 64-bit addition                     | {src}`zisk/state-machines/binary/src/binary_add.rs#BinaryAddSM` | No          |
-| 12 | BinaryExtension   | $2^{22}$   | Shifts, sign-extension                        | {src}`zisk/state-machines/binary/src/binary_extension.rs#BinaryExtensionSM` | No          |
-| 13 | Add256            | $2^{20}$   | 256-bit addition                              | {src}`zisk/precompiles/big_int/src/add256.rs#Add256SM` | No          |
-| 14 | ArithEq           | $2^{20}$   | 256-bit field arithmetic (secp256k1, BN254)   | {src}`zisk/precompiles/arith_eq/src/arith_eq.rs#ArithEqSM` | Yes         |
-| 15 | ArithEq384        | $2^{20}$   | 384-bit field arithmetic (BLS12-381)          | {src}`zisk/precompiles/arith_eq_384/src/arith_eq_384.rs#ArithEq384SM` | Yes         |
-| 16 | Keccakf           | $2^{17}$   | Keccak-f[1600] permutation                    | {src}`zisk/precompiles/keccakf/src/keccakf.rs#KeccakfSM` | Yes         |
-| 17 | Sha256f           | $2^{18}$   | SHA-256 compression function                  | {src}`zisk/precompiles/sha256f/src/sha256f.rs#Sha256fSM` | Yes         |
-| 18 | SpecifiedRanges   | $2^{20}$   | Range check lookup table                      | {src}`zisk/state-machines/frequent-ops/src/lib.rs:1` | No          |
-| 19 | VirtualTable0     | $2^{21}$   | Packed lookup tables (7 tables)               | {src}`zisk/state-machines/frequent-ops/src/lib.rs:1` | No          |
-| 20 | VirtualTable1     | $2^{21}$   | Packed lookup tables (3 tables)               | {src}`zisk/state-machines/frequent-ops/src/lib.rs:1` | No          |
+| ID | Name              | Trace size | Role                                          | Compressor? |
+|----|-------------------|------------|-----------------------------------------------|-------------|
+| 0  | {src}`Main <zisk/state-machines/main/src/main_sm.rs#MainSM>`              | {src}`$2^{22}$ <zisk/pil/zisk.pil:40>`   | CPU instruction dispatch                      | No          |
+| 1  | {src}`Rom <zisk/state-machines/rom/src/rom.rs#RomSM>`               | {src}`$2^{22}$ <zisk/pil/zisk.pil:41>`   | Program ROM lookup table                      | No          |
+| 2  | {src}`Mem <zisk/state-machines/mem/src/mem.rs#Mem>`               | {src}`$2^{22}$ <zisk/pil/zisk.pil:44>`   | Main memory (sorted by addr+step)             | No          |
+| 3  | {src}`RomData <zisk/state-machines/mem/src/rom_data_sm.rs#RomDataSM>`           | {src}`$2^{21}$ <zisk/pil/zisk.pil:45>`   | Immutable ROM data region                     | No          |
+| 4  | {src}`InputData <zisk/state-machines/mem/src/input_data_sm.rs#InputDataSM>`         | {src}`$2^{21}$ <zisk/pil/zisk.pil:46>`   | Free input data region                        | No          |
+| 5  | {src}`MemAlign <zisk/state-machines/mem/src/mem_align_sm.rs#MemAlignSM>`          | {src}`$2^{21}$ <zisk/pil/zisk.pil:48>`   | Unaligned memory access logic                 | No          |
+| 6  | {src}`MemAlignByte <zisk/state-machines/mem/src/mem_align_byte_sm.rs#MemAlignByteSM>`      | {src}`$2^{22}$ <zisk/pil/zisk.pil:49>`   | Byte-level memory alignment                   | No          |
+| 7  | {src}`MemAlignReadByte <zisk/state-machines/mem/src/mem_align_read_byte_instance.rs#MemAlignReadByteInstance>`  | {src}`$2^{22}$ <zisk/pil/zisk.pil:50>`   | Read-side byte alignment                      | No          |
+| 8  | {src}`MemAlignWriteByte <zisk/state-machines/mem/src/mem_align_write_byte_instance.rs#MemAlignWriteByteInstance>` | {src}`$2^{22}$ <zisk/pil/zisk.pil:51>`   | Write-side byte alignment                     | No          |
+| 9  | {src}`Arith <zisk/state-machines/arith/src/arith.rs#ArithSM>`             | {src}`$2^{21}$ <zisk/pil/zisk.pil:56>`   | 64-bit multiply/divide                        | No          |
+| 10 | {src}`Binary <zisk/state-machines/binary/src/binary.rs#BinarySM>`            | {src}`$2^{22}$ <zisk/pil/zisk.pil:62>`   | Bitwise AND, OR, XOR, comparisons             | No          |
+| 11 | {src}`BinaryAdd <zisk/state-machines/binary/src/binary_add.rs#BinaryAddSM>`         | {src}`$2^{22}$ <zisk/pil/zisk.pil:63>`   | Dedicated 64-bit addition                     | No          |
+| 12 | {src}`BinaryExtension <zisk/state-machines/binary/src/binary_extension.rs#BinaryExtensionSM>`   | {src}`$2^{22}$ <zisk/pil/zisk.pil:65>`   | Shifts, sign-extension                        | No          |
+| 13 | {src}`Add256 <zisk/precompiles/big_int/src/add256.rs#Add256SM>`            | {src}`$2^{20}$ <zisk/pil/zisk.pil:74>`   | 256-bit addition                              | No          |
+| 14 | {src}`ArithEq <zisk/precompiles/arith_eq/src/arith_eq.rs#ArithEqSM>`           | {src}`$2^{20}$ <zisk/pil/zisk.pil:75>`   | 256-bit field arithmetic (secp256k1, BN254)   | Yes         |
+| 15 | {src}`ArithEq384 <zisk/precompiles/arith_eq_384/src/arith_eq_384.rs#ArithEq384SM>`        | {src}`$2^{20}$ <zisk/pil/zisk.pil:76>`   | 384-bit field arithmetic (BLS12-381)          | Yes         |
+| 16 | {src}`Keccakf <zisk/precompiles/keccakf/src/keccakf.rs#KeccakfSM>`           | {src}`$2^{17}$ <zisk/pil/zisk.pil:79>`   | Keccak-f[1600] permutation                    | Yes         |
+| 17 | {src}`Sha256f <zisk/precompiles/sha256f/src/sha256f.rs#Sha256fSM>`           | {src}`$2^{18}$ <zisk/pil/zisk.pil:82>`   | SHA-256 compression function                  | Yes         |
+| 18 | {src}`SpecifiedRanges <zisk/state-machines/frequent-ops/src/frequent_ops_table.rs#FrequentOpsTable>`   | $2^{20}$   | Range check lookup table                      | No          |
+| 19 | {src}`VirtualTable0 <zisk/state-machines/frequent-ops/src/frequent_ops_table.rs#FrequentOpsTable>`     | $2^{21}$   | Packed lookup tables (7 tables)               | No          |
+| 20 | {src}`VirtualTable1 <zisk/state-machines/frequent-ops/src/frequent_ops_table.rs#FrequentOpsTable>`     | $2^{21}$   | Packed lookup tables (3 tables)               | No          |
 
 AIRs marked "Compressor = Yes" have STARK verifier circuits exceeding
 $2^{17}$ rows, requiring the optional Compressor stage in the recursion

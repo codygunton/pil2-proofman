@@ -1,8 +1,8 @@
 (sec:main)=
 # CPU: Main AIR
 
-The Main AIR ({src}`zisk/state-machines/main/src/main_sm.rs#MainSM`, $2^{22}$ rows) is the central instruction dispatch unit.
-It processes RISC-V instructions ({src}`zisk/state-machines/main/src/main_planner.rs#MainPlanner`),
+The {src}`Main AIR <zisk/state-machines/main/src/main_sm.rs#MainSM>` ($2^{22}$ {src}`rows <zisk/pil/zisk.pil:40>`) is the central instruction dispatch unit.
+It processes RISC-V instructions ({src}`main_planner <zisk/state-machines/main/src/main_planner.rs#MainPlanner>`),
 dispatches operations to coprocessors via the Operation Bus,
 and maintains the program counter and register state.
 

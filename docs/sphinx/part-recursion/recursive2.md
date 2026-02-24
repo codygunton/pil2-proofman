@@ -1,9 +1,8 @@
 (sec:recursive2)=
 # Recursive2: Tree Aggregation (Stage 4)
 
-Recursive2 aggregates proofs within the same airgroup using a 3-to-1
-tree reduction
-({src}`stark-recurser/src/pil2circom/pil2circom.js#pil2circom`).
+Recursive2 aggregates proofs within the same airgroup using a {src}`3-to-1
+tree reduction <stark-recurser/src/pil2circom/pil2circom.js#pil2circom>`.
 
 (sec:r2-structure)=
 ## Aggregation Structure
