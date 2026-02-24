@@ -2,3 +2,9 @@
 	path = lib/galois
 	url = git@github.com:codygunton/galois
 	branch = custom-omega
+[submodule "zisk"]
+	path = zisk
+	url = https://github.com/0xPolygonHermez/zisk.git
+[submodule "docs/sphinx/zisk"]
+	path = docs/sphinx/zisk
+	url = https://github.com/0xPolygonHermez/zisk.git

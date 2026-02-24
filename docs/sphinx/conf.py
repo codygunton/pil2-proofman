@@ -48,6 +48,7 @@ extensions = [
     "autoapi.extension",
     "sphinx_copybutton",
     "sphinx_design",
+    "_ext.rust_viewcode",  # Rust source code viewer
     "sphinxcontrib.mermaid",
 ]
 
@@ -90,6 +91,9 @@ autoapi_options = [
 ]
 autoapi_own_page_level = "module"
 autoapi_member_order = "bysource"
+
+# -- Rust source code viewing -------------------------------------------------
+rust_source_paths = ["state-machines"]  # Relative to zisk/ submodule
 autoapi_add_toctree_entry = False
 autoapi_keep_files = True
 autoapi_python_use_implicit_namespaces = True
@@ -190,7 +194,35 @@ def _src_role(_name, rawtext, text, lineno, inliner, options=None, content=None)
     env = inliner.document.settings.env
     docname = env.docname  # e.g., "part-stark/commitment-phase"
 
-    # Detect reference format and resolve to (file_path, line_number)
+    # Check if this is a Rust file reference
+    is_rust = text.endswith('.rs') or text.startswith('zisk/')
+
+    # Rust files: simpler handling (line numbers only, no anchors yet)
+    if is_rust:
+        if ':' not in text:
+            msg = f"Rust references require line numbers: {text}:LINE"
+            return [inliner.reporter.error(msg, line=lineno)], []
+
+        file_path, line_str = text.rsplit(':', 1)
+        try:
+            line_num = int(line_str)
+        except ValueError:
+            msg = f"Invalid line number in Rust reference '{text}'"
+            return [inliner.reporter.error(msg, line=lineno)], []
+
+        # Display: just filename and line
+        display = file_path.rsplit('/', 1)[-1] + ':' + line_str
+
+        # Generate link to Rust viewcode: _modules/zisk/path/to/file.rs.html#L-line
+        target = f"_modules/{file_path}"
+        rel = posixpath.relpath(target, posixpath.dirname(docname))
+        url = f"{rel}.html#L-{line_num}"
+
+        node = nodes.reference(rawtext, "", refuri=url, **(options or {}))
+        node += nodes.literal(display, display)
+        return [node], []
+
+    # Python files: full anchor/symbol support
     if '#' in text:
         # Anchor format: protocol/prover.py#witness-commit
         file_path, anchor_id = text.rsplit('#', 1)
