@@ -63,7 +63,7 @@ from protocol import (
     Nonce,
     QueryIndex,
     # STARK
-    Starks,
+    PolynomialCommitter,
     stark_verify,
 )
 
@@ -120,6 +120,6 @@ __all__ = [
     "Nonce",
     "QueryIndex",
     # STARK
-    "Starks",
+    "PolynomialCommitter",
     "stark_verify",
 ]

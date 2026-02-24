@@ -1,7 +1,7 @@
 """Polynomial commitment stage orchestration.
 
-This module provides the Starks class which manages the polynomial commitment
-phase of STARK proof generation. For each "stage" of the protocol, Starks:
+This module provides the PolynomialCommitter class which manages the polynomial commitment
+phase of STARK proof generation. For each "stage" of the protocol, PolynomialCommitter:
 
 1. Takes polynomial evaluations from explicit buffers
 2. Extends them to the evaluation domain (via NTT)
@@ -379,11 +379,10 @@ def calculate_witness(
     return airgroup_values
 
 
-# DOCTASK: this is a terrible name, it's vague and also not even appropriate. Come up with something more informative.
-class Starks:
+class PolynomialCommitter:
     """Polynomial commitment orchestrator for STARK proof generation.
 
-    The Starks class manages polynomial commitment via Merkle trees:
+    The PolynomialCommitter class manages polynomial commitment via Merkle trees:
     - Maintains one Merkle tree per polynomial commitment stage
     - Handles polynomial extension (NTT) and tree construction
     - Provides query proof generation for FRI verification

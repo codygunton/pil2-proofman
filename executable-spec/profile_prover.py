@@ -63,50 +63,50 @@ def patch_prover() -> None:
     ntt_module.NTT.intt = timed_intt
     ntt_module.NTT.extend_pol = timed_extend_pol
 
-    # Patch Starks methods
-    original_commitStage = stages_module.Starks.commitStage
-    original_calculateImPolsExpressions = stages_module.Starks.calculateImPolsExpressions
-    original_calculateQuotientPolynomial = stages_module.Starks.calculateQuotientPolynomial
-    original_calculateFRIPolynomial = stages_module.Starks.calculateFRIPolynomial
-    original_computeLEv = stages_module.Starks.computeLEv
-    original_computeEvals = stages_module.Starks.computeEvals
-    original_evmap = stages_module.Starks.evmap
+    # Patch PolynomialCommitter methods
+    original_commitStage = stages_module.PolynomialCommitter.commitStage
+    original_calculateImPolsExpressions = stages_module.PolynomialCommitter.calculateImPolsExpressions
+    original_calculateQuotientPolynomial = stages_module.PolynomialCommitter.calculateQuotientPolynomial
+    original_calculateFRIPolynomial = stages_module.PolynomialCommitter.calculateFRIPolynomial
+    original_computeLEv = stages_module.PolynomialCommitter.computeLEv
+    original_computeEvals = stages_module.PolynomialCommitter.computeEvals
+    original_evmap = stages_module.PolynomialCommitter.evmap
 
-    @timed("Starks.commitStage")
+    @timed("PolynomialCommitter.commitStage")
     def timed_commitStage(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_commitStage(self, *args, **kwargs)
 
-    @timed("Starks.calculateImPolsExpressions")
+    @timed("PolynomialCommitter.calculateImPolsExpressions")
     def timed_calculateImPolsExpressions(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_calculateImPolsExpressions(self, *args, **kwargs)
 
-    @timed("Starks.calculateQuotientPolynomial")
+    @timed("PolynomialCommitter.calculateQuotientPolynomial")
     def timed_calculateQuotientPolynomial(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_calculateQuotientPolynomial(self, *args, **kwargs)
 
-    @timed("Starks.calculateFRIPolynomial")
+    @timed("PolynomialCommitter.calculateFRIPolynomial")
     def timed_calculateFRIPolynomial(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_calculateFRIPolynomial(self, *args, **kwargs)
 
-    @timed("Starks.computeLEv")
+    @timed("PolynomialCommitter.computeLEv")
     def timed_computeLEv(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_computeLEv(self, *args, **kwargs)
 
-    @timed("Starks.computeEvals")
+    @timed("PolynomialCommitter.computeEvals")
     def timed_computeEvals(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_computeEvals(self, *args, **kwargs)
 
-    @timed("Starks.evmap")
+    @timed("PolynomialCommitter.evmap")
     def timed_evmap(self: Any, *args: Any, **kwargs: Any) -> Any:
         return original_evmap(self, *args, **kwargs)
 
-    stages_module.Starks.commitStage = timed_commitStage
-    stages_module.Starks.calculateImPolsExpressions = timed_calculateImPolsExpressions
-    stages_module.Starks.calculateQuotientPolynomial = timed_calculateQuotientPolynomial
-    stages_module.Starks.calculateFRIPolynomial = timed_calculateFRIPolynomial
-    stages_module.Starks.computeLEv = timed_computeLEv
-    stages_module.Starks.computeEvals = timed_computeEvals
-    stages_module.Starks.evmap = timed_evmap
+    stages_module.PolynomialCommitter.commitStage = timed_commitStage
+    stages_module.PolynomialCommitter.calculateImPolsExpressions = timed_calculateImPolsExpressions
+    stages_module.PolynomialCommitter.calculateQuotientPolynomial = timed_calculateQuotientPolynomial
+    stages_module.PolynomialCommitter.calculateFRIPolynomial = timed_calculateFRIPolynomial
+    stages_module.PolynomialCommitter.computeLEv = timed_computeLEv
+    stages_module.PolynomialCommitter.computeEvals = timed_computeEvals
+    stages_module.PolynomialCommitter.evmap = timed_evmap
 
     # Patch witness generation (now uses witness modules)
     original_calculate_witness = stages_module.calculate_witness

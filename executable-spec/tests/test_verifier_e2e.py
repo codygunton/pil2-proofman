@@ -128,7 +128,7 @@ class TestVerifierE2E:
         This tests the verifier in isolation without running the prover.
         """
         from protocol.proof import from_bytes_full
-        from protocol.stages import Starks
+        from protocol.stages import PolynomialCommitter
 
         air_config = load_air_config(air_name)
         if air_config is None:
@@ -156,8 +156,8 @@ class TestVerifierE2E:
             pytest.skip(f"Test vectors not found for {air_name}")
 
         const_pols, const_pols_extended, public_inputs = create_buffers_from_vectors(stark_info, vectors)
-        starks = Starks(air_config)
-        verkey = starks.build_const_tree(const_pols_extended)
+        committer = PolynomialCommitter(air_config)
+        verkey = committer.build_const_tree(const_pols_extended)
 
         global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
 
@@ -180,7 +180,7 @@ class TestVerifierE2E:
         Loads a valid binary proof, corrupts root1, and verifies it fails.
         """
         from protocol.proof import from_bytes_full
-        from protocol.stages import Starks
+        from protocol.stages import PolynomialCommitter
 
         air_config = load_air_config(air_name)
         if air_config is None:
@@ -208,8 +208,8 @@ class TestVerifierE2E:
             pytest.skip(f"Test vectors not found for {air_name}")
 
         const_pols, const_pols_extended, public_inputs = create_buffers_from_vectors(stark_info, vectors)
-        starks = Starks(air_config)
-        verkey = starks.build_const_tree(const_pols_extended)
+        committer = PolynomialCommitter(air_config)
+        verkey = committer.build_const_tree(const_pols_extended)
         global_challenge = np.array(vectors['inputs']['global_challenge'], dtype=np.uint64)
 
         # Corrupt root1 (roots[0])

@@ -21,7 +21,7 @@ executable-spec/
 ├── protocol/                    # Core STARK protocol implementation
 │   ├── prover.py               # Top-level proof generation (gen_proof)
 │   ├── verifier.py             # Top-level verification (stark_verify)
-│   ├── stages.py               # Stage computations (Starks class)
+│   ├── stages.py               # Stage computations (PolynomialCommitter class)
 │   ├── fri.py                  # FRI folding and query generation
 │   ├── pcs.py                  # FRI polynomial commitment scheme
 │   ├── fri_polynomial.py       # FRI polynomial computation
@@ -59,7 +59,7 @@ executable-spec/
 ### Start Here: The Prover Flow
 
 1. **`protocol/prover.py`** - Entry point. `gen_proof()` orchestrates the full proving flow
-2. **`protocol/stages.py`** - `Starks` class implements each proving stage:
+2. **`protocol/stages.py`** - `PolynomialCommitter` class implements each proving stage:
    - `commitStage()` - Commit witness polynomials
    - `calculateQuotientPolynomial()` - Compute Q polynomial
    - `calculateFRIPolynomial()` - Compute FRI polynomial

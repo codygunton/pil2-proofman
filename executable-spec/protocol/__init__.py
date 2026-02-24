@@ -13,7 +13,7 @@ from protocol.pcs import (
 )
 from protocol.proof import STARKProof
 from protocol.prover import gen_proof
-from protocol.stages import Starks
+from protocol.stages import PolynomialCommitter
 from protocol.stark_info import StarkInfo
 from protocol.verifier import stark_verify
 
@@ -29,7 +29,7 @@ __all__ = [
     "Nonce",
     "QueryIndex",
     # STARK
-    "Starks",
+    "PolynomialCommitter",
     "stark_verify",
     "gen_proof",
     # Configuration and data structures

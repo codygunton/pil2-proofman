@@ -10,7 +10,7 @@ from primitives.merkle_tree import HASH_SIZE, QueryProof
 from primitives.transcript import Transcript
 from protocol.air_config import AirConfig, ProverHelpers
 from protocol.pcs import FriPcs, FriPcsConfig
-from protocol.stages import Starks, calculate_witness
+from protocol.stages import PolynomialCommitter, calculate_witness
 from protocol.stark_info import StarkInfo
 from protocol.utils.challenge_utils import derive_global_challenge
 
@@ -139,9 +139,9 @@ def gen_proof(
     # Includes: L1(x) roots, zerofier roots, NTT twiddle factors
     prover_helpers = ProverHelpers.from_stark_info(stark_info, pil1=False)
 
-    # Starks orchestrates polynomial commitment via Merkle trees
+    # PolynomialCommitter orchestrates polynomial commitment via Merkle trees
     # Manages: constant tree, stage trees (1, 2, Q), and FRI trees
-    starks = Starks(air_config)
+    committer = PolynomialCommitter(air_config)
 
     # Initialize Fiat-Shamir transcript (Poseidon2-based)
     # Converts commitments into verifier challenges deterministically
@@ -159,7 +159,7 @@ def gen_proof(
     # Build constant polynomial Merkle tree to derive verkey (the verification key).
     # If the AIR has no constant polynomials, use a zero verkey instead.
     if const_pols_extended is not None and len(const_pols_extended) > 0:
-        verkey = starks.build_const_tree(const_pols_extended)
+        verkey = committer.build_const_tree(const_pols_extended)
     else:
         verkey = [0] * HASH_SIZE
 
@@ -175,9 +175,9 @@ def gen_proof(
     aux_trace = np.zeros(stark_info.map_total_n, dtype=np.uint64)
 
     # <doc-anchor id="witness-commit">
-    computed_roots: list[MerkleRoot] = []
-    stage1_commitment = starks.commitStage(1, trace, aux_trace)
-    computed_roots.append(list(stage1_commitment))
+    commitments: list[MerkleRoot] = []
+    stage1_commitment = committer.commitStage(1, trace, aux_trace)
+    commitments.append(list(stage1_commitment))
 
     # === STAGE 0: Seed Fiat-Shamir Transcript ===
     # Three modes for transcript initialization:
@@ -255,27 +255,23 @@ def gen_proof(
     # <doc-anchor id="derive-stage2-challenges">
     # Derive stage 2 challenges from transcript (Fiat-Shamir).
     # Transcript state = hash of all prior commitments (verkey, stage1_commitment).
-    stage2_challenges = derive_challenges_for_stage(
-        transcript, stark_info.challenges_map, stage=2
-    )
+    stage2_challenges = derive_challenges_for_stage(transcript, stark_info.challenges_map, stage=2)
 
     # Calculate AIR-specific witness polynomials using stage-2 challenges
     # Dispatches to witness module for AIR (SimpleLeft, Lookup2_12, etc.)
     # Writes: im_cluster, gsum columns into aux_trace buffer
     # Returns: airgroup_values (cross-AIR boundary values for VADCOP)
-    airgroup_values = calculate_witness(
-        stark_info, trace, aux_trace, const_pols, stage2_challenges
-    )
+    airgroup_values = calculate_witness(stark_info, trace, aux_trace, const_pols, stage2_challenges)
 
     # <doc-anchor id="intermediate-commit">
     # Commit stage 2 witness polynomials via Merkle tree
     # Input: aux_trace buffer (stage-2 columns now populated)
     # Output: stage2_commitment = Merkle root (4 field elements)
-    stage2_commitment = starks.commitStage(2, trace, aux_trace)
-    # computed_roots tracks roots for the final proof output (the verifier reads them).
+    stage2_commitment = committer.commitStage(2, trace, aux_trace)
+    # commitments tracks roots for the final proof output (the verifier reads them).
     # transcript is a one-way Fiat-Shamir accumulator — roots are absorbed into it
     # but cannot be retrieved later, so we store them separately for proof assembly.
-    computed_roots.append(list(stage2_commitment))
+    commitments.append(list(stage2_commitment))
     transcript.put(stage2_commitment)
 
     # === STAGE Q: Quotient Polynomial ===
@@ -300,7 +296,7 @@ def gen_proof(
     # Evaluates constraint polynomial C(x) via ConstraintModule
     # Divides by zerofier Z_H(x) to get Q(x) with degree < N_extended
     # Writes result into aux_trace buffer at quotient section offset
-    starks.calculateQuotientPolynomial(
+    committer.calculateQuotientPolynomial(
         trace, aux_trace, const_pols_extended, all_challenges, prover_helpers, airgroup_values
     )
 
@@ -308,8 +304,8 @@ def gen_proof(
     # Commit quotient polynomial via Merkle tree
     # Input: aux_trace buffer (quotient section now populated)
     # Output: stageQ_commitment = Merkle root (4 field elements)
-    stageQ_commitment = starks.commitStage(q_stage, trace, aux_trace)
-    computed_roots.append(list(stageQ_commitment))
+    stageQ_commitment = committer.commitStage(q_stage, trace, aux_trace)
+    commitments.append(list(stageQ_commitment))
     transcript.put(stageQ_commitment)
 
     # === STAGE EVALS: Polynomial Evaluations ===
@@ -337,7 +333,7 @@ def gen_proof(
     # For each EvMap entry: evaluates polynomial(type, id) at xi^row_offset
     # Examples: cm1[0](xi), cm2[3](xi*omega), const[1](xi*omega^2)
     # Returns: evals array (n_evals * 3 field elements, interleaved)
-    evals = _compute_all_evals(stark_info, starks, trace, aux_trace, const_pols_extended, xi_coeffs)
+    evals = _compute_all_evals(stark_info, committer, trace, aux_trace, const_pols_extended, xi_coeffs)
 
     # Feed evaluations into transcript for next round
     if not stark_info.stark_struct.hash_commits:
@@ -372,7 +368,7 @@ def gen_proof(
     # f(x) = vf1 * Q(x) + vf2 * boundary_terms(x) + evaluation_terms(x)
     # This polynomial proves that Q has the claimed evaluations and low degree
     # Result written into aux_trace buffer at FRI section offset
-    starks.calculateFRIPolynomial(
+    committer.calculateFRIPolynomial(
         trace, aux_trace, const_pols_extended, evals, xi, vf1, vf2, prover_helpers
     )
 
@@ -417,15 +413,15 @@ def gen_proof(
 
     # Collect Merkle proofs for constant polynomials at each query index
     # Empty if no constant polynomials exist
-    const_query_proofs = _collect_const_query_proofs(starks, query_indices)
+    const_query_proofs = _collect_const_query_proofs(committer, query_indices)
 
     # Collect Merkle proofs for all committed polynomial stages (1, 2, Q)
     # Each stage has its own Merkle tree; verifier checks root matches committed value
-    stage_query_proofs = _collect_stage_query_proofs(starks, stark_info, query_indices)
+    stage_query_proofs = _collect_stage_query_proofs(committer, stark_info, query_indices)
 
     # Collect last-level Merkle nodes if last_level_verification > 0
     # Optimization: send bottom k levels of Merkle tree to reduce proof size
-    last_level_nodes = _collect_last_level_nodes(starks, stark_info, fri_pcs)
+    last_level_nodes = _collect_last_level_nodes(committer, stark_info, fri_pcs)
 
     # === ASSEMBLE PROOF ===
 
@@ -435,7 +431,7 @@ def gen_proof(
         "air_values": air_values,
         "nonce": fri_proof.nonce,
         "fri_proof": fri_proof,
-        "roots": computed_roots,
+        "roots": commitments,
         "stage_query_proofs": stage_query_proofs,
         "const_query_proofs": const_query_proofs,
         "query_indices": query_indices,
@@ -448,7 +444,7 @@ def gen_proof(
 
 def _compute_all_evals(
     stark_info: StarkInfo,
-    starks: Starks,
+    committer: PolynomialCommitter,
     trace: np.ndarray,
     aux_trace: np.ndarray,
     const_pols_extended: np.ndarray,
@@ -462,7 +458,7 @@ def _compute_all_evals(
 
     Args:
         stark_info: AIR specification with opening points and ev_map configuration
-        starks: Stage orchestrator with NTT-based evaluation methods
+        committer: Stage orchestrator with NTT-based evaluation methods
         trace: Stage 1 trace buffer (committed polynomials on base domain)
         aux_trace: Auxiliary trace buffer (stages 2+, quotient on extended domain)
         const_pols_extended: Constant polynomials on extended domain
@@ -488,10 +484,10 @@ def _compute_all_evals(
         batch = stark_info.opening_points[i : i + batch_size]
         # Compute Lagrange basis evaluations L_j(xi^offset) for this batch of offsets
         # These are shared across all polynomials evaluated at the same offset
-        lagrange_evaluations = starks.computeLEv(xi, batch)
+        lagrange_evaluations = committer.computeLEv(xi, batch)
         # Evaluate all polynomials in ev_map that use offsets in this batch
         # Results written directly into evals array at appropriate indices
-        starks.computeEvals(
+        committer.computeEvals(
             trace, aux_trace, const_pols_extended, evals, lagrange_evaluations, batch
         )
 
@@ -501,29 +497,29 @@ def _compute_all_evals(
 # --- Query Proof Collection ---
 
 
-def _collect_const_query_proofs(starks: Starks, query_indices: list[int]) -> list[QueryProof]:
+def _collect_const_query_proofs(committer: PolynomialCommitter, query_indices: list[int]) -> list[QueryProof]:
     """Collect Merkle query proofs for constant polynomials.
 
     Args:
-        starks: Stage orchestrator with const_tree (if AIR has constants)
+        committer: Stage orchestrator with const_tree (if AIR has constants)
         query_indices: FRI-selected random indices to prove
 
     Returns:
         List of QueryProof objects (one per query index), empty if no constants.
         Each QueryProof contains: evaluation values and Merkle authentication path.
     """
-    if starks.const_tree is None:
+    if committer.const_tree is None:
         return []
-    return [starks.get_const_query_proof(idx, elem_size=1) for idx in query_indices]
+    return [committer.get_const_query_proof(idx, elem_size=1) for idx in query_indices]
 
 
 def _collect_stage_query_proofs(
-    starks: Starks, stark_info: StarkInfo, query_indices: list[int]
+    committer: PolynomialCommitter, stark_info: StarkInfo, query_indices: list[int]
 ) -> dict[StageNum, list[QueryProof]]:
     """Collect Merkle query proofs for all polynomial commitment stages.
 
     Args:
-        starks: Stage orchestrator with stage_trees dict
+        committer: Stage orchestrator with stage_trees dict
         stark_info: AIR specification (n_stages determines which stages exist)
         query_indices: FRI-selected random indices to prove
 
@@ -534,14 +530,14 @@ def _collect_stage_query_proofs(
     """
     result: dict[StageNum, list[QueryProof]] = {}
     for stage in range(1, stark_info.n_stages + 2):
-        if stage in starks.stage_trees:
-            tree = starks.stage_trees[stage]
+        if stage in committer.stage_trees:
+            tree = committer.stage_trees[stage]
             result[stage] = [tree.get_query_proof(idx, elem_size=1) for idx in query_indices]
     return result
 
 
 def _collect_last_level_nodes(
-    starks: Starks, stark_info: StarkInfo, fri_pcs: FriPcs
+    committer: PolynomialCommitter, stark_info: StarkInfo, fri_pcs: FriPcs
 ) -> dict[str, list[int]]:
     """Collect last-level Merkle nodes for all trees if verification is enabled.
 
@@ -549,7 +545,7 @@ def _collect_last_level_nodes(
     of each Merkle tree instead of individual authentication paths, reducing proof size.
 
     Args:
-        starks: Stage orchestrator with const_tree and stage_trees
+        committer: Stage orchestrator with const_tree and stage_trees
         stark_info: AIR specification with last_level_verification setting
         fri_pcs: FRI protocol instance with fri_trees from recursive folding
 
@@ -561,15 +557,15 @@ def _collect_last_level_nodes(
     result: dict[str, list[int]] = {}
 
     # Collect constant polynomial tree nodes
-    if starks.const_tree is not None:
-        nodes = starks.const_tree.get_last_level_nodes()
+    if committer.const_tree is not None:
+        nodes = committer.const_tree.get_last_level_nodes()
         if nodes:
             result["const"] = nodes
 
     # Collect stage commitment tree nodes (stages 1, 2, Q)
     for stage in range(1, stark_info.n_stages + 2):
-        if stage in starks.stage_trees:
-            nodes = starks.stage_trees[stage].get_last_level_nodes()
+        if stage in committer.stage_trees:
+            nodes = committer.stage_trees[stage].get_last_level_nodes()
             if nodes:
                 result[f"cm{stage}"] = nodes
 
