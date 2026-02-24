@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 from poseidon2_ffi import linear_hash
 
-from primitives.field import FF3, FIELD_EXTENSION_DEGREE, ff3_from_interleaved_numpy
+from primitives.field import FF3, FIELD_EXTENSION_DEGREE, ff3_coeffs, ff3_from_interleaved_numpy
 from primitives.merkle_tree import HASH_SIZE, QueryProof
 from primitives.transcript import Transcript
 from protocol.air_config import AirConfig, ProverHelpers
 from protocol.pcs import FriPcs, FriPcsConfig
-from protocol.stages import Starks, calculate_witness_with_module
+from protocol.stages import Starks, calculate_witness
 from protocol.stark_info import StarkInfo
 from protocol.utils.challenge_utils import derive_global_challenge
 
@@ -94,29 +94,6 @@ def derive_challenges_for_stage(
     return result
 
 
-def challenges_dict_to_array(
-    challenges_dict: ChallengesDict, challenges_map: list["ChallengeMap"]
-) -> np.ndarray:
-    """Convert a challenges dict to interleaved numpy array.
-
-    Args:
-        challenges_dict: Dict mapping name -> FF3
-        challenges_map: Challenge metadata for ordering
-
-    Returns:
-        Numpy array in interleaved format [c0, c1, c2, ...]
-    """
-    from primitives.field import ff3_coeffs
-
-    n_challenges = len(challenges_map)
-    result = np.zeros(n_challenges * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
-    for i, cm in enumerate(challenges_map):
-        if cm.name in challenges_dict:
-            coeffs = ff3_coeffs(challenges_dict[cm.name])
-            result[i * 3 : (i + 1) * 3] = coeffs
-    return result
-
-
 # --- Main Entry Point ---
 
 
@@ -126,10 +103,8 @@ def gen_proof(
     const_pols: np.ndarray,
     const_pols_extended: np.ndarray,
     public_inputs: np.ndarray | None = None,
-    skip_challenge_derivation: bool = False,
     global_challenge: list[int] | None = None,
     compute_global_challenge: bool = True,
-    injected_challenges: np.ndarray | None = None,
 ) -> dict:
     """Generate complete STARK proof.
 
@@ -139,14 +114,12 @@ def gen_proof(
         const_pols: Constant polynomials on base domain
         const_pols_extended: Constant polynomials on extended domain
         public_inputs: Public inputs array (optional)
-        skip_challenge_derivation: Skip challenge derivation (testing)
         global_challenge: Pre-computed global challenge for VADCOP mode.
             If provided (3 field elements), uses directly (external VADCOP).
             If None, computed internally or uses non-VADCOP mode.
         compute_global_challenge: When global_challenge is None:
             If True: Compute via lattice expansion (VADCOP internal)
-            If False: Use simpler verkey+publics+root1 seeding (non-VADCOP)
-        injected_challenges: Pre-populated challenge array (testing only)
+            If False: Use simpler verkey+publics+stage1_commitment seeding (non-VADCOP)
 
     Returns:
         Dictionary containing serialized proof.
@@ -154,24 +127,13 @@ def gen_proof(
     Notes:
         - External VADCOP: Uses externally-provided global_challenge
         - Internal VADCOP: Computes global_challenge via 368-element lattice expansion
-        - Non-VADCOP: Seeds transcript with verkey + publics + root1 directly
+        - Non-VADCOP: Seeds transcript with verkey + publics + stage1_commitment directly
         - For byte-identical proofs with C++ proofman, use internal or external VADCOP
     """
-    # DOCTASK: say what this does
+    # StarkInfo: AIR polynomial maps, challenge configuration, and protocol parameters
     stark_info = air_config.stark_info
 
     # === INITIALIZATION ===
-
-    # Allocate shared mutable buffers used across multiple stages
-
-    # Master challenges array: Accumulated stage-by-stage via Fiat-Shamir
-    # stark_info.challenges_map: List[ChallengeMap] defining challenge names and stages
-    # Each challenge is an FF3 element (3 field elements)
-    n_challenges = len(stark_info.challenges_map)
-    challenges = np.zeros(n_challenges * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
-    # QUESTION: are these injected challenges needed or are they just diagnostic?
-    if injected_challenges is not None:
-        challenges[: len(injected_challenges)] = injected_challenges
 
     # ProverHelpers contains precomputed tables for constraint evaluation
     # Includes: L1(x) roots, zerofier roots, NTT twiddle factors
@@ -194,7 +156,8 @@ def gen_proof(
     # verkey = Merkle root (4 field elements) serving as verification key
     # Used in non-VADCOP mode to seed transcript
     verkey = None
-    # QUESTION: why do we need this task?
+    # Build constant polynomial Merkle tree to derive verkey (the verification key).
+    # If the AIR has no constant polynomials, use a zero verkey instead.
     if const_pols_extended is not None and len(const_pols_extended) > 0:
         verkey = starks.build_const_tree(const_pols_extended)
     else:
@@ -204,7 +167,7 @@ def gen_proof(
 
     # Commit stage 1 witness trace via Merkle tree
     # Input: trace buffer (N * n_cm1_cols, already populated by caller)
-    # Output: root1 = Merkle root (4 field elements)
+    # Output: stage1_commitment = Merkle root (4 field elements)
 
     # Auxiliary trace buffer: Written by stages 2, Q, and FRI at different offsets
     # stark_info.map_total_n = total size in field elements for all auxiliary polynomials
@@ -213,15 +176,17 @@ def gen_proof(
 
     # <doc-anchor id="witness-commit">
     computed_roots: list[MerkleRoot] = []
-    root1 = starks.commitStage(1, trace, aux_trace)
-    computed_roots.append(list(root1))
+    stage1_commitment = starks.commitStage(1, trace, aux_trace)
+    computed_roots.append(list(stage1_commitment))
 
     # === STAGE 0: Seed Fiat-Shamir Transcript ===
     # Three modes for transcript initialization:
-    # QUESTION: which of these modes do we actually use? Which do we actually need?
+    # Mode 2 is used for all test AIRs and produces byte-identical proofs with C++.
+    # Mode 1 is for multi-AIR VADCOP where a coordinator provides the global challenge.
+    # Mode 3 (Standalone) is available but not byte-identical with C++ VADCOP proofs.
     # 1. External VADCOP: Use externally-provided global_challenge
     # 2. Internal VADCOP: Compute global_challenge via lattice expansion
-    # 3. Standalone: Seed with verkey + publics + root1 directly
+    # 3. Standalone: Seed with verkey + publics + stage1_commitment directly
 
     # Mode 1: External VADCOP (global_challenge provided by coordinator)
     # <doc-anchor id="transcript-seed-vadcop">
@@ -232,7 +197,7 @@ def gen_proof(
 
     # Mode 2: Internal VADCOP (compute global_challenge ourselves)
     elif compute_global_challenge:
-        # Lattice expansion: Hash (verkey, publics, root1, air_values, proof_values)
+        # Lattice expansion: Hash (verkey, publics, stage1_commitment, air_values, proof_values)
         # into a 368-element challenge vector (default lattice_size)
         # This binds all per-AIR stage-1 contributions to a shared global challenge
         lattice_size = DEFAULT_LATTICE_SIZE
@@ -252,7 +217,7 @@ def gen_proof(
         computed_challenge = derive_global_challenge(
             stark_info=stark_info,
             publics=public_inputs,
-            root1=list(root1),
+            root1=list(stage1_commitment),
             verkey=verkey,
             air_values=air_values_stage1,
             proof_values_stage1=proof_values_stage1,
@@ -281,51 +246,37 @@ def gen_proof(
                 transcript.put(publics_transcript.get_state(4))
             else:
                 transcript.put(public_inputs[: stark_info.n_publics].tolist())
-        transcript.put(list(root1))
+        transcript.put(list(stage1_commitment))
 
     # === STAGE 2: Intermediate Polynomials ===
     # Generate witness polynomials that depend on stage-1 randomness
     # Examples: im_cluster (lookup multiplicity), gsum (bus accumulator)
 
     # <doc-anchor id="derive-stage2-challenges">
-    # Derive stage 2 challenges from transcript (Fiat-Shamir)
-    # Transcript state = hash of all prior commitments (verkey, root1)
-    stage2_challenges: ChallengesDict = {}
-    if not skip_challenge_derivation:
-        stage2_challenges = derive_challenges_for_stage(
-            transcript, stark_info.challenges_map, stage=2
-        )
-        # Store in master challenges array for downstream use
-        for i, cm in enumerate(stark_info.challenges_map):
-            if cm.name in stage2_challenges:
-                from primitives.field import ff3_coeffs
-
-                coeffs = ff3_coeffs(stage2_challenges[cm.name])
-                challenges[i * 3 : (i + 1) * 3] = coeffs
-    else:
-        # Testing mode: extract from pre-injected challenges
-        for i, cm in enumerate(stark_info.challenges_map):
-            if cm.stage == 2:
-                c0 = int(challenges[i * 3])
-                c1 = int(challenges[i * 3 + 1])
-                c2 = int(challenges[i * 3 + 2])
-                stage2_challenges[cm.name] = FF3.Vector([c2, c1, c0])
+    # Derive stage 2 challenges from transcript (Fiat-Shamir).
+    # Transcript state = hash of all prior commitments (verkey, stage1_commitment).
+    stage2_challenges = derive_challenges_for_stage(
+        transcript, stark_info.challenges_map, stage=2
+    )
 
     # Calculate AIR-specific witness polynomials using stage-2 challenges
     # Dispatches to witness module for AIR (SimpleLeft, Lookup2_12, etc.)
     # Writes: im_cluster, gsum columns into aux_trace buffer
     # Returns: airgroup_values (cross-AIR boundary values for VADCOP)
-    airgroup_values = calculate_witness_with_module(
+    airgroup_values = calculate_witness(
         stark_info, trace, aux_trace, const_pols, stage2_challenges
     )
 
     # <doc-anchor id="intermediate-commit">
     # Commit stage 2 witness polynomials via Merkle tree
     # Input: aux_trace buffer (stage-2 columns now populated)
-    # Output: root2 = Merkle root (4 field elements)
-    root2 = starks.commitStage(2, trace, aux_trace)
-    computed_roots.append(list(root2))
-    transcript.put(root2)
+    # Output: stage2_commitment = Merkle root (4 field elements)
+    stage2_commitment = starks.commitStage(2, trace, aux_trace)
+    # computed_roots tracks roots for the final proof output (the verifier reads them).
+    # transcript is a one-way Fiat-Shamir accumulator — roots are absorbed into it
+    # but cannot be retrieved later, so we store them separately for proof assembly.
+    computed_roots.append(list(stage2_commitment))
+    transcript.put(stage2_commitment)
 
     # === STAGE Q: Quotient Polynomial ===
     # Prove that all AIR constraints are satisfied by computing Q(x) = C(x) / Z_H(x)
@@ -337,26 +288,10 @@ def gen_proof(
     # <doc-anchor id="derive-stageq-challenges">
     # Derive stage Q challenges (random linear combination coefficients)
     # Used to combine multiple constraint polynomials into single quotient
-    # Transcript state = hash of (verkey, root1, root2)
-    stageQ_challenges: ChallengesDict = {}
-    if not skip_challenge_derivation:
-        stageQ_challenges = derive_challenges_for_stage(
-            transcript, stark_info.challenges_map, stage=q_stage
-        )
-        for i, cm in enumerate(stark_info.challenges_map):
-            if cm.name in stageQ_challenges:
-                from primitives.field import ff3_coeffs
-
-                coeffs = ff3_coeffs(stageQ_challenges[cm.name])
-                challenges[i * 3 : (i + 1) * 3] = coeffs
-    else:
-        # Testing mode: extract from pre-injected challenges
-        for i, cm in enumerate(stark_info.challenges_map):
-            if cm.stage == q_stage:
-                c0 = int(challenges[i * 3])
-                c1 = int(challenges[i * 3 + 1])
-                c2 = int(challenges[i * 3 + 2])
-                stageQ_challenges[cm.name] = FF3.Vector([c2, c1, c0])
+    # Transcript state = hash of (verkey, stage1_commitment, stage2_commitment)
+    stageQ_challenges = derive_challenges_for_stage(
+        transcript, stark_info.challenges_map, stage=q_stage
+    )
 
     # Merge all challenges accumulated so far (stage 2 + stage Q)
     all_challenges = {**stage2_challenges, **stageQ_challenges}
@@ -372,10 +307,10 @@ def gen_proof(
     # <doc-anchor id="quotient-commit">
     # Commit quotient polynomial via Merkle tree
     # Input: aux_trace buffer (quotient section now populated)
-    # Output: rootQ = Merkle root (4 field elements)
-    rootQ = starks.commitStage(q_stage, trace, aux_trace)
-    computed_roots.append(list(rootQ))
-    transcript.put(rootQ)
+    # Output: stageQ_commitment = Merkle root (4 field elements)
+    stageQ_commitment = starks.commitStage(q_stage, trace, aux_trace)
+    computed_roots.append(list(stageQ_commitment))
+    transcript.put(stageQ_commitment)
 
     # === STAGE EVALS: Polynomial Evaluations ===
     # Evaluate all polynomials at random challenge point xi and its shifted variants
@@ -383,37 +318,18 @@ def gen_proof(
 
     # <doc-anchor id="derive-eval-challenges">
     # Derive evaluation point xi from transcript
-    # Transcript state = hash of (verkey, root1, root2, rootQ)
+    # Transcript state = hash of (verkey, stage1_commitment, stage2_commitment, stageQ_commitment)
     # xi is the primary evaluation challenge (stage_id == 0)
     xi: FF3 | None = None
     eval_stage = stark_info.n_stages + 2
-    if not skip_challenge_derivation:
-        eval_challenges = derive_challenges_for_stage(
-            transcript, stark_info.challenges_map, stage=eval_stage
-        )
-        for i, cm in enumerate(stark_info.challenges_map):
-            if cm.name in eval_challenges:
-                from primitives.field import ff3_coeffs
-
-                coeffs = ff3_coeffs(eval_challenges[cm.name])
-                challenges[i * 3 : (i + 1) * 3] = coeffs
-                if cm.stage_id == 0:
-                    xi = eval_challenges[cm.name]
-        all_challenges.update(eval_challenges)
-    else:
-        # Testing mode: extract from pre-injected challenges
-        for i, cm in enumerate(stark_info.challenges_map):
-            if cm.stage == eval_stage:
-                c0 = int(challenges[i * 3])
-                c1 = int(challenges[i * 3 + 1])
-                c2 = int(challenges[i * 3 + 2])
-                ch = FF3.Vector([c2, c1, c0])
-                all_challenges[cm.name] = ch
-                if cm.stage_id == 0:
-                    xi = ch
-
-    # Convert xi to list of coefficients for polynomial evaluation functions
-    from primitives.field import ff3_coeffs
+    eval_challenges = derive_challenges_for_stage(
+        transcript, stark_info.challenges_map, stage=eval_stage
+    )
+    all_challenges.update(eval_challenges)
+    for cm in stark_info.challenges_map:
+        if cm.stage == eval_stage and cm.stage_id == 0:
+            xi = eval_challenges[cm.name]
+            break
 
     xi_coeffs = ff3_coeffs(xi)
 
@@ -438,26 +354,13 @@ def gen_proof(
     # Recursively commits to folded polynomials until reaching constant-size final polynomial
 
     # Derive FRI folding challenges (vf1, vf2) from transcript
-    # Transcript state = hash of (verkey, root1, root2, rootQ, evals)
+    # Transcript state = hash of (verkey, stage1_commitment, stage2_commitment, stageQ_commitment, evals)
     # vf1, vf2 are used for random linear combination in FRI polynomial construction
     fri_stage = stark_info.n_stages + 3
-    if not skip_challenge_derivation:
-        fri_challenges = derive_challenges_for_stage(
-            transcript, stark_info.challenges_map, stage=fri_stage
-        )
-        for i, cm in enumerate(stark_info.challenges_map):
-            if cm.name in fri_challenges:
-                coeffs = ff3_coeffs(fri_challenges[cm.name])
-                challenges[i * 3 : (i + 1) * 3] = coeffs
-        all_challenges.update(fri_challenges)
-    else:
-        # Testing mode: extract from pre-injected challenges
-        for i, cm in enumerate(stark_info.challenges_map):
-            if cm.stage == fri_stage:
-                c0 = int(challenges[i * 3])
-                c1 = int(challenges[i * 3 + 1])
-                c2 = int(challenges[i * 3 + 2])
-                all_challenges[cm.name] = FF3.Vector([c2, c1, c0])
+    fri_challenges = derive_challenges_for_stage(
+        transcript, stark_info.challenges_map, stage=fri_stage
+    )
+    all_challenges.update(fri_challenges)
 
     # Extract standard FRI challenges by name
     # vf1: First folding coefficient (combines polynomial with shifted evaluations)
