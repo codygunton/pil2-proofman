@@ -58,18 +58,10 @@ def _get_proof_values_stage1(stark_info: StarkInfo) -> list[int]:
     """Extract stage 1 proof_values for global_challenge computation.
 
     C++ reference: challenge_accumulation.rs:96-99
-    Stage 1 proof values are included if not empty.
-    For simple AIRs, this returns an empty list.
+    proofValuesMap is empty for all currently-supported AIRs, so this
+    always returns []. When non-empty AIRs are added, implement extraction here.
     """
-    result = []
-    # proofValuesMap is typically empty for simple AIRs
-    # When populated, extract stage 1 values
-    if hasattr(stark_info, "proofValuesMap") and stark_info.proofValuesMap:
-        for pv in stark_info.proofValuesMap:
-            if pv.get("stage") == 1:
-                # Would extract from proof_values
-                pass
-    return result
+    return []
 
 
 def derive_challenges_for_stage(
@@ -86,11 +78,11 @@ def derive_challenges_for_stage(
         Dict mapping challenge name to FF3 value
     """
     result: ChallengesDict = {}
-    for cm in challenges_map:
-        if cm.stage == stage:
+    for challenge_spec in challenges_map:
+        if challenge_spec.stage == stage:
             challenge = transcript.get_field()  # Returns [c0, c1, c2]
             # Convert to FF3 (galois expects descending order)
-            result[cm.name] = FF3.Vector([challenge[2], challenge[1], challenge[0]])
+            result[challenge_spec.name] = FF3.Vector([challenge[2], challenge[1], challenge[0]])
     return result
 
 

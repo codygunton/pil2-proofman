@@ -49,7 +49,11 @@ AIR_CONFIGS = {
 
 
 def load_test_vectors(air_name: str) -> dict[str, Any] | None:
-    """Load test vectors for an AIR."""
+    """Load JSON test vectors for a named AIR.
+
+    Returns None if air_name is unknown or the test vector file has not been
+    generated yet (run generate-test-vectors.sh first).
+    """
     config = AIR_CONFIGS.get(air_name)
     if not config:
         return None
@@ -63,7 +67,11 @@ def load_test_vectors(air_name: str) -> dict[str, Any] | None:
 
 
 def load_air_config(air_name: str) -> AirConfig | None:
-    """Load AirConfig for an AIR including globalInfo.json."""
+    """Load AirConfig for a named AIR, including globalInfo if present.
+
+    Returns None if air_name is unknown or the proving key has not been built
+    (run setup.sh first).
+    """
     config = AIR_CONFIGS.get(air_name)
     if not config:
         return None
