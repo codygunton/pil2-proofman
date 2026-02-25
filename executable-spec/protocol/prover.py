@@ -193,7 +193,8 @@ def gen_proof(
     if global_challenge is not None:
         # Allocate air_values (may be populated externally or empty)
         air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
-        transcript.put(global_challenge[:3])
+        transcript_seed = list(global_challenge[:3])
+        transcript.put(transcript_seed)
 
     # Mode 2: Internal VADCOP (compute global_challenge ourselves)
     elif compute_global_challenge:
@@ -224,12 +225,16 @@ def gen_proof(
             lattice_size=lattice_size,
         )
 
-        transcript.put(computed_challenge[:3])
+        transcript_seed = list(computed_challenge[:3])
+        transcript.put(transcript_seed)
 
     # Mode 3: Standalone (no VADCOP aggregation)
     else:
         # Allocate air_values (may be empty but needed for proof assembly)
         air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
+
+        # No transcript seed — verifier reconstructs by seeding with verkey + publics + root1
+        transcript_seed = None
 
         # Seed transcript directly with verification key, public inputs, and stage-1 root
         # No lattice expansion - simpler but incompatible with C++ VADCOP proofs
@@ -436,6 +441,10 @@ def gen_proof(
         "const_query_proofs": const_query_proofs,
         "query_indices": query_indices,
         "last_level_nodes": last_level_nodes,
+        # Transcript seed used to initialize Fiat-Shamir (Modes 1 and 2).
+        # Pass this to stark_verify as global_challenge to reconstruct the transcript.
+        # None in Mode 3 (standalone): verifier seeds from verkey + publics + root1 directly.
+        "global_challenge": transcript_seed,
     }
 
 
