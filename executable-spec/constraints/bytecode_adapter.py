@@ -119,10 +119,10 @@ def _reconstruct_const_pols_extended(
         dim = pol_info.dim
 
         # Index = number of same-name constants with a lower stage_pos (mirrors cm_pols logic)
-        const_index = len([
-            other for other in stark_info.const_pols_map
-            if other.name == name and other.stage_pos < stage_pos
-        ])
+        const_index = 0
+        for other in stark_info.const_pols_map:
+            if other.name == name and other.stage_pos < stage_pos:
+                const_index += 1
         key = (name, const_index)
         if key not in data.constants:
             continue
@@ -247,10 +247,10 @@ def _build_buffers_from_verifier_data(
             name = pol_info.name
             # Count same-name entries before index ev.id (equivalent to stage_pos comparison
             # when the map is sorted by stage_pos, which is guaranteed by the compiler)
-            const_index = len([
-                other for other in stark_info.const_pols_map[:ev.id]
-                if other.name == name
-            ])
+            const_index = 0
+            for other in stark_info.const_pols_map[:ev.id]:
+                if other.name == name:
+                    const_index += 1
             key = (name, const_index, ev.row_offset)
         elif ev.type == EvMap.Type.custom:
             cc_pols = stark_info.custom_commits_map[ev.commit_id]

@@ -120,10 +120,10 @@ def _reconstruct_const_pols(
         dim = pol_info.dim
 
         # Index = number of same-name constants with a lower stage_pos (mirrors cm_pols logic)
-        const_index = len([
-            other for other in stark_info.const_pols_map
-            if other.name == name and other.stage_pos < stage_pos
-        ])
+        const_index = 0
+        for other in stark_info.const_pols_map:
+            if other.name == name and other.stage_pos < stage_pos:
+                const_index += 1
         key = (name, const_index)
         if key not in data.constants:
             continue

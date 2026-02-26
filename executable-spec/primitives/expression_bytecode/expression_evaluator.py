@@ -34,9 +34,11 @@ if TYPE_CHECKING:
 
 # --- Type Aliases ---
 
-# FastValue: either a uint64 ndarray (FF column) or a 3-tuple of uint64 ndarrays (FF3 columns).
-# Scalars are numpy uint64 scalars; arrays are shape (nrows_pack,).
-FastValue = np.ndarray | tuple  # FF1Col or (c0, c1, c2)
+# FastValue: a vectorized field element representing one batch of rows.
+# Base field (FF):  np.ndarray of shape (batch_size,), dtype=uint64
+#                   OR np.uint64 scalar (broadcast over the entire batch)
+# Extension field (FF3): tuple (c0, c1, c2), each component as above
+FastValue = np.ndarray | tuple  # FF column or (c0_col, c1_col, c2_col)
 
 # --- Constants ---
 
@@ -70,14 +72,43 @@ def _promote_ff_to_ff3(val: np.ndarray | np.uint64) -> tuple:
 
 
 def _ff3_mul_vecs(a: tuple, b: tuple) -> tuple:
-    """Element-wise FF3 multiply: (a0,a1,a2) * (b0,b1,b2) using the relation x³ = x+1."""
+    """Element-wise FF3 multiply: (a0,a1,a2) * (b0,b1,b2) using the relation x³ = x+1.
+
+    Formula (derived from x³ = x+1):
+        t  = a1*b2 + a2*b1
+        c0 = a0*b0 + t
+        c1 = a0*b1 + a1*b0 + t + a2*b2
+        c2 = a0*b2 + a1*b1 + a2*b0 + a2*b2
+    """
     a0, a1, a2 = a
     b0, b1, b2 = b
+
     t  = gl_add_vec(gl_mul_vec(a1, b2), gl_mul_vec(a2, b1))
     c0 = gl_add_vec(gl_mul_vec(a0, b0), t)
-    c1 = gl_add_vec(gl_add_vec(gl_add_vec(gl_mul_vec(a0, b1), gl_mul_vec(a1, b0)), t), gl_mul_vec(a2, b2))
-    c2 = gl_add_vec(gl_add_vec(gl_add_vec(gl_mul_vec(a0, b2), gl_mul_vec(a1, b1)), gl_mul_vec(a2, b0)), gl_mul_vec(a2, b2))
+
+    a0_b1 = gl_mul_vec(a0, b1)
+    a1_b0 = gl_mul_vec(a1, b0)
+    a2_b2 = gl_mul_vec(a2, b2)
+    c1 = gl_add_vec(gl_add_vec(gl_add_vec(a0_b1, a1_b0), t), a2_b2)
+
+    a0_b2 = gl_mul_vec(a0, b2)
+    a1_b1 = gl_mul_vec(a1, b1)
+    a2_b0 = gl_mul_vec(a2, b0)
+    c2 = gl_add_vec(gl_add_vec(gl_add_vec(a0_b2, a1_b1), a2_b0), a2_b2)
+
     return (c0, c1, c2)
+
+
+def _format_fast_value_for_debug(v: FastValue) -> object:
+    """Format a FastValue as a Python object suitable for debug tracing output."""
+    if _is_ff3(v):
+        c0, c1, c2 = v
+        if isinstance(c0, np.uint64):
+            return (int(c0), int(c1), int(c2))
+        return list(zip(c0.tolist(), c1.tolist(), c2.tolist()))
+    if isinstance(v, np.uint64):
+        return int(v)
+    return v.tolist() if hasattr(v, "tolist") else int(v)
 
 
 # --- Buffer Container ---
@@ -233,7 +264,7 @@ class ExpressionsCtx:
         self.n_publics = stark_info.n_publics
         self.n_challenges = len(stark_info.challenges_map)
         self.n_evals = len(stark_info.ev_map)
-        self.nrows_pack_ = min(NROWS_PACK, N)
+        self.rows_per_batch = min(NROWS_PACK, N)
 
     def set_xi(self, xis: np.ndarray) -> None:
         """Set xi evaluation points for FRI division.
@@ -279,6 +310,15 @@ class ExpressionsCtx:
         raise NotImplementedError("Subclass must implement calculate_expressions")
 
 
+# --- Arithmetic Operation Codes ---
+
+# These mirror the C++ expressions_bin.hpp arith_op encoding.
+_ARITH_OP_ADD      = 0
+_ARITH_OP_SUB      = 1
+_ARITH_OP_MUL      = 2
+_ARITH_OP_SUB_SWAP = 3  # b - a (operand order swapped)
+
+
 # --- Bytecode Evaluator ---
 
 class ExpressionsPack(ExpressionsCtx):
@@ -291,14 +331,14 @@ class ExpressionsPack(ExpressionsCtx):
         super().__init__(stark_info, prover_helpers, n_queries, verify=verify)
         self._expressions_bin = expressions_bin
         N = 1 << stark_info.stark_struct.n_bits
-        self.nrows_pack_ = min(nrows_pack, N)
+        self.rows_per_batch = min(nrows_pack, N)
 
     def calculate_expressions(self, buffers: BufferSet, dest: Dest,
                               domain_size: int, domain_extended: bool,
                               compilation_time: bool = False,
                               verify_constraints: bool = False, debug: bool = False) -> None:
         """Execute bytecode to evaluate constraint expressions."""
-        nrows_pack = min(self.nrows_pack_, domain_size)
+        nrows_pack = min(self.rows_per_batch, domain_size)
 
         # Select offset mappings for current domain
         map_offsets_exps = self.map_offsets_extended if domain_extended else self.map_offsets
@@ -412,7 +452,12 @@ class ExpressionsPack(ExpressionsCtx):
                         b_type = args[i_args + 5]
                         b_id = args[i_args + 6]
                         b_open = args[i_args + 7]
-                        op_names = {0: "add", 1: "sub", 2: "mul", 3: "sub(swap)"}
+                        op_names = {
+                            _ARITH_OP_ADD: "add",
+                            _ARITH_OP_SUB: "sub",
+                            _ARITH_OP_MUL: "mul",
+                            _ARITH_OP_SUB_SWAP: "sub(swap)",
+                        }
                         print(f"  [TRACE] op[{op_idx}]: type={op_type} "
                               f"arith={op_names.get(arith_op, arith_op)} dest={dest_slot} "
                               f"a=({a_type},{a_id},{a_open}) b=({b_type},{b_id},{b_open})")
@@ -428,16 +473,9 @@ class ExpressionsPack(ExpressionsCtx):
                     result = self._apply_op(arith_op, a, b)
 
                     if debug:
-                        def _dbg_val(v: FastValue) -> object:  # noqa: ANN001, ANN202
-                            if _is_ff3(v):
-                                c0, c1, c2 = v
-                                if isinstance(c0, np.uint64):
-                                    return (int(c0), int(c1), int(c2))
-                                return list(zip(c0.tolist(), c1.tolist(), c2.tolist()))
-                            if isinstance(v, np.uint64):
-                                return int(v)
-                            return v.tolist() if hasattr(v, 'tolist') else int(v)
-                        print(f"         a={_dbg_val(a)} b={_dbg_val(b)} -> {_dbg_val(result)}")
+                        print(f"         a={_format_fast_value_for_debug(a)}"
+                              f" b={_format_fast_value_for_debug(b)}"
+                              f" -> {_format_fast_value_for_debug(result)}")
 
                     if is_last:
                         param_results[k] = result
@@ -525,6 +563,7 @@ class ExpressionsPack(ExpressionsCtx):
                         pol_id = idx
                         break
                 if pol_id is not None:
+                    # Deferred import to avoid circular dependency: pol_map → stark_info → expression_evaluator
                     from primitives.pol_map import EvMap
                     for idx, e in enumerate(self.stark_info.ev_map):
                         if e.type == EvMap.Type.const_ and e.id == pol_id and e.opening_pos == opening_idx:
@@ -555,6 +594,7 @@ class ExpressionsPack(ExpressionsCtx):
                         pol_id = idx
                         break
                 if pol_id is not None:
+                    # Deferred import to avoid circular dependency: pol_map → stark_info → expression_evaluator
                     from primitives.pol_map import EvMap
                     for idx, e in enumerate(self.stark_info.ev_map):
                         if e.type == EvMap.Type.cm and e.id == pol_id and e.opening_pos == opening_idx:
@@ -626,10 +666,11 @@ class ExpressionsPack(ExpressionsCtx):
                 xi_c1 = np.uint64(int(self.xis[xi_base + 1]))
                 xi_c2 = np.uint64(int(self.xis[xi_base + 2]))
                 x_vals = np.asarray(self.prover_helpers.x[row:row + nrows_pack], dtype=np.uint64)
-                # diff = x - xi in FF3: x is base field so x_ff3 = (x, 0, 0)
+                # diff = x - xi in FF3: x lives in the base field, so x_ff3 = (x, 0, 0)
+                zero_component = np.zeros(nrows_pack, dtype=np.uint64)
                 diff_c0 = gl_sub_vec(x_vals, xi_c0)
-                diff_c1 = gl_sub_vec(np.zeros(nrows_pack, dtype=np.uint64), xi_c1)
-                diff_c2 = gl_sub_vec(np.zeros(nrows_pack, dtype=np.uint64), xi_c2)
+                diff_c1 = gl_sub_vec(zero_component, xi_c1)
+                diff_c2 = gl_sub_vec(zero_component, xi_c2)
                 return ff3_batch_inverse(diff_c0, diff_c1, diff_c2)
 
         # Custom commits
@@ -641,6 +682,7 @@ class ExpressionsPack(ExpressionsCtx):
 
             # Verify mode: load from evals
             if self.verify and domain_size == 1:
+                # Deferred import to avoid circular dependency: pol_map → stark_info → expression_evaluator
                 from primitives.pol_map import EvMap
                 for idx, e in enumerate(self.stark_info.ev_map):
                     if (e.type == EvMap.Type.custom and e.id == stage_pos
@@ -677,25 +719,43 @@ class ExpressionsPack(ExpressionsCtx):
     # --- Field Operations ---
 
     def _apply_op(self, op: int, a: FastValue, b: FastValue) -> FastValue:
-        """Apply arithmetic operation, promoting to FF3 if types mismatch."""
-        a_ext, b_ext = _is_ff3(a), _is_ff3(b)
-        if a_ext and not b_ext:
+        """Apply an arithmetic operation in GF(p) or GF(p³), promoting types as needed.
+
+        Args:
+            op: Arithmetic operation code (_ARITH_OP_ADD/SUB/MUL/SUB_SWAP).
+            a: Left operand (base field or extension field column).
+            b: Right operand (base field or extension field column).
+
+        Returns:
+            Result of the operation, in GF(p³) if either operand was in GF(p³).
+        """
+        a_is_extension = _is_ff3(a)
+        b_is_extension = _is_ff3(b)
+        if a_is_extension and not b_is_extension:
             b = _promote_ff_to_ff3(b)
-        elif b_ext and not a_ext:
+        elif b_is_extension and not a_is_extension:
             a = _promote_ff_to_ff3(a)
 
         if not _is_ff3(a):
-            if op == 0:    return gl_add_vec(a, b)
-            if op == 1:    return gl_sub_vec(a, b)
-            if op == 2:    return gl_mul_vec(a, b)
-            if op == 3:    return gl_sub_vec(b, a)
+            if op == _ARITH_OP_ADD:
+                return gl_add_vec(a, b)
+            if op == _ARITH_OP_SUB:
+                return gl_sub_vec(a, b)
+            if op == _ARITH_OP_MUL:
+                return gl_mul_vec(a, b)
+            if op == _ARITH_OP_SUB_SWAP:
+                return gl_sub_vec(b, a)
         else:
             a0, a1, a2 = a
             b0, b1, b2 = b
-            if op == 0:    return (gl_add_vec(a0, b0), gl_add_vec(a1, b1), gl_add_vec(a2, b2))
-            if op == 1:    return (gl_sub_vec(a0, b0), gl_sub_vec(a1, b1), gl_sub_vec(a2, b2))
-            if op == 2:    return _ff3_mul_vecs(a, b)
-            if op == 3:    return (gl_sub_vec(b0, a0), gl_sub_vec(b1, a1), gl_sub_vec(b2, a2))
+            if op == _ARITH_OP_ADD:
+                return (gl_add_vec(a0, b0), gl_add_vec(a1, b1), gl_add_vec(a2, b2))
+            if op == _ARITH_OP_SUB:
+                return (gl_sub_vec(a0, b0), gl_sub_vec(a1, b1), gl_sub_vec(a2, b2))
+            if op == _ARITH_OP_MUL:
+                return _ff3_mul_vecs(a, b)
+            if op == _ARITH_OP_SUB_SWAP:
+                return (gl_sub_vec(b0, a0), gl_sub_vec(b1, a1), gl_sub_vec(b2, a2))
         raise ValueError(f"Invalid operation: {op}")
 
     def _multiply_results(self, a: FastValue, b: FastValue) -> FastValue:
@@ -710,12 +770,28 @@ class ExpressionsPack(ExpressionsCtx):
         return _ff3_mul_vecs(a, b)
 
     def _store_result(self, dest: Dest, result: FastValue, row: int, nrows_pack: int) -> None:
-        """Store result to destination buffer. Type detected from result."""
-        is_ext = _is_ff3(result)
-        offset = dest.offset if dest.offset != 0 else (FIELD_EXTENSION_DEGREE if is_ext else 1)
-        base_indices = (np.arange(nrows_pack, dtype=np.intp) + row) * offset
+        """Store a batch result into the destination buffer.
 
-        if not is_ext:
+        Args:
+            dest: Destination specification including the output array and stride.
+                  If dest.offset is zero, the stride is inferred from the result type
+                  (FIELD_EXTENSION_DEGREE for FF3, 1 for base field).
+            result: Computed column values for the current row batch.
+            row: Starting row index of this batch.
+            nrows_pack: Number of rows in this batch.
+        """
+        result_is_extension = _is_ff3(result)
+
+        if dest.offset != 0:
+            stride = dest.offset
+        elif result_is_extension:
+            stride = FIELD_EXTENSION_DEGREE
+        else:
+            stride = 1
+
+        base_indices = (np.arange(nrows_pack, dtype=np.intp) + row) * stride
+
+        if not result_is_extension:
             dest.dest[base_indices] = np.asarray(result, dtype=np.uint64)
         else:
             c0, c1, c2 = result
