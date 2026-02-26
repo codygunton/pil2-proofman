@@ -1,23 +1,22 @@
-"""Multi-AIR Stage-1 coordination for the Simple pilout.
+"""Multi-AIR proving coordination for the Simple pilout.
 
 The Simple pilout contains five AIRs: SimpleLeft, SimpleRight, U8Air, U16Air,
 SpecifiedRanges. C++ proofman proves all five simultaneously and derives the
 global_challenge by element-wise accumulating each AIR's Poseidon2 lattice
 contribution before any AIR advances to Stage 2.
 
-prove_simple_pilout_stage1() replicates this protocol step, enabling
-byte-identical proof comparison between Python and C++.
+prove_simple_pilout() implements the full protocol, producing byte-identical
+proofs to C++ proofman.
 
 Usage::
 
-    from protocol.simple_pilout import AIRStage1Data, prove_simple_pilout_stage1
+    from protocol.simple_pilout import AIRProveData, prove_simple_pilout
 
-    result = prove_simple_pilout_stage1({
-        'SimpleLeft': AIRStage1Data(air_config=..., trace=..., ...),
+    proofs = prove_simple_pilout({
+        'SimpleLeft': AIRProveData(air_config=..., trace=..., ...),
         ...
     })
-    global_challenge = result.global_challenge
-    # Then call gen_proof(..., global_challenge=global_challenge) for each AIR
+    # proofs['SimpleLeft'] is the full proof dict for that AIR
 """
 
 from __future__ import annotations
@@ -27,6 +26,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from protocol.air_config import AirConfig
+from protocol.prover import _commit_stage1, _gen_proof_stage2_plus
 from protocol.stages import PolynomialCommitter
 from protocol.utils.challenge_utils import (
     calculate_internal_contribution,
@@ -54,6 +54,78 @@ class SimplePiloutStage1Result:
     verkeys: dict[str, list[int]]             # air_name → 4-element verkey
     stage1_commitments: dict[str, list[int]]  # air_name → 4-element root1
     global_challenge: list[int]               # 3-element cubic extension challenge
+
+
+@dataclass
+class AIRProveData:
+    """All data needed to fully prove one AIR in the Simple pilout."""
+
+    air_config: AirConfig
+    trace: np.ndarray
+    const_pols: np.ndarray
+    const_pols_extended: np.ndarray
+    public_inputs: np.ndarray | None = None
+
+
+def prove_simple_pilout(
+    air_data: dict[str, AIRProveData],
+) -> dict[str, dict]:
+    """Prove all Simple pilout AIRs with the shared multi-AIR global challenge.
+
+    Implements the full C++ proofman VADCOP protocol:
+      1. Commit Stage 1 for all AIRs (exactly once per AIR).
+      2. Compute each AIR's Poseidon2 lattice contribution from (verkey, root1).
+      3. Accumulate contributions element-wise → shared global challenge.
+      4. Run Stage 2+ for each AIR using the shared challenge.
+
+    Args:
+        air_data: Dict mapping AIR name → AIRProveData for all five Simple AIRs.
+
+    Returns:
+        Dict mapping AIR name → proof dict (same structure as gen_proof() returns).
+    """
+    # Stage 1: commit all AIRs and collect lattice contributions
+    stage1_cache: dict[str, tuple] = {}
+    contributions: list[list[int]] = []
+
+    for air_name, data in air_data.items():
+        verkey, root1, aux_trace, commitments, committer = _commit_stage1(
+            data.air_config, data.trace, data.const_pols_extended
+        )
+        stage1_cache[air_name] = (verkey, root1, aux_trace, commitments, committer)
+
+        contribution = calculate_internal_contribution(
+            stark_info=data.air_config.stark_info,
+            verkey=verkey,
+            root1=root1,
+            air_values=[],   # All Simple AIRs have no air_values
+            lattice_size=LATTICE_SIZE,
+        )
+        contributions.append(contribution)
+
+    # Derive shared global challenge from all AIR contributions
+    global_challenge = derive_global_challenge_multi_air(
+        publics=[],
+        n_publics=0,
+        proof_values_stage1=[],
+        contributions=contributions,
+        transcript_arity=TRANSCRIPT_ARITY,
+        merkle_tree_custom=False,
+        lattice_size=LATTICE_SIZE,
+    )
+    transcript_seed = list(global_challenge[:3])
+
+    # Stage 2+: prove each AIR using the shared challenge
+    proofs: dict[str, dict] = {}
+    for air_name, data in air_data.items():
+        verkey, root1, aux_trace, commitments, committer = stage1_cache[air_name]
+        air_values = np.zeros(data.air_config.stark_info.air_values_size, dtype=np.uint64)
+        proofs[air_name] = _gen_proof_stage2_plus(
+            data.air_config, data.trace, data.const_pols, data.const_pols_extended,
+            aux_trace, commitments, transcript_seed, committer, air_values,
+        )
+
+    return proofs
 
 
 def prove_simple_pilout_stage1(

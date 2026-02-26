@@ -86,164 +86,99 @@ def derive_challenges_for_stage(
     return result
 
 
-# --- Main Entry Point ---
+# --- Stage Helpers ---
 
 
-def gen_proof(
+def _commit_stage1(
     air_config: AirConfig,
     trace: np.ndarray,
-    const_pols: np.ndarray,
     const_pols_extended: np.ndarray,
-    public_inputs: np.ndarray | None = None,
-    global_challenge: list[int] | None = None,
-    compute_global_challenge: bool = True,
-) -> dict:
-    """Generate complete STARK proof.
+) -> tuple[list[int], list[int], np.ndarray, list[MerkleRoot], PolynomialCommitter]:
+    """Commit stage-1 witness trace and build constant polynomial tree.
+
+    Called by gen_proof() and prove_simple_pilout() to obtain root1 and verkey
+    for global challenge derivation before running stages 2 through FRI.
 
     Args:
-        air_config: AIR configuration with stark_info and global_info
+        air_config: AIR configuration with stark_info
         trace: Stage 1 witness trace buffer (N * cm1_cols)
-        const_pols: Constant polynomials on base domain
         const_pols_extended: Constant polynomials on extended domain
-        public_inputs: Public inputs array (optional)
-        global_challenge: Pre-computed global challenge for VADCOP mode.
-            If provided (3 field elements), uses directly (external VADCOP).
-            If None, computed internally or uses non-VADCOP mode.
-        compute_global_challenge: When global_challenge is None:
-            If True: Compute via lattice expansion (VADCOP internal)
-            If False: Use simpler verkey+publics+stage1_commitment seeding (non-VADCOP)
 
     Returns:
-        Dictionary containing serialized proof.
-
-    Notes:
-        - External VADCOP: Uses externally-provided global_challenge
-        - Internal VADCOP: Computes global_challenge via 368-element lattice expansion
-        - Non-VADCOP: Seeds transcript with verkey + publics + stage1_commitment directly
-        - For byte-identical proofs with C++ proofman, use internal or external VADCOP
+        Tuple (verkey, root1, aux_trace, commitments, committer) where:
+            verkey: Merkle root of constant polynomial tree (4 field elements)
+            root1: Stage 1 Merkle commitment root (4 field elements)
+            aux_trace: Zeroed auxiliary trace buffer for stages 2+
+            commitments: List containing [root1] for proof assembly
+            committer: PolynomialCommitter with const_tree and stage_trees[1] populated
     """
-    # StarkInfo: AIR polynomial maps, challenge configuration, and protocol parameters
     stark_info = air_config.stark_info
-
-    # === INITIALIZATION ===
-
-    # ProverHelpers contains precomputed tables for constraint evaluation
-    # Includes: L1(x) roots, zerofier roots, NTT twiddle factors
-    prover_helpers = ProverHelpers.from_stark_info(stark_info, pil1=False)
 
     # PolynomialCommitter orchestrates polynomial commitment via Merkle trees
     # Manages: constant tree, stage trees (1, 2, Q), and FRI trees
     committer = PolynomialCommitter(air_config)
 
-    # Initialize Fiat-Shamir transcript (Poseidon2-based)
-    # Converts commitments into verifier challenges deterministically
-    transcript = Transcript(
-        arity=stark_info.stark_struct.transcript_arity,
-        custom=stark_info.stark_struct.merkle_tree_custom,
-    )
-
-    # === STAGE 0: Initialize Constant Polynomials and Transcript ===
-
     # Build Merkle tree over constant polynomials (immutable AIR parameters)
     # verkey = Merkle root (4 field elements) serving as verification key
-    # Used in non-VADCOP mode to seed transcript
-    verkey = None
-    # Build constant polynomial Merkle tree to derive verkey (the verification key).
-    # If the AIR has no constant polynomials, use a zero verkey instead.
     if const_pols_extended is not None and len(const_pols_extended) > 0:
         verkey = committer.build_const_tree(const_pols_extended)
     else:
         verkey = [0] * HASH_SIZE
 
-    # === STAGE 1: Witness Commitment ===
-
-    # Commit stage 1 witness trace via Merkle tree
-    # Input: trace buffer (N * n_cm1_cols, already populated by caller)
-    # Output: stage1_commitment = Merkle root (4 field elements)
-
-    # Auxiliary trace buffer: Written by stages 2, Q, and FRI at different offsets
-    # stark_info.map_total_n = total size in field elements for all auxiliary polynomials
-    # Computed from: stage offsets + quotient (q_dim * N_extended) + FRI poly (3 * N_extended)
+    # Auxiliary trace buffer: written by stages 2, Q, and FRI at different offsets
     aux_trace = np.zeros(stark_info.map_total_n, dtype=np.uint64)
 
     # <doc-anchor id="witness-commit">
-    commitments: list[MerkleRoot] = []
-    stage1_commitment = committer.commitStage(1, trace, aux_trace)
-    commitments.append(list(stage1_commitment))
+    root1 = list(committer.commitStage(1, trace, aux_trace))
+    commitments: list[MerkleRoot] = [root1]
 
-    # === STAGE 0: Seed Fiat-Shamir Transcript ===
-    # Three modes for transcript initialization:
-    # Mode 2 is used for all test AIRs and produces byte-identical proofs with C++.
-    # Mode 1 is for multi-AIR VADCOP where a coordinator provides the global challenge.
-    # Mode 3 (Standalone) is available but not byte-identical with C++ VADCOP proofs.
-    # 1. External VADCOP: Use externally-provided global_challenge
-    # 2. Internal VADCOP: Compute global_challenge via lattice expansion
-    # 3. Standalone: Seed with verkey + publics + stage1_commitment directly
+    return verkey, root1, aux_trace, commitments, committer
 
-    # Mode 1: External VADCOP (global_challenge provided by coordinator)
+
+def _gen_proof_stage2_plus(
+    air_config: AirConfig,
+    trace: np.ndarray,
+    const_pols: np.ndarray,
+    const_pols_extended: np.ndarray,
+    aux_trace: np.ndarray,
+    commitments: list[MerkleRoot],
+    transcript_seed: list[int],
+    committer: PolynomialCommitter,
+    air_values: np.ndarray,
+) -> dict:
+    """Run proof stages 2 through FRI given committed stage-1 and global challenge.
+
+    Called by gen_proof() (single-AIR) and prove_simple_pilout() (multi-AIR).
+    Seeds the Fiat-Shamir transcript from transcript_seed (the global challenge)
+    and runs all remaining protocol stages to produce the complete proof.
+
+    Args:
+        air_config: AIR configuration with stark_info
+        trace: Stage 1 witness trace buffer
+        const_pols: Constant polynomials on base domain
+        const_pols_extended: Constant polynomials on extended domain
+        aux_trace: Auxiliary trace buffer (stages 2+)
+        commitments: Running list of Merkle roots (starts with [root1])
+        transcript_seed: Global challenge for Fiat-Shamir initialization (3 field elements)
+        committer: PolynomialCommitter with const_tree and stage_trees[1] populated
+        air_values: Per-AIR instance values (typically zeros for simple AIRs)
+
+    Returns:
+        Dictionary containing the serialized proof.
+    """
+    stark_info = air_config.stark_info
+
+    # ProverHelpers contains precomputed tables for constraint evaluation
+    # Includes: L1(x) roots, zerofier roots, NTT twiddle factors
+    prover_helpers = ProverHelpers.from_stark_info(stark_info, pil1=False)
+
+    # Initialize Fiat-Shamir transcript seeded with the global challenge
+    transcript = Transcript(
+        arity=stark_info.stark_struct.transcript_arity,
+        custom=stark_info.stark_struct.merkle_tree_custom,
+    )
     # <doc-anchor id="transcript-seed-vadcop">
-    if global_challenge is not None:
-        # Allocate air_values (may be populated externally or empty)
-        air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
-        transcript_seed = list(global_challenge[:3])
-        transcript.put(transcript_seed)
-
-    # Mode 2: Internal VADCOP (compute global_challenge ourselves)
-    elif compute_global_challenge:
-        # Lattice expansion: Hash (verkey, publics, stage1_commitment, air_values, proof_values)
-        # into a 368-element challenge vector (default lattice_size)
-        # This binds all per-AIR stage-1 contributions to a shared global challenge
-        lattice_size = DEFAULT_LATTICE_SIZE
-        if air_config.global_info is not None:
-            lattice_size = air_config.global_info.lattice_size
-
-        # Allocate per-AIR instance values for global challenge computation
-        # stark_info.air_values_size: Total field elements (sum of air_values_map dimensions)
-        # Most AIRs have empty air_values_map, resulting in zero-sized array
-        air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
-
-        # Extract stage-1 values for lattice (most AIRs: empty lists)
-        air_values_stage1 = _get_air_values_stage1(stark_info, air_values)
-        proof_values_stage1 = _get_proof_values_stage1(stark_info)
-
-        # Derive global challenge via repeated Poseidon2 hashing
-        computed_challenge = derive_global_challenge(
-            stark_info=stark_info,
-            publics=public_inputs,
-            root1=list(stage1_commitment),
-            verkey=verkey,
-            air_values=air_values_stage1,
-            proof_values_stage1=proof_values_stage1,
-            lattice_size=lattice_size,
-        )
-
-        transcript_seed = list(computed_challenge[:3])
-        transcript.put(transcript_seed)
-
-    # Mode 3: Standalone (no VADCOP aggregation)
-    else:
-        # Allocate air_values (may be empty but needed for proof assembly)
-        air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
-
-        # No transcript seed — verifier reconstructs by seeding with verkey + publics + root1
-        transcript_seed = None
-
-        # Seed transcript directly with verification key, public inputs, and stage-1 root
-        # No lattice expansion - simpler but incompatible with C++ VADCOP proofs
-        # <doc-anchor id="transcript-seed-standalone">
-        transcript.put(verkey)
-        if stark_info.n_publics > 0 and public_inputs is not None:
-            if stark_info.stark_struct.hash_commits:
-                # Hash public inputs first if AIR requires it
-                publics_transcript = Transcript(
-                    arity=stark_info.stark_struct.transcript_arity,
-                    custom=stark_info.stark_struct.merkle_tree_custom,
-                )
-                publics_transcript.put(public_inputs[: stark_info.n_publics].tolist())
-                transcript.put(publics_transcript.get_state(4))
-            else:
-                transcript.put(public_inputs[: stark_info.n_publics].tolist())
-        transcript.put(list(stage1_commitment))
+    transcript.put(transcript_seed)
 
     # === STAGE 2: Intermediate Polynomials ===
     # Generate witness polynomials that depend on stage-1 randomness
@@ -251,7 +186,6 @@ def gen_proof(
 
     # <doc-anchor id="derive-stage2-challenges">
     # Derive stage 2 challenges from transcript (Fiat-Shamir).
-    # Transcript state = hash of all prior commitments (verkey, stage1_commitment).
     stage2_challenges = derive_challenges_for_stage(transcript, stark_info.challenges_map, stage=2)
 
     # Calculate AIR-specific witness polynomials using stage-2 challenges
@@ -265,57 +199,36 @@ def gen_proof(
 
     # <doc-anchor id="intermediate-commit">
     # Commit stage 2 witness polynomials via Merkle tree
-    # Input: aux_trace buffer (stage-2 columns now populated)
-    # Output: stage2_commitment = Merkle root (4 field elements)
+    # commitments tracks roots for proof output; transcript absorbs them one-way
     stage2_commitment = committer.commitStage(2, trace, aux_trace)
-    # commitments tracks roots for the final proof output (the verifier reads them).
-    # transcript is a one-way Fiat-Shamir accumulator — roots are absorbed into it
-    # but cannot be retrieved later, so we store them separately for proof assembly.
     commitments.append(list(stage2_commitment))
     transcript.put(stage2_commitment)
 
     # === STAGE Q: Quotient Polynomial ===
     # Prove that all AIR constraints are satisfied by computing Q(x) = C(x) / Z_H(x)
-    # where C(x) = constraint polynomial, Z_H(x) = zerofier vanishing on trace domain
 
-    # Stage number for quotient (always n_stages + 1)
     q_stage = stark_info.n_stages + 1
 
     # <doc-anchor id="derive-stageq-challenges">
-    # Derive stage Q challenges (random linear combination coefficients)
-    # Used to combine multiple constraint polynomials into single quotient
-    # Transcript state = hash of (verkey, stage1_commitment, stage2_commitment)
     stageQ_challenges = derive_challenges_for_stage(
         transcript, stark_info.challenges_map, stage=q_stage
     )
 
-    # Merge all challenges accumulated so far (stage 2 + stage Q)
     all_challenges = {**stage2_challenges, **stageQ_challenges}
 
-    # Calculate quotient polynomial Q(x) over extended domain
-    # Evaluates constraint polynomial C(x) via ConstraintModule
-    # Divides by zerofier Z_H(x) to get Q(x) with degree < N_extended
-    # Writes result into aux_trace buffer at quotient section offset
     committer.calculateQuotientPolynomial(
         trace, aux_trace, const_pols_extended, all_challenges, prover_helpers, airgroup_values
     )
 
     # <doc-anchor id="quotient-commit">
-    # Commit quotient polynomial via Merkle tree
-    # Input: aux_trace buffer (quotient section now populated)
-    # Output: stageQ_commitment = Merkle root (4 field elements)
     stageQ_commitment = committer.commitStage(q_stage, trace, aux_trace)
     commitments.append(list(stageQ_commitment))
     transcript.put(stageQ_commitment)
 
     # === STAGE EVALS: Polynomial Evaluations ===
     # Evaluate all polynomials at random challenge point xi and its shifted variants
-    # Used by verifier to check polynomial identities without downloading full polynomials
 
     # <doc-anchor id="derive-eval-challenges">
-    # Derive evaluation point xi from transcript
-    # Transcript state = hash of (verkey, stage1_commitment, stage2_commitment, stageQ_commitment)
-    # xi is the primary evaluation challenge (stage_id == 0)
     xi: FF3 | None = None
     eval_stage = stark_info.n_stages + 2
     eval_challenges = derive_challenges_for_stage(
@@ -329,62 +242,37 @@ def gen_proof(
 
     xi_coeffs = ff3_coeffs(xi)
 
-    # Compute all polynomial evaluations at points defined by ev_map
-    # For each EvMap entry: evaluates polynomial(type, id) at xi^row_offset
-    # Examples: cm1[0](xi), cm2[3](xi*omega), const[1](xi*omega^2)
-    # Returns: evals array (n_evals * 3 field elements, interleaved)
     evals = _compute_all_evals(stark_info, committer, trace, aux_trace, const_pols_extended, xi_coeffs)
 
-    # Feed evaluations into transcript for next round
     if not stark_info.stark_struct.hash_commits:
-        # Direct mode: put all evaluation elements
         transcript.put(evals)
     else:
-        # Hashed mode: compress evaluations with Poseidon2 linear hash
         evals_as_ints = [int(v) for v in evals]
         evals_hash = list(linear_hash(evals_as_ints, width=POSEIDON2_LINEAR_HASH_WIDTH))
         transcript.put(evals_hash)
 
     # === STAGE FRI ===
-    # FRI (Fast Reed-Solomon Interactive Oracle Proof) proves low-degree of quotient polynomial
-    # Recursively commits to folded polynomials until reaching constant-size final polynomial
+    # FRI proves low-degree of quotient polynomial via recursive folding
 
-    # Derive FRI folding challenges (vf1, vf2) from transcript
-    # Transcript state = hash of (verkey, stage1_commitment, stage2_commitment, stageQ_commitment, evals)
-    # vf1, vf2 are used for random linear combination in FRI polynomial construction
     fri_stage = stark_info.n_stages + 3
     fri_challenges = derive_challenges_for_stage(
         transcript, stark_info.challenges_map, stage=fri_stage
     )
     all_challenges.update(fri_challenges)
 
-    # Extract standard FRI challenges by name
-    # vf1: First folding coefficient (combines polynomial with shifted evaluations)
-    # vf2: Second folding coefficient (for boundary constraint)
     vf1 = all_challenges["std_vf1"]
     vf2 = all_challenges["std_vf2"]
 
-    # Calculate FRI polynomial f(x) as random linear combination
-    # f(x) = vf1 * Q(x) + vf2 * boundary_terms(x) + evaluation_terms(x)
-    # This polynomial proves that Q has the claimed evaluations and low degree
-    # Result written into aux_trace buffer at FRI section offset
     committer.calculateFRIPolynomial(
         trace, aux_trace, const_pols_extended, evals, xi, vf1, vf2, prover_helpers
     )
 
-    # Extract FRI polynomial from auxiliary buffer for commitment
-    # map_offsets[("f", True)] = byte offset of FRI polynomial in aux_trace
-    # n_fri_elements = 2^n_bits_ext (size of extended domain)
     fri_pol_offset = stark_info.map_offsets[("f", True)]
     n_fri_elements = 1 << stark_info.stark_struct.fri_fold_steps[0].domain_bits
     fri_pol_size = n_fri_elements * FIELD_EXTENSION_DEGREE
     fri_pol_numpy = aux_trace[fri_pol_offset : fri_pol_offset + fri_pol_size]
     fri_pol = ff3_from_interleaved_numpy(fri_pol_numpy, n_fri_elements)
 
-    # Configure FRI protocol parameters
-    # fri_fold_steps: List of domain sizes for each folding round (decreasing by factor of 2-4)
-    # n_queries: Number of random evaluation points to check (security parameter)
-    # last_level_verification: Merkle tree optimization level
     fri_config = FriPcsConfig(
         n_bits_ext=stark_info.stark_struct.fri_fold_steps[0].domain_bits,
         fri_round_log_sizes=[step.domain_bits for step in stark_info.stark_struct.fri_fold_steps],
@@ -397,30 +285,17 @@ def gen_proof(
         merkle_tree_custom=stark_info.stark_struct.merkle_tree_custom,
     )
 
-    # Run FRI protocol: recursive folding + query proof generation
-    # Outputs: FRI commitments, query indices, final polynomial, nonce
     fri_pcs = FriPcs(fri_config)
     fri_proof = fri_pcs.prove(fri_pol, transcript)
 
     # === STAGE QUERY PROOFS ===
     # Collect Merkle authentication paths for all queried polynomial evaluations
-    # Verifier will check these paths to ensure evaluations are consistent with committed polynomials
 
     # <doc-anchor id="collect-query-proofs">
-    # FRI protocol selected random query indices (typically 27 for 100-bit security)
-    # These indices determine which polynomial evaluations to reveal
     query_indices = fri_proof.query_indices
 
-    # Collect Merkle proofs for constant polynomials at each query index
-    # Empty if no constant polynomials exist
     const_query_proofs = _collect_const_query_proofs(committer, query_indices)
-
-    # Collect Merkle proofs for all committed polynomial stages (1, 2, Q)
-    # Each stage has its own Merkle tree; verifier checks root matches committed value
     stage_query_proofs = _collect_stage_query_proofs(committer, stark_info, query_indices)
-
-    # Collect last-level Merkle nodes if last_level_verification > 0
-    # Optimization: send bottom k levels of Merkle tree to reduce proof size
     last_level_nodes = _collect_last_level_nodes(committer, stark_info, fri_pcs)
 
     # === ASSEMBLE PROOF ===
@@ -436,11 +311,68 @@ def gen_proof(
         "const_query_proofs": const_query_proofs,
         "query_indices": query_indices,
         "last_level_nodes": last_level_nodes,
-        # Transcript seed used to initialize Fiat-Shamir (Modes 1 and 2).
-        # Pass this to stark_verify as global_challenge to reconstruct the transcript.
-        # None in Mode 3 (standalone): verifier seeds from verkey + publics + root1 directly.
+        # Global challenge seed used to initialize the Fiat-Shamir transcript.
+        # Pass to stark_verify as global_challenge to reconstruct the transcript.
         "global_challenge": transcript_seed,
     }
+
+
+# --- Main Entry Point ---
+
+
+def gen_proof(
+    air_config: AirConfig,
+    trace: np.ndarray,
+    const_pols: np.ndarray,
+    const_pols_extended: np.ndarray,
+    public_inputs: np.ndarray | None = None,
+) -> dict:
+    """Generate complete STARK proof via VADCOP protocol.
+
+    Commits stage-1 witness, derives global challenge via lattice expansion,
+    then runs stages 2 through FRI to produce the full proof.
+
+    Args:
+        air_config: AIR configuration with stark_info and global_info
+        trace: Stage 1 witness trace buffer (N * cm1_cols)
+        const_pols: Constant polynomials on base domain
+        const_pols_extended: Constant polynomials on extended domain
+        public_inputs: Public inputs array (optional)
+
+    Returns:
+        Dictionary containing serialized proof, including global_challenge.
+    """
+    stark_info = air_config.stark_info
+
+    verkey, root1, aux_trace, commitments, committer = _commit_stage1(
+        air_config, trace, const_pols_extended
+    )
+
+    # Derive global challenge via lattice expansion (VADCOP protocol).
+    # Binds all per-AIR stage-1 contributions to a shared global challenge.
+    lattice_size = DEFAULT_LATTICE_SIZE
+    if air_config.global_info is not None:
+        lattice_size = air_config.global_info.lattice_size
+
+    air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
+    air_values_stage1 = _get_air_values_stage1(stark_info, air_values)
+    proof_values_stage1 = _get_proof_values_stage1(stark_info)
+
+    computed_challenge = derive_global_challenge(
+        stark_info=stark_info,
+        publics=public_inputs,
+        root1=root1,
+        verkey=verkey,
+        air_values=air_values_stage1,
+        proof_values_stage1=proof_values_stage1,
+        lattice_size=lattice_size,
+    )
+    transcript_seed = list(computed_challenge[:3])
+
+    return _gen_proof_stage2_plus(
+        air_config, trace, const_pols, const_pols_extended,
+        aux_trace, commitments, transcript_seed, committer, air_values,
+    )
 
 
 # --- Polynomial Evaluations ---

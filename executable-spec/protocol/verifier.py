@@ -65,6 +65,16 @@ def stark_verify(
 ) -> bool:
     """Verify a STARK proof. Returns True if valid.
 
+    Args:
+        proof: Deserialized STARK proof
+        air_config: AIR configuration with stark_info
+        verkey: Merkle root of constant polynomial tree
+        global_challenge: The 3-element transcript seed from proof['global_challenge'].
+            Always provided for per-AIR VADCOP proofs.
+            None only for VadcopFinal (outer coordinator verifier).
+        publics: Public input values (if any)
+        proof_values: Cross-AIR proof values (if any)
+
     Verification phases:
     1. Parse proof components (evals, air values, trace values)
     2. Reconstruct Fiat-Shamir transcript to derive challenges
@@ -395,8 +405,9 @@ def _reconstruct_transcript(
 
     Protocol flow:
     1. Initialize transcript:
-       - Per-AIR: seed with global_challenge (3 elements)
-       - VadcopFinal: seed with verkey (4), hashed publics (4), root1 (4)
+       - Per-AIR VADCOP: seed with global_challenge (3 elements)
+       - VadcopFinal: this verifier IS the outer coordinator layer;
+         seeds with verkey (4), hashed publics (4), root1 (4)
     2. For each stage 2..n_stages+1: derive challenges, absorb root and air values
     3. Derive evaluation point (xi) challenges
     4. Absorb evals (hashed if hash_commits enabled)

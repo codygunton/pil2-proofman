@@ -180,13 +180,13 @@ def create_buffers_from_vectors(
 
 
 class TestStarkE2E:
-    """End-to-end STARK proof tests using internal global_challenge (Mode 2)."""
+    """End-to-end STARK proof tests verifying proof structure and intermediate values."""
 
     @pytest.mark.parametrize("air_name", ['simple'])
     def test_challenges_match(self, air_name: str) -> None:
         """Test that proof generation completes with internally-computed global_challenge.
 
-        Uses Mode 2: gen_proof computes global_challenge via Poseidon2 lattice expansion
+        gen_proof computes global_challenge via Poseidon2 lattice expansion
         from (verkey, publics, stage1_commitment). The computed challenge is returned in
         proof['global_challenge'] and can be used to verify the proof.
         """
@@ -217,7 +217,7 @@ class TestStarkE2E:
 
     @pytest.mark.parametrize("air_name", ['simple'])
     def test_evals_match(self, air_name: str) -> None:
-        """Test that polynomial evaluations are computed (Mode 2)."""
+        """Test that polynomial evaluations are computed."""
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -245,7 +245,7 @@ class TestStarkE2E:
 
     @pytest.mark.parametrize("air_name", ['simple'])
     def test_fri_output_matches(self, air_name: str) -> None:
-        """Test that FRI output is generated (Mode 2)."""
+        """Test that FRI output is generated."""
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -276,7 +276,7 @@ class TestStarkE2E:
 
 
 class TestStarkE2EComplete:
-    """Complete end-to-end test: prove with Mode 2, then verify with Python verifier.
+    """Complete end-to-end test: prove then verify with Python verifier.
 
     Demonstrates the full VADCOP proving flow:
     1. gen_proof computes global_challenge via Poseidon2 lattice expansion
@@ -288,7 +288,7 @@ class TestStarkE2EComplete:
     @pytest.mark.parametrize("air_name", list(AIR_CONFIGS.keys()),
                              ids=list(AIR_CONFIGS.keys()))
     def test_full_proof_verifies(self, air_name: str) -> None:
-        """Prove with Mode 2, serialize/deserialize, then verify with Python verifier."""
+        """Prove, serialize/deserialize, then verify with Python verifier."""
         vectors = load_test_vectors(air_name)
         if vectors is None:
             pytest.fail(f"Test vectors not found for {air_name}")
@@ -302,7 +302,6 @@ class TestStarkE2EComplete:
         trace, const_pols, const_pols_extended, public_inputs = \
             create_buffers_from_vectors(stark_info, vectors)
 
-        # Generate proof using Mode 2: internal global_challenge computation
         proof_dict = gen_proof(
             air_config, trace, const_pols, const_pols_extended,
             public_inputs=public_inputs,
@@ -310,7 +309,7 @@ class TestStarkE2EComplete:
 
         # Extract the transcript seed computed by the prover
         global_challenge = proof_dict['global_challenge']
-        assert global_challenge is not None, "Mode 2 should always produce a global_challenge"
+        assert global_challenge is not None
 
         # Serialize and deserialize the proof (full round-trip)
         proof_bytes = to_bytes_full_from_dict(proof_dict, stark_info)
@@ -333,19 +332,17 @@ class TestStarkE2EComplete:
 
 
 class TestGlobalChallengeComputation:
-    """Verify that global_challenge is computed correctly in Mode 2.
+    """Verify that global_challenge is computed correctly by gen_proof.
 
-    Mode 2 (internal VADCOP): gen_proof computes global_challenge via Poseidon2
-    lattice expansion from (verkey, publics, stage1_commitment). This mirrors C++
-    proofman's challenge_accumulation.rs, which aggregates ALL AIR instances. Since
-    Python only handles one AIR at a time, the computed value differs from C++
-    test vectors (which aggregate all 5 AIRs in the pilout), but proofs are still
-    self-consistent and verifiable.
+    gen_proof computes global_challenge via Poseidon2 lattice expansion from
+    (verkey, publics, stage1_commitment). This mirrors C++ proofman's
+    challenge_accumulation.rs for a single-AIR pilout. The computed challenge
+    is self-consistent with the produced proof.
     """
 
     @pytest.mark.parametrize("air_name", list(AIR_CONFIGS.keys()))
     def test_internal_challenge_produces_valid_proof(self, air_name: str) -> None:
-        """Verify that Mode 2 produces a proof that the Python verifier accepts.
+        """Verify that gen_proof produces a proof that the Python verifier accepts.
 
         gen_proof computes global_challenge internally via lattice expansion.
         The proof dict includes the computed challenge so the verifier can
@@ -410,10 +407,9 @@ class TestCppBinaryEquivalence:
 
     Protocol:
       1. Load Stage-1 traces for all five Simple pilout AIRs from C++ test vectors.
-      2. Commit Stage 1 for all five AIRs and compute lattice contributions.
-      3. Derive global_challenge via five-AIR accumulation (matching C++ exactly).
-      4. Prove each AIR fully with this global_challenge (Mode 1 external VADCOP).
-      5. Compare each proof byte-for-byte with the C++ binary proof file.
+      2. Call prove_simple_pilout() which commits all Stage-1 witnesses, derives the
+         shared multi-AIR global challenge, and proves Stage 2+ for each AIR.
+      3. Compare each proof byte-for-byte with the C++ binary proof file.
 
     This validates both the multi-AIR global challenge computation and the full
     proof pipeline (Stage-1/2/Q commitment, FRI, query proofs).
@@ -469,38 +465,31 @@ class TestCppBinaryEquivalence:
     @pytest.mark.parametrize("test_air_name", SIMPLE_PILOUT_AIR_NAMES,
                              ids=SIMPLE_PILOUT_AIR_NAMES)
     def test_full_binary_proof_match(self, test_air_name: str) -> None:
-        """Prove each Simple AIR with the multi-AIR global challenge and compare bytes with C++."""
-        from protocol.simple_pilout import AIRStage1Data, prove_simple_pilout_stage1
+        """Prove all Simple AIRs with the shared multi-AIR global challenge and compare bytes with C++."""
+        from protocol.simple_pilout import AIRProveData, prove_simple_pilout
 
         all_data = self._load_all_simple_air_data()
-        air_stage1 = {
-            name: AIRStage1Data(
+        air_prove_data = {
+            name: AIRProveData(
                 air_config=data[0],
                 trace=data[1],
                 const_pols=data[2],
                 const_pols_extended=data[3],
+                public_inputs=data[4],
             )
             for name, data in all_data.items()
         }
 
-        # Derive global challenge from all five AIR contributions (matches C++)
-        result = prove_simple_pilout_stage1(air_stage1)
-        global_challenge = result.global_challenge
+        # Prove all five AIRs with shared global challenge (derives challenge internally)
+        all_proofs = prove_simple_pilout(air_prove_data)
 
-        # Prove the target AIR fully with Mode 1 (externally-provided global_challenge)
+        # Compare the target AIR's proof bytes with C++
         starkinfo_name = SIMPLE_PILOUT_STARKINFO_AIR_NAMES[test_air_name]
-        air_config, trace, const_pols, const_pols_extended, public_inputs = \
-            all_data[starkinfo_name]
-
-        proof_dict = gen_proof(
-            air_config, trace, const_pols, const_pols_extended,
-            public_inputs=public_inputs,
-            global_challenge=global_challenge,
-        )
+        air_config = all_data[starkinfo_name][0]
+        proof_dict = all_proofs[starkinfo_name]
 
         python_proof_bytes = to_bytes_full_from_dict(proof_dict, air_config.stark_info)
 
-        # Load C++ binary proof
         config = AIR_CONFIGS[test_air_name]
         bin_path = TEST_DATA_DIR / config['test_vector'].replace('.json', '.proof.bin')
         with open(bin_path, 'rb') as f:
