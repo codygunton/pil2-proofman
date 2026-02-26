@@ -19,14 +19,13 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from primitives.expression_bytecode.expressions_bin import ExpressionsBin, ParserParams
-from primitives.field import (
-    FF,
-    FF3,
-    FIELD_EXTENSION_DEGREE,
-    batch_inverse,
-    ff3,
-    ff3_coeffs,
-    ff3_from_buffer_at,
+from primitives.field import FIELD_EXTENSION_DEGREE
+from primitives.goldilocks_jit import (
+    ff3_batch_inverse,
+    gl_add_vec,
+    gl_inv_vec,
+    gl_mul_vec,
+    gl_sub_vec,
 )
 
 if TYPE_CHECKING:
@@ -35,7 +34,9 @@ if TYPE_CHECKING:
 
 # --- Type Aliases ---
 
-GaloisValue = FF | FF3  # Field element or extension element
+# FastValue: either a uint64 ndarray (FF column) or a 3-tuple of uint64 ndarrays (FF3 columns).
+# Scalars are numpy uint64 scalars; arrays are shape (nrows_pack,).
+FastValue = np.ndarray | tuple  # FF1Col or (c0, c1, c2)
 
 # --- Constants ---
 
@@ -55,9 +56,28 @@ EVALS_OFFSET = 8
 
 # --- Type Utilities ---
 
-def _is_ff3(val: GaloisValue) -> bool:
-    """Check if value is in the extension field FF3."""
-    return type(val).order != FF.order
+def _is_ff3(val: FastValue) -> bool:
+    """Check if value is in the extension field FF3 (represented as a 3-tuple)."""
+    return isinstance(val, tuple)
+
+
+def _promote_ff_to_ff3(val: np.ndarray | np.uint64) -> tuple:
+    """Lift a base-field value to the extension field (c1=c2=0)."""
+    if isinstance(val, np.ndarray):
+        zeros = np.zeros(len(val), dtype=np.uint64)
+        return (val, zeros, zeros.copy())
+    return (val, np.uint64(0), np.uint64(0))
+
+
+def _ff3_mul_vecs(a: tuple, b: tuple) -> tuple:
+    """Element-wise FF3 multiply: (a0,a1,a2) * (b0,b1,b2) using the relation x³ = x+1."""
+    a0, a1, a2 = a
+    b0, b1, b2 = b
+    t  = gl_add_vec(gl_mul_vec(a1, b2), gl_mul_vec(a2, b1))
+    c0 = gl_add_vec(gl_mul_vec(a0, b0), t)
+    c1 = gl_add_vec(gl_add_vec(gl_add_vec(gl_mul_vec(a0, b1), gl_mul_vec(a1, b0)), t), gl_mul_vec(a2, b2))
+    c2 = gl_add_vec(gl_add_vec(gl_add_vec(gl_mul_vec(a0, b2), gl_mul_vec(a1, b1)), gl_mul_vec(a2, b0)), gl_mul_vec(a2, b2))
+    return (c0, c1, c2)
 
 
 # --- Buffer Container ---
@@ -329,10 +349,10 @@ class ExpressionsPack(ExpressionsCtx):
             is_cyclic = (row < k_min) or (row >= k_max)
 
             # Temp storage for bytecode execution
-            tmp1_g: dict[int, FF] = {}   # base field temps
-            tmp3_g: dict[int, FF3] = {}  # extension field temps
+            tmp1_g: dict[int, np.ndarray | np.uint64] = {}
+            tmp3_g: dict[int, tuple] = {}
 
-            param_results: list[GaloisValue] = [None, None]
+            param_results: list[FastValue | None] = [None, None]
 
             for k in range(len(dest.params)):
                 p = dest.params[k]
@@ -343,22 +363,27 @@ class ExpressionsPack(ExpressionsCtx):
                         buffers, p, row, nrows_pack, domain_size,
                         domain_extended, map_offsets_exps, next_strides_exps)
                     if p.inverse:
-                        result = batch_inverse(result)
+                        if _is_ff3(result):
+                            result = ff3_batch_inverse(*result)
+                        else:
+                            result = gl_inv_vec(result)
                     param_results[k] = result
                     continue
 
                 # Literal number
                 if p.op == "number":
-                    param_results[k] = FF(p.value)
+                    param_results[k] = np.uint64(p.value)
                     continue
 
                 # AIR value
                 if p.op == "airvalue":
                     if p.dim == 1:
-                        param_results[k] = FF(int(buffers.air_values[p.pols_map_id]))
+                        param_results[k] = np.uint64(int(buffers.air_values[p.pols_map_id]))
                     else:
-                        c = [int(buffers.air_values[p.pols_map_id + i]) for i in range(FIELD_EXTENSION_DEGREE)]
-                        param_results[k] = ff3(c)
+                        c0 = np.uint64(int(buffers.air_values[p.pols_map_id]))
+                        c1 = np.uint64(int(buffers.air_values[p.pols_map_id + 1]))
+                        c2 = np.uint64(int(buffers.air_values[p.pols_map_id + 2]))
+                        param_results[k] = (c0, c1, c2)
                     continue
 
                 # Expression bytecode evaluation
@@ -403,12 +428,15 @@ class ExpressionsPack(ExpressionsCtx):
                     result = self._apply_op(arith_op, a, b)
 
                     if debug:
-                        def _dbg_val(v: GaloisValue) -> object:  # noqa: ANN001, ANN202
+                        def _dbg_val(v: FastValue) -> object:  # noqa: ANN001, ANN202
                             if _is_ff3(v):
-                                return ff3_coeffs(v)
-                            if hasattr(v, 'ndim') and v.ndim == 0:
+                                c0, c1, c2 = v
+                                if isinstance(c0, np.uint64):
+                                    return (int(c0), int(c1), int(c2))
+                                return list(zip(c0.tolist(), c1.tolist(), c2.tolist()))
+                            if isinstance(v, np.uint64):
                                 return int(v)
-                            return [int(x) for x in v] if hasattr(v, '__len__') else int(v)
+                            return v.tolist() if hasattr(v, 'tolist') else int(v)
                         print(f"         a={_dbg_val(a)} b={_dbg_val(b)} -> {_dbg_val(result)}")
 
                     if is_last:
@@ -422,7 +450,8 @@ class ExpressionsPack(ExpressionsCtx):
                 assert i_args == parser_params.n_args, f"Args mismatch: {i_args} != {parser_params.n_args}"
 
                 if p.inverse:
-                    param_results[k] = batch_inverse(param_results[k])
+                    r = param_results[k]
+                    param_results[k] = ff3_batch_inverse(*r) if _is_ff3(r) else gl_inv_vec(r)
 
             # Combine results if two params
             if len(dest.params) == 2:
@@ -437,59 +466,40 @@ class ExpressionsPack(ExpressionsCtx):
     def _load_direct_poly(self, buffers: BufferSet, param: Params, row: int,
                           nrows_pack: int, domain_size: int, domain_extended: bool,
                           map_offsets_exps: np.ndarray, next_strides_exps: np.ndarray
-                          ) -> GaloisValue:
-        """Load polynomial directly from cm/const buffers.
-
-        Args:
-            o: row offset for shifted polynomial evaluation (from opening points)
-        """
-        # o = row offset for shifted polynomial evaluation
+                          ) -> FastValue:
+        """Load polynomial directly from cm/const buffers using vectorized numpy indexing."""
         o = int(next_strides_exps[param.row_offset_index])
+        rows = (np.arange(nrows_pack, dtype=np.intp) + row + o) % domain_size
 
         if param.op == "const":
             n_cols = int(self.map_sections_n[0])
             buf = buffers.const_pols_extended if domain_extended else buffers.const_pols
-            vals = []
-            for r in range(nrows_pack):
-                cyclic_row = (row + r + o) % domain_size
-                buf_idx = cyclic_row * n_cols + param.stage_pos
-                vals.append(int(buf[buf_idx]))
-            return FF(vals)
+            return np.asarray(buf[rows * n_cols + param.stage_pos], dtype=np.uint64)
 
         offset = int(map_offsets_exps[param.stage])
         n_cols = int(self.map_sections_n[param.stage])
 
         if param.stage == 1 and not domain_extended:
-            vals = []
-            for r in range(nrows_pack):
-                cyclic_row = (row + r + o) % domain_size
-                buf_idx = cyclic_row * n_cols + param.stage_pos
-                vals.append(int(buffers.trace[buf_idx]))
-            return FF(vals)
+            return np.asarray(buffers.trace[rows * n_cols + param.stage_pos], dtype=np.uint64)
 
+        base = offset + rows * n_cols + param.stage_pos
         if param.dim == 1:
-            vals = []
-            for r in range(nrows_pack):
-                cyclic_row = (row + r + o) % domain_size
-                buf_idx = offset + cyclic_row * n_cols + param.stage_pos
-                vals.append(int(buffers.aux_trace[buf_idx]))
-            return FF(vals)
+            return np.asarray(buffers.aux_trace[base], dtype=np.uint64)
 
-        # FF3 load
-        indices = []
-        for r in range(nrows_pack):
-            cyclic_row = (row + r + o) % domain_size
-            buf_idx = offset + cyclic_row * n_cols + param.stage_pos
-            indices.append(buf_idx)
-        return ff3_from_buffer_at(buffers.aux_trace, indices)
+        # FF3: interleaved layout — c0, c1, c2 at positions base, base+1, base+2
+        c0 = np.asarray(buffers.aux_trace[base],     dtype=np.uint64)
+        c1 = np.asarray(buffers.aux_trace[base + 1], dtype=np.uint64)
+        c2 = np.asarray(buffers.aux_trace[base + 2], dtype=np.uint64)
+        return (c0, c1, c2)
 
     def _load_operand(self, buffers: BufferSet, scalar_params: dict[int, np.ndarray],
-                      tmp1_g: dict[int, FF], tmp3_g: dict[int, FF3],
+                      tmp1_g: dict[int, np.ndarray | np.uint64],
+                      tmp3_g: dict[int, tuple],
                       args: np.ndarray, map_offsets_exps: np.ndarray,
                       map_offsets_custom_exps: np.ndarray, next_strides_exps: np.ndarray,
                       i_args: int, row: int, dim: int, domain_size: int,
                       domain_extended: bool, is_cyclic: bool, nrows_pack: int
-                      ) -> GaloisValue:
+                      ) -> FastValue:
         """Load operand from bytecode-specified source.
 
         Variables:
@@ -504,7 +514,7 @@ class ExpressionsPack(ExpressionsCtx):
             stage_pos = args[i_args + 1]
             opening_idx = args[i_args + 2]
             # o = row offset for shifted polynomial evaluation
-            o = next_strides_exps[opening_idx]
+            o = int(next_strides_exps[opening_idx])
             n_cols = int(self.map_sections_n[0])
 
             # Verify mode: load from evals
@@ -514,28 +524,18 @@ class ExpressionsPack(ExpressionsCtx):
                     if pol.stage_pos == stage_pos:
                         pol_id = idx
                         break
-
                 if pol_id is not None:
                     from primitives.pol_map import EvMap
                     for idx, e in enumerate(self.stark_info.ev_map):
                         if e.type == EvMap.Type.const_ and e.id == pol_id and e.opening_pos == opening_idx:
                             base = idx * FIELD_EXTENSION_DEGREE
-                            c0 = int(buffers.evals[base])
-                            c1 = int(buffers.evals[base + 1])
-                            c2 = int(buffers.evals[base + 2])
-                            return ff3([c0, c1, c2])
+                            return (np.uint64(int(buffers.evals[base])),
+                                    np.uint64(int(buffers.evals[base + 1])),
+                                    np.uint64(int(buffers.evals[base + 2])))
 
             const_pols = buffers.const_pols_extended if domain_extended else buffers.const_pols
-            if is_cyclic:
-                vals = []
-                for j in range(nrows_pack):
-                    cyclic_row = (row + j + o) % domain_size
-                    buf_idx = cyclic_row * self.stark_info.n_constants + stage_pos
-                    vals.append(int(const_pols[buf_idx]))
-            else:
-                first_col = (row + o) * n_cols + stage_pos
-                vals = [int(const_pols[first_col + j * n_cols]) for j in range(nrows_pack)]
-            return FF(vals)
+            rows = (np.arange(nrows_pack, dtype=np.intp) + row + o) % domain_size
+            return np.asarray(const_pols[rows * n_cols + stage_pos], dtype=np.uint64)
 
         # Types 1..nStages+1: Committed polynomials
         if type_arg <= self.stark_info.n_stages + 1:
@@ -544,7 +544,7 @@ class ExpressionsPack(ExpressionsCtx):
             n_cols = int(self.map_sections_n[type_arg])
             opening_idx = args[i_args + 2]
             # o = row offset for shifted polynomial evaluation
-            o = next_strides_exps[opening_idx]
+            o = int(next_strides_exps[opening_idx])
 
             # Verify mode: load from evals
             if self.verify and domain_size == 1:
@@ -554,52 +554,28 @@ class ExpressionsPack(ExpressionsCtx):
                     if pol.stage == stage and pol.stage_pos == stage_pos:
                         pol_id = idx
                         break
-
                 if pol_id is not None:
                     from primitives.pol_map import EvMap
                     for idx, e in enumerate(self.stark_info.ev_map):
                         if e.type == EvMap.Type.cm and e.id == pol_id and e.opening_pos == opening_idx:
                             base = idx * FIELD_EXTENSION_DEGREE
-                            c0 = int(buffers.evals[base])
-                            c1 = int(buffers.evals[base + 1])
-                            c2 = int(buffers.evals[base + 2])
-                            return ff3([c0, c1, c2])
+                            return (np.uint64(int(buffers.evals[base])),
+                                    np.uint64(int(buffers.evals[base + 1])),
+                                    np.uint64(int(buffers.evals[base + 2])))
 
+            rows = (np.arange(nrows_pack, dtype=np.intp) + row + o) % domain_size
             if type_arg == 1 and not domain_extended:
-                if is_cyclic:
-                    vals = []
-                    for j in range(nrows_pack):
-                        cyclic_row = (row + j + o) % domain_size
-                        buf_idx = cyclic_row * n_cols + stage_pos
-                        vals.append(int(buffers.trace[buf_idx]))
-                else:
-                    first_col = (row + o) * n_cols + stage_pos
-                    vals = [int(buffers.trace[first_col + j * n_cols]) for j in range(nrows_pack)]
-                return FF(vals)
+                return np.asarray(buffers.trace[rows * n_cols + stage_pos], dtype=np.uint64)
 
+            base_idx = offset + rows * n_cols + stage_pos
             if dim == 1:
-                if is_cyclic:
-                    vals = []
-                    for j in range(nrows_pack):
-                        cyclic_row = (row + j + o) % domain_size
-                        buf_idx = offset + cyclic_row * n_cols + stage_pos
-                        vals.append(int(buffers.aux_trace[buf_idx]))
-                else:
-                    first_col = offset + (row + o) * n_cols + stage_pos
-                    vals = [int(buffers.aux_trace[first_col + j * n_cols]) for j in range(nrows_pack)]
-                return FF(vals)
+                return np.asarray(buffers.aux_trace[base_idx], dtype=np.uint64)
 
-            # FF3
-            if is_cyclic:
-                indices = []
-                for j in range(nrows_pack):
-                    cyclic_row = (row + j + o) % domain_size
-                    buf_idx = offset + cyclic_row * n_cols + stage_pos
-                    indices.append(buf_idx)
-            else:
-                first_col = offset + (row + o) * n_cols + stage_pos
-                indices = [first_col + j * n_cols for j in range(nrows_pack)]
-            return ff3_from_buffer_at(buffers.aux_trace, indices)
+            # FF3: interleaved layout — c0, c1, c2 at positions base, base+1, base+2
+            c0 = np.asarray(buffers.aux_trace[base_idx],     dtype=np.uint64)
+            c1 = np.asarray(buffers.aux_trace[base_idx + 1], dtype=np.uint64)
+            c2 = np.asarray(buffers.aux_trace[base_idx + 2], dtype=np.uint64)
+            return (c0, c1, c2)
 
         # Type nStages+2: Boundary values (x_n, zi)
         # zi = inverse vanishing polynomial 1/Z_H(x) where Z_H(x) = x^N - 1
@@ -607,25 +583,29 @@ class ExpressionsPack(ExpressionsCtx):
             boundary = args[i_args + 1]
             if self.verify:
                 if boundary == 0:
-                    c0 = int(self.prover_helpers.x_n[0])
-                    c1 = int(self.prover_helpers.x_n[1])
-                    c2 = int(self.prover_helpers.x_n[2])
-                    scalar = ff3([c0, c1, c2])
-                    return FF3([int(scalar)] * nrows_pack) if dim == FIELD_EXTENSION_DEGREE else FF([c0] * nrows_pack)
+                    c0 = np.uint64(int(self.prover_helpers.x_n[0]))
+                    c1 = np.uint64(int(self.prover_helpers.x_n[1]))
+                    c2 = np.uint64(int(self.prover_helpers.x_n[2]))
+                    if dim == FIELD_EXTENSION_DEGREE:
+                        return (np.full(nrows_pack, c0, dtype=np.uint64),
+                                np.full(nrows_pack, c1, dtype=np.uint64),
+                                np.full(nrows_pack, c2, dtype=np.uint64))
+                    return np.full(nrows_pack, c0, dtype=np.uint64)
                 else:
                     base = (boundary - 1) * FIELD_EXTENSION_DEGREE
-                    c0 = int(self.prover_helpers.zi[base])
-                    c1 = int(self.prover_helpers.zi[base + 1])
-                    c2 = int(self.prover_helpers.zi[base + 2])
-                    scalar = ff3([c0, c1, c2])
-                    return FF3([int(scalar)] * nrows_pack)
+                    c0 = np.uint64(int(self.prover_helpers.zi[base]))
+                    c1 = np.uint64(int(self.prover_helpers.zi[base + 1]))
+                    c2 = np.uint64(int(self.prover_helpers.zi[base + 2]))
+                    return (np.full(nrows_pack, c0, dtype=np.uint64),
+                            np.full(nrows_pack, c1, dtype=np.uint64),
+                            np.full(nrows_pack, c2, dtype=np.uint64))
             else:
                 if boundary == 0:
                     x_vals = self.prover_helpers.x if domain_extended else self.prover_helpers.x_n
-                    return x_vals[row:row + nrows_pack]
+                    return np.asarray(x_vals[row:row + nrows_pack], dtype=np.uint64)
                 else:
                     ofs = (boundary - 1) * domain_size + row
-                    return self.prover_helpers.zi[ofs:ofs + nrows_pack]
+                    return np.asarray(self.prover_helpers.zi[ofs:ofs + nrows_pack], dtype=np.uint64)
 
         # Type nStages+3: x/(x - xi) for FRI opening
         # xi = challenge evaluation point (random point from Fiat-Shamir transcript)
@@ -633,23 +613,24 @@ class ExpressionsPack(ExpressionsCtx):
             opening_point_idx = args[i_args + 1]
             if self.verify:
                 n_openings = len(self.stark_info.opening_points)
-                indices = []
-                for k in range(nrows_pack):
-                    buf_idx = ((row + k) * n_openings + opening_point_idx) * FIELD_EXTENSION_DEGREE
-                    indices.append(buf_idx)
-                return ff3_from_buffer_at(buffers.x_div_x_sub, indices)
+                rows = np.arange(nrows_pack, dtype=np.intp) + row
+                base_idx = (rows * n_openings + opening_point_idx) * FIELD_EXTENSION_DEGREE
+                c0 = np.asarray(buffers.x_div_x_sub[base_idx],     dtype=np.uint64)
+                c1 = np.asarray(buffers.x_div_x_sub[base_idx + 1], dtype=np.uint64)
+                c2 = np.asarray(buffers.x_div_x_sub[base_idx + 2], dtype=np.uint64)
+                return (c0, c1, c2)
             else:
                 # xi = challenge evaluation point (from Fiat-Shamir)
                 xi_base = opening_point_idx * FIELD_EXTENSION_DEGREE
-                xi_c0 = int(self.xis[xi_base])
-                xi_c1 = int(self.xis[xi_base + 1])
-                xi_c2 = int(self.xis[xi_base + 2])
-                xi_val = ff3([xi_c0, xi_c1, xi_c2])
-
-                x_vals = self.prover_helpers.x[row:row + nrows_pack]
-                x_ff3 = FF3(np.asarray(x_vals, dtype=np.uint64).tolist())
-                diff = x_ff3 - xi_val
-                return batch_inverse(diff)
+                xi_c0 = np.uint64(int(self.xis[xi_base]))
+                xi_c1 = np.uint64(int(self.xis[xi_base + 1]))
+                xi_c2 = np.uint64(int(self.xis[xi_base + 2]))
+                x_vals = np.asarray(self.prover_helpers.x[row:row + nrows_pack], dtype=np.uint64)
+                # diff = x - xi in FF3: x is base field so x_ff3 = (x, 0, 0)
+                diff_c0 = gl_sub_vec(x_vals, xi_c0)
+                diff_c1 = gl_sub_vec(np.zeros(nrows_pack, dtype=np.uint64), xi_c1)
+                diff_c2 = gl_sub_vec(np.zeros(nrows_pack, dtype=np.uint64), xi_c2)
+                return ff3_batch_inverse(diff_c0, diff_c1, diff_c2)
 
         # Custom commits
         if (type_arg >= self.stark_info.n_stages + 4 and
@@ -665,26 +646,17 @@ class ExpressionsPack(ExpressionsCtx):
                     if (e.type == EvMap.Type.custom and e.id == stage_pos
                             and e.opening_pos == opening_idx and e.commit_id == index):
                         base = idx * FIELD_EXTENSION_DEGREE
-                        c0 = int(buffers.evals[base])
-                        c1 = int(buffers.evals[base + 1])
-                        c2 = int(buffers.evals[base + 2])
-                        return ff3([c0, c1, c2])
+                        return (np.uint64(int(buffers.evals[base])),
+                                np.uint64(int(buffers.evals[base + 1])),
+                                np.uint64(int(buffers.evals[base + 2])))
 
             offset = int(map_offsets_custom_exps[index])
             n_cols = int(self.map_sections_n_custom_fixed[index])
             # o = row offset for shifted polynomial evaluation
-            o = next_strides_exps[opening_idx]
-
-            if is_cyclic:
-                vals = []
-                for j in range(nrows_pack):
-                    cyclic_row = (row + j + o) % domain_size
-                    buf_idx = offset + cyclic_row * n_cols + stage_pos
-                    vals.append(int(buffers.custom_commits[buf_idx]))
-            else:
-                first_col = offset + (row + o) * n_cols + stage_pos
-                vals = [int(buffers.custom_commits[first_col + j * n_cols]) for j in range(nrows_pack)]
-            return FF(vals)
+            o = int(next_strides_exps[opening_idx])
+            rows = (np.arange(nrows_pack, dtype=np.intp) + row + o) % domain_size
+            base_idx = offset + rows * n_cols + stage_pos
+            return np.asarray(buffers.custom_commits[base_idx], dtype=np.uint64)
 
         # Temp registers
         if type_arg == self.buffer_commits_size:
@@ -697,71 +669,56 @@ class ExpressionsPack(ExpressionsCtx):
         arr = scalar_params[type_arg]
         idx = args[i_args + 1]
         if dim == 1:
-            return FF(int(arr[idx]))
-        else:
-            c0 = int(arr[idx])
-            c1 = int(arr[idx + 1])
-            c2 = int(arr[idx + 2])
-            return ff3([c0, c1, c2])
+            return np.uint64(int(arr[idx]))
+        return (np.uint64(int(arr[idx])),
+                np.uint64(int(arr[idx + 1])),
+                np.uint64(int(arr[idx + 2])))
 
     # --- Field Operations ---
 
-    def _apply_op(self, op: int, a: GaloisValue, b: GaloisValue) -> GaloisValue:
+    def _apply_op(self, op: int, a: FastValue, b: FastValue) -> FastValue:
         """Apply arithmetic operation, promoting to FF3 if types mismatch."""
         a_ext, b_ext = _is_ff3(a), _is_ff3(b)
         if a_ext and not b_ext:
-            b = FF3(b)
+            b = _promote_ff_to_ff3(b)
         elif b_ext and not a_ext:
-            a = FF3(a)
+            a = _promote_ff_to_ff3(a)
 
-        if op == 0:    # ADD
-            return a + b
-        if op == 1:    # SUB
-            return a - b
-        if op == 2:    # MUL
-            return a * b
-        if op == 3:    # SUB_SWAP (b - a)
-            return b - a
+        if not _is_ff3(a):
+            if op == 0:    return gl_add_vec(a, b)
+            if op == 1:    return gl_sub_vec(a, b)
+            if op == 2:    return gl_mul_vec(a, b)
+            if op == 3:    return gl_sub_vec(b, a)
+        else:
+            a0, a1, a2 = a
+            b0, b1, b2 = b
+            if op == 0:    return (gl_add_vec(a0, b0), gl_add_vec(a1, b1), gl_add_vec(a2, b2))
+            if op == 1:    return (gl_sub_vec(a0, b0), gl_sub_vec(a1, b1), gl_sub_vec(a2, b2))
+            if op == 2:    return _ff3_mul_vecs(a, b)
+            if op == 3:    return (gl_sub_vec(b0, a0), gl_sub_vec(b1, a1), gl_sub_vec(b2, a2))
         raise ValueError(f"Invalid operation: {op}")
 
-    def _multiply_results(self, a: GaloisValue, b: GaloisValue) -> GaloisValue:
+    def _multiply_results(self, a: FastValue, b: FastValue) -> FastValue:
         """Multiply two results, promoting to FF3 only if types mismatch."""
         a_ext, b_ext = _is_ff3(a), _is_ff3(b)
         if a_ext and not b_ext:
-            b = FF3(b)
+            b = _promote_ff_to_ff3(b)
         elif b_ext and not a_ext:
-            a = FF3(a)
-        return a * b
+            a = _promote_ff_to_ff3(a)
+        if not _is_ff3(a):
+            return gl_mul_vec(a, b)
+        return _ff3_mul_vecs(a, b)
 
-    def _store_result(self, dest: Dest, result: GaloisValue, row: int, nrows_pack: int) -> None:
+    def _store_result(self, dest: Dest, result: FastValue, row: int, nrows_pack: int) -> None:
         """Store result to destination buffer. Type detected from result."""
         is_ext = _is_ff3(result)
         offset = dest.offset if dest.offset != 0 else (FIELD_EXTENSION_DEGREE if is_ext else 1)
+        base_indices = (np.arange(nrows_pack, dtype=np.intp) + row) * offset
 
         if not is_ext:
-            # FF: store single values
-            if result.ndim == 0:
-                val = int(result)
-                for j in range(nrows_pack):
-                    dest.dest[row * offset + j * offset] = val
-            else:
-                vals = np.asarray(result, dtype=np.uint64)
-                for j in range(nrows_pack):
-                    dest.dest[row * offset + j * offset] = vals[j]
+            dest.dest[base_indices] = np.asarray(result, dtype=np.uint64)
         else:
-            # FF3: store 3 coefficients per element
-            if result.ndim == 0:
-                coeffs = ff3_coeffs(result)
-                for j in range(nrows_pack):
-                    base = row * offset + j * offset
-                    dest.dest[base] = coeffs[0]
-                    dest.dest[base + 1] = coeffs[1]
-                    dest.dest[base + 2] = coeffs[2]
-            else:
-                # vector() returns [c2, c1, c0] (descending order)
-                vecs = result.vector()
-                for j in range(nrows_pack):
-                    base = row * offset + j * offset
-                    dest.dest[base] = int(vecs[j, 2])
-                    dest.dest[base + 1] = int(vecs[j, 1])
-                    dest.dest[base + 2] = int(vecs[j, 0])
+            c0, c1, c2 = result
+            dest.dest[base_indices]     = np.asarray(c0, dtype=np.uint64)
+            dest.dest[base_indices + 1] = np.asarray(c1, dtype=np.uint64)
+            dest.dest[base_indices + 2] = np.asarray(c2, dtype=np.uint64)

@@ -209,7 +209,7 @@ intt = galois.intt
 
 # Domain shift for coset LDE
 SHIFT = FF(7)
-SHIFT_INV = SHIFT ** -1
+SHIFT_INV = FF(1) / SHIFT
 
 # Precomputed roots of unity: W[n] is a primitive 2^n-th root of unity
 W: list[int] = [

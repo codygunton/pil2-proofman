@@ -358,7 +358,6 @@ class BytecodeWitnessModule(WitnessModule):
 
         expr_pack = ExpressionsPack(
             stark_info, self._expressions_bin,
-            nrows_pack=1,
         )
 
         calculate_witness_std(

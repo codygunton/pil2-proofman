@@ -434,7 +434,6 @@ class BytecodeConstraintModule(ConstraintModule):
 
         expr_pack = ExpressionsPack(
             stark_info, self._expressions_bin, prover_helpers=prover_helpers,
-            nrows_pack=1,  # Row-by-row for correctness
         )
 
         # Evaluate constraint expression on extended domain -> Q(x)
@@ -480,7 +479,6 @@ class BytecodeConstraintModule(ConstraintModule):
         expr_pack = ExpressionsPack(
             stark_info, self._expressions_bin,
             prover_helpers=prover_helpers,
-            nrows_pack=1,
             verify=True,
         )
 
