@@ -1,5 +1,15 @@
 # Spec Sync History
 
+## 2026-02-26 (second pass)
+
+- **Commit checked**: `d601eaf454d78577b2040993e311d59b19d2e493`
+- **Diffed from**: `5c8265595c882ff84643146f9f3fd218e9e25c3c`
+- **Checked by**: spec-sync-guardian agent
+- **Python files changed since last sync**: protocol/prover.py, protocol/simple_pilout.py, protocol/verifier.py (+ style/perf-only changes)
+- **Issues found**: 4 stale references
+- **Issues resolved**: 4 (all applied)
+- **Notes**: Mode 3 (standalone) and Modes 1/external-VADCOP removed from prover.py; gen_proof() signature simplified (removed global_challenge, compute_global_challenge params); prove_simple_pilout() + AIRProveData added as primary multi-AIR API. Fixed: (1) full-protocol.md line 33 dead #transcript-seed-standalone anchor, (2) commitment-phase.md standalone mode section, (3) api/protocol/prover/index.rst gen_proof() signature, (4) api/protocol/simple_pilout/index.rst module docstring and API surface.
+
 ## 2026-02-26
 
 - **Commit checked**: `5c8265595c882ff84643146f9f3fd218e9e25c3c`

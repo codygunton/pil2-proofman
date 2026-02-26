@@ -30,7 +30,6 @@ and {ref}`sec:challenge-binding`.
 * -
   -
   - **Seed transcript** ({src}`protocol/verifier.py#transcript-reconstruct`).
-    <br>Standalone: $\T.\abs(\mathrm{vk},\; \Hash(\mathrm{pub}),\; r_1)$ ({src}`protocol/prover.py#transcript-seed-standalone`).
     <br>VADCOP: $\T.\abs(\chi)$, $\chi$ = global challenge ({ref}`sec:challenge-binding`, {src}`protocol/prover.py#transcript-seed-vadcop`).
 * - ***Round 2: Intermediate polynomials*** ({src}`protocol/prover.py#derive-stage2-challenges`)
   -

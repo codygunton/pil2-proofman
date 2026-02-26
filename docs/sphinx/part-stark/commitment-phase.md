@@ -26,31 +26,16 @@ representing the execution trace columns.
 (sec:seed)=
 ## Transcript Seeding
 
-Initialize the Fiat-Shamir transcript
-({src}`protocol/prover.py#transcript-seed-vadcop`).
-The seeding depends on the protocol mode:
+Initialize the Fiat-Shamir transcript by absorbing the global challenge
+({src}`protocol/prover.py#transcript-seed-vadcop`):
 
-- **Standalone mode.**
-  Seed the transcript directly:
+$$
+\T.\abs(\chi),
+$$
 
-  $$
-  \T.\abs\bigl(\mathrm{vk},\; \Hash(\mathrm{pub}),\; r_1\bigr),
-  $$
-
-  where $\mathrm{vk}$ is the verification key (4 base-field elements),
-  $\Hash(\mathrm{pub})$ is a Poseidon2 hash of the public inputs,
-  and $r_1$ is the stage-1 Merkle root.
-
-- **Multi-AIR (VADCOP) mode.**
-  A global challenge $\chi \in \Fext$ is derived from
-  the verification key, public inputs, and $r_1$
-  via a lattice expansion procedure
-  (see {ref}`sec:challenge-binding`).
-  Seed the transcript:
-
-  $$
-  \T.\abs(\chi).
-  $$
+where $\chi \in \Fext$ is derived from the verification key, public inputs,
+and $r_1$ via a lattice expansion procedure
+(see {ref}`sec:challenge-binding`).
 
 (sec:stage2)=
 ## Stage 2: Intermediate Polynomials

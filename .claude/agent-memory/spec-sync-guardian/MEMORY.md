@@ -2,7 +2,7 @@
 
 ## Sync Checkpoint File
 - Location: `/home/cody/pil2-proofman/SPEC_SYNC.md` (root of repo)
-- No prior checkpoint existed; this file was created on 2026-02-26
+- Current checkpoint: `d601eaf4` (2026-02-26, second pass)
 
 ## Key Markdown Spec Files (priority order)
 
@@ -15,6 +15,12 @@
 - `/home/cody/pil2-proofman/docs/sphinx/part-stark/challenge-binding.md`
 - `/home/cody/pil2-proofman/executable-spec/README.md`
 
+### API RST docs (also contain stale symbol references)
+- `/home/cody/pil2-proofman/docs/sphinx/api/protocol/prover/index.rst`
+- `/home/cody/pil2-proofman/docs/sphinx/api/protocol/simple_pilout/index.rst`
+- `/home/cody/pil2-proofman/docs/sphinx/api/protocol/verifier/index.rst`
+- (all files under `docs/sphinx/api/` — NOT auto-generated; must be updated manually)
+
 ### Secondary (user-facing docs, no Python code refs)
 - `/home/cody/pil2-proofman/CLAUDE.md` — project instructions, package structure
 - `/home/cody/pil2-proofman/executable-spec/NOTES.md` — dev notes on transcript modes
@@ -26,30 +32,33 @@
   - Path+anchor: `{src}\`protocol/stages.py#calc-witness\`` — links to `# <doc-anchor id="calc-witness">` comment in the file
   - Dotted symbol: `{src}\`protocol.verifier._verify_fri_consistency\`` — links to Python symbol by dotted import path
 - Both formats are used in the same doc. Neither has line numbers.
+- **Important**: The RST API docs under `docs/sphinx/api/` are NOT auto-generated — they are hand-maintained and drift just like the markdown spec files. Always include them in sync checks.
 
-## Known Pre-Existing Stale References (before af14b0d)
-1. `executable-spec/README.md` lines 30, 76, 83: References `protocol/proof_context.py` and `ProofContext` — file was deleted in commit `77b716ba`. Two-layer model description is now wrong (ProofContext layer no longer exists; protocol internals use numpy arrays directly).
-2. `docs/sphinx/part-stark/full-protocol.md` line 163: `{src}\`protocol.verifier.verify\`` — function is named `stark_verify`, not `verify`. The symbol `verify` does not exist in the module.
+## Outstanding Stale References (pre-existing, not yet fixed)
+1. `docs/sphinx/part-stark/building-blocks.md` line 14: `` `calculate_witness_with_module` `` — renamed to `calculate_witness`. The `{src}` anchor `protocol/stages.py#calc-witness` is still valid; only the function name in prose needs updating.
+2. `docs/sphinx/part-stark/full-protocol.md` line 163: `{src}\`protocol.verifier.verify\`` — function is named `stark_verify`, not `verify`. Symbol `verify` does not exist in the module.
+3. `executable-spec/README.md`: `proof_context.py` / `ProofContext` references — file deleted in `77b716ba`. Already fixed in directory tree and key abstractions table; check if any prose remains.
 
-## Stale References Introduced Since af14b0d
-3. `docs/sphinx/part-stark/building-blocks.md` line 14: `\`calculate_witness_with_module\`` — renamed to `calculate_witness` in commit `33ec379a`. The `{src}` anchor `protocol/stages.py#calc-witness` is still valid.
-
-## Undocumented Protocol Changes Since af14b0d (not in any spec markdown)
-1. **New AIRs added** (Simple pilout multi-AIR): `SimpleRight`, `U8Air`, `U16Air`, `SpecifiedRanges` — new witness modules in `witness/`. No spec coverage needed (implementation detail), but `executable-spec/README.md` supported AIRs table only lists 3 AIRs.
-2. **`ProverData.constants` key changed**: Was `dict[str, FFPoly]` keyed by name. Now `dict[tuple[str, int], FFPoly]` keyed by (name, index) to support AIRs with multiple same-named constants. Data model docstring in `protocol/data.py` was updated. No sphinx spec doc references this internal format.
-3. **`ConstraintContext.const/next_const/prev_const` API changed**: Added `index: int = 0` parameter. Not referenced directly in sphinx spec.
-4. **`gen_proof` signature simplified**: Removed `skip_challenge_derivation` and `injected_challenges` params (testing scaffolding). Also renamed `root1`→`stage1_commitment`, `computed_roots`→`commitments`. Not referenced in sphinx spec.
-5. **`AirConfig` gained `expressions_bin` field**: Auto-detected sibling `.bin` file. Used for bytecode fallback when hand-written modules defer Stage-2.
-6. **`get_constraint_module`/`get_witness_module` gained `expressions_bin` param**: Prevents cross-pilout naming collisions (e.g., SpecifiedRanges in both Simple and Zisk pilouts).
-7. **Proof dict now includes `"global_challenge"` key**: Contains transcript seed (Modes 1 and 2) or None (Mode 3). Enables verifier to reconstruct transcript without re-deriving.
+## Resolved Stale References (d601eaf4 sync pass)
+- `full-protocol.md` line 33: removed dead `#transcript-seed-standalone` anchor (Mode 3 deleted)
+- `commitment-phase.md` lines 33–53: replaced two-mode (Standalone + VADCOP) section with VADCOP-only
+- `api/protocol/prover/index.rst`: removed `global_challenge` and `compute_global_challenge` params from `gen_proof()` signature
+- `api/protocol/simple_pilout/index.rst`: updated module docstring, usage example, and autoapisummary listings to reflect `prove_simple_pilout()` / `AIRProveData` as primary API
 
 ## High-Drift Python Modules (most likely to cause spec drift)
 - `protocol/stages.py` — PolynomialCommitter class, all doc-anchors for stage ops
-- `protocol/prover.py` — gen_proof() signature, doc-anchors for transcript modes
-- `protocol/verifier.py` — stark_verify(), all verification doc-anchors
+- `protocol/prover.py` — gen_proof() signature, doc-anchors for transcript modes; also `api/protocol/prover/index.rst`
+- `protocol/simple_pilout.py` — multi-AIR API surface; also `api/protocol/simple_pilout/index.rst`
+- `protocol/verifier.py` — stark_verify(), all verification doc-anchors; also `api/protocol/verifier/index.rst`
 - `constraints/base.py` — ConstraintContext ABC, public API
 
-## Recommended Fixes (apply when authorized)
-1. `docs/sphinx/part-stark/building-blocks.md` line 14: Change `\`calculate_witness_with_module\`` to `\`calculate_witness\`` (the {src} anchor is correct)
-2. `executable-spec/README.md` lines 30, 76, 83: Remove `proof_context.py` row from directory tree and key abstractions table; update "two-layer data model" section to reflect current architecture (numpy arrays for protocol internals, ProverData/VerifierData for modules)
-3. `docs/sphinx/part-stark/full-protocol.md` line 163: Change `{src}\`protocol.verifier.verify\`` to `{src}\`protocol.verifier.stark_verify\``
+## Protocol State (as of d601eaf4)
+- `gen_proof()` signature: `(air_config, trace, const_pols, const_pols_extended, public_inputs=None)`
+- Modes 1 (external VADCOP) and 3 (standalone) deleted; only Mode 2 (internal VADCOP) remains
+- Multi-AIR primary API: `prove_simple_pilout(air_data: dict[str, AIRProveData]) -> dict[str, dict]`
+- `_commit_stage1()` and `_gen_proof_stage2_plus()` are private helpers (not spec-visible)
+- `prove_simple_pilout_stage1()` / `AIRStage1Data` still exist as lower-level API (not deleted)
+
+## Recommended Fixes (still outstanding)
+1. `docs/sphinx/part-stark/building-blocks.md` line 14: Change `` `calculate_witness_with_module` `` to `` `calculate_witness` `` (the {src} anchor is correct)
+2. `docs/sphinx/part-stark/full-protocol.md` line 163: Change `{src}\`protocol.verifier.verify\`` to `{src}\`protocol.verifier.stark_verify\``
