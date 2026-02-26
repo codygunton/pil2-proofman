@@ -20,12 +20,29 @@ from protocol.verifier import stark_verify
 
 TEST_DATA_DIR = Path(__file__).parent / "test-data"
 
+_SIMPLE_PK = '../../pil2-components/test/simple/build/provingKey'
+
 # AIR configurations (same as test_stark_e2e.py)
 AIR_CONFIGS = {
     'simple': {
         'test_vector': 'simple-left.json',
-        'starkinfo': '../../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json',
-        'expressions_bin': '../../pil2-components/test/simple/build/provingKey/build/Simple/airs/SimpleLeft/air/SimpleLeft.bin',
+        'starkinfo': f'{_SIMPLE_PK}/build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json',
+        'expressions_bin': f'{_SIMPLE_PK}/build/Simple/airs/SimpleLeft/air/SimpleLeft.bin',
+    },
+    'u8_air': {
+        'test_vector': 'u8-air.json',
+        'starkinfo': f'{_SIMPLE_PK}/build/Simple/airs/U8Air/air/U8Air.starkinfo.json',
+        'expressions_bin': f'{_SIMPLE_PK}/build/Simple/airs/U8Air/air/U8Air.bin',
+    },
+    'specified_ranges': {
+        'test_vector': 'specified-ranges.json',
+        'starkinfo': f'{_SIMPLE_PK}/build/Simple/airs/SpecifiedRanges/air/SpecifiedRanges.starkinfo.json',
+        'expressions_bin': f'{_SIMPLE_PK}/build/Simple/airs/SpecifiedRanges/air/SpecifiedRanges.bin',
+    },
+    'u16_air': {
+        'test_vector': 'u16-air.json',
+        'starkinfo': f'{_SIMPLE_PK}/build/Simple/airs/U16Air/air/U16Air.starkinfo.json',
+        'expressions_bin': f'{_SIMPLE_PK}/build/Simple/airs/U16Air/air/U16Air.bin',
     },
     'lookup': {
         'test_vector': 'lookup2-12.json',
@@ -120,7 +137,8 @@ def create_buffers_from_vectors(
 class TestVerifierE2E:
     """End-to-end verifier tests."""
 
-    @pytest.mark.parametrize("air_name", ['simple', 'lookup', 'permutation'])
+    @pytest.mark.parametrize("air_name", ['simple', 'u8_air', 'specified_ranges',
+                                           'lookup', 'permutation', 'u16_air'])
     def test_verify_valid_proof(self, air_name: str) -> None:
         """Test that stark_verify returns True for valid proofs.
 

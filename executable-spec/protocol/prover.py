@@ -258,7 +258,10 @@ def gen_proof(
     # Dispatches to witness module for AIR (SimpleLeft, Lookup2_12, etc.)
     # Writes: im_cluster, gsum columns into aux_trace buffer
     # Returns: airgroup_values (cross-AIR boundary values for VADCOP)
-    airgroup_values = calculate_witness(stark_info, trace, aux_trace, const_pols, stage2_challenges)
+    airgroup_values = calculate_witness(
+        stark_info, trace, aux_trace, const_pols, stage2_challenges,
+        expressions_bin=air_config.expressions_bin,
+    )
 
     # <doc-anchor id="intermediate-commit">
     # Commit stage 2 witness polynomials via Merkle tree

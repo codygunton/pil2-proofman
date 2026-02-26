@@ -94,7 +94,7 @@ def test_prover_context_const_returns_array() -> None:
     from protocol.data import ProverData
 
     const_values = FF.Random(8)
-    data = ProverData(columns={}, challenges={}, constants={'L1': const_values})
+    data = ProverData(columns={}, challenges={}, constants={('L1', 0): const_values})
     ctx = ProverConstraintContext(data)
 
     result = ctx.const('L1')

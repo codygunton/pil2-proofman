@@ -49,14 +49,14 @@ class ProverData:
 
     Attributes:
         columns: Polynomial columns keyed by (name, index)
-        constants: Constant polynomials keyed by name
+        constants: Constant polynomials keyed by (name, index)
         challenges: Fiat-Shamir challenges keyed by name (e.g., 'std_alpha')
         public_inputs: Public inputs keyed by name
         airgroup_values: AIR group values keyed by index
         extend: Blowup factor (N_ext / N), 1 for base domain, 4+ for extended
     """
     columns: dict[tuple[str, int], FF3Poly] = field(default_factory=dict)
-    constants: dict[str, FFPoly] = field(default_factory=dict)
+    constants: dict[tuple[str, int], FFPoly] = field(default_factory=dict)
     challenges: dict[str, FF3] = field(default_factory=dict)
     public_inputs: dict[str, FF] = field(default_factory=dict)
     airgroup_values: dict[int, FF3] = field(default_factory=dict)

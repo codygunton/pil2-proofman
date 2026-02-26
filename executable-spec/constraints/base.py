@@ -86,11 +86,12 @@ class ConstraintContext(ABC):
         pass
 
     @abstractmethod
-    def const(self, name: str) -> FF3Poly | FF3:
+    def const(self, name: str, index: int = 0) -> FF3Poly | FF3:
         """Get constant polynomial at current row (converted to extension field).
 
         Args:
             name: Constant name (e.g., '__L1__' for Lagrange polynomial)
+            index: Column index for AIRs with multiple constants sharing a name
 
         Returns:
             Prover: array of constant values (as FF3 for arithmetic compatibility)
@@ -99,11 +100,12 @@ class ConstraintContext(ABC):
         pass
 
     @abstractmethod
-    def next_const(self, name: str) -> FF3Poly | FF3:
+    def next_const(self, name: str, index: int = 0) -> FF3Poly | FF3:
         """Get constant polynomial at next row (offset +1).
 
         Args:
             name: Constant name
+            index: Column index for AIRs with multiple constants sharing a name
 
         Returns:
             Prover: array shifted by -1 (circular)
@@ -112,11 +114,12 @@ class ConstraintContext(ABC):
         pass
 
     @abstractmethod
-    def prev_const(self, name: str) -> FF3Poly | FF3:
+    def prev_const(self, name: str, index: int = 0) -> FF3Poly | FF3:
         """Get constant polynomial at previous row (offset -1).
 
         Args:
             name: Constant name
+            index: Column index for AIRs with multiple constants sharing a name
 
         Returns:
             Prover: array shifted by +1 (circular)
@@ -173,19 +176,19 @@ class ProverConstraintContext(ConstraintContext):
         extend = self._data.extend
         return np.roll(self.col(name, index), extend)
 
-    def const(self, name: str) -> FF3Poly:
+    def const(self, name: str, index: int = 0) -> FF3Poly:
         # Convert base field constant to extension field for arithmetic compatibility
-        return FF3(np.asarray(self._data.constants[name], dtype=np.uint64))
+        return FF3(np.asarray(self._data.constants[(name, index)], dtype=np.uint64))
 
-    def next_const(self, name: str) -> FF3Poly:
+    def next_const(self, name: str, index: int = 0) -> FF3Poly:
         # On extended domain, row offset is multiplied by extend factor
         extend = self._data.extend
-        return np.roll(self.const(name), -extend)
+        return np.roll(self.const(name, index), -extend)
 
-    def prev_const(self, name: str) -> FF3Poly:
+    def prev_const(self, name: str, index: int = 0) -> FF3Poly:
         # On extended domain, row offset is multiplied by extend factor
         extend = self._data.extend
-        return np.roll(self.const(name), extend)
+        return np.roll(self.const(name, index), extend)
 
     def challenge(self, name: str) -> FF3:
         return self._data.challenges[name]
@@ -216,17 +219,14 @@ class VerifierConstraintContext(ConstraintContext):
         # offset=-1 means evaluation at xi * omega^(-1)
         return self._data.evals[(name, index, -1)]
 
-    def const(self, name: str) -> FF3:
-        # Constants stored in evals with index=0, offset=0
-        return self._data.evals[(name, 0, 0)]
+    def const(self, name: str, index: int = 0) -> FF3:
+        return self._data.evals[(name, index, 0)]
 
-    def next_const(self, name: str) -> FF3:
-        # Constants at next row (offset=1)
-        return self._data.evals[(name, 0, 1)]
+    def next_const(self, name: str, index: int = 0) -> FF3:
+        return self._data.evals[(name, index, 1)]
 
-    def prev_const(self, name: str) -> FF3:
-        # Constants at previous row (offset=-1)
-        return self._data.evals[(name, 0, -1)]
+    def prev_const(self, name: str, index: int = 0) -> FF3:
+        return self._data.evals[(name, index, -1)]
 
     def challenge(self, name: str) -> FF3:
         return self._data.challenges[name]

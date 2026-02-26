@@ -58,35 +58,44 @@ generate_vectors() {
         return 1
     fi
 
-    # Build library with debug feature for deterministic witness
-    echo "Building $LIB_NAME with debug feature..."
-    cargo build --manifest-path "$ROOT_DIR/pil2-components/test/$TEST_NAME/rs/Cargo.toml" --features debug 2>/dev/null
+    # Skip build and proof generation if proof file already exists.
+    # All AIRs in a pilout are proved together in one C++ run, so subsequent
+    # calls for the same pilout can skip directly to Python extraction.
+    if [ ! -f "$PROOF_FILE" ]; then
+        # Build library with debug feature for deterministic witness
+        echo "Building $LIB_NAME with debug feature..."
+        cargo build --manifest-path "$ROOT_DIR/pil2-components/test/$TEST_NAME/rs/Cargo.toml" --features debug 2>/dev/null
 
-    # Build C++ library with CAPTURE_TEST_VECTORS flag
-    echo "Building C++ library with FRI capture flag..."
-    cd "$ROOT_DIR/pil2-stark"
-    make clean > /dev/null 2>&1 || true
-    make -j starks_lib EXTRA_CXXFLAGS="-DCAPTURE_TEST_VECTORS" 2>&1 | tail -5
-    cd "$ROOT_DIR"
+        # Build C++ library with CAPTURE_TEST_VECTORS flag
+        echo "Building C++ library with FRI capture flag..."
+        cd "$ROOT_DIR/pil2-stark"
+        make clean > /dev/null 2>&1 || true
+        make -j starks_lib EXTRA_CXXFLAGS="-DCAPTURE_TEST_VECTORS" 2>&1 | tail -5
+        cd "$ROOT_DIR"
 
-    # Force rebuild of proofman-cli to link against the new library
-    echo "Rebuilding proofman-cli..."
-    touch "$ROOT_DIR/provers/starks-lib-c/build.rs"
-    cargo build --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli 2>/dev/null
+        # Force rebuild of proofman-cli to link against the new library
+        echo "Rebuilding proofman-cli..."
+        touch "$ROOT_DIR/provers/starks-lib-c/build.rs"
+        cargo build --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli 2>/dev/null
 
-    # Generate proofs and capture stderr (JSON output)
-    echo "Generating proofs (capturing FRI vectors to JSON)..."
-    rm -rf "$OUTPUT_DIR"
-    mkdir -p "$OUTPUT_DIR"
+        # Generate proofs and capture stderr (JSON output)
+        echo "Generating proofs (capturing FRI vectors to JSON)..."
+        rm -rf "$OUTPUT_DIR"
+        mkdir -p "$OUTPUT_DIR"
+
+        local CAPTURE_FILE="$OUTPUT_DIR/fri_capture.txt"
+
+        cargo run --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli prove \
+            --witness-lib "$ROOT_DIR/target/debug/$LIB_NAME" \
+            --proving-key "$BUILD_DIR/provingKey" \
+            --output-dir "$OUTPUT_DIR" \
+            --save-proofs \
+            --verify-proofs 2> "$CAPTURE_FILE" > /dev/null || true
+    else
+        echo "Proof file already exists, skipping build and proof generation."
+    fi
 
     local CAPTURE_FILE="$OUTPUT_DIR/fri_capture.txt"
-
-    cargo run --manifest-path "$ROOT_DIR/Cargo.toml" --bin proofman-cli prove \
-        --witness-lib "$ROOT_DIR/target/debug/$LIB_NAME" \
-        --proving-key "$BUILD_DIR/provingKey" \
-        --output-dir "$OUTPUT_DIR" \
-        --save-proofs \
-        --verify-proofs 2> "$CAPTURE_FILE" > /dev/null || true
 
     # Check proof file exists
     if [ ! -f "$PROOF_FILE" ]; then
@@ -163,6 +172,26 @@ case "$TEST_TARGET" in
             "$ROOT_DIR/pil2-components/test/simple/build" \
             "libsimple.so" "SimpleLeft_0" "simple-left.json" \
             "build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json"
+
+        generate_vectors "simple" "SimpleRight" \
+            "$ROOT_DIR/pil2-components/test/simple/build" \
+            "libsimple.so" "SimpleRight_1" "simple-right.json" \
+            "build/Simple/airs/SimpleRight/air/SimpleRight.starkinfo.json"
+
+        generate_vectors "simple" "U8Air" \
+            "$ROOT_DIR/pil2-components/test/simple/build" \
+            "libsimple.so" "U8Air_2" "u8-air.json" \
+            "build/Simple/airs/U8Air/air/U8Air.starkinfo.json"
+
+        generate_vectors "simple" "U16Air" \
+            "$ROOT_DIR/pil2-components/test/simple/build" \
+            "libsimple.so" "U16Air_3" "u16-air.json" \
+            "build/Simple/airs/U16Air/air/U16Air.starkinfo.json"
+
+        generate_vectors "simple" "SpecifiedRanges" \
+            "$ROOT_DIR/pil2-components/test/simple/build" \
+            "libsimple.so" "SpecifiedRanges_4" "specified-ranges.json" \
+            "build/Simple/airs/SpecifiedRanges/air/SpecifiedRanges.starkinfo.json"
         ;;
     lookup)
         generate_vectors "lookup" "Lookup2_12" \
@@ -181,6 +210,26 @@ case "$TEST_TARGET" in
             "$ROOT_DIR/pil2-components/test/simple/build" \
             "libsimple.so" "SimpleLeft_0" "simple-left.json" \
             "build/Simple/airs/SimpleLeft/air/SimpleLeft.starkinfo.json"
+
+        generate_vectors "simple" "SimpleRight" \
+            "$ROOT_DIR/pil2-components/test/simple/build" \
+            "libsimple.so" "SimpleRight_1" "simple-right.json" \
+            "build/Simple/airs/SimpleRight/air/SimpleRight.starkinfo.json"
+
+        generate_vectors "simple" "U8Air" \
+            "$ROOT_DIR/pil2-components/test/simple/build" \
+            "libsimple.so" "U8Air_2" "u8-air.json" \
+            "build/Simple/airs/U8Air/air/U8Air.starkinfo.json"
+
+        generate_vectors "simple" "U16Air" \
+            "$ROOT_DIR/pil2-components/test/simple/build" \
+            "libsimple.so" "U16Air_3" "u16-air.json" \
+            "build/Simple/airs/U16Air/air/U16Air.starkinfo.json"
+
+        generate_vectors "simple" "SpecifiedRanges" \
+            "$ROOT_DIR/pil2-components/test/simple/build" \
+            "libsimple.so" "SpecifiedRanges_4" "specified-ranges.json" \
+            "build/Simple/airs/SpecifiedRanges/air/SpecifiedRanges.starkinfo.json"
 
         generate_vectors "lookup" "Lookup2_12" \
             "$ROOT_DIR/pil2-components/test/lookup/build" \

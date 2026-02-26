@@ -424,3 +424,14 @@ def calculate_witness_std(
         airgroup_val_field=airgroup_val_field,
         field1="numerator_direct", field2="denominator_direct", add=not prod
     )
+
+    # Evaluate expression-based im_pol columns (im_pol=True with expId).
+    # These polynomials are defined by a constraint expression that reads
+    # gsum, so they must be computed AFTER gsum accumulation above.
+    if not prod:
+        N = 1 << stark_info.stark_struct.n_bits
+        for pol_info in stark_info.cm_pols_map:
+            if pol_info.im_pol and pol_info.exp_id:
+                dest_buffer = np.zeros(N * pol_info.dim, dtype=np.uint64)
+                expressions_ctx.calculate_expression(buffers, dest_buffer, pol_info.exp_id)
+                _set_poly_column(stark_info, buffers, pol_info, dest_buffer)

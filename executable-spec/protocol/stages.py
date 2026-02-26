@@ -31,12 +31,19 @@ from protocol.air_config import FIELD_EXTENSION_DEGREE, AirConfig, ProverHelpers
 from protocol.data import ProverData
 
 if TYPE_CHECKING:
+    from primitives.pol_map import PolMap
     from protocol.stark_info import StarkInfo
 
 # --- Type Aliases ---
 BufferOffset = int
 StageIndex = int
 ChallengesDict = dict[str, FF3]
+
+
+def _pol_index(pol_info: PolMap, all_pols: list[PolMap]) -> int:
+    """Index of pol_info among same-name entries: count predecessors with a lower stage_pos."""
+    predecessors = [p for p in all_pols if p.name == pol_info.name and p.stage_pos < pol_info.stage_pos]
+    return len(predecessors)
 
 
 def _build_prover_data_extended(
@@ -87,13 +94,7 @@ def _build_prover_data_extended(
             src_idx = offset + j * n_cols + stage_pos
             values[j * dim : (j + 1) * dim] = aux_trace[src_idx : src_idx + dim]
 
-        # Find or compute the index for this polynomial name
-        # Multiple columns may share the same name (e.g., im_cluster[0], im_cluster[1])
-        index = 0
-        for other in stark_info.cm_pols_map:
-            if other.name == name and other.stage_pos < stage_pos:
-                index += 1
-
+        index = _pol_index(pol_info, stark_info.cm_pols_map)
         if dim == 1:
             columns[(name, index)] = FF3(np.asarray(values, dtype=np.uint64))
         else:
@@ -111,11 +112,12 @@ def _build_prover_data_extended(
             src_idx = j * n_cols + stage_pos
             values[j * dim : (j + 1) * dim] = const_pols_extended[src_idx : src_idx + dim]
 
+        const_index = _pol_index(pol_info, stark_info.const_pols_map)
         if dim == 1:
-            constants[name] = FF(np.asarray(values, dtype=np.uint64))
+            constants[(name, const_index)] = FF(np.asarray(values, dtype=np.uint64))
         else:
             # Constants are typically dim=1, but handle dim>1 if needed
-            constants[name] = ff3_from_interleaved_numpy(values, N_ext)
+            constants[(name, const_index)] = ff3_from_interleaved_numpy(values, N_ext)
 
     # Extract challenges from dict
     for name, value in challenges.items():
@@ -193,12 +195,7 @@ def _build_prover_data_base(
             src_idx = base_offset + j * n_cols + stage_pos
             values[j * dim : (j + 1) * dim] = buffer[src_idx : src_idx + dim]
 
-        # Find or compute the index for this polynomial name
-        index = 0
-        for other in stark_info.cm_pols_map:
-            if other.name == name and other.stage_pos < stage_pos:
-                index += 1
-
+        index = _pol_index(pol_info, stark_info.cm_pols_map)
         if dim == 1:
             columns[(name, index)] = FF3(np.asarray(values, dtype=np.uint64))
         else:
@@ -216,10 +213,11 @@ def _build_prover_data_base(
             src_idx = j * n_cols + stage_pos
             values[j * dim : (j + 1) * dim] = const_pols[src_idx : src_idx + dim]
 
+        const_index = _pol_index(pol_info, stark_info.const_pols_map)
         if dim == 1:
-            constants[name] = FF(np.asarray(values, dtype=np.uint64))
+            constants[(name, const_index)] = FF(np.asarray(values, dtype=np.uint64))
         else:
-            constants[name] = ff3_from_interleaved_numpy(values, N)
+            constants[(name, const_index)] = ff3_from_interleaved_numpy(values, N)
 
     # Extract challenges from dict
     for name, value in challenges.items():
@@ -330,10 +328,13 @@ def calculate_witness(
     aux_trace: np.ndarray,
     const_pols: np.ndarray,
     challenges: ChallengesDict,
+    expressions_bin: str | None = None,
 ) -> np.ndarray:
     """Calculate witness polynomials using per-AIR witness modules.
 
     Computes im_cluster and gsum columns using the AIR-specific witness module.
+    If the hand-written module defers Stage-2 (returns empty dicts), falls back
+    to the compiled expression bytecode at expressions_bin.
 
     Args:
         stark_info: StarkInfo with AIR name and polynomial mappings
@@ -341,13 +342,16 @@ def calculate_witness(
         aux_trace: Auxiliary trace buffer
         const_pols: Base domain constant polynomials
         challenges: Named challenges dict for stage 2
+        expressions_bin: Optional path to .bin bytecode for Stage-2 fallback.
+            Used when the hand-written module returns empty dicts from
+            compute_intermediates/compute_grand_sums.
 
     Returns:
         airgroup_values: Cross-AIR accumulator values (gsum/gprod boundaries)
             Array of FF3 elements in interleaved format, empty for standalone AIRs
     """
-    from primitives.field import FIELD_EXTENSION_DEGREE
     from constraints import ProverConstraintContext
+    from primitives.field import FIELD_EXTENSION_DEGREE
     from witness import get_witness_module
 
     air_name = stark_info.name
@@ -358,8 +362,8 @@ def calculate_witness(
     n_airgroup_values = len(stark_info.airgroup_values_map)
     airgroup_values = np.zeros(n_airgroup_values * FIELD_EXTENSION_DEGREE, dtype=np.uint64)
 
-    # Get witness module for this AIR
-    witness_module = get_witness_module(air_name)
+    # Get witness module for this AIR (bytecode fallback handled inside get_witness_module)
+    witness_module = get_witness_module(air_name, expressions_bin)
 
     # Build context with base domain data
     prover_data = _build_prover_data_base(stark_info, trace, aux_trace, const_pols, challenges)
@@ -616,14 +620,14 @@ class PolynomialCommitter:
         stark_info = self.setupCtx.stark_info
         N_ext = 1 << stark_info.stark_struct.n_bits_ext
         air_name = stark_info.name
+        expressions_bin = self.setupCtx.expressions_bin
 
         # Use per-AIR constraint modules
         prover_data = _build_prover_data_extended(
             stark_info, trace, aux_trace, const_pols_extended, challenges, airgroup_values
         )
 
-        # Get constraint module for this AIR
-        constraint_module = get_constraint_module(air_name)
+        constraint_module = get_constraint_module(air_name, expressions_bin)
 
         # Create prover context and evaluate constraints
         ctx = ProverConstraintContext(prover_data)

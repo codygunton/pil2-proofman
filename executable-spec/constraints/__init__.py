@@ -72,24 +72,36 @@ def _discover_vadcop_final() -> dict[str, str]:
 BYTECODE_AIRS: dict[str, str] = {**_discover_zisk_airs(), **_discover_vadcop_final()}
 
 
-def get_constraint_module(air_name: str) -> ConstraintModule:
+def get_constraint_module(air_name: str, expressions_bin: str | None = None) -> ConstraintModule:
     """Get constraint module instance for an AIR.
 
-    Checks BYTECODE_AIRS first (allowing bytecode override for validation),
-    then falls back to hand-written modules in CONSTRAINT_REGISTRY.
+    When expressions_bin is provided (from AirConfig), prefers hand-written modules
+    in CONSTRAINT_REGISTRY to avoid naming collisions between pilouts that share an
+    AIR name (e.g., SpecifiedRanges appears in both Simple pilout and Zisk). Falls
+    back to BytecodeConstraintModule with the provided path if no hand-written module
+    exists.
+
+    Without expressions_bin, checks BYTECODE_AIRS first (allowing bytecode override
+    for validation), then falls back to hand-written modules in CONSTRAINT_REGISTRY.
 
     Args:
         air_name: Name of the AIR (e.g., 'SimpleLeft', 'Lookup2_12')
+        expressions_bin: Optional path to .bin bytecode. When provided, takes priority
+            over BYTECODE_AIRS to prevent cross-pilout naming collisions.
 
     Returns:
         ConstraintModule instance for the AIR
 
     Raises:
-        KeyError: If no constraint module is registered for the AIR
+        KeyError: If no constraint module is registered for the AIR (and no expressions_bin)
     """
-    if air_name in BYTECODE_AIRS:
-        from .bytecode_adapter import BytecodeConstraintModule
+    from .bytecode_adapter import BytecodeConstraintModule
 
+    if expressions_bin is not None:
+        if air_name in CONSTRAINT_REGISTRY:
+            return CONSTRAINT_REGISTRY[air_name]()
+        return BytecodeConstraintModule(expressions_bin)
+    if air_name in BYTECODE_AIRS:
         return BytecodeConstraintModule(BYTECODE_AIRS[air_name])
     if air_name in CONSTRAINT_REGISTRY:
         return CONSTRAINT_REGISTRY[air_name]()

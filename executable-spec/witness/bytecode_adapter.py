@@ -119,10 +119,16 @@ def _reconstruct_const_pols(
         stage_pos = pol_info.stage_pos
         dim = pol_info.dim
 
-        if name not in data.constants:
+        # Index = number of same-name constants with a lower stage_pos (mirrors cm_pols logic)
+        const_index = len([
+            other for other in stark_info.const_pols_map
+            if other.name == name and other.stage_pos < stage_pos
+        ])
+        key = (name, const_index)
+        if key not in data.constants:
             continue
 
-        const_val = data.constants[name]
+        const_val = data.constants[key]
         if dim == 1:
             values = np.asarray(const_val, dtype=np.uint64)
             for j in range(N):
@@ -216,7 +222,7 @@ def _extract_intermediates(
 
     for pol_info in stark_info.cm_pols_map:
         name = pol_info.name
-        if not name.startswith('im_'):
+        if not (pol_info.im_pol or name.startswith('im_')):
             continue
 
         stage = pol_info.stage
@@ -323,6 +329,8 @@ class BytecodeWitnessModule(WitnessModule):
         """
         self._bin_path = bin_path
         self._expressions_bin = ExpressionsBin.from_file(bin_path)
+        self._last_buffers: BufferSet | None = None
+        self._last_N: int | None = None
 
         # Load adjacent starkinfo.json
         bin_dir = Path(bin_path).parent
@@ -378,11 +386,11 @@ class BytecodeWitnessModule(WitnessModule):
         Returns:
             Tuple of (BufferSet, domain_size)
         """
-        if hasattr(self, '_last_buffers'):
+        if self._last_buffers is not None:
             buffers = self._last_buffers
             N = self._last_N
-            del self._last_buffers
-            del self._last_N
+            self._last_buffers = None
+            self._last_N = None
             return buffers, N
 
         # No cached buffers -- run full computation

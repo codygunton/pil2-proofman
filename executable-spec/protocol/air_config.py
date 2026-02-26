@@ -75,7 +75,6 @@ class ProverHelpers:
 
         Args:
             stark_info: AIR specification with domain sizes and boundaries
-            DOCTASK do we actually use this pil1 compatiblity?
             pil1: Enable PIL1 compatibility mode (computes x_n powers)
 
         Returns:
@@ -114,10 +113,8 @@ class ProverHelpers:
         z_ff3 = FF3.Vector([int(z[2]), int(z[1]), int(z[0])])
         one_ff3 = FF3(1)
 
-        # z^N
-        x_n_ff3 = one_ff3
-        for _ in range(N):
-            x_n_ff3 = x_n_ff3 * z_ff3
+        # z^N (galois ** uses repeated squaring, O(log N))
+        x_n_ff3 = z_ff3 ** N
 
         # Z_H(z) = z^N - 1
         z_n_minus_one = x_n_ff3 - one_ff3
@@ -279,15 +276,25 @@ class AirConfig:
             constraint definitions, polynomial mappings, and FRI parameters.
         global_info: Optional cross-AIR coordination data for VADCOP (Virtual
             Algebraic Distributed Computation Over Provers) mode.
+        expressions_bin: Optional path to compiled expression bytecode (.bin).
+            Auto-detected as the sibling .bin file of the starkinfo.json.
+            Used as a Stage-2 witness fallback for AIRs without hand-written
+            compute_intermediates/compute_grand_sums implementations.
 
     Usage:
         config = AirConfig.from_starkinfo("path/to/starkinfo.json")
         proof = gen_proof(config, params)
     """
 
-    def __init__(self, stark_info: "StarkInfo", global_info: Optional["GlobalInfo"] = None) -> None:
+    def __init__(
+        self,
+        stark_info: "StarkInfo",
+        global_info: Optional["GlobalInfo"] = None,
+        expressions_bin: str | None = None,
+    ) -> None:
         self.stark_info = stark_info
         self.global_info = global_info
+        self.expressions_bin = expressions_bin
 
     @classmethod
     def from_starkinfo(
@@ -302,6 +309,8 @@ class AirConfig:
         Returns:
             AirConfig instance with loaded configuration
         """
+        import os
+
         from protocol.global_info import GlobalInfo
         from protocol.stark_info import StarkInfo
 
@@ -311,7 +320,11 @@ class AirConfig:
         if global_info_path:
             global_info = GlobalInfo.from_json(global_info_path)
 
-        return cls(stark_info, global_info)
+        # Auto-detect sibling .bin bytecode file (same name, .bin extension)
+        bin_path = starkinfo_path.replace('.starkinfo.json', '.bin')
+        expressions_bin = bin_path if os.path.exists(bin_path) else None
+
+        return cls(stark_info, global_info, expressions_bin=expressions_bin)
 
 
 # Re-export FIELD_EXTENSION_DEGREE for modules that import it from here

@@ -114,7 +114,8 @@ def stark_verify(
     # Check 1: Q(xi) = C(xi)
     print("Verifying evaluations")
     if not _verify_evaluations(stark_info, evals, xi, challenges, airgroup_values,
-                               publics, proof.air_values, proof_values):
+                               publics, proof.air_values, proof_values,
+                               expressions_bin=air_config.expressions_bin):
         print("ERROR: Invalid evaluations")
         is_valid = False
 
@@ -603,7 +604,7 @@ def _build_verifier_data(
     )
 
 
-def _evaluate_constraint_with_module(stark_info: StarkInfo, verifier_data: VerifierData, xi: FF3) -> InterleavedFF3:
+def _evaluate_constraint_with_module(stark_info: StarkInfo, verifier_data: VerifierData, xi: FF3, expressions_bin: str | None = None) -> InterleavedFF3:
     """Evaluate constraint polynomial C(xi)/Z_H(xi) using per-AIR constraint module.
 
     The constraint module returns C(xi), but we need Q(xi) = C(xi)/Z_H(xi) where
@@ -613,6 +614,9 @@ def _evaluate_constraint_with_module(stark_info: StarkInfo, verifier_data: Verif
         stark_info: StarkInfo with AIR name
         verifier_data: VerifierData with evaluations and challenges
         xi: The evaluation point (challenge)
+        expressions_bin: Optional path to .bin bytecode; when provided, prefers
+            hand-written modules over Zisk bytecode to avoid cross-pilout naming
+            collisions (e.g., SpecifiedRanges appears in both Simple pilout and Zisk).
 
     Returns:
         Buffer containing Q(xi) = C(xi)/Z_H(xi) coefficients in extension field
@@ -620,7 +624,8 @@ def _evaluate_constraint_with_module(stark_info: StarkInfo, verifier_data: Verif
     # Late import to avoid circular dependency
     from constraints import VerifierConstraintContext, get_constraint_module
 
-    constraint_module = get_constraint_module(stark_info.name)
+    air_name = stark_info.name
+    constraint_module = get_constraint_module(air_name, expressions_bin)
     ctx = VerifierConstraintContext(verifier_data)
     constraint_at_xi = constraint_module.constraint_polynomial(ctx)
 
@@ -732,7 +737,8 @@ def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
                         airgroup_values: InterleavedFF3,
                         publics: FFArray | None = None,
                         air_values: list | None = None,
-                        proof_values: FFArray | None = None) -> bool:
+                        proof_values: FFArray | None = None,
+                        expressions_bin: str | None = None) -> bool:
     """Verify Q(xi) = C(xi) - the core STARK equation.
 
     This checks that the prover correctly computed the quotient polynomial Q
@@ -746,7 +752,7 @@ def _verify_evaluations(stark_info: StarkInfo, evals: InterleavedFF3,
     verifier_data = _build_verifier_data(stark_info, evals, challenges, airgroup_values,
                                          publics, air_values, proof_values)
     # <doc-anchor id="compute-constraint">
-    constraint_buffer = _evaluate_constraint_with_module(stark_info, verifier_data, xi)
+    constraint_buffer = _evaluate_constraint_with_module(stark_info, verifier_data, xi, expressions_bin)
     constraint_at_xi = FF3.Vector([int(constraint_buffer[2]), int(constraint_buffer[1]), int(constraint_buffer[0])])
 
     # Step 2: Compute powers of xi needed for reconstruction
