@@ -160,7 +160,7 @@ and {ref}`sec:challenge-binding`.
   - $\hat{F}_K := \INTT(F_K)$ ({src}`protocol/verifier.py#final-poly-intt`).
     <br>$D := 2^{b_K - (n_{\mathrm{ext}} - n)}$ ({src}`protocol/verifier.py#degree-bound`).
     <br>**Check:** $\hat{F}_K[i] = 0$ for $i \ge D$ ({src}`protocol/verifier.py#check-high-coeffs`).
-* - ***Query phase*** ({src}`protocol.verifier.verify`)
+* - ***Query phase*** ({src}`protocol.verifier.stark_verify`)
   -
   -
 * - Both sides derive query indices
@@ -197,7 +197,8 @@ and {ref}`sec:challenge-binding`.
   - **Accept** iff all checks pass.
 ```
 
-**Proof output.** $\pi = \bigl(r_1, r_2, r_Q, \{e_{p,o}\}, \eta, \{r_k^{\mathrm{FRI}}\}_{k=0}^{K-1}, F_K, \{\text{Merkle proofs}\}\bigr)$.
+**Proof output.** $\pi = \bigl(r_1, r_2, r_Q, \{e_{p,o}\}, \eta, \{r_k^{\mathrm{FRI}}\}_{k=0}^{K-1}, F_K, \{\text{Merkle proofs}\}\bigr)$,
+plus $\chi$ (the global challenge used to seed the transcript, needed for verifier replay).
 
 Communication: $3 + K$ Merkle roots ($\in \F^4$ each),
 $|\{e_{p,o}\}|$ extension-field evaluations,

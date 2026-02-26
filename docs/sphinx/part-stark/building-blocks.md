@@ -11,7 +11,7 @@ and execution trace structure.
 In the Python implementation, witness generation is handled by per-AIR witness
 modules that implement the `WitnessModule` abstract base class
 ({src}`witness.base.WitnessModule`). The prover calls these modules during Stage 1 via
-`calculate_witness_with_module` ({src}`protocol/stages.py#calc-witness`).
+`calculate_witness` ({src}`protocol/stages.py#calc-witness`).
 
 Part II (ZisK Machine) covers the specific witness generation logic for each
 of the ZisK AIRs.

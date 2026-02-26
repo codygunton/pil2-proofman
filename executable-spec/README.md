@@ -27,7 +27,6 @@ executable-spec/
 │   ├── fri_polynomial.py       # FRI polynomial computation
 │   ├── stark_info.py           # STARK configuration parser
 │   ├── air_config.py           # AIR config and ProverHelpers
-│   ├── proof_context.py        # Buffer-based prover/verifier state
 │   ├── data.py                 # ProverData/VerifierData for modules
 │   └── proof.py                # Proof data structures
 │
@@ -73,20 +72,13 @@ executable-spec/
 | `witness/*.py` | Per-AIR witness generation (im_cluster, gsum) |
 | `protocol/pcs.py` | FRI polynomial commitment scheme |
 | `protocol/air_config.py` | `AirConfig` bundles config, `ProverHelpers` manages buffers |
-| `protocol/proof_context.py` | `ProofContext` holds buffer-based runtime state |
 | `protocol/data.py` | `ProverData`/`VerifierData` for constraint/witness modules |
 
 ### Data Model
 
-The codebase uses a two-layer data model:
-
-1. **ProofContext** - Buffer-based storage (C++ compatible layout)
-   - Used by: Merkle tree building, NTT, FRI polynomial computation
-   - Efficient for bulk protocol operations
-
-2. **ProverData / VerifierData** - Dict-based storage (named columns)
-   - Used by: Constraint modules, witness modules
-   - Readable for AIR-specific code
+Protocol internals (Merkle trees, NTT, FRI) work directly with numpy arrays.
+Constraint and witness modules use **ProverData** / **VerifierData** dict-based
+storage with named columns, enabling readable AIR-specific code.
 
 ### Primitives
 
@@ -130,6 +122,10 @@ Generate test vectors (from repo root, requires pil2-compiler and pil2-proofman-
 
 | AIR | Rows | FRI Folding | Description |
 |-----|------|-------------|-------------|
-| SimpleLeft | 8 | No | Basic constraints only |
+| SimpleLeft | 8 | No | Basic constraints, part of Simple pilout |
+| SimpleRight | 8 | No | Permutation + lookup proves, part of Simple pilout |
+| U8Air | 128 | No | U8 range-check multiplicity table, part of Simple pilout |
+| U16Air | 16384 | No | U16 range-check multiplicity table, part of Simple pilout |
+| SpecifiedRanges | 64 | No | Custom range-check multiplicities, part of Simple pilout |
 | Lookup2_12 | 4096 | Yes | Complex lookup operations |
 | Permutation1_6 | 64 | Yes | Permutation constraints |
