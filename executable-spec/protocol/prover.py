@@ -398,11 +398,11 @@ def gen_proof(
         lattice_size = air_config.global_info.lattice_size
     # air_values: per-AIR instance values — a buffer used by complex AIRs to pass
     # accumulator state between stages (e.g., bus totals in a VADCOP proof). For all
-    # currently-supported Simple pilout AIRs, this buffer remains all zeros.
+    # currently-supported AIRs, this buffer remains all zeros.
     air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
     # air_values_stage1: the subset of air_values written during stage 1. These enter
     # the global challenge hash so verifiers can check cross-AIR state. Returns [] for
-    # Simple pilout AIRs (no stage-1 air_values).
+    # all currently-supported AIRs.
     air_values_stage1 = _get_air_values_stage1(stark_info, air_values)
     # proof_values_stage1: cross-AIR boundary values (e.g., bus message totals) at stage 1.
     # These also enter the global challenge hash. Returns [] for all currently-supported AIRs.
