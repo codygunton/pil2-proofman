@@ -375,7 +375,18 @@ def gen_proof(
     # DOTHIS: rather than extracting stark_info here and then passing that in in some places, le'ts just passin air_config (so you'll have to change some function signatures)
     stark_info = air_config.stark_info
 
-    # DOTHIS: add a comment here saying what eact of thse outputs is. in particular why do we have roo1 and commitments -- aren't those the same, or one is included in the other?
+    # _commit_stage1 returns five objects:
+    #   verkey:      Merkle root of the constant polynomial tree (4 ints).
+    #                Passed to derive_global_challenge to bind the AIR's constants.
+    #   root1:       Merkle root of the stage-1 witness commitment (4 ints).
+    #                Passed to derive_global_challenge to bind the stage-1 trace.
+    #   aux_trace:   Zeroed flat buffer for stage 2+ polynomial data (see _commit_stage1).
+    #   commitments: Mutable list starting as [root1]. Stages 2 and Q append their roots
+    #                here; the final list becomes proof["roots"] read by the verifier.
+    #   committer:   Stateful PolynomialCommitter that already holds the const_tree and
+    #                stage_trees[1]; needed to commit stages 2 and Q, evaluate polys, etc.
+    # root1 and commitments[0] are the same value — root1 is kept separately because
+    # derive_global_challenge needs it as a standalone argument, while commitments grows.
     verkey, root1, aux_trace, commitments, committer = _commit_stage1(
         air_config, trace, const_pols_extended
     )
@@ -385,11 +396,16 @@ def gen_proof(
     lattice_size = DEFAULT_LATTICE_SIZE
     if air_config.global_info is not None:
         lattice_size = air_config.global_info.lattice_size
-    # DOTHIS: add comments saying what this is
+    # air_values: per-AIR instance values — a buffer used by complex AIRs to pass
+    # accumulator state between stages (e.g., bus totals in a VADCOP proof). For all
+    # currently-supported Simple pilout AIRs, this buffer remains all zeros.
     air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
-    # DOTHIS: add comments saying what this is
+    # air_values_stage1: the subset of air_values written during stage 1. These enter
+    # the global challenge hash so verifiers can check cross-AIR state. Returns [] for
+    # Simple pilout AIRs (no stage-1 air_values).
     air_values_stage1 = _get_air_values_stage1(stark_info, air_values)
-    # DOTHIS: add comments saying what this is
+    # proof_values_stage1: cross-AIR boundary values (e.g., bus message totals) at stage 1.
+    # These also enter the global challenge hash. Returns [] for all currently-supported AIRs.
     proof_values_stage1 = _get_proof_values_stage1(stark_info)
     computed_challenge = derive_global_challenge(
         stark_info=stark_info,
