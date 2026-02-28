@@ -34,13 +34,14 @@ POSEIDON2_LINEAR_HASH_WIDTH = 16
 # --- Helper Functions ---
 
 
-def _get_air_values_stage1(stark_info: StarkInfo, air_values: np.ndarray | None) -> list[int]:
+def _get_air_values_stage1(air_config: AirConfig, air_values: np.ndarray | None) -> list[int]:
     """Extract stage 1 air_values for global_challenge computation.
 
     C++ reference: proofman.rs:3472-3540 (get_contribution_air)
     Only stage 1 air_values go into global_challenge hash.
     For simple AIRs, this returns an empty list.
     """
+    stark_info = air_config.stark_info
     result = []
     if (
         hasattr(stark_info, "air_values_map")
@@ -54,7 +55,7 @@ def _get_air_values_stage1(stark_info: StarkInfo, air_values: np.ndarray | None)
     return result
 
 
-def _get_proof_values_stage1(stark_info: StarkInfo) -> list[int]:
+def _get_proof_values_stage1(air_config: AirConfig) -> list[int]:
     """Extract stage 1 proof_values for global_challenge computation.
 
     C++ reference: challenge_accumulation.rs:96-99
@@ -372,9 +373,6 @@ def gen_proof(
     Returns:
         Dictionary containing serialized proof, including global_challenge.
     """
-    # DOTHIS: rather than extracting stark_info here and then passing that in in some places, le'ts just passin air_config (so you'll have to change some function signatures)
-    stark_info = air_config.stark_info
-
     # _commit_stage1 returns five objects:
     #   verkey:      Merkle root of the constant polynomial tree (4 ints).
     #                Passed to derive_global_challenge to bind the AIR's constants.
@@ -399,16 +397,16 @@ def gen_proof(
     # air_values: per-AIR instance values — a buffer used by complex AIRs to pass
     # accumulator state between stages (e.g., bus totals in a VADCOP proof). For all
     # currently-supported AIRs, this buffer remains all zeros.
-    air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
+    air_values = np.zeros(air_config.stark_info.air_values_size, dtype=np.uint64)
     # air_values_stage1: the subset of air_values written during stage 1. These enter
     # the global challenge hash so verifiers can check cross-AIR state. Returns [] for
     # all currently-supported AIRs.
-    air_values_stage1 = _get_air_values_stage1(stark_info, air_values)
+    air_values_stage1 = _get_air_values_stage1(air_config, air_values)
     # proof_values_stage1: cross-AIR boundary values (e.g., bus message totals) at stage 1.
     # These also enter the global challenge hash. Returns [] for all currently-supported AIRs.
-    proof_values_stage1 = _get_proof_values_stage1(stark_info)
+    proof_values_stage1 = _get_proof_values_stage1(air_config)
     computed_challenge = derive_global_challenge(
-        stark_info=stark_info,
+        stark_info=air_config.stark_info,
         publics=public_inputs,
         root1=root1,
         verkey=verkey,
