@@ -199,11 +199,17 @@ def _gen_proof_stage2_plus(
     # Derive stage 2 challenges from transcript (Fiat-Shamir).
     stage2_challenges = derive_challenges_for_stage(transcript, stark_info.challenges_map, stage=2)
 
-    # Calculate AIR-specific witness polynomials using stage-2 challenges
-    # DOTHIS: give examples because this is confusing--isn' tevery witness polynomial air-specific? if i'm wrong, then what isn't?
-    # Dispatches to witness module for AIR (SimpleLeft, Lookup2_12, etc.)
-    # Writes: im_cluster, gsum columns into aux_trace buffer
-    # Returns: airgroup_values (cross-AIR boundary values for VADCOP)
+    # Calculate stage-2 witness polynomials — the challenge-dependent part of the witness.
+    # Stage-1 polynomials are the raw execution trace, fixed before any randomness.
+    # Stage-2 polynomials can only be computed AFTER the stage-2 challenge is derived
+    # from the stage-1 commitment, because they prove properties about stage-1 using
+    # Fiat-Shamir randomness. Examples:
+    #   im_cluster (lookup AIRs): multiplicity column — how many times each lookup table
+    #     row is queried. Required to prove the lookup argument is balanced.
+    #   gsum (bus AIRs): running bus accumulator — the sum of all bus messages sent and
+    #     received, used to prove that senders and receivers agree.
+    # Dispatches to the witness module registered for this AIR (SimpleLeft, Lookup2_12, …).
+    # Writes computed columns into aux_trace; returns airgroup_values (cross-AIR VADCOP data).
     airgroup_values = calculate_witness(
         stark_info,
         trace,
@@ -262,7 +268,12 @@ def _gen_proof_stage2_plus(
         stark_info, committer, trace, aux_trace, const_pols_extended, xi_coeffs
     )
 
-    # DOTHIS: explain why this conditional
+    # hash_commits controls how evaluations enter the Fiat-Shamir transcript.
+    # False (default): absorb individual evaluation field elements directly.
+    # True: first compress all evaluations with a Poseidon2 linear hash (16-element
+    #   output), then absorb only the digest. This keeps transcript growth bounded
+    #   when there are many openings (large ev_map), at the cost of one extra hash.
+    # The setting is fixed per-AIR in stark_struct and must match between prover and verifier.
     if not stark_info.stark_struct.hash_commits:
         transcript.put(evals)
     else:
