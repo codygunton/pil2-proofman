@@ -118,14 +118,23 @@ def _commit_stage1(
     # Manages: constant tree, stage trees (1, 2, Q), and FRI trees
     committer = PolynomialCommitter(air_config)
 
-    # Build Merkle tree over constant polynomials (immutable AIR parameters)
-    # verkey = Merkle root (4 field elements) serving as verification key
+    # Build the verification key from constant polynomial commitments.
+    # The verkey is the Merkle root (4 field elements) of the constant polynomial tree.
+    # AIRs without constant polynomials (e.g., purely trace-based AIRs) use a zero verkey.
+    # This matches C++ proofman: both prover and verifier must agree on this default,
+    # because verkey enters the global challenge hash.
     if const_pols_extended is not None and len(const_pols_extended) > 0:
         verkey = committer.build_const_tree(const_pols_extended)
     else:
         verkey = [0] * HASH_SIZE
 
-    # Auxiliary trace buffer: written by stages 2, Q, and FRI at different offsets
+    # Auxiliary trace buffer: a single flat array that holds all stage-dependent
+    # polynomial evaluations beyond stage 1. Each stage writes to a fixed slice:
+    #   Stage 2 (im_cluster, gsum, …)   at offsets defined by map_offsets[("cm2", …)]
+    #   Quotient polynomial Q(x)          at offsets defined by map_offsets[("q",  True)]
+    #   FRI polynomial f(x)               at offsets defined by map_offsets[("f",  True)]
+    # stark_info.map_total_n is the total number of uint64 elements across all slices.
+    # See glossary: "auxiliary trace".
     aux_trace = np.zeros(stark_info.map_total_n, dtype=np.uint64)
 
     # <doc-anchor id="witness-commit">
@@ -189,11 +198,16 @@ def _gen_proof_stage2_plus(
     stage2_challenges = derive_challenges_for_stage(transcript, stark_info.challenges_map, stage=2)
 
     # Calculate AIR-specific witness polynomials using stage-2 challenges
+    # DOTHIS: give examples because this is confusing--isn' tevery witness polynomial air-specific? if i'm wrong, then what isn't?
     # Dispatches to witness module for AIR (SimpleLeft, Lookup2_12, etc.)
     # Writes: im_cluster, gsum columns into aux_trace buffer
     # Returns: airgroup_values (cross-AIR boundary values for VADCOP)
     airgroup_values = calculate_witness(
-        stark_info, trace, aux_trace, const_pols, stage2_challenges,
+        stark_info,
+        trace,
+        aux_trace,
+        const_pols,
+        stage2_challenges,
         expressions_bin=air_config.expressions_bin,
     )
 
@@ -242,8 +256,11 @@ def _gen_proof_stage2_plus(
 
     xi_coeffs = ff3_coeffs(xi)
 
-    evals = _compute_all_evals(stark_info, committer, trace, aux_trace, const_pols_extended, xi_coeffs)
+    evals = _compute_all_evals(
+        stark_info, committer, trace, aux_trace, const_pols_extended, xi_coeffs
+    )
 
+    # DOTHIS: explain why this conditional
     if not stark_info.stark_struct.hash_commits:
         transcript.put(evals)
     else:
@@ -342,8 +359,10 @@ def gen_proof(
     Returns:
         Dictionary containing serialized proof, including global_challenge.
     """
+    # DOTHIS: rather than extracting stark_info here and then passing that in in some places, le'ts just passin air_config (so you'll have to change some function signatures)
     stark_info = air_config.stark_info
 
+    # DOTHIS: add a comment here saying what eact of thse outputs is. in particular why do we have roo1 and commitments -- aren't those the same, or one is included in the other?
     verkey, root1, aux_trace, commitments, committer = _commit_stage1(
         air_config, trace, const_pols_extended
     )
@@ -353,11 +372,12 @@ def gen_proof(
     lattice_size = DEFAULT_LATTICE_SIZE
     if air_config.global_info is not None:
         lattice_size = air_config.global_info.lattice_size
-
+    # DOTHIS: add comments saying what this is
     air_values = np.zeros(stark_info.air_values_size, dtype=np.uint64)
+    # DOTHIS: add comments saying what this is
     air_values_stage1 = _get_air_values_stage1(stark_info, air_values)
+    # DOTHIS: add comments saying what this is
     proof_values_stage1 = _get_proof_values_stage1(stark_info)
-
     computed_challenge = derive_global_challenge(
         stark_info=stark_info,
         publics=public_inputs,
@@ -370,8 +390,15 @@ def gen_proof(
     transcript_seed = list(computed_challenge[:3])
 
     return _gen_proof_stage2_plus(
-        air_config, trace, const_pols, const_pols_extended,
-        aux_trace, commitments, transcript_seed, committer, air_values,
+        air_config,
+        trace,
+        const_pols,
+        const_pols_extended,
+        aux_trace,
+        commitments,
+        transcript_seed,
+        committer,
+        air_values,
     )
 
 
@@ -433,7 +460,9 @@ def _compute_all_evals(
 # --- Query Proof Collection ---
 
 
-def _collect_const_query_proofs(committer: PolynomialCommitter, query_indices: list[int]) -> list[QueryProof]:
+def _collect_const_query_proofs(
+    committer: PolynomialCommitter, query_indices: list[int]
+) -> list[QueryProof]:
     """Collect Merkle query proofs for constant polynomials.
 
     Args:
