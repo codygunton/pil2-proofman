@@ -55,7 +55,7 @@ def _get_air_values_stage1(air_config: AirConfig, air_values: np.ndarray | None)
     return result
 
 
-def _get_proof_values_stage1(air_config: AirConfig) -> list[int]:
+def _get_proof_values_stage1(_air_config: AirConfig) -> list[int]:
     """Extract stage 1 proof_values for global_challenge computation.
 
     C++ reference: challenge_accumulation.rs:96-99
