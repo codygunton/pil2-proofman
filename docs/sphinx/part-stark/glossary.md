@@ -32,12 +32,12 @@
 **Auxiliary trace buffer** (`aux_trace`)
 : A single pre-allocated flat `uint64` array that holds all stage polynomial evaluations.
   It is partitioned into non-overlapping slices by `stark_info.map_offsets`:
-  - Stage 1 polynomials (raw trace)   base-domain at `map_offsets[("cm1", False)]`
-                                       extended     at `map_offsets[("cm1", True)]`
-  - Stage 2 polynomials (im_cluster, gsum, …)   base-domain at `map_offsets[("cm2", False)]`
-                                                  extended     at `map_offsets[("cm2", True)]`
-  - Quotient polynomial Q(x)   extended-only at `map_offsets[("q", True)]`
-  - FRI polynomial f(x)        extended-only at `map_offsets[("f", True)]`
+  - Stage 1 (`cm1`): base-domain at `map_offsets[("cm1", False)]`,
+    extended at `map_offsets[("cm1", True)]`
+  - Stage 2 (`cm2`, e.g. im_cluster, gsum): base-domain at `map_offsets[("cm2", False)]`,
+    extended at `map_offsets[("cm2", True)]`
+  - Quotient polynomial Q(x): extended-only at `map_offsets[("q", True)]`
+  - FRI polynomial f(x): extended-only at `map_offsets[("f", True)]`
 
   Total size: `stark_info.map_total_n` uint64 elements.
   Python: `aux_trace` in `_commit_stage1` in `protocol/prover.py`.
