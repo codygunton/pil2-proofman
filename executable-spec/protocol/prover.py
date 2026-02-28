@@ -128,13 +128,15 @@ def _commit_stage1(
     else:
         verkey = [0] * HASH_SIZE
 
-    # Auxiliary trace buffer: a single flat array that holds all stage-dependent
-    # polynomial evaluations beyond stage 1. Each stage writes to a fixed slice:
-    #   Stage 2 (im_cluster, gsum, …)   at offsets defined by map_offsets[("cm2", …)]
-    #   Quotient polynomial Q(x)          at offsets defined by map_offsets[("q",  True)]
-    #   FRI polynomial f(x)               at offsets defined by map_offsets[("f",  True)]
-    # stark_info.map_total_n is the total number of uint64 elements across all slices.
-    # See glossary: "auxiliary trace".
+    # Auxiliary trace buffer: a single flat uint64 array that holds all stage polynomial
+    # evaluations. The buffer is partitioned into non-overlapping slices by map_offsets:
+    #   Stage 1 (raw trace columns)      base-domain  at map_offsets[("cm1", False)]
+    #                                    extended      at map_offsets[("cm1", True)]
+    #   Stage 2 (im_cluster, gsum, …)   base-domain  at map_offsets[("cm2", False)]
+    #                                    extended      at map_offsets[("cm2", True)]
+    #   Quotient polynomial Q(x)          extended-only at map_offsets[("q", True)]
+    #   FRI polynomial f(x)               extended-only at map_offsets[("f", True)]
+    # Total size: stark_info.map_total_n uint64 elements.
     aux_trace = np.zeros(stark_info.map_total_n, dtype=np.uint64)
 
     # <doc-anchor id="witness-commit">
