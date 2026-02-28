@@ -55,11 +55,11 @@ with open(_FF3_CACHE_PATH, "rb") as _f:
 
 # Polynomials (1D arrays representing polynomials in evaluation or coefficient form)
 FF3Poly = FF3  # Polynomial over extension field (N evaluations or coefficients)
-FFPoly = FF    # Polynomial over base field
+FFPoly = FF  # Polynomial over base field
 
 # Arrays of field elements
-FF3Array = FF3   # Array of extension field values
-FFArray = FF     # Array of base field values
+FF3Array = FF3  # Array of extension field values
+FFArray = FF  # Array of base field values
 
 # Hashes
 HashOutput = list[int]  # 4-element Poseidon hash output (base field)
@@ -101,6 +101,7 @@ def ff3_array_from_base(vals: list[int]) -> FF3:
 
 # --- Flat List Conversions (for serialization/transcript) ---
 
+
 def ff3_from_flat_list(coeffs: list[int]) -> FF3:
     """Convert flattened [c0,c1,c2,c0,c1,c2,...] to FF3 array."""
     n = len(coeffs) // FIELD_EXTENSION_DEGREE
@@ -120,6 +121,7 @@ def ff3_to_flat_list(arr: FF3) -> list[int]:
 
 # --- JSON Conversions (for proof parsing) ---
 
+
 def ff3_from_json(json_arr: list[list[int]]) -> FF3:
     """Parse JSON [[c0,c1,c2],...] to FF3 array."""
     n = len(json_arr)
@@ -135,7 +137,11 @@ def ff3_to_json(arr: FF3) -> list[list[int]]:
 
 
 # --- Interleaved NumPy Buffer Conversions (for C++ compatibility) ---
-
+# C++ stores FF3 elements in flat numpy arrays as interleaved coefficients:
+# [c0, c1, c2, c0, c1, c2, ...]. The galois FF3 type cannot reinterpret this
+# layout directly because it uses descending-coefficient internal storage (c2, c1, c0).
+# This function explicitly strides the buffer at positions 0, 1, 2 mod 3 to
+# reconstruct the coefficient arrays, then builds a proper FF3 vector.
 def ff3_from_interleaved_numpy(arr: np.ndarray, n: int) -> FF3:
     """Convert interleaved numpy [c0,c1,c2,c0,c1,c2,...] to FF3 array."""
     c0 = arr[0::FIELD_EXTENSION_DEGREE][:n].tolist()
@@ -156,6 +162,7 @@ def ff3_to_interleaved_numpy(arr: FF3) -> np.ndarray:
 
 
 # --- Scalar Conversions ---
+
 
 def ff3(coeffs: list[int]) -> FF3:
     """Construct FF3 scalar from ascending-order coefficients [c0, c1, c2]."""
@@ -179,6 +186,7 @@ def ff3_to_numpy_coeffs(elem: FF3) -> np.ndarray:
 
 # --- Buffer Index Access (for expression_evaluator hot path) ---
 
+
 def ff3_from_buffer_at(buffer: np.ndarray, indices: list[int]) -> FF3:
     """Extract FF3 elements from buffer at coefficient indices.
 
@@ -197,7 +205,7 @@ def ff3_store_to_buffer(arr: FF3, buffer: np.ndarray, indices: list[int]) -> Non
     """
     vecs = arr.vector()  # (n, 3) descending [c2, c1, c0]
     for j, idx in enumerate(indices):
-        buffer[idx] = int(vecs[j, 2])      # c0
+        buffer[idx] = int(vecs[j, 2])  # c0
         buffer[idx + 1] = int(vecs[j, 1])  # c1
         buffer[idx + 2] = int(vecs[j, 0])  # c2
 
@@ -325,7 +333,7 @@ def batch_inverse(values: galois.Array) -> galois.Array:
     if n == 0:
         return values
     if n == 1:
-        return values ** -1
+        return values**-1
 
     # Get the field type from the input array
     field_type = type(values)
