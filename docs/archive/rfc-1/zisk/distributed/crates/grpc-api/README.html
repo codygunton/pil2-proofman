@@ -1,0 +1,697 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>gRPC API Layer &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'zisk/distributed/crates/grpc-api/README';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>gRPC API Layer</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol-overview">Protocol Overview</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#core-grpc-service">Core gRPC Service</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#workerstream-bidirectional-streaming">WorkerStream (Bidirectional Streaming)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#task-types">Task Types</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#administrative-api">Administrative API</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unary-rpc-methods">Unary RPC Methods</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#error-handling">Error Handling</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol-testing-with-grpcurl">Protocol Testing with grpcurl</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#basic-api-calls">Basic API Calls</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#job-and-worker-management">Job and Worker Management</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#streaming-api-testing">Streaming API Testing</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#integration">Integration</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rust-integration">Rust Integration</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#client-implementation-example">Client Implementation Example</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol-buffer-schema">Protocol Buffer Schema</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#key-message-types">Key Message Types</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="grpc-api-layer">
+<h1>gRPC API Layer<a class="headerlink" href="#grpc-api-layer" title="Link to this heading">#</a></h1>
+<p>This crate provides the gRPC protocol definitions and generated stubs for communication between the ZisK distributed proving system coordinator and workers.</p>
+<blockquote>
+<div><p><strong>Note</strong>: For general setup, deployment, and configuration instructions, see the main <a class="reference internal" href="../../README.html"><span class="std std-doc">distributed system README</span></a>.</p>
+</div></blockquote>
+<section id="protocol-overview">
+<h2>Protocol Overview<a class="headerlink" href="#protocol-overview" title="Link to this heading">#</a></h2>
+<p>The API uses bidirectional gRPC streaming for real-time communication between coordinator and workers, plus unary RPCs for administrative operations.</p>
+</section>
+<section id="core-grpc-service">
+<h2>Core gRPC Service<a class="headerlink" href="#core-grpc-service" title="Link to this heading">#</a></h2>
+<section id="workerstream-bidirectional-streaming">
+<h3>WorkerStream (Bidirectional Streaming)<a class="headerlink" href="#workerstream-bidirectional-streaming" title="Link to this heading">#</a></h3>
+<p>The primary communication channel between coordinator and workers:</p>
+<p><strong>Worker → Coordinator Messages:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">WorkerRegisterRequest</span></code> - Initial worker registration with compute capacity</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WorkerReconnectRequest</span></code> - Reconnection with last known state</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExecuteTaskResponse</span></code> - Task completion results (challenges, proofs, final proofs)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HeartbeatAck</span></code> - Heartbeat acknowledgments</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WorkerError</span></code> - Error reporting</p></li>
+</ul>
+<p><strong>Coordinator → Worker Messages:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">WorkerRegisterResponse</span></code> - Registration confirmation with assigned worker ID</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExecuteTaskRequest</span></code> - Task assignment (contribution, prove, aggregate)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Heartbeat</span></code> - Keep-alive messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">JobCancelled</span></code> - Job cancellation notifications</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Shutdown</span></code> - Graceful shutdown requests</p></li>
+</ul>
+</section>
+<section id="task-types">
+<h3>Task Types<a class="headerlink" href="#task-types" title="Link to this heading">#</a></h3>
+<p>The system supports three types of proof tasks:</p>
+<ol class="arabic simple">
+<li><p><strong>PARTIAL_CONTRIBUTION</strong> - Distributed witness generation</p></li>
+<li><p><strong>PROVE</strong> - Generate cryptographic proofs from challenges</p></li>
+<li><p><strong>AGGREGATE</strong> - Combine partial proofs into final proof</p></li>
+</ol>
+</section>
+</section>
+<section id="administrative-api">
+<h2>Administrative API<a class="headerlink" href="#administrative-api" title="Link to this heading">#</a></h2>
+<section id="unary-rpc-methods">
+<h3>Unary RPC Methods<a class="headerlink" href="#unary-rpc-methods" title="Link to this heading">#</a></h3>
+<p>These methods provide monitoring and control capabilities:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">HealthCheck()</span></code></strong> - Basic service health status</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">StatusInfo()</span></code></strong> - Service information including uptime, version, metrics</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">SystemStatus()</span></code></strong> - Overall system metrics (active jobs, worker counts, capacity)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">JobsList(JobsListRequest)</span></code></strong> - List current and historical proof jobs</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">WorkersList(WorkersListRequest)</span></code></strong> - List connected workers and their states</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">JobStatus(JobStatusRequest)</span></code></strong> - Get detailed status of a specific job</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">LaunchProof(LaunchProofRequest)</span></code></strong> - Start a new proof job</p></li>
+</ul>
+</section>
+<section id="error-handling">
+<h3>Error Handling<a class="headerlink" href="#error-handling" title="Link to this heading">#</a></h3>
+<p>All administrative endpoints use standardized error responses:</p>
+<div class="highlight-proto notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="kd">message</span><span class="w"> </span><span class="nc">ErrorResponse</span><span class="w"> </span><span class="p">{</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="na">code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">      </span><span class="c1">// Error code (e.g., &quot;JOB_NOT_FOUND&quot;)</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="kd">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w">   </span><span class="c1">// Human-readable error message</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="p">}</span>
+</pre></div>
+</div>
+<p>Common error codes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">JOB_NOT_FOUND</span></code> - Requested job doesn’t exist</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WORKER_UNAVAILABLE</span></code> - No workers available for task</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SYSTEM_UNAVAILABLE</span></code> - System temporarily unavailable</p></li>
+</ul>
+</section>
+</section>
+<section id="protocol-testing-with-grpcurl">
+<h2>Protocol Testing with grpcurl<a class="headerlink" href="#protocol-testing-with-grpcurl" title="Link to this heading">#</a></h2>
+<p>Install grpcurl for API testing:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>go<span class="w"> </span>install<span class="w"> </span>github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+</pre></div>
+</div>
+<section id="basic-api-calls">
+<h3>Basic API Calls<a class="headerlink" href="#basic-api-calls" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># Health check</span>
+<a id="L-2" name="L-2" href="#L-2"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/HealthCheck
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="c1"># Service information</span>
+<a id="L-5" name="L-5" href="#L-5"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/StatusInfo
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="c1"># System status</span>
+<a id="L-8" name="L-8" href="#L-8"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/SystemStatus
+</pre></div>
+</div>
+</section>
+<section id="job-and-worker-management">
+<h3>Job and Worker Management<a class="headerlink" href="#job-and-worker-management" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># List active jobs</span>
+<a id="L-2" name="L-2" href="#L-2"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;active_only&quot;: true}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="w">  </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/JobsList
+<a id="L-4" name="L-4" href="#L-4"></a>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="c1"># List available workers</span>
+<a id="L-6" name="L-6" href="#L-6"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;available_only&quot;: true}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="w">  </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/WorkersList
+<a id="L-8" name="L-8" href="#L-8"></a>
+<a id="L-9" name="L-9" href="#L-9"></a><span class="c1"># Get specific job status</span>
+<a id="L-10" name="L-10" href="#L-10"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;job_id&quot;: &quot;job_123&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-11" name="L-11" href="#L-11"></a><span class="w">  </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/JobStatus
+<a id="L-12" name="L-12" href="#L-12"></a>
+<a id="L-13" name="L-13" href="#L-13"></a><span class="c1"># Launch a new proof job</span>
+<a id="L-14" name="L-14" href="#L-14"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;data_id&quot;: &quot;data_456&quot;, &quot;compute_capacity&quot;: 4, &quot;input_path&quot;: &quot;/path/to/input&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-15" name="L-15" href="#L-15"></a><span class="w">  </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/LaunchProof
+</pre></div>
+</div>
+</section>
+<section id="streaming-api-testing">
+<h3>Streaming API Testing<a class="headerlink" href="#streaming-api-testing" title="Link to this heading">#</a></h3>
+<p>For testing the bidirectional <code class="docutils literal notranslate"><span class="pre">WorkerStream</span></code>, you need a streaming-capable client. Example worker registration message:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="p">{</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="w">  </span><span class="nt">&quot;register&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="w">    </span><span class="nt">&quot;worker_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;test-worker-001&quot;</span><span class="p">,</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="w">    </span><span class="nt">&quot;compute_capacity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;compute_units&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">}</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="integration">
+<h2>Integration<a class="headerlink" href="#integration" title="Link to this heading">#</a></h2>
+<section id="rust-integration">
+<h3>Rust Integration<a class="headerlink" href="#rust-integration" title="Link to this heading">#</a></h3>
+<p>Import this crate in coordinator or worker implementations:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">use</span><span class="w"> </span><span class="n">zisk_distributed_grpc_api</span><span class="p">::</span><span class="n">zisk_distributed_api</span><span class="p">::{</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="w">    </span><span class="n">ZiskDistributedApiServer</span><span class="p">,</span><span class="w"> </span><span class="n">ZiskDistributedApiClient</span><span class="p">,</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="w">    </span><span class="n">WorkerMessage</span><span class="p">,</span><span class="w"> </span><span class="n">CoordinatorMessage</span><span class="p">,</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="w">    </span><span class="n">ExecuteTaskRequest</span><span class="p">,</span><span class="w"> </span><span class="n">ExecuteTaskResponse</span><span class="p">,</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="w">    </span><span class="n">WorkerRegisterRequest</span><span class="p">,</span><span class="w"> </span><span class="n">WorkerRegisterResponse</span><span class="p">,</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="w">    </span><span class="c1">// ... other message types</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="p">};</span>
+</pre></div>
+</div>
+</section>
+<section id="client-implementation-example">
+<h3>Client Implementation Example<a class="headerlink" href="#client-implementation-example" title="Link to this heading">#</a></h3>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">use</span><span class="w"> </span><span class="n">tonic</span><span class="p">::</span><span class="n">transport</span><span class="p">::</span><span class="n">Channel</span><span class="p">;</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">zisk_distributed_grpc_api</span>
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">connect_worker</span><span class="p">()</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="nb">Box</span><span class="o">&lt;</span><span class="k">dyn</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">error</span><span class="p">::</span><span class="n">Error</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Channel</span><span class="p">::</span><span class="n">from_static</span><span class="p">(</span><span class="s">&quot;http://[::1]:50051&quot;</span><span class="p">)</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="w">        </span><span class="p">.</span><span class="n">connect</span><span class="p">()</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="w">        </span><span class="p">.</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+<a id="L-8" name="L-8" href="#L-8"></a>
+<a id="L-9" name="L-9" href="#L-9"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ZiskDistributedApiClient</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">channel</span><span class="p">);</span>
+<a id="L-10" name="L-10" href="#L-10"></a>
+<a id="L-11" name="L-11" href="#L-11"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">outbound</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">async_stream</span><span class="p">::</span><span class="n">stream</span><span class="o">!</span><span class="w"> </span><span class="p">{</span>
+<a id="L-12" name="L-12" href="#L-12"></a><span class="w">        </span><span class="kr">yield</span><span class="w"> </span><span class="n">WorkerMessage</span><span class="w"> </span><span class="p">{</span>
+<a id="L-13" name="L-13" href="#L-13"></a><span class="w">            </span><span class="n">payload</span><span class="p">:</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">worker_message</span><span class="p">::</span><span class="n">Payload</span><span class="p">::</span><span class="n">Register</span><span class="p">(</span><span class="n">WorkerRegisterRequest</span><span class="w"> </span><span class="p">{</span>
+<a id="L-14" name="L-14" href="#L-14"></a><span class="w">                </span><span class="n">worker_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;example-worker&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">(),</span>
+<a id="L-15" name="L-15" href="#L-15"></a><span class="w">                </span><span class="n">compute_capacity</span><span class="p">:</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">ComputeCapacity</span><span class="w"> </span><span class="p">{</span>
+<a id="L-16" name="L-16" href="#L-16"></a><span class="w">                    </span><span class="n">compute_units</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
+<a id="L-17" name="L-17" href="#L-17"></a><span class="w">                </span><span class="p">}),</span>
+<a id="L-18" name="L-18" href="#L-18"></a><span class="w">            </span><span class="p">})),</span>
+<a id="L-19" name="L-19" href="#L-19"></a><span class="w">        </span><span class="p">};</span>
+<a id="L-20" name="L-20" href="#L-20"></a><span class="w">    </span><span class="p">};</span>
+<a id="L-21" name="L-21" href="#L-21"></a>
+<a id="L-22" name="L-22" href="#L-22"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">client</span><span class="p">.</span><span class="n">worker_stream</span><span class="p">(</span><span class="n">Request</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">outbound</span><span class="p">)).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+<a id="L-23" name="L-23" href="#L-23"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">inbound</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">response</span><span class="p">.</span><span class="n">into_inner</span><span class="p">();</span>
+<a id="L-24" name="L-24" href="#L-24"></a>
+<a id="L-25" name="L-25" href="#L-25"></a><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">coordinator_message</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inbound</span><span class="p">.</span><span class="n">message</span><span class="p">().</span><span class="k">await</span><span class="o">?</span><span class="w"> </span><span class="p">{</span>
+<a id="L-26" name="L-26" href="#L-26"></a><span class="w">        </span><span class="c1">// Handle coordinator messages</span>
+<a id="L-27" name="L-27" href="#L-27"></a><span class="w">        </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Received: {:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">coordinator_message</span><span class="p">);</span>
+<a id="L-28" name="L-28" href="#L-28"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-29" name="L-29" href="#L-29"></a>
+<a id="L-30" name="L-30" href="#L-30"></a><span class="w">    </span><span class="nb">Ok</span><span class="p">(())</span>
+<a id="L-31" name="L-31" href="#L-31"></a><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="protocol-buffer-schema">
+<h2>Protocol Buffer Schema<a class="headerlink" href="#protocol-buffer-schema" title="Link to this heading">#</a></h2>
+<p>The complete gRPC service definition is in <code class="docutils literal notranslate"><span class="pre">proto/zisk_distributed_api.proto</span></code> with detailed message schemas for all request/response types.</p>
+<section id="key-message-types">
+<h3>Key Message Types<a class="headerlink" href="#key-message-types" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">WorkerMessage</span></code> / <code class="docutils literal notranslate"><span class="pre">CoordinatorMessage</span></code> - Top-level message envelopes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExecuteTaskRequest</span></code> / <code class="docutils literal notranslate"><span class="pre">ExecuteTaskResponse</span></code> - Task execution protocol</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WorkerRegisterRequest</span></code> / <code class="docutils literal notranslate"><span class="pre">WorkerRegisterResponse</span></code> - Worker registration</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ComputeCapacity</span></code> - Worker capacity specification</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">JobStatus</span></code>, <code class="docutils literal notranslate"><span class="pre">SystemStatus</span></code> - Administrative data structures</p></li>
+</ul>
+<p>For implementation details and deployment instructions, refer to the main <a class="reference internal" href="../../README.html"><span class="std std-doc">distributed README</span></a>.</p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol-overview">Protocol Overview</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#core-grpc-service">Core gRPC Service</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#workerstream-bidirectional-streaming">WorkerStream (Bidirectional Streaming)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#task-types">Task Types</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#administrative-api">Administrative API</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unary-rpc-methods">Unary RPC Methods</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#error-handling">Error Handling</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol-testing-with-grpcurl">Protocol Testing with grpcurl</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#basic-api-calls">Basic API Calls</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#job-and-worker-management">Job and Worker Management</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#streaming-api-testing">Streaming API Testing</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#integration">Integration</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rust-integration">Rust Integration</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#client-implementation-example">Client Implementation Example</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol-buffer-schema">Protocol Buffer Schema</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#key-message-types">Key Message Types</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

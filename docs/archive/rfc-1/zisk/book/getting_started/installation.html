@@ -1,0 +1,732 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Installation Guide &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'zisk/book/getting_started/installation';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Installation Guide</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#system-requirements">System Requirements</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#required-tools">Required Tools</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-dependencies">Installing Dependencies</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ubuntu">Ubuntu</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#macos">macOS</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-zisk">Installing ZisK</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#option-1-prebuilt-binaries-recommended">Option 1: Prebuilt Binaries (Recommended)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#updating-zisk">Updating ZisK</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#option-2-building-from-source">Option 2: Building from Source</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#build-zisk">Build ZisK</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#build-setup">Build Setup</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#uninstall-zisk">Uninstall Zisk</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="installation-guide">
+<h1>Installation Guide<a class="headerlink" href="#installation-guide" title="Link to this heading">#</a></h1>
+<p>ZisK can be installed from prebuilt binaries (recommended) or by building the ZisK tools, toolchain and setup files from source.</p>
+<section id="system-requirements">
+<h2>System Requirements<a class="headerlink" href="#system-requirements" title="Link to this heading">#</a></h2>
+<p>ZisK currently supports <strong>Linux x86_64</strong> and <strong>macOS</strong> platforms (see note below).</p>
+<p><strong>Note:</strong> On <strong>macOS</strong>, proof generation is not yet optimized, so some proofs may take longer to generate.</p>
+<section id="required-tools">
+<h3>Required Tools<a class="headerlink" href="#required-tools" title="Link to this heading">#</a></h3>
+<p>Ensure the following tools are installed:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.rust-lang.org/tools/install">Rust</a></p></li>
+<li><p><a class="reference external" href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">Git</a></p></li>
+</ul>
+</section>
+</section>
+<section id="installing-dependencies">
+<h2>Installing Dependencies<a class="headerlink" href="#installing-dependencies" title="Link to this heading">#</a></h2>
+<section id="ubuntu">
+<h3>Ubuntu<a class="headerlink" href="#ubuntu" title="Link to this heading">#</a></h3>
+<p>Ubuntu 22.04 or higher is required.</p>
+<p>Install all required dependencies with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>xz-utils<span class="w"> </span>jq<span class="w"> </span>curl<span class="w"> </span>build-essential<span class="w"> </span>qemu-system<span class="w"> </span>libomp-dev<span class="w"> </span>libgmp-dev<span class="w"> </span>nlohmann-json3-dev<span class="w"> </span>protobuf-compiler<span class="w"> </span>uuid-dev<span class="w"> </span>libgrpc++-dev<span class="w"> </span>libsecp256k1-dev<span class="w"> </span>libsodium-dev<span class="w"> </span>libpqxx-dev<span class="w"> </span>nasm<span class="w"> </span>libopenmpi-dev<span class="w"> </span>openmpi-bin<span class="w"> </span>openmpi-common<span class="w"> </span>libclang-dev<span class="w"> </span>clang<span class="w"> </span>gcc-riscv64-unknown-elf
+</pre></div>
+</div>
+<p>ZisK uses shared memory to exchange data between processes. The system must be configured to allow enough locked memory per process:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>$ ulimit -l
+<a id="L-2" name="L-2" href="#L-2"></a>unlimited
+</pre></div>
+</div>
+<p>A way to achieve it is to edit the file <code class="docutils literal notranslate"><span class="pre">/etc/systemd/system.conf</span></code> and add the line <code class="docutils literal notranslate"><span class="pre">DefaultLimitMEMLOCK=infinity</span></code>. Reboot for changes to take effect.</p>
+</section>
+<section id="macos">
+<h3>macOS<a class="headerlink" href="#macos" title="Link to this heading">#</a></h3>
+<p>macOS 14 or higher is required.</p>
+<p>You must have <a class="reference external" href="https://brew.sh/">Homebrew</a> and <a class="reference external" href="https://developer.apple.com/xcode/">Xcode</a> installed.</p>
+<p>Install all required dependencies with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>brew<span class="w"> </span>reinstall<span class="w"> </span>jq<span class="w"> </span>curl<span class="w"> </span>libomp<span class="w"> </span>protobuf<span class="w"> </span>openssl<span class="w"> </span>nasm<span class="w"> </span>pkgconf<span class="w"> </span>open-mpi<span class="w"> </span>libffi<span class="w"> </span>nlohmann-json<span class="w"> </span>libsodium<span class="w"> </span>riscv-tools
+</pre></div>
+</div>
+</section>
+</section>
+<section id="installing-zisk">
+<h2>Installing ZisK<a class="headerlink" href="#installing-zisk" title="Link to this heading">#</a></h2>
+<section id="option-1-prebuilt-binaries-recommended">
+<h3>Option 1: Prebuilt Binaries (Recommended)<a class="headerlink" href="#option-1-prebuilt-binaries-recommended" title="Link to this heading">#</a></h3>
+<ol class="arabic">
+<li><p>To install ZisK using ziskup, run the following command in your terminal:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>curl<span class="w"> </span>https://raw.githubusercontent.com/0xPolygonHermez/zisk/main/ziskup/install.sh<span class="w">  </span><span class="p">|</span><span class="w"> </span>bash
+</pre></div>
+</div>
+</li>
+<li><p>During the installation, you will be prompted to select a setup option. You can choose from the following:</p>
+<ol class="arabic simple">
+<li><p><strong>Install proving key (default)</strong> – Required for generating and verifying proofs.</p></li>
+<li><p><strong>Install proving key (no constant tree files)</strong> – Install proving key but without constant tree files generation.</p></li>
+<li><p><strong>Install verify key</strong> – Needed only if you want to verify proofs.</p></li>
+<li><p><strong>None</strong> – Choose this if you only want to compile programs and execute them using the ZisK emulator.</p></li>
+</ol>
+</li>
+<li><p>Verify the Rust toolchain: (which includes support for the <code class="docutils literal notranslate"><span class="pre">riscv64ima-zisk-zkvm</span></code> compilation target):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>rustup<span class="w"> </span>toolchain<span class="w"> </span>list
+</pre></div>
+</div>
+<p>The output should include an entry for <code class="docutils literal notranslate"><span class="pre">zisk</span></code>, similar to this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="n">stable</span><span class="o">-</span><span class="n">x86_64</span><span class="o">-</span><span class="n">unknown</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span> <span class="p">(</span><span class="n">default</span><span class="p">)</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">nightly</span><span class="o">-</span><span class="n">x86_64</span><span class="o">-</span><span class="n">unknown</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="n">zisk</span>
+</pre></div>
+</div>
+</li>
+<li><p>Verify the <code class="docutils literal notranslate"><span class="pre">cargo-zisk</span></code> CLI tool:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>--version
+</pre></div>
+</div>
+</li>
+</ol>
+<section id="updating-zisk">
+<h4>Updating ZisK<a class="headerlink" href="#updating-zisk" title="Link to this heading">#</a></h4>
+<p>To update ZisK to the latest version, simply run:
+<code class="docutils literal notranslate"><span class="pre">bash</span>&#160;&#160;&#160;&#160; <span class="pre">ziskup</span>&#160;&#160;&#160;&#160; </code></p>
+<p>You can use the flags <code class="docutils literal notranslate"><span class="pre">--provingkey</span></code>, <code class="docutils literal notranslate"><span class="pre">--verifykey</span></code> or <code class="docutils literal notranslate"><span class="pre">--nokey</span></code> to specify the installation setup and skip the selection prompt.</p>
+</section>
+</section>
+<section id="option-2-building-from-source">
+<h3>Option 2: Building from Source<a class="headerlink" href="#option-2-building-from-source" title="Link to this heading">#</a></h3>
+<section id="build-zisk">
+<h4>Build ZisK<a class="headerlink" href="#build-zisk" title="Link to this heading">#</a></h4>
+<ol class="arabic">
+<li><p>Clone the ZisK repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/0xPolygonHermez/zisk.git
+<a id="L-2" name="L-2" href="#L-2"></a><span class="nb">cd</span><span class="w"> </span>zisk
+</pre></div>
+</div>
+</li>
+<li><p>Build ZisK tools:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo<span class="w"> </span>build<span class="w"> </span>--release
+</pre></div>
+</div>
+<p><strong>Note</strong>: If you encounter the following error during compilation on Ubuntu:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="o">---</span> <span class="n">stderr</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">openmpi</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">mpi</span><span class="o">.</span><span class="n">h</span><span class="p">:</span><span class="mi">237</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span> <span class="n">fatal</span> <span class="n">error</span><span class="p">:</span> <span class="s1">&#39;stddef.h&#39;</span> <span class="n">file</span> <span class="ow">not</span> <span class="n">found</span>
+</pre></div>
+</div>
+<p>Follow these steps to resolve it:</p>
+<ol class="arabic">
+<li><p>Locate the <code class="docutils literal notranslate"><span class="pre">stddef.h</span></code> file:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>find<span class="w"> </span>/usr<span class="w"> </span>-name<span class="w"> </span><span class="s2">&quot;stddef.h&quot;</span>
+</pre></div>
+</div>
+</li>
+<li><p>Set the environment variables to include the directory where <code class="docutils literal notranslate"><span class="pre">stddef.h</span></code> is located (e.g.):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">C_INCLUDE_PATH</span><span class="o">=</span>/usr/lib/gcc/x86_64-linux-gnu/13/include
+<a id="L-2" name="L-2" href="#L-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CPLUS_INCLUDE_PATH</span><span class="o">=</span><span class="nv">$C_INCLUDE_PATH</span>
+</pre></div>
+</div>
+</li>
+<li><p>Try building again</p></li>
+</ol>
+</li>
+<li><p>Copy the tools to <code class="docutils literal notranslate"><span class="pre">~/.zisk/bin</span></code> directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/.zisk/bin
+<a id="L-2" name="L-2" href="#L-2"></a><span class="nv">LIB_EXT</span><span class="o">=</span><span class="k">$(</span><span class="o">[[</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>uname<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;Darwin&quot;</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;dylib&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;so&quot;</span><span class="k">)</span>
+<a id="L-3" name="L-3" href="#L-3"></a>cp<span class="w"> </span>target/release/cargo-zisk<span class="w"> </span>target/release/ziskemu<span class="w"> </span>target/release/riscv2zisk<span class="w"> </span>target/release/zisk-coordinator<span class="w"> </span>target/release/zisk-worker<span class="w"> </span>target/release/libzisk_witness.<span class="nv">$LIB_EXT</span><span class="w"> </span>target/release/libziskclib.a<span class="w"> </span><span class="nv">$HOME</span>/.zisk/bin
+</pre></div>
+</div>
+</li>
+<li><p>Copy required files for assembly rom setup:</p>
+<p><strong>Note:</strong> This is only needed on Linux x86_64, since assembly execution is not supported on macOS</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/.zisk/zisk/emulator-asm
+<a id="L-2" name="L-2" href="#L-2"></a>cp<span class="w"> </span>-r<span class="w"> </span>./emulator-asm/src<span class="w"> </span><span class="nv">$HOME</span>/.zisk/zisk/emulator-asm
+<a id="L-3" name="L-3" href="#L-3"></a>cp<span class="w"> </span>./emulator-asm/Makefile<span class="w"> </span><span class="nv">$HOME</span>/.zisk/zisk/emulator-asm
+<a id="L-4" name="L-4" href="#L-4"></a>cp<span class="w"> </span>-r<span class="w"> </span>./lib-c<span class="w"> </span><span class="nv">$HOME</span>/.zisk/zisk
+</pre></div>
+</div>
+</li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">~/.zisk/bin</span></code> to your system PATH:</p>
+<p>If you are using <code class="docutils literal notranslate"><span class="pre">bash</span></code> or <code class="docutils literal notranslate"><span class="pre">zsh</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="nv">PROFILE</span><span class="o">=</span><span class="k">$(</span><span class="o">[[</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>uname<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;Darwin&quot;</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;.zshenv&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;.bashrc&quot;</span><span class="k">)</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="nb">echo</span><span class="w"> </span>&gt;&gt;<span class="nv">$HOME</span>/<span class="nv">$PROFILE</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;export PATH=\&quot;\$PATH:</span><span class="nv">$HOME</span><span class="s2">/.zisk/bin\&quot;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span><span class="nv">$HOME</span>/<span class="nv">$PROFILE</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="nb">source</span><span class="w"> </span><span class="nv">$HOME</span>/<span class="nv">$PROFILE</span>
+</pre></div>
+</div>
+</li>
+<li><p>Install the ZisK Rust toolchain:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>sdk<span class="w"> </span>install-toolchain
+</pre></div>
+</div>
+<p><strong>Note</strong>: This command installs the ZisK Rust toolchain from prebuilt binaries. If you prefer to build the toolchain from source, follow these steps:</p>
+<ol class="arabic simple">
+<li><p>Ensure all <a class="reference external" href="https://github.com/rust-lang/rust/blob/master/INSTALL.md#dependencies">dependencies</a> required to build the Rust toolchain from source are installed.</p></li>
+<li><p>Build and install the Rust ZisK toolchain:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>sdk<span class="w"> </span>build-toolchain
+</pre></div>
+</div>
+</li>
+<li><p>Verify the installation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>rustup<span class="w"> </span>toolchain<span class="w"> </span>list
+</pre></div>
+</div>
+<p>Confirm that <code class="docutils literal notranslate"><span class="pre">zisk</span></code> appears in the list of installed toolchains.</p>
+</li>
+</ol>
+</section>
+<section id="build-setup">
+<h4>Build Setup<a class="headerlink" href="#build-setup" title="Link to this heading">#</a></h4>
+<p>Please note that the process can be long, taking approximately 45-60 minutes depending on the machine used.</p>
+<p><a class="reference external" href="https://nodejs.org/en/download">NodeJS</a> version 20.x or higher is required to build the setup files.</p>
+<ol class="arabic">
+<li><p>Clone the following repositories in the parent folder of the <code class="docutils literal notranslate"><span class="pre">zisk</span></code> folder created in the previous section:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/0xPolygonHermez/pil2-compiler.git
+<a id="L-2" name="L-2" href="#L-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/0xPolygonHermez/pil2-proofman.git
+<a id="L-3" name="L-3" href="#L-3"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/0xPolygonHermez/pil2-proofman-js
+</pre></div>
+</div>
+</li>
+<li><p>Install packages:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="o">(</span><span class="nb">cd</span><span class="w"> </span>pil2-compiler<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>npm<span class="w"> </span>i<span class="o">)</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="o">(</span><span class="nb">cd</span><span class="w"> </span>pil2-proofman-js<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>npm<span class="w"> </span>i<span class="o">)</span>
+</pre></div>
+</div>
+</li>
+<li><p>All subsequent commands must be executed from the <code class="docutils literal notranslate"><span class="pre">zisk</span></code> folder created in the previous section:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="nb">cd</span><span class="w"> </span>zisk
+</pre></div>
+</div>
+</li>
+<li><p>Generate fixed data:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>arith_frops_fixed_gen
+<a id="L-2" name="L-2" href="#L-2"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>binary_basic_frops_fixed_gen
+<a id="L-3" name="L-3" href="#L-3"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>binary_extension_frops_fixed_gen
+</pre></div>
+</div>
+</li>
+<li><p>Compile ZisK PIL:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>node<span class="w"> </span>../pil2-compiler/src/pil.js<span class="w"> </span>pil/zisk.pil<span class="w"> </span>-I<span class="w"> </span>pil,../pil2-proofman/pil2-components/lib/std/pil,state-machines,precompiles<span class="w"> </span>-o<span class="w"> </span>pil/zisk.pilout<span class="w"> </span>-u<span class="w"> </span>tmp/fixed<span class="w"> </span>-O<span class="w"> </span>fixed-to-file
+</pre></div>
+</div>
+<p>This command will create the <code class="docutils literal notranslate"><span class="pre">pil/zisk.pilout</span></code> file</p>
+</li>
+<li><p>Generate setup data: (this step may take 30-45 minutes):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>node<span class="w"> </span>../pil2-proofman-js/src/main_setup.js<span class="w"> </span>--stack-size<span class="o">=</span><span class="m">8192</span><span class="w"> </span>-a<span class="w"> </span>./pil/zisk.pilout<span class="w"> </span>-b<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>../pil2-proofman/pil2-components/lib/std/pil<span class="w"> </span>-u<span class="w"> </span>tmp/fixed<span class="w"> </span>-r<span class="w"> </span>-s<span class="w"> </span>./state-machines/starkstructs.json
+</pre></div>
+</div>
+<p>This command generates the <code class="docutils literal notranslate"><span class="pre">build/provingKey</span></code> directory.</p>
+</li>
+<li><p>Copy (or move) the <code class="docutils literal notranslate"><span class="pre">build/provingKey</span></code> directory to <code class="docutils literal notranslate"><span class="pre">$HOME/.zisk</span></code> directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cp<span class="w"> </span>-R<span class="w"> </span>build/provingKey<span class="w"> </span><span class="nv">$HOME</span>/.zisk
+</pre></div>
+</div>
+</li>
+<li><p>Generate constant tree files:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>check-setup<span class="w"> </span>-a
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+</section>
+<section id="uninstall-zisk">
+<h2>Uninstall Zisk<a class="headerlink" href="#uninstall-zisk" title="Link to this heading">#</a></h2>
+<ol class="arabic">
+<li><p>Uninstall ZisK toolchain:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>rustup<span class="w"> </span>uninstall<span class="w"> </span>zisk
+</pre></div>
+</div>
+</li>
+<li><p>Delete ZisK folder</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>rm<span class="w"> </span>-rf<span class="w"> </span><span class="nv">$HOME</span>/.zisk
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#system-requirements">System Requirements</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#required-tools">Required Tools</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-dependencies">Installing Dependencies</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ubuntu">Ubuntu</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#macos">macOS</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-zisk">Installing ZisK</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#option-1-prebuilt-binaries-recommended">Option 1: Prebuilt Binaries (Recommended)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#updating-zisk">Updating ZisK</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#option-2-building-from-source">Option 2: Building from Source</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#build-zisk">Build ZisK</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#build-setup">Build Setup</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#uninstall-zisk">Uninstall Zisk</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

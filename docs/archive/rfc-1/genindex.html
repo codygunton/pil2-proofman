@@ -1,0 +1,2939 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Index &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
+    <link rel="index" title="Index" href="#" />
+    <link rel="search" title="Search" href="search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+
+<h1 id="index">Index</h1>
+
+<div class="genindex-jumpbox">
+ <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
+ | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
+ | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
+ | <a href="#I"><strong>I</strong></a>
+ | <a href="#L"><strong>L</strong></a>
+ | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
+ | <a href="#P"><strong>P</strong></a>
+ | <a href="#Q"><strong>Q</strong></a>
+ | <a href="#R"><strong>R</strong></a>
+ | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
+ | <a href="#V"><strong>V</strong></a>
+ | <a href="#W"><strong>W</strong></a>
+ | <a href="#X"><strong>X</strong></a>
+ | <a href="#Z"><strong>Z</strong></a>
+ 
+</div>
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/witness_generation/index.html#primitives.expression_bytecode.witness_generation.acc_mul_hint_fields">acc_mul_hint_fields() (in module primitives.expression_bytecode.witness_generation)</a>
+</li>
+      <li><a href="api/protocol/utils/challenge_utils/index.html#protocol.utils.challenge_utils.accumulate_contributions">accumulate_contributions() (in module protocol.utils.challenge_utils)</a>
+</li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.agg_types">agg_types (protocol.global_info.GlobalInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRProveData.air_config">air_config (protocol.simple_pilout.AIRProveData attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRStage1Data.air_config">(protocol.simple_pilout.AIRStage1Data attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.air_groups">air_groups (protocol.global_info.GlobalInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.air_values">air_values (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.STARKProof.air_values">(protocol.proof.STARKProof attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/data/index.html#protocol.data.VerifierData.air_values_flat">air_values_flat (protocol.data.VerifierData attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.air_values_map">air_values_map (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.AIR_VALUES_OFFSET">AIR_VALUES_OFFSET (in module primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.air_values_size">air_values_size (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.AirConfig">AirConfig (class in protocol.air_config)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintContext.airgroup_value">airgroup_value() (constraints.base.ConstraintContext method)</a>
+
+      <ul>
+        <li><a href="api/constraints/base/index.html#constraints.base.ProverConstraintContext.airgroup_value">(constraints.base.ProverConstraintContext method)</a>
+</li>
+        <li><a href="api/constraints/base/index.html#constraints.base.VerifierConstraintContext.airgroup_value">(constraints.base.VerifierConstraintContext method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.airgroup_values">airgroup_values (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/data/index.html#protocol.data.ProverData.airgroup_values">(protocol.data.ProverData attribute)</a>
+</li>
+        <li><a href="api/protocol/data/index.html#protocol.data.VerifierData.airgroup_values">(protocol.data.VerifierData attribute)</a>
+</li>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.STARKProof.airgroup_values">(protocol.proof.STARKProof attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.airgroup_values_map">airgroup_values_map (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.AIRGROUP_VALUES_OFFSET">AIRGROUP_VALUES_OFFSET (in module primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.airgroup_values_size">airgroup_values_size (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.airgroupvalue">airgroupvalue (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRProveData">AIRProveData (class in protocol.simple_pilout)</a>
+</li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.airs">airs (protocol.global_info.GlobalInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRStage1Data">AIRStage1Data (class in protocol.simple_pilout)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.airvalue">airvalue (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserArgs.args">args (primitives.expression_bytecode.expressions_bin.ParserArgs attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.args_offset">args_offset (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.arity">arity (primitives.merkle_tree.MerkleTree attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleConfig.arity">(primitives.merkle_verifier.MerkleConfig attribute)</a>
+</li>
+        <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.arity">(primitives.transcript.Transcript attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.aux_trace">aux_trace (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.batch">batch (primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.batch_inverse">batch_inverse() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/batch_inverse/index.html#primitives.batch_inverse.batch_inverse_ff">batch_inverse_ff() (in module primitives.batch_inverse)</a>
+</li>
+      <li><a href="api/primitives/batch_inverse/index.html#primitives.batch_inverse.batch_inverse_ff3">batch_inverse_ff3() (in module primitives.batch_inverse)</a>
+</li>
+      <li><a href="api/primitives/batch_inverse/index.html#primitives.batch_inverse.batch_inverse_ff3_array">batch_inverse_ff3_array() (in module primitives.batch_inverse)</a>
+</li>
+      <li><a href="api/primitives/batch_inverse/index.html#primitives.batch_inverse.batch_inverse_ff_array">batch_inverse_ff_array() (in module primitives.batch_inverse)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader">BinFileReader (class in primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.boundaries">boundaries (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.Boundary">Boundary (class in primitives.pol_map)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.buffer_commits_size">buffer_commits_size (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.BufferOffset">BufferOffset (in module protocol.stages)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet">BufferSet (class in primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.build_column_name_map">build_column_name_map() (protocol.stark_info.StarkInfo method)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.build_const_tree">build_const_tree() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.build_frame_zerofier_inv">build_frame_zerofier_inv() (protocol.air_config.ProverHelpers method)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.build_one_row_zerofier_inv">build_one_row_zerofier_inv() (protocol.air_config.ProverHelpers method)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.build_zh_inv">build_zh_inv() (protocol.air_config.ProverHelpers method)</a>
+</li>
+      <li><a href="api/constraints/index.html#constraints.BYTECODE_AIRS">BYTECODE_AIRS (in module constraints)</a>
+
+      <ul>
+        <li><a href="api/witness/index.html#witness.BYTECODE_AIRS">(in module witness)</a>
+</li>
+      </ul></li>
+      <li><a href="api/constraints/bytecode_adapter/index.html#constraints.bytecode_adapter.BytecodeConstraintModule">BytecodeConstraintModule (class in constraints.bytecode_adapter)</a>
+</li>
+      <li><a href="api/witness/bytecode_adapter/index.html#witness.bytecode_adapter.BytecodeWitnessModule">BytecodeWitnessModule (class in witness.bytecode_adapter)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.c_exp_id">c_exp_id (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expression">calculate_expression() (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expressions">calculate_expressions() (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx method)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsPack.calculate_expressions">(primitives.expression_bytecode.expression_evaluator.ExpressionsPack method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/utils/challenge_utils/index.html#protocol.utils.challenge_utils.calculate_internal_contribution">calculate_internal_contribution() (in module protocol.utils.challenge_utils)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.calculate_witness">calculate_witness() (in module protocol.stages)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/witness_generation/index.html#primitives.expression_bytecode.witness_generation.calculate_witness_std">calculate_witness_std() (in module primitives.expression_bytecode.witness_generation)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.calculateFRIPolynomial">calculateFRIPolynomial() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.calculateQuotientPolynomial">calculateQuotientPolynomial() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Challenge">Challenge (in module primitives.transcript)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.challenge">challenge (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintContext.challenge">challenge() (constraints.base.ConstraintContext method)</a>
+
+      <ul>
+        <li><a href="api/constraints/base/index.html#constraints.base.ProverConstraintContext.challenge">(constraints.base.ProverConstraintContext method)</a>
+</li>
+        <li><a href="api/constraints/base/index.html#constraints.base.VerifierConstraintContext.challenge">(constraints.base.VerifierConstraintContext method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.ChallengeMap">ChallengeMap (class in primitives.pol_map)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.challenges">challenges (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/data/index.html#protocol.data.ProverData.challenges">(protocol.data.ProverData attribute)</a>
+</li>
+        <li><a href="api/protocol/data/index.html#protocol.data.VerifierData.challenges">(protocol.data.VerifierData attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.challenges_map">challenges_map (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.CHALLENGES_OFFSET">CHALLENGES_OFFSET (in module primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/protocol/prover/index.html#protocol.prover.ChallengesDict">ChallengesDict (in module protocol.prover)</a>
+
+      <ul>
+        <li><a href="api/protocol/stages/index.html#protocol.stages.ChallengesDict">(in module protocol.stages)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.cm">cm (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.Type.cm">(primitives.pol_map.EvMap.Type attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.cm_pols_map">cm_pols_map (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintContext.col">col() (constraints.base.ConstraintContext method)</a>
+
+      <ul>
+        <li><a href="api/constraints/base/index.html#constraints.base.ProverConstraintContext.col">(constraints.base.ProverConstraintContext method)</a>
+</li>
+        <li><a href="api/constraints/base/index.html#constraints.base.VerifierConstraintContext.col">(constraints.base.VerifierConstraintContext method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/data/index.html#protocol.data.ProverData.columns">columns (protocol.data.ProverData attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_prover/index.html#primitives.merkle_prover.MerkleProver.commit">commit() (primitives.merkle_prover.MerkleProver method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintFieldValue.commit_id">commit_id (primitives.expression_bytecode.expressions_bin.HintFieldValue attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.commit_id">(primitives.pol_map.EvMap attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.commit_id">(primitives.pol_map.PolMap attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.commitStage">commitStage() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.compress_2col">compress_2col() (in module constraints.base)</a>
+</li>
+      <li><a href="api/protocol/fri_polynomial/index.html#protocol.fri_polynomial.compute_fri_polynomial">compute_fri_polynomial() (in module protocol.fri_polynomial)</a>
+</li>
+      <li><a href="api/protocol/fri_polynomial/index.html#protocol.fri_polynomial.compute_fri_polynomial_verifier">compute_fri_polynomial_verifier() (in module protocol.fri_polynomial)</a>
+</li>
+      <li><a href="api/witness/base/index.html#witness.base.WitnessModule.compute_grand_sums">compute_grand_sums() (witness.base.WitnessModule method)</a>
+
+      <ul>
+        <li><a href="api/witness/bytecode_adapter/index.html#witness.bytecode_adapter.BytecodeWitnessModule.compute_grand_sums">(witness.bytecode_adapter.BytecodeWitnessModule method)</a>
+</li>
+        <li><a href="api/witness/lookup2_12/index.html#witness.lookup2_12.Lookup2_12Witness.compute_grand_sums">(witness.lookup2_12.Lookup2_12Witness method)</a>
+</li>
+        <li><a href="api/witness/permutation1_6/index.html#witness.permutation1_6.Permutation1_6Witness.compute_grand_sums">(witness.permutation1_6.Permutation1_6Witness method)</a>
+</li>
+        <li><a href="api/witness/simple_left/index.html#witness.simple_left.SimpleLeftWitness.compute_grand_sums">(witness.simple_left.SimpleLeftWitness method)</a>
+</li>
+        <li><a href="api/witness/simple_right/index.html#witness.simple_right.SimpleRightWitness.compute_grand_sums">(witness.simple_right.SimpleRightWitness method)</a>
+</li>
+        <li><a href="api/witness/specified_ranges/index.html#witness.specified_ranges.SpecifiedRangesWitness.compute_grand_sums">(witness.specified_ranges.SpecifiedRangesWitness method)</a>
+</li>
+        <li><a href="api/witness/u16_air/index.html#witness.u16_air.U16AirWitness.compute_grand_sums">(witness.u16_air.U16AirWitness method)</a>
+</li>
+        <li><a href="api/witness/u8_air/index.html#witness.u8_air.U8AirWitness.compute_grand_sums">(witness.u8_air.U8AirWitness method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/witness/base/index.html#witness.base.WitnessModule.compute_intermediates">compute_intermediates() (witness.base.WitnessModule method)</a>
+
+      <ul>
+        <li><a href="api/witness/bytecode_adapter/index.html#witness.bytecode_adapter.BytecodeWitnessModule.compute_intermediates">(witness.bytecode_adapter.BytecodeWitnessModule method)</a>
+</li>
+        <li><a href="api/witness/lookup2_12/index.html#witness.lookup2_12.Lookup2_12Witness.compute_intermediates">(witness.lookup2_12.Lookup2_12Witness method)</a>
+</li>
+        <li><a href="api/witness/permutation1_6/index.html#witness.permutation1_6.Permutation1_6Witness.compute_intermediates">(witness.permutation1_6.Permutation1_6Witness method)</a>
+</li>
+        <li><a href="api/witness/simple_left/index.html#witness.simple_left.SimpleLeftWitness.compute_intermediates">(witness.simple_left.SimpleLeftWitness method)</a>
+</li>
+        <li><a href="api/witness/simple_right/index.html#witness.simple_right.SimpleRightWitness.compute_intermediates">(witness.simple_right.SimpleRightWitness method)</a>
+</li>
+        <li><a href="api/witness/specified_ranges/index.html#witness.specified_ranges.SpecifiedRangesWitness.compute_intermediates">(witness.specified_ranges.SpecifiedRangesWitness method)</a>
+</li>
+        <li><a href="api/witness/u16_air/index.html#witness.u16_air.U16AirWitness.compute_intermediates">(witness.u16_air.U16AirWitness method)</a>
+</li>
+        <li><a href="api/witness/u8_air/index.html#witness.u8_air.U8AirWitness.compute_intermediates">(witness.u8_air.U8AirWitness method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/witness/simple_right/index.html#witness.simple_right.SimpleRightWitness.compute_trace">compute_trace() (witness.simple_right.SimpleRightWitness static method)</a>
+
+      <ul>
+        <li><a href="api/witness/specified_ranges/index.html#witness.specified_ranges.SpecifiedRangesWitness.compute_trace">(witness.specified_ranges.SpecifiedRangesWitness static method)</a>
+</li>
+        <li><a href="api/witness/u16_air/index.html#witness.u16_air.U16AirWitness.compute_trace">(witness.u16_air.U16AirWitness static method)</a>
+</li>
+        <li><a href="api/witness/u8_air/index.html#witness.u8_air.U8AirWitness.compute_trace">(witness.u8_air.U8AirWitness static method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.compute_x">compute_x() (protocol.air_config.ProverHelpers method)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.compute_zerofier">compute_zerofier() (protocol.air_config.ProverHelpers method)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.computeEvals">computeEvals() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.computeFriPol">computeFriPol() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.computeLEv">computeLEv() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/primitives/merkle_prover/index.html#primitives.merkle_prover.MerkleProver.config">config (primitives.merkle_prover.MerkleProver attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleVerifier.config">(primitives.merkle_verifier.MerkleVerifier attribute)</a>
+</li>
+        <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcs.config">(protocol.pcs.FriPcs attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintContext.const">const() (constraints.base.ConstraintContext method)</a>
+
+      <ul>
+        <li><a href="api/constraints/base/index.html#constraints.base.ProverConstraintContext.const">(constraints.base.ProverConstraintContext method)</a>
+</li>
+        <li><a href="api/constraints/base/index.html#constraints.base.VerifierConstraintContext.const">(constraints.base.VerifierConstraintContext method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.const_">const_ (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.Type.const_">(primitives.pol_map.EvMap.Type attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols">const_pols (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRProveData.const_pols">(protocol.simple_pilout.AIRProveData attribute)</a>
+</li>
+        <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRStage1Data.const_pols">(protocol.simple_pilout.AIRStage1Data attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols_extended">const_pols_extended (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRProveData.const_pols_extended">(protocol.simple_pilout.AIRProveData attribute)</a>
+</li>
+        <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRStage1Data.const_pols_extended">(protocol.simple_pilout.AIRStage1Data attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.const_pols_map">const_pols_map (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.const_tree">const_tree (protocol.stages.PolynomialCommitter attribute)</a>
+</li>
+      <li><a href="api/protocol/data/index.html#protocol.data.ProverData.constants">constants (protocol.data.ProverData attribute)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintModule.constraint_polynomial">constraint_polynomial() (constraints.base.ConstraintModule method)</a>
+
+      <ul>
+        <li><a href="api/constraints/bytecode_adapter/index.html#constraints.bytecode_adapter.BytecodeConstraintModule.constraint_polynomial">(constraints.bytecode_adapter.BytecodeConstraintModule method)</a>
+</li>
+        <li><a href="api/constraints/lookup2_12/index.html#constraints.lookup2_12.Lookup2_12Constraints.constraint_polynomial">(constraints.lookup2_12.Lookup2_12Constraints method)</a>
+</li>
+        <li><a href="api/constraints/permutation1_6/index.html#constraints.permutation1_6.Permutation1_6Constraints.constraint_polynomial">(constraints.permutation1_6.Permutation1_6Constraints method)</a>
+</li>
+        <li><a href="api/constraints/simple_left/index.html#constraints.simple_left.SimpleLeftConstraints.constraint_polynomial">(constraints.simple_left.SimpleLeftConstraints method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/constraints/index.html#constraints.CONSTRAINT_REGISTRY">CONSTRAINT_REGISTRY (in module constraints)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintContext">ConstraintContext (class in constraints.base)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintModule">ConstraintModule (class in constraints.base)</a>
+</li>
+      <li>
+    constraints
+
+      <ul>
+        <li><a href="api/constraints/index.html#module-constraints">module</a>
+</li>
+      </ul></li>
+      <li>
+    constraints.base
+
+      <ul>
+        <li><a href="api/constraints/base/index.html#module-constraints.base">module</a>
+</li>
+      </ul></li>
+      <li>
+    constraints.bytecode_adapter
+
+      <ul>
+        <li><a href="api/constraints/bytecode_adapter/index.html#module-constraints.bytecode_adapter">module</a>
+</li>
+      </ul></li>
+      <li>
+    constraints.lookup2_12
+
+      <ul>
+        <li><a href="api/constraints/lookup2_12/index.html#module-constraints.lookup2_12">module</a>
+</li>
+      </ul></li>
+      <li>
+    constraints.permutation1_6
+
+      <ul>
+        <li><a href="api/constraints/permutation1_6/index.html#module-constraints.permutation1_6">module</a>
+</li>
+      </ul></li>
+      <li>
+    constraints.simple_left
+
+      <ul>
+        <li><a href="api/constraints/simple_left/index.html#module-constraints.simple_left">module</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.constraints_info_debug">constraints_info_debug (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.CONSTRAINTS_SECTION">CONSTRAINTS_SECTION (in module primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.curve">curve (protocol.global_info.GlobalInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.custom">custom (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.custom">(primitives.merkle_tree.MerkleTree attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.Type.custom">(primitives.pol_map.EvMap.Type attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.custom_commits">custom_commits (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.STARKProof.custom_commits">(protocol.proof.STARKProof attribute)</a>
+</li>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.custom_commits">(protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.custom_commits_map">custom_commits_map (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.CustomCommits">CustomCommits (class in primitives.pol_map)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.default">default() (protocol.global_info.GlobalInfo class method)</a>
+</li>
+      <li><a href="api/protocol/prover/index.html#protocol.prover.DEFAULT_LATTICE_SIZE">DEFAULT_LATTICE_SIZE (in module protocol.prover)</a>
+</li>
+      <li><a href="api/protocol/prover/index.html#protocol.prover.derive_challenges_for_stage">derive_challenges_for_stage() (in module protocol.prover)</a>
+</li>
+      <li><a href="api/protocol/utils/challenge_utils/index.html#protocol.utils.challenge_utils.derive_global_challenge">derive_global_challenge() (in module protocol.utils.challenge_utils)</a>
+</li>
+      <li><a href="api/protocol/utils/challenge_utils/index.html#protocol.utils.challenge_utils.derive_global_challenge_multi_air">derive_global_challenge_multi_air() (in module protocol.utils.challenge_utils)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest">Dest (class in primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest.dest">dest (primitives.expression_bytecode.expression_evaluator.Dest attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.dest_dim">dest_dim (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.dest_id">dest_id (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest.dim">dim (primitives.expression_bytecode.expression_evaluator.Dest attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.dim">(primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+</li>
+        <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintFieldValue.dim">(primitives.expression_bytecode.expressions_bin.HintFieldValue attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.ChallengeMap.dim">(primitives.pol_map.ChallengeMap property)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.dim">(primitives.pol_map.PolMap property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleConfig.domain_bits">domain_bits (primitives.merkle_verifier.MerkleConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.FriFoldStep.domain_bits">(protocol.stark_info.FriFoldStep attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest.domain_size">domain_size (primitives.expression_bytecode.expression_evaluator.Dest attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.end_read_section">end_read_section() (primitives.expression_bytecode.expressions_bin.BinFileReader method)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.ev_map">ev_map (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.eval">eval (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/protocol/verifier/index.html#protocol.verifier.EVAL_STAGE_OFFSET">EVAL_STAGE_OFFSET (in module protocol.verifier)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.EvalPoly">EvalPoly (in module protocol.pcs)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.evals">evals (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/data/index.html#protocol.data.VerifierData.evals">(protocol.data.VerifierData attribute)</a>
+</li>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.STARKProof.evals">(protocol.proof.STARKProof attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/verifier/index.html#protocol.verifier.EVALS_HASH_WIDTH">EVALS_HASH_WIDTH (in module protocol.verifier)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.EVALS_OFFSET">EVALS_OFFSET (in module primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/witness_generation/index.html#primitives.expression_bytecode.witness_generation.evaluate_hint_field_with_expressions">evaluate_hint_field_with_expressions() (in module primitives.expression_bytecode.witness_generation)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap">EvMap (class in primitives.pol_map)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.evmap">evmap() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.Type">EvMap.Type (class in primitives.pol_map)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest.exp_id">exp_id (primitives.expression_bytecode.expression_evaluator.Dest attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.exp_id">(primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+</li>
+        <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.exp_id">(primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.exp_id">(primitives.pol_map.PolMap attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest.expr">expr (primitives.expression_bytecode.expression_evaluator.Dest attribute)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.AirConfig.expressions_bin">expressions_bin (protocol.air_config.AirConfig attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_constraints">expressions_bin_args_constraints (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_expressions">expressions_bin_args_expressions (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_info">expressions_info (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.EXPRESSIONS_SECTION">EXPRESSIONS_SECTION (in module primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin">ExpressionsBin (class in primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx">ExpressionsCtx (class in primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsPack">ExpressionsPack (class in primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/protocol/data/index.html#protocol.data.ProverData.extend">extend (protocol.data.ProverData attribute)</a>
+</li>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.extend_pol">extend_pol() (primitives.ntt.NTT method)</a>
+</li>
+      <li><a href="api/primitives/polynomial/index.html#primitives.polynomial.extend_to_domain">extend_to_domain() (in module primitives.polynomial)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.extendAndMerkelize">extendAndMerkelize() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.extension">extension (primitives.ntt.NTT attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.f">f (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.FastValue">FastValue (in module primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.FF">FF (in module primitives.field)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.FieldType.FF">(primitives.pol_map.FieldType attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/field/index.html#primitives.field.FF3">FF3 (in module primitives.field)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.FieldType.FF3">(primitives.pol_map.FieldType attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3">ff3() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_array">ff3_array() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_array_from_base">ff3_array_from_base() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/goldilocks_jit/index.html#primitives.goldilocks_jit.ff3_batch_inverse">ff3_batch_inverse() (in module primitives.goldilocks_jit)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_coeffs">ff3_coeffs() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_from_base">ff3_from_base() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_from_buffer_at">ff3_from_buffer_at() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_from_flat_list">ff3_from_flat_list() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_from_interleaved_numpy">ff3_from_interleaved_numpy() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_from_json">ff3_from_json() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_from_numpy_coeffs">ff3_from_numpy_coeffs() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_store_to_buffer">ff3_store_to_buffer() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_to_flat_list">ff3_to_flat_list() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_to_interleaved_numpy">ff3_to_interleaved_numpy() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_to_json">ff3_to_json() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ff3_to_numpy_coeffs">ff3_to_numpy_coeffs() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.FF3Array">FF3Array (in module primitives.field)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.FF3Poly">FF3Poly (in module constraints.base)</a>
+
+      <ul>
+        <li><a href="api/primitives/field/index.html#primitives.field.FF3Poly">(in module primitives.field)</a>
+</li>
+        <li><a href="api/protocol/data/index.html#protocol.data.FF3Poly">(in module protocol.data)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/field/index.html#primitives.field.FFArray">FFArray (in module primitives.field)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.FFPoly">FFPoly (in module constraints.base)</a>
+
+      <ul>
+        <li><a href="api/primitives/field/index.html#primitives.field.FFPoly">(in module primitives.field)</a>
+</li>
+        <li><a href="api/protocol/data/index.html#protocol.data.FFPoly">(in module protocol.data)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/field/index.html#primitives.field.FIELD_EXTENSION">FIELD_EXTENSION (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.FIELD_EXTENSION_DEGREE">FIELD_EXTENSION_DEGREE (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.ChallengeMap.field_type">field_type (primitives.pol_map.ChallengeMap attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.field_type">(primitives.pol_map.PolMap attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.Hint.fields">fields (primitives.expression_bytecode.expressions_bin.Hint attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.FieldType">FieldType (class in primitives.pol_map)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriProof.final_pol">final_pol (protocol.pcs.FriProof attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.first_row">first_row (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+      <li><a href="api/protocol/fri/index.html#protocol.fri.FRI.fold">fold() (protocol.fri.FRI static method)</a>
+</li>
+      <li><a href="api/primitives/merkle_prover/index.html#primitives.merkle_prover.MerkleProver.for_const">for_const() (primitives.merkle_prover.MerkleProver class method)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleVerifier.for_const">(primitives.merkle_verifier.MerkleVerifier class method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleVerifier.for_custom_commit">for_custom_commit() (primitives.merkle_verifier.MerkleVerifier class method)</a>
+</li>
+      <li><a href="api/primitives/merkle_prover/index.html#primitives.merkle_prover.MerkleProver.for_fri_step">for_fri_step() (primitives.merkle_prover.MerkleProver class method)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleVerifier.for_fri_step">(primitives.merkle_verifier.MerkleVerifier class method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/merkle_prover/index.html#primitives.merkle_prover.MerkleProver.for_stage">for_stage() (primitives.merkle_prover.MerkleProver class method)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleVerifier.for_stage">(primitives.merkle_verifier.MerkleVerifier class method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/fri/index.html#protocol.fri.FRI">FRI (class in protocol.fri)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.STARKProof.fri">fri (protocol.proof.STARKProof attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.fri_exp_id">fri_exp_id (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.fri_fold_steps">fri_fold_steps (protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriProof.fri_roots">fri_roots (protocol.pcs.FriProof attribute)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig.fri_round_log_sizes">fri_round_log_sizes (protocol.pcs.FriPcsConfig attribute)</a>
+</li>
+      <li><a href="api/protocol/verifier/index.html#protocol.verifier.FRI_STAGE_OFFSET">FRI_STAGE_OFFSET (in module protocol.verifier)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcs.fri_trees">fri_trees (protocol.pcs.FriPcs attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.FriFoldStep">FriFoldStep (class in protocol.stark_info)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcs">FriPcs (class in protocol.pcs)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig">FriPcsConfig (class in protocol.pcs)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriProof">FriProof (class in protocol.pcs)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.FriProof">(class in protocol.proof)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/verifier/index.html#protocol.verifier.FRIQueryIndex">FRIQueryIndex (in module protocol.verifier)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.from_bytes_full">from_bytes_full() (in module protocol.proof)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.from_challenge">from_challenge() (protocol.air_config.ProverHelpers class method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.from_file">from_file() (primitives.expression_bytecode.expressions_bin.ExpressionsBin class method)</a>
+</li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.from_json">from_json() (protocol.global_info.GlobalInfo class method)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.from_json">(protocol.stark_info.StarkInfo class method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.from_stark_info">from_stark_info() (protocol.air_config.ProverHelpers class method)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.AirConfig.from_starkinfo">from_starkinfo() (protocol.air_config.AirConfig class method)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.from_vadcop_final_bytes">from_vadcop_final_bytes() (in module protocol.proof)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="G">G</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/prover/index.html#protocol.prover.gen_proof">gen_proof() (in module protocol.prover)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.get_challenge_index">get_challenge_index() (protocol.stark_info.StarkInfo method)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.get_column_key">get_column_key() (protocol.stark_info.StarkInfo method)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.get_const_query_proof">get_const_query_proof() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/constraints/index.html#constraints.get_constraint_module">get_constraint_module() (in module constraints)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_expression">get_expression() (primitives.expression_bytecode.expressions_bin.ExpressionsBin method)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.get_field">get_field() (primitives.transcript.Transcript method)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcs.get_fri_tree">get_fri_tree() (protocol.pcs.FriPcs method)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_group_proof">get_group_proof() (primitives.merkle_tree.MerkleTree method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_field">get_hint_field() (primitives.expression_bytecode.expressions_bin.ExpressionsBin method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/witness_generation/index.html#primitives.expression_bytecode.witness_generation.get_hint_field_values">get_hint_field_values() (in module primitives.expression_bytecode.witness_generation)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_ids_by_name">get_hint_ids_by_name() (primitives.expression_bytecode.expressions_bin.ExpressionsBin method)</a>
+</li>
+      <li><a href="api/primitives/merkle_prover/index.html#primitives.merkle_prover.MerkleProver.get_last_level_nodes">get_last_level_nodes() (primitives.merkle_prover.MerkleProver method)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_last_level_nodes">(primitives.merkle_tree.MerkleTree method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_merkle_proof_length">get_merkle_proof_length() (primitives.merkle_tree.MerkleTree method)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_merkle_proof_size">get_merkle_proof_size() (primitives.merkle_tree.MerkleTree method)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.get_n_cols">get_n_cols() (protocol.stark_info.StarkInfo method)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_num_siblings">get_num_siblings() (primitives.merkle_tree.MerkleTree method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_number_hint_ids_by_name">get_number_hint_ids_by_name() (primitives.expression_bytecode.expressions_bin.ExpressionsBin method)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.get_offset">get_offset() (protocol.stark_info.StarkInfo method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/field/index.html#primitives.field.get_omega">get_omega() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.get_omega_inv">get_omega_inv() (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.get_permutations">get_permutations() (primitives.transcript.Transcript method)</a>
+</li>
+      <li><a href="api/primitives/merkle_prover/index.html#primitives.merkle_prover.MerkleProver.get_query_proof">get_query_proof() (primitives.merkle_prover.MerkleProver method)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_query_proof">(primitives.merkle_tree.MerkleTree method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_root">get_root() (primitives.merkle_tree.MerkleTree method)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.get_stage_query_proof">get_stage_query_proof() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.get_stage_tree">get_stage_tree() (protocol.stages.PolynomialCommitter method)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.get_state">get_state() (primitives.transcript.Transcript method)</a>
+</li>
+      <li><a href="api/witness/index.html#witness.get_witness_module">get_witness_module() (in module witness)</a>
+</li>
+      <li><a href="api/primitives/goldilocks_jit/index.html#primitives.goldilocks_jit.gl_add_vec">gl_add_vec() (in module primitives.goldilocks_jit)</a>
+</li>
+      <li><a href="api/primitives/goldilocks_jit/index.html#primitives.goldilocks_jit.gl_inv_vec">gl_inv_vec() (in module primitives.goldilocks_jit)</a>
+</li>
+      <li><a href="api/primitives/goldilocks_jit/index.html#primitives.goldilocks_jit.gl_mul_vec">gl_mul_vec() (in module primitives.goldilocks_jit)</a>
+</li>
+      <li><a href="api/primitives/goldilocks_jit/index.html#primitives.goldilocks_jit.gl_sub_vec">gl_sub_vec() (in module primitives.goldilocks_jit)</a>
+</li>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.SimplePiloutStage1Result.global_challenge">global_challenge (protocol.simple_pilout.SimplePiloutStage1Result attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.GLOBAL_CONSTRAINTS_SECTION">GLOBAL_CONSTRAINTS_SECTION (in module primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.GLOBAL_HINTS_SECTION">GLOBAL_HINTS_SECTION (in module primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.AirConfig.global_info">global_info (protocol.air_config.AirConfig attribute)</a>
+</li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo">GlobalInfo (class in protocol.global_info)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.GOLDILOCKS_PRIME">GOLDILOCKS_PRIME (in module primitives.field)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.has_challenge">has_challenge() (protocol.stark_info.StarkInfo method)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Hash">Hash (in module primitives.transcript)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.Hash">(in module protocol.proof)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig.hash_commits">hash_commits (protocol.pcs.FriPcsConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.hash_commits">(protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.HASH_SIZE">HASH_SIZE (in module primitives.merkle_tree)</a>
+
+      <ul>
+        <li><a href="api/primitives/transcript/index.html#primitives.transcript.HASH_SIZE">(in module primitives.transcript)</a>
+</li>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.HASH_SIZE">(in module protocol.stark_info)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/field/index.html#primitives.field.HashOutput">HashOutput (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.height">height (primitives.merkle_tree.MerkleTree attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.Hint">Hint (class in primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintField">HintField (class in primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintFieldValue">HintFieldValue (class in primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.hints">hints (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HINTS_SECTION">HINTS_SECTION (in module primitives.expression_bytecode.expressions_bin)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="I">I</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintFieldValue.id">id (primitives.expression_bytecode.expressions_bin.HintFieldValue attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.id">(primitives.pol_map.EvMap attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.im_pol">im_pol (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.im_pol">(primitives.pol_map.PolMap attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolynomialId.index">index (primitives.pol_map.PolynomialId attribute)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.InterleavedFF3">InterleavedFF3 (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.intt">intt (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.intt">intt() (primitives.ntt.NTT method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.inverse">inverse (primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.last_level_verification">last_level_verification (primitives.merkle_tree.MerkleTree attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleConfig.last_level_verification">(primitives.merkle_verifier.MerkleConfig attribute)</a>
+</li>
+        <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig.last_level_verification">(protocol.pcs.FriPcsConfig attribute)</a>
+</li>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.last_level_verification">(protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.ProofTree.last_levels">last_levels (protocol.proof.ProofTree attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.STARKProof.last_levels">(protocol.proof.STARKProof attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.last_row">last_row (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.LATTICE_SIZE">LATTICE_SIZE (in module protocol.simple_pilout)</a>
+</li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.lattice_size">lattice_size (protocol.global_info.GlobalInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.LeafData">LeafData (in module primitives.merkle_tree)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.lengths">lengths (primitives.pol_map.PolMap attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.line">line (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.load_proof_from_json">load_proof_from_json() (in module protocol.proof)</a>
+</li>
+      <li><a href="api/constraints/lookup2_12/index.html#constraints.lookup2_12.Lookup2_12Constraints">Lookup2_12Constraints (class in constraints.lookup2_12)</a>
+</li>
+      <li><a href="api/witness/lookup2_12/index.html#witness.lookup2_12.Lookup2_12Witness">Lookup2_12Witness (class in witness.lookup2_12)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offset_fri_pol">map_offset_fri_pol (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets">map_offsets (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.map_offsets">(protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed">map_offsets_custom_fixed (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed_extended">map_offsets_custom_fixed_extended (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_extended">map_offsets_extended (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n">map_sections_n (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.map_sections_n">(protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n_custom_fixed">map_sections_n_custom_fixed (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.map_total_n">map_total_n (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.map_total_n_custom_commits_fixed">map_total_n_custom_commits_fixed (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_args">max_args (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_ops">max_ops (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row">max_row (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row_extended">max_row_extended (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp1">max_tmp1 (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp3">max_tmp3 (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.merkelize">merkelize() (primitives.merkle_tree.MerkleTree method)</a>
+
+      <ul>
+        <li><a href="api/protocol/fri/index.html#protocol.fri.FRI.merkelize">(protocol.fri.FRI static method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig.merkle_arity">merkle_arity (protocol.pcs.FriPcsConfig attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.merkle_tree_arity">merkle_tree_arity (protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig.merkle_tree_custom">merkle_tree_custom (protocol.pcs.FriPcsConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.merkle_tree_custom">(protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleConfig">MerkleConfig (class in primitives.merkle_verifier)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.MerkleProof">MerkleProof (class in protocol.proof)</a>
+</li>
+      <li><a href="api/primitives/merkle_prover/index.html#primitives.merkle_prover.MerkleProver">MerkleProver (class in primitives.merkle_prover)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleRoot">MerkleRoot (in module primitives.merkle_tree)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleRoot">(in module primitives.merkle_verifier)</a>
+</li>
+        <li><a href="api/protocol/prover/index.html#protocol.prover.MerkleRoot">(in module protocol.prover)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree">MerkleTree (class in primitives.merkle_tree)</a>
+</li>
+      <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleVerifier">MerkleVerifier (class in primitives.merkle_verifier)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row">min_row (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row_extended">min_row_extended (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li>
+    module
+
+      <ul>
+        <li><a href="api/constraints/index.html#module-constraints">constraints</a>
+</li>
+        <li><a href="api/constraints/base/index.html#module-constraints.base">constraints.base</a>
+</li>
+        <li><a href="api/constraints/bytecode_adapter/index.html#module-constraints.bytecode_adapter">constraints.bytecode_adapter</a>
+</li>
+        <li><a href="api/constraints/lookup2_12/index.html#module-constraints.lookup2_12">constraints.lookup2_12</a>
+</li>
+        <li><a href="api/constraints/permutation1_6/index.html#module-constraints.permutation1_6">constraints.permutation1_6</a>
+</li>
+        <li><a href="api/constraints/simple_left/index.html#module-constraints.simple_left">constraints.simple_left</a>
+</li>
+        <li><a href="api/primitives/index.html#module-primitives">primitives</a>
+</li>
+        <li><a href="api/primitives/batch_inverse/index.html#module-primitives.batch_inverse">primitives.batch_inverse</a>
+</li>
+        <li><a href="api/primitives/expression_bytecode/index.html#module-primitives.expression_bytecode">primitives.expression_bytecode</a>
+</li>
+        <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#module-primitives.expression_bytecode.expression_evaluator">primitives.expression_bytecode.expression_evaluator</a>
+</li>
+        <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#module-primitives.expression_bytecode.expressions_bin">primitives.expression_bytecode.expressions_bin</a>
+</li>
+        <li><a href="api/primitives/expression_bytecode/witness_generation/index.html#module-primitives.expression_bytecode.witness_generation">primitives.expression_bytecode.witness_generation</a>
+</li>
+        <li><a href="api/primitives/field/index.html#module-primitives.field">primitives.field</a>
+</li>
+        <li><a href="api/primitives/goldilocks_jit/index.html#module-primitives.goldilocks_jit">primitives.goldilocks_jit</a>
+</li>
+        <li><a href="api/primitives/merkle_prover/index.html#module-primitives.merkle_prover">primitives.merkle_prover</a>
+</li>
+        <li><a href="api/primitives/merkle_tree/index.html#module-primitives.merkle_tree">primitives.merkle_tree</a>
+</li>
+        <li><a href="api/primitives/merkle_verifier/index.html#module-primitives.merkle_verifier">primitives.merkle_verifier</a>
+</li>
+        <li><a href="api/primitives/ntt/index.html#module-primitives.ntt">primitives.ntt</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#module-primitives.pol_map">primitives.pol_map</a>
+</li>
+        <li><a href="api/primitives/polynomial/index.html#module-primitives.polynomial">primitives.polynomial</a>
+</li>
+        <li><a href="api/primitives/transcript/index.html#module-primitives.transcript">primitives.transcript</a>
+</li>
+        <li><a href="api/protocol/index.html#module-protocol">protocol</a>
+</li>
+        <li><a href="api/protocol/air_config/index.html#module-protocol.air_config">protocol.air_config</a>
+</li>
+        <li><a href="api/protocol/data/index.html#module-protocol.data">protocol.data</a>
+</li>
+        <li><a href="api/protocol/fri/index.html#module-protocol.fri">protocol.fri</a>
+</li>
+        <li><a href="api/protocol/fri_polynomial/index.html#module-protocol.fri_polynomial">protocol.fri_polynomial</a>
+</li>
+        <li><a href="api/protocol/global_info/index.html#module-protocol.global_info">protocol.global_info</a>
+</li>
+        <li><a href="api/protocol/pcs/index.html#module-protocol.pcs">protocol.pcs</a>
+</li>
+        <li><a href="api/protocol/proof/index.html#module-protocol.proof">protocol.proof</a>
+</li>
+        <li><a href="api/protocol/prover/index.html#module-protocol.prover">protocol.prover</a>
+</li>
+        <li><a href="api/protocol/simple_pilout/index.html#module-protocol.simple_pilout">protocol.simple_pilout</a>
+</li>
+        <li><a href="api/protocol/stages/index.html#module-protocol.stages">protocol.stages</a>
+</li>
+        <li><a href="api/protocol/stark_info/index.html#module-protocol.stark_info">protocol.stark_info</a>
+</li>
+        <li><a href="api/protocol/utils/challenge_utils/index.html#module-protocol.utils.challenge_utils">protocol.utils.challenge_utils</a>
+</li>
+        <li><a href="api/protocol/verifier/index.html#module-protocol.verifier">protocol.verifier</a>
+</li>
+        <li><a href="api/witness/index.html#module-witness">witness</a>
+</li>
+        <li><a href="api/witness/base/index.html#module-witness.base">witness.base</a>
+</li>
+        <li><a href="api/witness/bytecode_adapter/index.html#module-witness.bytecode_adapter">witness.bytecode_adapter</a>
+</li>
+        <li><a href="api/witness/lookup2_12/index.html#module-witness.lookup2_12">witness.lookup2_12</a>
+</li>
+        <li><a href="api/witness/permutation1_6/index.html#module-witness.permutation1_6">witness.permutation1_6</a>
+</li>
+        <li><a href="api/witness/simple_left/index.html#module-witness.simple_left">witness.simple_left</a>
+</li>
+        <li><a href="api/witness/simple_right/index.html#module-witness.simple_right">witness.simple_right</a>
+</li>
+        <li><a href="api/witness/specified_ranges/index.html#module-witness.specified_ranges">witness.specified_ranges</a>
+</li>
+        <li><a href="api/witness/u16_air/index.html#module-witness.u16_air">witness.u16_air</a>
+</li>
+        <li><a href="api/witness/u8_air/index.html#module-witness.u8_air">witness.u8_air</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.QueryProof.mp">mp (primitives.merkle_tree.QueryProof attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.MerkleProof.mp">(protocol.proof.MerkleProof attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/witness_generation/index.html#primitives.expression_bytecode.witness_generation.multiply_hint_fields">multiply_hint_fields() (in module primitives.expression_bytecode.witness_generation)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.n">n (primitives.ntt.NTT attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.n_args">n_args (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_args_total">n_args_total (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.n_bits">n_bits (primitives.ntt.NTT attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.n_bits">(protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig.n_bits_ext">n_bits_ext (protocol.pcs.FriPcsConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.n_bits_ext">(protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_challenges">n_challenges (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.n_cols">n_cols (primitives.merkle_tree.MerkleTree attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.n_constants">n_constants (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_evals">n_evals (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.n_field_elements">n_field_elements (primitives.merkle_tree.MerkleTree attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.N_GLOBAL_SECTIONS">N_GLOBAL_SECTIONS (in module primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserArgs.n_numbers">n_numbers (primitives.expression_bytecode.expressions_bin.ParserArgs attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.n_ops">n_ops (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_ops_total">n_ops_total (primitives.expression_bytecode.expressions_bin.ExpressionsBin attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_publics">n_publics (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.n_publics">(protocol.global_info.GlobalInfo attribute)</a>
+</li>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.n_publics">(protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_queries">n_queries (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig.n_queries">(protocol.pcs.FriPcsConfig attribute)</a>
+</li>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.n_queries">(protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.N_SECTIONS">N_SECTIONS (in module primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.n_sections">n_sections (primitives.expression_bytecode.expressions_bin.BinFileReader attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleConfig.n_siblings">n_siblings (primitives.merkle_verifier.MerkleConfig property)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_stages">n_stages (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.n_stages">(protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.n_temp1">n_temp1 (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.n_temp3">n_temp3 (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.Hint.name">name (primitives.expression_bytecode.expressions_bin.Hint attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintField.name">(primitives.expression_bytecode.expressions_bin.HintField attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.Boundary.name">(primitives.pol_map.Boundary attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.ChallengeMap.name">(primitives.pol_map.ChallengeMap attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.CustomCommits.name">(primitives.pol_map.CustomCommits attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.name">(primitives.pol_map.PolMap attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolynomialId.name">(primitives.pol_map.PolynomialId attribute)</a>
+</li>
+        <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.name">(protocol.global_info.GlobalInfo attribute)</a>
+</li>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.name">(protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintContext.next_col">next_col() (constraints.base.ConstraintContext method)</a>
+
+      <ul>
+        <li><a href="api/constraints/base/index.html#constraints.base.ProverConstraintContext.next_col">(constraints.base.ProverConstraintContext method)</a>
+</li>
+        <li><a href="api/constraints/base/index.html#constraints.base.VerifierConstraintContext.next_col">(constraints.base.VerifierConstraintContext method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintContext.next_const">next_const() (constraints.base.ConstraintContext method)</a>
+
+      <ul>
+        <li><a href="api/constraints/base/index.html#constraints.base.ProverConstraintContext.next_const">(constraints.base.ProverConstraintContext method)</a>
+</li>
+        <li><a href="api/constraints/base/index.html#constraints.base.VerifierConstraintContext.next_const">(constraints.base.VerifierConstraintContext method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides">next_strides (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides_extended">next_strides_extended (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.nodes">nodes (primitives.merkle_tree.MerkleTree attribute)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.Nonce">Nonce (in module protocol.pcs)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriProof.nonce">nonce (protocol.pcs.FriProof attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.STARKProof.nonce">(protocol.proof.STARKProof attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.NROWS_PACK">NROWS_PACK (in module primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT">NTT (class in primitives.ntt)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.ntt">ntt (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.ntt">ntt() (primitives.ntt.NTT method)</a>
+</li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.num_challenges">num_challenges (protocol.global_info.GlobalInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.num_nodes">num_nodes (primitives.merkle_tree.MerkleTree attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.number">number (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserArgs.numbers">numbers (primitives.expression_bytecode.expressions_bin.ParserArgs attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.NUMBERS_OFFSET">NUMBERS_OFFSET (in module primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest.offset">offset (primitives.expression_bytecode.expression_evaluator.Dest attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.Boundary.offset_max">offset_max (primitives.pol_map.Boundary attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.Boundary.offset_min">offset_min (primitives.pol_map.Boundary attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.op">op (primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.opening_points">opening_points (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.opening_pos">opening_pos (primitives.pol_map.EvMap attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintFieldValue.operand">operand (primitives.expression_bytecode.expressions_bin.HintFieldValue attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserArgs.ops">ops (primitives.expression_bytecode.expressions_bin.ParserArgs attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.ops_offset">ops_offset (primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType">OpType (class in primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.optype_from_string">optype_from_string() (in module primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.out">out (primitives.transcript.Transcript attribute)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.out_cursor">out_cursor (primitives.transcript.Transcript attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params">Params (class in primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest.params">params (primitives.expression_bytecode.expression_evaluator.Dest attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserArgs">ParserArgs (class in primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams">ParserParams (class in primitives.expression_bytecode.expressions_bin)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.path">path (primitives.expression_bytecode.expressions_bin.BinFileReader attribute)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.pending">pending (primitives.transcript.Transcript attribute)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.pending_cursor">pending_cursor (primitives.transcript.Transcript attribute)</a>
+</li>
+      <li><a href="api/constraints/permutation1_6/index.html#constraints.permutation1_6.Permutation1_6Constraints">Permutation1_6Constraints (class in constraints.permutation1_6)</a>
+</li>
+      <li><a href="api/witness/permutation1_6/index.html#witness.permutation1_6.Permutation1_6Witness">Permutation1_6Witness (class in witness.permutation1_6)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.FriProof.pol">pol (protocol.proof.FriProof attribute)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.ProofTree.pol_queries">pol_queries (protocol.proof.ProofTree attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap">PolMap (class in primitives.pol_map)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.pols_map_id">pols_map_id (primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.pols_map_id">(primitives.pol_map.PolMap attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter">PolynomialCommitter (class in protocol.stages)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolynomialId">PolynomialId (class in primitives.pol_map)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.pos">pos (primitives.expression_bytecode.expressions_bin.BinFileReader attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintFieldValue.pos">(primitives.expression_bytecode.expressions_bin.HintFieldValue attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/prover/index.html#protocol.prover.POSEIDON2_LINEAR_HASH_WIDTH">POSEIDON2_LINEAR_HASH_WIDTH (in module protocol.prover)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig.pow_bits">pow_bits (protocol.pcs.FriPcsConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.pow_bits">(protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.pow_two_inv">pow_two_inv (primitives.ntt.NTT attribute)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintContext.prev_col">prev_col() (constraints.base.ConstraintContext method)</a>
+
+      <ul>
+        <li><a href="api/constraints/base/index.html#constraints.base.ProverConstraintContext.prev_col">(constraints.base.ProverConstraintContext method)</a>
+</li>
+        <li><a href="api/constraints/base/index.html#constraints.base.VerifierConstraintContext.prev_col">(constraints.base.VerifierConstraintContext method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ConstraintContext.prev_const">prev_const() (constraints.base.ConstraintContext method)</a>
+
+      <ul>
+        <li><a href="api/constraints/base/index.html#constraints.base.ProverConstraintContext.prev_const">(constraints.base.ProverConstraintContext method)</a>
+</li>
+        <li><a href="api/constraints/base/index.html#constraints.base.VerifierConstraintContext.prev_const">(constraints.base.VerifierConstraintContext method)</a>
+</li>
+      </ul></li>
+      <li>
+    primitives
+
+      <ul>
+        <li><a href="api/primitives/index.html#module-primitives">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.batch_inverse
+
+      <ul>
+        <li><a href="api/primitives/batch_inverse/index.html#module-primitives.batch_inverse">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.expression_bytecode
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/index.html#module-primitives.expression_bytecode">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.expression_bytecode.expression_evaluator
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#module-primitives.expression_bytecode.expression_evaluator">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.expression_bytecode.expressions_bin
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#module-primitives.expression_bytecode.expressions_bin">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.expression_bytecode.witness_generation
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/witness_generation/index.html#module-primitives.expression_bytecode.witness_generation">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.field
+
+      <ul>
+        <li><a href="api/primitives/field/index.html#module-primitives.field">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.goldilocks_jit
+
+      <ul>
+        <li><a href="api/primitives/goldilocks_jit/index.html#module-primitives.goldilocks_jit">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.merkle_prover
+
+      <ul>
+        <li><a href="api/primitives/merkle_prover/index.html#module-primitives.merkle_prover">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.merkle_tree
+
+      <ul>
+        <li><a href="api/primitives/merkle_tree/index.html#module-primitives.merkle_tree">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.merkle_verifier
+
+      <ul>
+        <li><a href="api/primitives/merkle_verifier/index.html#module-primitives.merkle_verifier">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.ntt
+
+      <ul>
+        <li><a href="api/primitives/ntt/index.html#module-primitives.ntt">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.pol_map
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#module-primitives.pol_map">module</a>
+</li>
+      </ul></li>
+      <li>
+    primitives.polynomial
+
+      <ul>
+        <li><a href="api/primitives/polynomial/index.html#module-primitives.polynomial">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    primitives.transcript
+
+      <ul>
+        <li><a href="api/primitives/transcript/index.html#module-primitives.transcript">module</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.proof_size">proof_size (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.proof_to_json">proof_to_json() (in module protocol.proof)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.proof_values">proof_values (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+</li>
+      <li><a href="api/protocol/data/index.html#protocol.data.VerifierData.proof_values_flat">proof_values_flat (protocol.data.VerifierData attribute)</a>
+</li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.proof_values_map">proof_values_map (protocol.global_info.GlobalInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.PROOF_VALUES_OFFSET">PROOF_VALUES_OFFSET (in module primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.ProofTree">ProofTree (class in protocol.proof)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.proofvalue">proofvalue (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li>
+    protocol
+
+      <ul>
+        <li><a href="api/protocol/index.html#module-protocol">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.air_config
+
+      <ul>
+        <li><a href="api/protocol/air_config/index.html#module-protocol.air_config">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.data
+
+      <ul>
+        <li><a href="api/protocol/data/index.html#module-protocol.data">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.fri
+
+      <ul>
+        <li><a href="api/protocol/fri/index.html#module-protocol.fri">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.fri_polynomial
+
+      <ul>
+        <li><a href="api/protocol/fri_polynomial/index.html#module-protocol.fri_polynomial">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.global_info
+
+      <ul>
+        <li><a href="api/protocol/global_info/index.html#module-protocol.global_info">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.pcs
+
+      <ul>
+        <li><a href="api/protocol/pcs/index.html#module-protocol.pcs">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.proof
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#module-protocol.proof">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.prover
+
+      <ul>
+        <li><a href="api/protocol/prover/index.html#module-protocol.prover">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.simple_pilout
+
+      <ul>
+        <li><a href="api/protocol/simple_pilout/index.html#module-protocol.simple_pilout">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.stages
+
+      <ul>
+        <li><a href="api/protocol/stages/index.html#module-protocol.stages">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.stark_info
+
+      <ul>
+        <li><a href="api/protocol/stark_info/index.html#module-protocol.stark_info">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.utils.challenge_utils
+
+      <ul>
+        <li><a href="api/protocol/utils/challenge_utils/index.html#module-protocol.utils.challenge_utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    protocol.verifier
+
+      <ul>
+        <li><a href="api/protocol/verifier/index.html#module-protocol.verifier">module</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcs.prove">prove() (protocol.pcs.FriPcs method)</a>
+</li>
+      <li><a href="api/protocol/fri/index.html#protocol.fri.FRI.prove_queries">prove_queries() (protocol.fri.FRI static method)</a>
+</li>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.prove_simple_pilout">prove_simple_pilout() (in module protocol.simple_pilout)</a>
+</li>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.prove_simple_pilout_stage1">prove_simple_pilout_stage1() (in module protocol.simple_pilout)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.prover_helpers">prover_helpers (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/constraints/base/index.html#constraints.base.ProverConstraintContext">ProverConstraintContext (class in constraints.base)</a>
+</li>
+      <li><a href="api/protocol/data/index.html#protocol.data.ProverData">ProverData (class in protocol.data)</a>
+</li>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers">ProverHelpers (class in protocol.air_config)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.public_">public_ (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.public_inputs">public_inputs (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/data/index.html#protocol.data.ProverData.public_inputs">(protocol.data.ProverData attribute)</a>
+</li>
+        <li><a href="api/protocol/data/index.html#protocol.data.VerifierData.public_inputs">(protocol.data.VerifierData attribute)</a>
+</li>
+        <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRProveData.public_inputs">(protocol.simple_pilout.AIRProveData attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.PUBLIC_INPUTS_OFFSET">PUBLIC_INPUTS_OFFSET (in module primitives.expression_bytecode.expression_evaluator)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.CustomCommits.public_values">public_values (primitives.pol_map.CustomCommits attribute)</a>
+</li>
+      <li><a href="api/protocol/data/index.html#protocol.data.VerifierData.publics_flat">publics_flat (protocol.data.VerifierData attribute)</a>
+</li>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.publics_map">publics_map (protocol.global_info.GlobalInfo attribute)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.put">put() (primitives.transcript.Transcript method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Q">Q</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.q">q (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.q_deg">q_deg (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.q_dim">q_dim (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriProof.query_indices">query_indices (protocol.pcs.FriProof attribute)</a>
+</li>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriProof.query_proofs">query_proofs (protocol.pcs.FriProof attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/pcs/index.html#protocol.pcs.QueryIndex">QueryIndex (in module protocol.pcs)</a>
+</li>
+      <li><a href="api/protocol/fri_polynomial/index.html#protocol.fri_polynomial.QueryPolynomials">QueryPolynomials (in module protocol.fri_polynomial)</a>
+
+      <ul>
+        <li><a href="api/protocol/verifier/index.html#protocol.verifier.QueryPolynomials">(in module protocol.verifier)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.QueryProof">QueryProof (class in primitives.merkle_tree)</a>
+</li>
+      <li><a href="api/protocol/verifier/index.html#protocol.verifier.QUOTIENT_STAGE_OFFSET">QUOTIENT_STAGE_OFFSET (in module protocol.verifier)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.r">r (primitives.ntt.NTT attribute)</a>
+</li>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.r_">r_ (primitives.ntt.NTT attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.read_bytes">read_bytes() (primitives.expression_bytecode.expressions_bin.BinFileReader method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.read_string">read_string() (primitives.expression_bytecode.expressions_bin.BinFileReader method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u16_le">read_u16_le() (primitives.expression_bytecode.expressions_bin.BinFileReader method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u32_le">read_u32_le() (primitives.expression_bytecode.expressions_bin.BinFileReader method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u64_le">read_u64_le() (primitives.expression_bytecode.expressions_bin.BinFileReader method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u8_le">read_u8_le() (primitives.expression_bytecode.expressions_bin.BinFileReader method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.reading_section">reading_section (primitives.expression_bytecode.expressions_bin.BinFileReader attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleVerifier.root">root (primitives.merkle_verifier.MerkleVerifier attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.ProofTree.root">(protocol.proof.ProofTree attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/ntt/index.html#primitives.ntt.NTT.roots">roots (primitives.ntt.NTT attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.STARKProof.roots">(protocol.proof.STARKProof attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.row_offset">row_offset (primitives.pol_map.EvMap attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.row_offset_index">row_offset_index (primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintFieldValue.row_offset_index">(primitives.expression_bytecode.expressions_bin.HintFieldValue attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.rows_per_batch">rows_per_batch (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsPack.rows_per_batch">(primitives.expression_bytecode.expression_evaluator.ExpressionsPack attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.sections">sections (primitives.expression_bytecode.expressions_bin.BinFileReader attribute)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.set_state">set_state() (primitives.transcript.Transcript method)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.set_xi">set_xi() (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx method)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.setupCtx">setupCtx (protocol.stages.PolynomialCommitter attribute)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.SHIFT">SHIFT (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.SHIFT_INV">SHIFT_INV (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.SiblingHash">SiblingHash (in module primitives.merkle_verifier)</a>
+</li>
+      <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleConfig.siblings_per_level">siblings_per_level (primitives.merkle_verifier.MerkleConfig property)</a>
+</li>
+      <li><a href="api/constraints/simple_left/index.html#constraints.simple_left.SimpleLeftConstraints">SimpleLeftConstraints (class in constraints.simple_left)</a>
+</li>
+      <li><a href="api/witness/simple_left/index.html#witness.simple_left.SimpleLeftWitness">SimpleLeftWitness (class in witness.simple_left)</a>
+</li>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.SimplePiloutStage1Result">SimplePiloutStage1Result (class in protocol.simple_pilout)</a>
+</li>
+      <li><a href="api/witness/simple_right/index.html#witness.simple_right.SimpleRightWitness">SimpleRightWitness (class in witness.simple_right)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.source_data">source_data (primitives.merkle_tree.MerkleTree attribute)</a>
+</li>
+      <li><a href="api/witness/specified_ranges/index.html#witness.specified_ranges.SpecifiedRangesWitness">SpecifiedRangesWitness (class in witness.specified_ranges)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.sponge_width">sponge_width (primitives.merkle_tree.MerkleTree attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleConfig.sponge_width">(primitives.merkle_verifier.MerkleConfig property)</a>
+</li>
+        <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.sponge_width">(primitives.transcript.Transcript attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.SpongeState">SpongeState (in module primitives.transcript)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.stage">stage (primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ParserParams.stage">(primitives.expression_bytecode.expressions_bin.ParserParams attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.ChallengeMap.stage">(primitives.pol_map.ChallengeMap attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.stage">(primitives.pol_map.PolMap attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolynomialId.stage">(primitives.pol_map.PolynomialId attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.SimplePiloutStage1Result.stage1_commitments">stage1_commitments (protocol.simple_pilout.SimplePiloutStage1Result attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest.stage_cols">stage_cols (primitives.expression_bytecode.expression_evaluator.Dest attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.ChallengeMap.stage_id">stage_id (primitives.pol_map.ChallengeMap attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.stage_id">(primitives.pol_map.PolMap attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Dest.stage_pos">stage_pos (primitives.expression_bytecode.expression_evaluator.Dest attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.stage_pos">(primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+</li>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolMap.stage_pos">(primitives.pol_map.PolMap attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.PolynomialCommitter.stage_trees">stage_trees (protocol.stages.PolynomialCommitter attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.CustomCommits.stage_widths">stage_widths (primitives.pol_map.CustomCommits attribute)</a>
+</li>
+      <li><a href="api/protocol/stages/index.html#protocol.stages.StageIndex">StageIndex (in module protocol.stages)</a>
+</li>
+      <li><a href="api/protocol/prover/index.html#protocol.prover.StageNum">StageNum (in module protocol.prover)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.stark_info">stark_info (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/air_config/index.html#protocol.air_config.AirConfig.stark_info">(protocol.air_config.AirConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo.stark_struct">stark_struct (protocol.stark_info.StarkInfo attribute)</a>
+</li>
+      <li><a href="api/protocol/verifier/index.html#protocol.verifier.stark_verify">stark_verify() (in module protocol.verifier)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkInfo">StarkInfo (class in protocol.stark_info)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.STARKProof">STARKProof (class in protocol.proof)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct">StarkStruct (class in protocol.stark_info)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.BinFileReader.start_read_section">start_read_section() (primitives.expression_bytecode.expressions_bin.BinFileReader method)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.state">state (primitives.transcript.Transcript attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.string_">string_ (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintFieldValue.string_value">string_value (primitives.expression_bytecode.expressions_bin.HintFieldValue attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.tmp">tmp (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.to_bytes_full">to_bytes_full() (in module protocol.proof)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.to_bytes_full_from_dict">to_bytes_full_from_dict() (in module protocol.proof)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.to_bytes_partial">to_bytes_partial() (in module protocol.proof)</a>
+</li>
+      <li><a href="api/primitives/polynomial/index.html#primitives.polynomial.to_coefficients">to_coefficients() (in module primitives.polynomial)</a>
+</li>
+      <li><a href="api/primitives/polynomial/index.html#primitives.polynomial.to_coefficients_cubic">to_coefficients_cubic() (in module primitives.polynomial)</a>
+</li>
+      <li><a href="api/primitives/polynomial/index.html#primitives.polynomial.to_evaluations">to_evaluations() (in module primitives.polynomial)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.trace">trace (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRProveData.trace">(protocol.simple_pilout.AIRProveData attribute)</a>
+</li>
+        <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.AIRStage1Data.trace">(protocol.simple_pilout.AIRStage1Data attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript">Transcript (class in primitives.transcript)</a>
+</li>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.TRANSCRIPT_ARITY">TRANSCRIPT_ARITY (in module protocol.simple_pilout)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/global_info/index.html#protocol.global_info.GlobalInfo.transcript_arity">transcript_arity (protocol.global_info.GlobalInfo attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/pcs/index.html#protocol.pcs.FriPcsConfig.transcript_arity">(protocol.pcs.FriPcsConfig attribute)</a>
+</li>
+        <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.transcript_arity">(protocol.stark_info.StarkStruct attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.transcript_out_size">transcript_out_size (primitives.transcript.Transcript attribute)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.transcript_pending_size">transcript_pending_size (primitives.transcript.Transcript attribute)</a>
+</li>
+      <li><a href="api/primitives/transcript/index.html#primitives.transcript.Transcript.transcript_state_size">transcript_state_size (primitives.transcript.Transcript attribute)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.transpose_for_merkle">transpose_for_merkle() (in module primitives.merkle_tree)</a>
+</li>
+      <li><a href="api/primitives/merkle_prover/index.html#primitives.merkle_prover.MerkleProver.tree">tree (primitives.merkle_prover.MerkleProver property)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.FriProof.trees">trees (protocol.proof.FriProof attribute)</a>
+</li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.FriProof.trees_fri">trees_fri (protocol.proof.FriProof attribute)</a>
+</li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.type">type (primitives.pol_map.EvMap attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.PolynomialId.type">(primitives.pol_map.PolynomialId attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/pol_map/index.html#primitives.pol_map.EvMap.type_from_string">type_from_string() (primitives.pol_map.EvMap static method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/witness/u16_air/index.html#witness.u16_air.U16AirWitness">U16AirWitness (class in witness.u16_air)</a>
+</li>
+      <li><a href="api/witness/u8_air/index.html#witness.u8_air.U8AirWitness">U8AirWitness (class in witness.u8_air)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/witness_generation/index.html#primitives.expression_bytecode.witness_generation.update_airgroup_value">update_airgroup_value() (in module primitives.expression_bytecode.witness_generation)</a>
+</li>
+      <li><a href="api/protocol/data/index.html#protocol.data.ProverData.update_columns">update_columns() (protocol.data.ProverData method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.QueryProof.v">v (primitives.merkle_tree.QueryProof attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/proof/index.html#protocol.proof.MerkleProof.v">(protocol.proof.MerkleProof attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/protocol/proof/index.html#protocol.proof.validate_proof_structure">validate_proof_structure() (in module protocol.proof)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.Params.value">value (primitives.expression_bytecode.expression_evaluator.Params attribute)</a>
+
+      <ul>
+        <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintFieldValue.value">(primitives.expression_bytecode.expressions_bin.HintFieldValue attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.HintField.values">values (primitives.expression_bytecode.expressions_bin.HintField attribute)</a>
+</li>
+      <li><a href="api/protocol/stark_info/index.html#protocol.stark_info.StarkStruct.verification_hash_type">verification_hash_type (protocol.stark_info.StarkStruct attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/constraints/base/index.html#constraints.base.VerifierConstraintContext">VerifierConstraintContext (class in constraints.base)</a>
+</li>
+      <li><a href="api/protocol/data/index.html#protocol.data.VerifierData">VerifierData (class in protocol.data)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.verify">verify (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+      <li><a href="api/protocol/fri/index.html#protocol.fri.FRI.verify_fold">verify_fold() (protocol.fri.FRI static method)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.verify_group_proof">verify_group_proof() (primitives.merkle_tree.MerkleTree method)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.verify_merkle_root">verify_merkle_root() (primitives.merkle_tree.MerkleTree static method)</a>
+</li>
+      <li><a href="api/primitives/merkle_verifier/index.html#primitives.merkle_verifier.MerkleVerifier.verify_query">verify_query() (primitives.merkle_verifier.MerkleVerifier method)</a>
+</li>
+      <li><a href="api/protocol/simple_pilout/index.html#protocol.simple_pilout.SimplePiloutStage1Result.verkeys">verkeys (protocol.simple_pilout.SimplePiloutStage1Result attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/field/index.html#primitives.field.W">W (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/field/index.html#primitives.field.W_INV">W_INV (in module primitives.field)</a>
+</li>
+      <li><a href="api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.width">width (primitives.merkle_tree.MerkleTree attribute)</a>
+</li>
+      <li>
+    witness
+
+      <ul>
+        <li><a href="api/witness/index.html#module-witness">module</a>
+</li>
+      </ul></li>
+      <li>
+    witness.base
+
+      <ul>
+        <li><a href="api/witness/base/index.html#module-witness.base">module</a>
+</li>
+      </ul></li>
+      <li>
+    witness.bytecode_adapter
+
+      <ul>
+        <li><a href="api/witness/bytecode_adapter/index.html#module-witness.bytecode_adapter">module</a>
+</li>
+      </ul></li>
+      <li>
+    witness.lookup2_12
+
+      <ul>
+        <li><a href="api/witness/lookup2_12/index.html#module-witness.lookup2_12">module</a>
+</li>
+      </ul></li>
+      <li>
+    witness.permutation1_6
+
+      <ul>
+        <li><a href="api/witness/permutation1_6/index.html#module-witness.permutation1_6">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    witness.simple_left
+
+      <ul>
+        <li><a href="api/witness/simple_left/index.html#module-witness.simple_left">module</a>
+</li>
+      </ul></li>
+      <li>
+    witness.simple_right
+
+      <ul>
+        <li><a href="api/witness/simple_right/index.html#module-witness.simple_right">module</a>
+</li>
+      </ul></li>
+      <li>
+    witness.specified_ranges
+
+      <ul>
+        <li><a href="api/witness/specified_ranges/index.html#module-witness.specified_ranges">module</a>
+</li>
+      </ul></li>
+      <li>
+    witness.u16_air
+
+      <ul>
+        <li><a href="api/witness/u16_air/index.html#module-witness.u16_air">module</a>
+</li>
+      </ul></li>
+      <li>
+    witness.u8_air
+
+      <ul>
+        <li><a href="api/witness/u8_air/index.html#module-witness.u8_air">module</a>
+</li>
+      </ul></li>
+      <li><a href="api/witness/index.html#witness.WITNESS_REGISTRY">WITNESS_REGISTRY (in module witness)</a>
+</li>
+      <li><a href="api/witness/base/index.html#witness.base.WitnessModule">WitnessModule (class in witness.base)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="X">X</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.x">x (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+
+      <ul>
+        <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.x">(protocol.air_config.ProverHelpers attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.BufferSet.x_div_x_sub">x_div_x_sub (primitives.expression_bytecode.expression_evaluator.BufferSet attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.x_n">x_n (protocol.air_config.ProverHelpers attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.xDivXSubXi">xDivXSubXi (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+      <li><a href="api/primitives/expression_bytecode/expression_evaluator/index.html#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.xis">xis (primitives.expression_bytecode.expression_evaluator.ExpressionsCtx attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Z">Z</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/primitives/expression_bytecode/expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.OpType.Zi">Zi (primitives.expression_bytecode.expressions_bin.OpType attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/protocol/air_config/index.html#protocol.air_config.ProverHelpers.zi">zi (protocol.air_config.ProverHelpers attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

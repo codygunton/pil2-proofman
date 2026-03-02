@@ -1,0 +1,899 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>STARK Protocol: Commitment Phase &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>window.MathJax = {"tex": {"macros": {"F": "\\mathbb{F}_p", "Fext": "\\mathbb{F}_{p^3}", "ZH": "Z_H", "MT": "\\mathsf{MT}", "Hash": "\\mathsf{H}", "Poseidon": "\\mathsf{Poseidon2}", "LinHash": "\\mathsf{LinearHash}", "T": "\\mathcal{T}", "abs": "\\mathsf{absorb}", "sq": "\\mathsf{squeeze}", "sqidx": "\\mathsf{squeeze\\_indices}", "Fold": "\\mathsf{Fold}", "INTT": "\\mathsf{INTT}", "NTT": "\\mathsf{NTT}", "longto": "\\longrightarrow", "longfrom": "\\longleftarrow"}}, "options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'part-stark/commitment-phase';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="STARK Protocol: Query Phase" href="query-phase.html" />
+    <link rel="prev" title="Building Blocks" href="building-blocks.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">STARK Protocol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>STARK Protocol: Commitment Phase</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stage-1-witness-commitment">Stage 1: Witness Commitment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcript-seeding">Transcript Seeding</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stage-2-intermediate-polynomials">Stage 2: Intermediate Polynomials</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#clustered-logup-intermediate-mathrm-im-cluster">Clustered logup intermediate (<span class="math notranslate nohighlight">\(\mathrm{im\_cluster}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#single-logup-intermediate-mathrm-im-single">Single logup intermediate (<span class="math notranslate nohighlight">\(\mathrm{im\_single}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#grand-sum-mathrm-gsum">Grand sum (<span class="math notranslate nohighlight">\(\mathrm{gsum}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#grand-product-mathrm-gprod">Grand product (<span class="math notranslate nohighlight">\(\mathrm{gprod}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#low-degree-reduction-mathrm-im-low">Low-degree reduction (<span class="math notranslate nohighlight">\(\mathrm{im\_low}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#application-level-intermediates-mathrm-impol">Application-level intermediates (<span class="math notranslate nohighlight">\(\mathrm{ImPol}\)</span>)</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stage-q-quotient-polynomial">Stage Q: Quotient Polynomial</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#polynomial-evaluations">Polynomial Evaluations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fri-polynomial-construction">FRI Polynomial Construction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fri-commitment-rounds">FRI Commitment Rounds</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#grinding">Grinding</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="stark-protocol-commitment-phase">
+<span id="sec-commitment-phase"></span><h1>STARK Protocol: Commitment Phase<a class="headerlink" href="#stark-protocol-commitment-phase" title="Link to this heading">#</a></h1>
+<p>The commitment phase is the first half of the STARK protocol.
+The prover commits to polynomials in stages, derives challenges via the
+Fiat-Shamir transcript, and constructs the FRI polynomial.
+In the non-interactive version, all verifier messages
+are derived deterministically from the transcript <span class="math notranslate nohighlight">\(\T\)</span>.</p>
+<p>The following subsections define each stage in detail.
+For the complete protocol as a single self-contained description,
+see <a class="reference internal" href="full-protocol.html#sec-full-protocol"><span class="std std-ref">The Full Protocol, Rolled Out</span></a>.</p>
+<section id="stage-1-witness-commitment">
+<span id="sec-stage1"></span><h2>Stage 1: Witness Commitment<a class="headerlink" href="#stage-1-witness-commitment" title="Link to this heading">#</a></h2>
+<p>The prover holds witness polynomials <span class="math notranslate nohighlight">\(f_1, \ldots, f_m : H \to \F\)</span>
+representing the execution trace columns.</p>
+<ol class="arabic simple">
+<li><p>Extend each <span class="math notranslate nohighlight">\(f_j\)</span> to the evaluation domain <span class="math notranslate nohighlight">\(H^*\)</span>
+and build a joint Merkle tree
+(<a class="reference external" href="../_modules/protocol/stages.html#L-448"><code class="docutils literal notranslate"><span class="pre">stages.py#extend-to-coset</span></code></a>).</p></li>
+<li><p>Output the commitment <span class="math notranslate nohighlight">\(r_1 = \MT(f_1, \ldots, f_m)\)</span>
+(<a class="reference external" href="../_modules/protocol/prover.html#L-143"><code class="docutils literal notranslate"><span class="pre">prover.py#witness-commit</span></code></a>).</p></li>
+</ol>
+</section>
+<section id="transcript-seeding">
+<span id="sec-seed"></span><h2>Transcript Seeding<a class="headerlink" href="#transcript-seeding" title="Link to this heading">#</a></h2>
+<p>Initialize the Fiat-Shamir transcript by absorbing the global challenge
+(<a class="reference external" href="../_modules/protocol/prover.html#L-192"><code class="docutils literal notranslate"><span class="pre">prover.py#transcript-seed-vadcop</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+\T.\abs(\chi),
+\]</div>
+<p>where <span class="math notranslate nohighlight">\(\chi \in \Fext\)</span> is derived from the verification key, public inputs,
+and <span class="math notranslate nohighlight">\(r_1\)</span> via a lattice expansion procedure
+(see <a class="reference internal" href="challenge-binding.html#sec-challenge-binding"><span class="std std-ref">Multi-AIR Challenge Binding</span></a>).</p>
+</section>
+<section id="stage-2-intermediate-polynomials">
+<span id="sec-stage2"></span><h2>Stage 2: Intermediate Polynomials<a class="headerlink" href="#stage-2-intermediate-polynomials" title="Link to this heading">#</a></h2>
+<ol class="arabic">
+<li><p>Derive stage-2 challenges from the transcript
+(<a class="reference external" href="../_modules/protocol/prover.html#L-199"><code class="docutils literal notranslate"><span class="pre">prover.py#derive-stage2-challenges</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   \alpha, \gamma \;\leftarrow\; \T.\sq().
+   \]</div>
+<p>(One <span class="math notranslate nohighlight">\(\sq()\)</span> call per challenge specified by the AIR.)</p>
+</li>
+<li><p>Compute intermediate columns <span class="math notranslate nohighlight">\(h_1, \ldots, h_k\)</span> using the challenges
+(<a class="reference external" href="../_modules/protocol/stages.html#L-324"><code class="docutils literal notranslate"><span class="pre">stages.py#calc-witness</span></code></a>).
+The types of intermediate columns are enumerated below.</p></li>
+<li><p>Extend and commit:
+<span class="math notranslate nohighlight">\(r_2 = \MT(h_1, \ldots, h_k)\)</span>
+(<a class="reference external" href="../_modules/protocol/prover.html#L-223"><code class="docutils literal notranslate"><span class="pre">prover.py#intermediate-commit</span></code></a>).</p></li>
+<li><p>Absorb: <span class="math notranslate nohighlight">\(\T.\abs(r_2)\)</span>.</p></li>
+</ol>
+<p><strong>Challenges and the compress function.</strong>
+Two extension-field challenges drive all stage-2 computations:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\alpha \in \Fext\)</span>: random linear combination challenge
+(Schwartz–Zippel style);</p></li>
+<li><p><span class="math notranslate nohighlight">\(\gamma \in \Fext\)</span>: offset challenge preventing zero denominators.</p></li>
+</ul>
+<p>Given a bus identifier <span class="math notranslate nohighlight">\(b \in \F\)</span> and column values <span class="math notranslate nohighlight">\(c_1, \ldots, c_w\)</span>,
+the <em>compressed expression</em> is</p>
+<div class="math notranslate nohighlight" id="equation-eq-compress">
+<span class="eqno">(1)<a class="headerlink" href="#equation-eq-compress" title="Link to this equation">#</a></span>\[\mathrm{compress}(b,\; c_1, \ldots, c_w)
+= \bigl(\cdots\bigl((c_w \cdot \alpha + c_{w-1}) \cdot \alpha + \cdots\bigr)
+  \cdot \alpha + b\bigr) + \gamma.\]</div>
+<p>This maps a tuple <span class="math notranslate nohighlight">\((b, c_1, \ldots, c_w)\)</span> to a single element of <span class="math notranslate nohighlight">\(\Fext\)</span>.</p>
+<p><strong>Logup terms.</strong>
+Each AIR defines a set of <em>logup terms</em>, each consisting of a bus
+identifier, column tuple, and a stored numerator.
+A term can be a <em>provider</em> (numerator <span class="math notranslate nohighlight">\(= +\mathrm{multiplicity}\)</span>,
+the AIR that supplies the lookup entry) or
+a <em>consumer</em> (numerator <span class="math notranslate nohighlight">\(= -\mathrm{selector}\)</span>,
+the AIR that uses the lookup entry).
+The logup argument ensures that <span class="math notranslate nohighlight">\(\sum_i s_i / D_i = 0\)</span> across all AIRs
+sharing the same bus, where <span class="math notranslate nohighlight">\(D_i = \mathrm{compress}(b_i, \mathbf{c}_i)\)</span>.</p>
+<p><strong>Intermediate column types.</strong>
+All stage-2 columns fall into the following types,
+generated by the PIL standard library
+(<code class="docutils literal notranslate"><span class="pre">std_sum</span></code> for logup/sum arguments,
+<code class="docutils literal notranslate"><span class="pre">std_prod</span></code> for permutation/product arguments)
+or by AIR-specific PIL code.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mathrm{im\_cluster}\)</span></p></td>
+<td><p>Batched logup: combines <span class="math notranslate nohighlight">\(\geq 2\)</span> terms into one column</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mathrm{im\_single}\)</span></p></td>
+<td><p>Single logup term that cannot be batched</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mathrm{gsum}\)</span></p></td>
+<td><p>Running sum accumulator (logup argument)</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mathrm{gprod}\)</span></p></td>
+<td><p>Running product accumulator (permutation argument)</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mathrm{im\_low}\)</span></p></td>
+<td><p>Degree reduction for product argument terms</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mathrm{ImPol}\)</span></p></td>
+<td><p>AIR-specific constraint degree reduction</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>All columns below are over <span class="math notranslate nohighlight">\(\Fext\)</span> unless noted otherwise.</p>
+<section id="clustered-logup-intermediate-mathrm-im-cluster">
+<h3>Clustered logup intermediate (<span class="math notranslate nohighlight">\(\mathrm{im\_cluster}\)</span>)<a class="headerlink" href="#clustered-logup-intermediate-mathrm-im-cluster" title="Link to this heading">#</a></h3>
+<p>When the compiler groups <span class="math notranslate nohighlight">\(t\)</span> logup terms into a single column,
+the clustered intermediate is defined by the constraint</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}
+\mathrm{im\_cluster} \cdot \prod_{j=1}^{t} D_j
+= \sum_{j=1}^{t} s_j \cdot \prod_{\substack{i=1 \\ i \neq j}}^{t} D_i,
+\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(D_j = \mathrm{compress}(b_j, \mathbf{c}_j)\)</span> and <span class="math notranslate nohighlight">\(s_j\)</span> is the stored
+numerator for term <span class="math notranslate nohighlight">\(j\)</span>.
+In the common <span class="math notranslate nohighlight">\(t = 2\)</span> case this reduces to</p>
+<div class="math notranslate nohighlight">
+\[
+\mathrm{im\_cluster} = \frac{s_1 \cdot D_2 + s_2 \cdot D_1}{D_1 \cdot D_2}.
+\]</div>
+<p>Semantically, <span class="math notranslate nohighlight">\(\mathrm{im\_cluster}\)</span> equals
+<span class="math notranslate nohighlight">\(\sum_j s_j / D_j\)</span> (the sum of individual logup contributions),
+combined into a single column to reduce the number of committed polynomials.</p>
+</section>
+<section id="single-logup-intermediate-mathrm-im-single">
+<h3>Single logup intermediate (<span class="math notranslate nohighlight">\(\mathrm{im\_single}\)</span>)<a class="headerlink" href="#single-logup-intermediate-mathrm-im-single" title="Link to this heading">#</a></h3>
+<p>When a logup term cannot be grouped with others
+(e.g. because the combined degree would exceed the constraint degree bound),
+it gets its own column:</p>
+<div class="math notranslate nohighlight">
+\[
+\mathrm{im\_single} = \frac{s}{D},
+\quad\text{where } D = \mathrm{compress}(b, \mathbf{c}).
+\]</div>
+</section>
+<section id="grand-sum-mathrm-gsum">
+<h3>Grand sum (<span class="math notranslate nohighlight">\(\mathrm{gsum}\)</span>)<a class="headerlink" href="#grand-sum-mathrm-gsum" title="Link to this heading">#</a></h3>
+<p>The running cumulative sum of all logup contributions at each row:</p>
+<div class="math notranslate nohighlight">
+\[
+\mathrm{gsum}[i] = \sum_{j=0}^{i}\Bigl(
+  \sum_{\ell} \mathrm{im\_cluster}_\ell[j]
+  + \sum_{\ell} \mathrm{im\_single}_\ell[j]
+  + \frac{s_0[j]}{D_0[j]}
+\Bigr),
+\]</div>
+<p>where the last term is the “direct” logup contribution
+(one term that enters the sum without an intermediate column).
+The boundary constraint at the final row asserts that <span class="math notranslate nohighlight">\(\mathrm{gsum}[N-1]\)</span>
+equals a declared <em>airgroup value</em>,
+which is later checked for cross-AIR consistency
+(see <a class="reference internal" href="challenge-binding.html#sec-global-constraints"><span class="std std-ref">Global Constraints</span></a>).</p>
+</section>
+<section id="grand-product-mathrm-gprod">
+<h3>Grand product (<span class="math notranslate nohighlight">\(\mathrm{gprod}\)</span>)<a class="headerlink" href="#grand-product-mathrm-gprod" title="Link to this heading">#</a></h3>
+<p>For the permutation argument, a running cumulative product:</p>
+<div class="math notranslate nohighlight">
+\[
+\mathrm{gprod}[0] = \frac{n_0}{d_0}, \qquad
+\mathrm{gprod}[i] = \mathrm{gprod}[i-1] \cdot \frac{n_i}{d_i}
+\quad\text{for } i &gt; 0,
+\]</div>
+<p>where the numerator and denominator for each row are products of
+terms of the form
+<span class="math notranslate nohighlight">\(\mathrm{sel} \cdot (\mathrm{compress}(b, \mathbf{c}) - \gamma + \gamma - 1) + 1\)</span>.
+As with <span class="math notranslate nohighlight">\(\mathrm{gsum}\)</span>, a boundary constraint at the final row checks the
+accumulated product against an airgroup value.</p>
+</section>
+<section id="low-degree-reduction-mathrm-im-low">
+<h3>Low-degree reduction (<span class="math notranslate nohighlight">\(\mathrm{im\_low}\)</span>)<a class="headerlink" href="#low-degree-reduction-mathrm-im-low" title="Link to this heading">#</a></h3>
+<p>When a product argument has too many terms whose combined degree
+exceeds the constraint degree bound,
+the compiler introduces <span class="math notranslate nohighlight">\(\mathrm{im\_low}\)</span> columns that hold partial
+product ratios:</p>
+<div class="math notranslate nohighlight">
+\[
+\mathrm{im\_low} = \frac{\prod_j n_j}{\prod_j d_j},
+\]</div>
+<p>where <span class="math notranslate nohighlight">\(\{n_j\}\)</span> and <span class="math notranslate nohighlight">\(\{d_j\}\)</span> are subsets of the numerator and denominator
+terms.
+The <span class="math notranslate nohighlight">\(\mathrm{gprod}\)</span> recurrence then references <span class="math notranslate nohighlight">\(\mathrm{im\_low}\)</span>
+instead of the raw product terms.</p>
+</section>
+<section id="application-level-intermediates-mathrm-impol">
+<h3>Application-level intermediates (<span class="math notranslate nohighlight">\(\mathrm{ImPol}\)</span>)<a class="headerlink" href="#application-level-intermediates-mathrm-impol" title="Link to this heading">#</a></h3>
+<p>Individual AIRs may declare their own stage-2 columns to reduce
+constraint degree.
+For example, if an AIR constraint has the form
+<span class="math notranslate nohighlight">\(A \cdot B \cdot C \cdot D = E\)</span>
+and the product’s degree exceeds the bound,
+the AIR author introduces a column <span class="math notranslate nohighlight">\(\mathrm{ImPol} = A \cdot B\)</span>
+and checks <span class="math notranslate nohighlight">\(\mathrm{ImPol} \cdot C \cdot D = E\)</span>.
+These may be over the base field <span class="math notranslate nohighlight">\(\F\)</span> or the extension <span class="math notranslate nohighlight">\(\Fext\)</span>,
+depending on whether the constraint involves challenges.</p>
+</section>
+</section>
+<section id="stage-q-quotient-polynomial">
+<span id="sec-stageq"></span><h2>Stage Q: Quotient Polynomial<a class="headerlink" href="#stage-q-quotient-polynomial" title="Link to this heading">#</a></h2>
+<ol class="arabic">
+<li><p>Derive the constraint-combination challenge
+(<a class="reference external" href="../_modules/protocol/prover.html#L-235"><code class="docutils literal notranslate"><span class="pre">prover.py#derive-stageq-challenges</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   v_c \;\leftarrow\; \T.\sq().
+   \]</div>
+</li>
+<li><p>Evaluate the combined constraint polynomial on the extended domain
+(<a class="reference external" href="../_modules/protocol/stages.html#L-594"><code class="docutils literal notranslate"><span class="pre">stages.py#calc-constraint-polynomial</span></code></a>).
+Let <span class="math notranslate nohighlight">\(J\)</span> be the number of individual constraint polynomials
+defined by the AIR (see <a class="reference internal" href="appendix-constraints.html#app-constraints"><span class="std std-ref">Constraint Polynomial Structure</span></a>).
+For each <span class="math notranslate nohighlight">\(x \in H^*\)</span>:</p>
+<div class="math notranslate nohighlight" id="equation-eq-constraint">
+<span class="eqno">(2)<a class="headerlink" href="#equation-eq-constraint" title="Link to this equation">#</a></span>\[C(x) = v_c^{J-1} \cdot C_0(x) + v_c^{J-2} \cdot C_1(x)
+       + \cdots + C_{J-1}(x).\]</div>
+<p>This is computed via Horner’s method.</p>
+</li>
+<li><p>Compute the quotient polynomial on the extended domain:</p>
+<div class="math notranslate nohighlight">
+\[
+   Q(x) = \frac{C(x)}{\ZH(x)} = \frac{C(x)}{x^N - 1}
+   \quad \text{for } x \in H^*.
+   \]</div>
+</li>
+<li><p>Split <span class="math notranslate nohighlight">\(Q\)</span> into <span class="math notranslate nohighlight">\(d\)</span> pieces of degree <span class="math notranslate nohighlight">\(&lt; N\)</span>
+(<a class="reference external" href="../_modules/protocol/stages.html#L-528"><code class="docutils literal notranslate"><span class="pre">stages.py#quotient-split</span></code></a>):</p>
+<div class="math notranslate nohighlight" id="equation-eq-quotient-split">
+<span class="eqno">(3)<a class="headerlink" href="#equation-eq-quotient-split" title="Link to this equation">#</a></span>\[Q(X) = Q_0(X) + X^N \cdot Q_1(X) + \cdots + X^{(d-1)N} \cdot Q_{d-1}(X).\]</div>
+<p>Concretely:</p>
+<p>a. Convert <span class="math notranslate nohighlight">\(Q\)</span> from evaluation form to coefficient form
+via <span class="math notranslate nohighlight">\(\INTT_{N_{\mathrm{ext}}}\)</span>.</p>
+<p>b. Extract coefficients: <span class="math notranslate nohighlight">\(Q_j\)</span> has coefficients
+<span class="math notranslate nohighlight">\(\hat{q}_{jN}, \hat{q}_{jN+1}, \ldots, \hat{q}_{(j+1)N-1}\)</span>.</p>
+<p>c. Apply coset correction: multiply each <span class="math notranslate nohighlight">\(Q_j\)</span>’s coefficients
+by <span class="math notranslate nohighlight">\(S_j = g^{-jN}\)</span>.</p>
+<p>d. Extend each <span class="math notranslate nohighlight">\(Q_j\)</span> to the evaluation domain via
+<span class="math notranslate nohighlight">\(\NTT_{N_{\mathrm{ext}}}\)</span>.</p>
+</li>
+<li><p>Commit all pieces jointly:
+<span class="math notranslate nohighlight">\(r_Q = \MT(Q_0, \ldots, Q_{d-1})\)</span>
+(<a class="reference external" href="../_modules/protocol/prover.html#L-246"><code class="docutils literal notranslate"><span class="pre">prover.py#quotient-commit</span></code></a>).</p></li>
+<li><p>Absorb: <span class="math notranslate nohighlight">\(\T.\abs(r_Q)\)</span>.</p></li>
+</ol>
+</section>
+<section id="polynomial-evaluations">
+<span id="sec-evals"></span><h2>Polynomial Evaluations<a class="headerlink" href="#polynomial-evaluations" title="Link to this heading">#</a></h2>
+<ol class="arabic">
+<li><p>Derive the evaluation challenge
+(<a class="reference external" href="../_modules/protocol/prover.html#L-254"><code class="docutils literal notranslate"><span class="pre">prover.py#derive-eval-challenges</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   \xi \;\leftarrow\; \T.\sq().
+   \]</div>
+<p>This is an element of <span class="math notranslate nohighlight">\(\Fext\)</span>.</p>
+</li>
+<li><p>For each committed polynomial <span class="math notranslate nohighlight">\(p\)</span> and each opening offset <span class="math notranslate nohighlight">\(o \in \mathcal{O}\)</span>,
+compute the evaluation
+(<a class="reference external" href="../_modules/protocol/stages.html#L-762"><code class="docutils literal notranslate"><span class="pre">stages.py#compute-evals</span></code></a>)</p>
+<div class="math notranslate nohighlight" id="equation-eq-eval">
+<span class="eqno">(4)<a class="headerlink" href="#equation-eq-eval" title="Link to this equation">#</a></span>\[e_{p,o} = p(\xi \cdot \omega^o) \in \Fext.\]</div>
+<p>This includes witness polynomials (<span class="math notranslate nohighlight">\(f_j\)</span>),
+intermediate polynomials (<span class="math notranslate nohighlight">\(h_j\)</span>),
+quotient pieces (<span class="math notranslate nohighlight">\(Q_j\)</span>),
+and constant polynomials (<span class="math notranslate nohighlight">\(c_j\)</span>).</p>
+</li>
+<li><p>Absorb a hash of all evaluations:</p>
+<div class="math notranslate nohighlight">
+\[
+   \T.\abs\bigl(\LinHash(e_{p,o} \text{ for all } p, o)\bigr).
+   \]</div>
+</li>
+</ol>
+</section>
+<section id="fri-polynomial-construction">
+<span id="sec-fri-poly"></span><h2>FRI Polynomial Construction<a class="headerlink" href="#fri-polynomial-construction" title="Link to this heading">#</a></h2>
+<p>The FRI polynomial is computed by
+<a class="reference external" href="../_modules/protocol/fri_polynomial.html#L-129"><code class="docutils literal notranslate"><span class="pre">fri_polynomial.py#batching-prover</span></code></a>.</p>
+<ol class="arabic">
+<li><p>Derive the batching challenges:</p>
+<div class="math notranslate nohighlight">
+\[
+   v_1, v_2 \;\leftarrow\; \T.\sq().
+   \]</div>
+</li>
+<li><p>Group all evaluation-map entries by their opening offset index <span class="math notranslate nohighlight">\(g\)</span>.
+Let <span class="math notranslate nohighlight">\(\mathcal{G} = \{g_0, g_1, \ldots\}\)</span> be the ordered set of
+opening-offset indices.</p></li>
+<li><p>For each group <span class="math notranslate nohighlight">\(g\)</span> with entries <span class="math notranslate nohighlight">\(\{(p_0, e_0), (p_1, e_1), \ldots, (p_{n_g}, e_{n_g})\}\)</span>,
+compute the group polynomial via Horner accumulation with <span class="math notranslate nohighlight">\(v_2\)</span>:</p>
+<div class="math notranslate nohighlight" id="equation-eq-fri-group">
+<span class="eqno">(5)<a class="headerlink" href="#equation-eq-fri-group" title="Link to this equation">#</a></span>\[G_g(x) = \frac{1}{x - \xi \cdot \omega^{o_g}} \cdot
+         \Bigl(
+           v_2^{n_g}\bigl(p_0(x) - e_0\bigr) +
+           v_2^{n_g-1}\bigl(p_1(x) - e_1\bigr) +
+           \cdots +
+           \bigl(p_{n_g}(x) - e_{n_g}\bigr)
+         \Bigr),\]</div>
+<p>where <span class="math notranslate nohighlight">\(o_g\)</span> is the opening offset for group <span class="math notranslate nohighlight">\(g\)</span>.</p>
+</li>
+<li><p>Combine all groups via Horner accumulation with <span class="math notranslate nohighlight">\(v_1\)</span>:</p>
+<div class="math notranslate nohighlight" id="equation-eq-fri-polynomial">
+<span class="eqno">(6)<a class="headerlink" href="#equation-eq-fri-polynomial" title="Link to this equation">#</a></span>\[F(x) = v_1^{|\mathcal{G}|-1} \cdot G_{g_0}(x) +
+       v_1^{|\mathcal{G}|-2} \cdot G_{g_1}(x) +
+       \cdots + G_{g_{|\mathcal{G}|-1}}(x).\]</div>
+</li>
+<li><p>Evaluate <span class="math notranslate nohighlight">\(F\)</span> on the extended domain <span class="math notranslate nohighlight">\(H^*\)</span> to obtain the FRI input polynomial.</p></li>
+</ol>
+<p>See <a class="reference internal" href="appendix-batching.html#app-batching"><span class="std std-ref">FRI Polynomial Batching Formula</span></a> for the complete batching formula.</p>
+</section>
+<section id="fri-commitment-rounds">
+<span id="sec-fri-rounds"></span><h2>FRI Commitment Rounds<a class="headerlink" href="#fri-commitment-rounds" title="Link to this heading">#</a></h2>
+<p>The FRI protocol reduces the degree of <span class="math notranslate nohighlight">\(F\)</span> through iterated folding
+(<a class="reference external" href="../_modules/protocol/pcs.html#L-62"><code class="docutils literal notranslate"><span class="pre">prove</span></code></a>).
+Let <span class="math notranslate nohighlight">\(F_0 = F\)</span> and <span class="math notranslate nohighlight">\(b_0 = n_{\mathrm{ext}}\)</span> be the initial domain size in bits.
+The protocol performs <span class="math notranslate nohighlight">\(K\)</span> folding rounds, where <span class="math notranslate nohighlight">\(K\)</span> is the number of FRI folding rounds
+(see <a class="reference internal" href="glossary.html#sec-glossary"><span class="std std-ref">Glossary of Notation</span></a>).</p>
+<p>For each FRI round <span class="math notranslate nohighlight">\(k = 0, 1, \ldots, K-1\)</span>:</p>
+<ol class="arabic simple">
+<li><p>Commit the current polynomial:
+<span class="math notranslate nohighlight">\(r_k^{\mathrm{FRI}} = \MT(F_k)\)</span>.</p></li>
+<li><p>Absorb: <span class="math notranslate nohighlight">\(\T.\abs(r_k^{\mathrm{FRI}})\)</span>.</p></li>
+<li><p>Derive the fold challenge: <span class="math notranslate nohighlight">\(\beta_k \leftarrow \T.\sq()\)</span>.</p></li>
+<li><p>Fold: <span class="math notranslate nohighlight">\(F_{k+1} = \Fold(F_k, \beta_k)\)</span>.
+The domain size decreases from <span class="math notranslate nohighlight">\(2^{b_k}\)</span> to <span class="math notranslate nohighlight">\(2^{b_{k+1}}\)</span>.</p></li>
+</ol>
+<p>After the final round, absorb a hash of the final polynomial:
+<span class="math notranslate nohighlight">\(\T.\abs\bigl(\LinHash(F_K)\bigr)\)</span>.</p>
+<p><strong>Folding operation</strong>
+(<a class="reference external" href="../_modules/protocol/fri.html#L-25"><code class="docutils literal notranslate"><span class="pre">fold</span></code></a>)<strong>.</strong>
+<strong>Input:</strong>
+Polynomial <span class="math notranslate nohighlight">\(F_k\)</span> on a domain of size <span class="math notranslate nohighlight">\(2^{b_k}\)</span>, challenge <span class="math notranslate nohighlight">\(\beta_k \in \Fext\)</span>.
+<strong>Output:</strong>
+Polynomial <span class="math notranslate nohighlight">\(F_{k+1}\)</span> on a domain of size <span class="math notranslate nohighlight">\(2^{b_{k+1}}\)</span>, where <span class="math notranslate nohighlight">\(b_{k+1} &lt; b_k\)</span>.</p>
+<p>Let <span class="math notranslate nohighlight">\(f = 2^{b_k - b_{k+1}}\)</span> be the fold factor.
+For each output index <span class="math notranslate nohighlight">\(j \in [2^{b_{k+1}}]\)</span>:</p>
+<ol class="arabic">
+<li><p><strong>Gather</strong> <span class="math notranslate nohighlight">\(f\)</span> evaluations from <span class="math notranslate nohighlight">\(F_k\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[
+   \bigl\{F_k[j + i \cdot 2^{b_{k+1}}]\bigr\}_{i=0}^{f-1}.
+   \]</div>
+</li>
+<li><p><strong>Interpolate</strong> to coefficient form <span class="math notranslate nohighlight">\(c_0, \ldots, c_{f-1}\)</span>
+(size-<span class="math notranslate nohighlight">\(f\)</span> inverse transform).</p></li>
+<li><p><strong>Coset correction.</strong>
+For <span class="math notranslate nohighlight">\(i = 0, \ldots, f-1\)</span>:</p>
+<div class="math notranslate nohighlight" id="equation-eq-coset-correction">
+<span class="eqno">(7)<a class="headerlink" href="#equation-eq-coset-correction" title="Link to this equation">#</a></span>\[c_i \;\leftarrow\; c_i \cdot
+  \bigl(g^{-2^{n_{\mathrm{ext}} - b_k}}
+        \cdot \omega_{b_k}^{-j}\bigr)^i,\]</div>
+<p>where <span class="math notranslate nohighlight">\(\omega_{b_k}\)</span> is the primitive <span class="math notranslate nohighlight">\(2^{b_k}\)</span>-th root of unity.
+Note: <span class="math notranslate nohighlight">\(b_0 = n_{\mathrm{ext}}\)</span> for the initial round, so
+<span class="math notranslate nohighlight">\(g^{-2^{n_{\mathrm{ext}} - b_0}} = g^{-1}\)</span>.</p>
+</li>
+<li><p><strong>Evaluate</strong> the polynomial <span class="math notranslate nohighlight">\(\sum_{i} c_i \cdot X^i\)</span> at <span class="math notranslate nohighlight">\(\beta_k\)</span>
+via Horner’s method:</p>
+<div class="math notranslate nohighlight">
+\[
+   F_{k+1}[j] = c_0 + c_1 \beta_k + c_2 \beta_k^2 + \cdots + c_{f-1}\beta_k^{f-1}.
+   \]</div>
+</li>
+</ol>
+<p><strong>Commitment per round.</strong>
+After each fold, the prover commits <span class="math notranslate nohighlight">\(F_{k+1}\)</span> via a Merkle tree.
+The evaluations are grouped so that each Merkle leaf contains
+the evaluations that will form one coset group in the next fold step:</p>
+<ul class="simple">
+<li><p>Tree height: <span class="math notranslate nohighlight">\(2^{b_{k+2}}\)</span> leaves (anticipating the next fold).</p></li>
+<li><p>Each leaf contains <span class="math notranslate nohighlight">\(2^{b_{k+1} - b_{k+2}} \cdot 3\)</span> field elements
+(<span class="math notranslate nohighlight">\(3\)</span> elements per <span class="math notranslate nohighlight">\(\Fext\)</span> value, grouped for the next round’s fold factor).</p></li>
+</ul>
+<p>The root <span class="math notranslate nohighlight">\(r_{k+1}^{\mathrm{FRI}} = \MT(F_{k+1})\)</span> is absorbed into the transcript.</p>
+</section>
+<section id="grinding">
+<span id="sec-grinding"></span><h2>Grinding<a class="headerlink" href="#grinding" title="Link to this heading">#</a></h2>
+<p>Grinding is part of
+<a class="reference external" href="../_modules/protocol/pcs.html#L-62"><code class="docutils literal notranslate"><span class="pre">prove</span></code></a>.</p>
+<ol class="arabic">
+<li><p>Derive the grinding challenge:
+<span class="math notranslate nohighlight">\(\chi_{\mathrm{grind}} \leftarrow \T.\sq()\)</span>.</p></li>
+<li><p>Find a nonce <span class="math notranslate nohighlight">\(\eta \in \mathbb{Z}_{\geq 0}\)</span> such that</p>
+<div class="math notranslate nohighlight">
+\[
+   \Poseidon(\chi_{\mathrm{grind}} \,\|\, \eta)
+   \text{ has } b_{\mathrm{pow}} \text{ leading zero bits}.
+   \]</div>
+</li>
+</ol>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="building-blocks.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Building Blocks</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="query-phase.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">STARK Protocol: Query Phase</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stage-1-witness-commitment">Stage 1: Witness Commitment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcript-seeding">Transcript Seeding</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stage-2-intermediate-polynomials">Stage 2: Intermediate Polynomials</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#clustered-logup-intermediate-mathrm-im-cluster">Clustered logup intermediate (<span class="math notranslate nohighlight">\(\mathrm{im\_cluster}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#single-logup-intermediate-mathrm-im-single">Single logup intermediate (<span class="math notranslate nohighlight">\(\mathrm{im\_single}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#grand-sum-mathrm-gsum">Grand sum (<span class="math notranslate nohighlight">\(\mathrm{gsum}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#grand-product-mathrm-gprod">Grand product (<span class="math notranslate nohighlight">\(\mathrm{gprod}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#low-degree-reduction-mathrm-im-low">Low-degree reduction (<span class="math notranslate nohighlight">\(\mathrm{im\_low}\)</span>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#application-level-intermediates-mathrm-impol">Application-level intermediates (<span class="math notranslate nohighlight">\(\mathrm{ImPol}\)</span>)</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stage-q-quotient-polynomial">Stage Q: Quotient Polynomial</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#polynomial-evaluations">Polynomial Evaluations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fri-polynomial-construction">FRI Polynomial Construction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fri-commitment-rounds">FRI Commitment Rounds</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#grinding">Grinding</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

@@ -51,6 +51,13 @@ jobs:
       - name: Build HTML
         run: sphinx-build -b html docs/sphinx docs/sphinx/_build/html
 
+      - name: Include archived versions
+        run: |
+          for dir in docs/archive/*/; do
+            tag=$(basename "$dir")
+            cp -r "$dir" docs/sphinx/_build/html/"$tag"
+          done
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3

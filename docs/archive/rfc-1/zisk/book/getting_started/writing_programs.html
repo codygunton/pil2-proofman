@@ -1,0 +1,818 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Writing Programs &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'zisk/book/getting_started/writing_programs';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Writing Programs</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#code-changes">Code changes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#example-program">Example program</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#input-output-data">Input/Output Data</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build">Build</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#execute">Execute</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#metrics-and-statistics">Metrics and Statistics</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#performance-metrics">Performance Metrics</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#execution-statistics">Execution Statistics</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prove">Prove</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#program-setup">Program Setup</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-constraints">Verify Constraints</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-proof">Generate Proof</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#concurrent-proof-generation">Concurrent Proof Generation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-proof-generation">GPU Proof Generation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-proof">Verify Proof</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="writing-programs">
+<h1>Writing Programs<a class="headerlink" href="#writing-programs" title="Link to this heading">#</a></h1>
+<p>This document explains how to write or modify a Rust program for execution in ZisK.</p>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">#</a></h2>
+<section id="code-changes">
+<h3>Code changes<a class="headerlink" href="#code-changes" title="Link to this heading">#</a></h3>
+<p>Writing a Rust program for ZisK is similar to writing a standard Rust program, with a few minor modifications. Follow these steps:</p>
+<ol class="arabic">
+<li><p>Modify <code class="docutils literal notranslate"><span class="pre">main.rs</span></code> file:</p>
+<p>Add the following code to mark the main function as the entry point for ZisK:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="cp">#![no_main]</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">ziskos</span><span class="p">::</span><span class="n">entrypoint</span><span class="o">!</span><span class="p">(</span><span class="n">main</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Modify <code class="docutils literal notranslate"><span class="pre">Cargo.toml</span></code> file:</p>
+<p>Add the <code class="docutils literal notranslate"><span class="pre">ziskos</span></code> crate as a dependency:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">[dependencies]</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">ziskos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">git</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/0xPolygonHermez/zisk.git&quot;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Let’s show these changes using the example program from the <a class="reference internal" href="quickstart.html"><span class="std std-doc">Quickstart</span></a> section.</p>
+</section>
+<section id="example-program">
+<h3>Example program<a class="headerlink" href="#example-program" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">main.rs</span></code>:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1">// This example program takes a number `n` as input and computes the SHA-256 hash `n` times sequentially.</span>
+<a id="L-2" name="L-2" href="#L-2"></a>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="c1">// Mark the main function as the entry point for ZisK</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="cp">#![no_main]</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="n">ziskos</span><span class="p">::</span><span class="n">entrypoint</span><span class="o">!</span><span class="p">(</span><span class="n">main</span><span class="p">);</span>
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="k">use</span><span class="w"> </span><span class="n">sha2</span><span class="p">::{</span><span class="n">Digest</span><span class="p">,</span><span class="w"> </span><span class="n">Sha256</span><span class="p">};</span>
+<a id="L-8" name="L-8" href="#L-8"></a><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">convert</span><span class="p">::</span><span class="n">TryInto</span><span class="p">;</span>
+<a id="L-9" name="L-9" href="#L-9"></a><span class="k">use</span><span class="w"> </span><span class="n">ziskos</span><span class="p">::{</span><span class="n">read_input_slice</span><span class="p">,</span><span class="w"> </span><span class="n">set_output</span><span class="p">};</span>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="k">use</span><span class="w"> </span><span class="n">byteorder</span><span class="p">::</span><span class="n">ByteOrder</span><span class="p">;</span>
+<a id="L-11" name="L-11" href="#L-11"></a>
+<a id="L-12" name="L-12" href="#L-12"></a><span class="k">fn</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="L-13" name="L-13" href="#L-13"></a><span class="w">    </span><span class="c1">// Read the input data as a byte array from ziskos</span>
+<a id="L-14" name="L-14" href="#L-14"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">read_input_slice</span><span class="p">();</span>
+<a id="L-15" name="L-15" href="#L-15"></a>
+<a id="L-16" name="L-16" href="#L-16"></a><span class="w">    </span><span class="c1">// Convert the input data to a u64 integer</span>
+<a id="L-17" name="L-17" href="#L-17"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">n</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">match</span><span class="w"> </span><span class="n">input</span><span class="p">.</span><span class="n">as_ref</span><span class="p">().</span><span class="n">try_into</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="L-18" name="L-18" href="#L-18"></a><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">input_bytes</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="kt">u64</span><span class="p">::</span><span class="n">from_le_bytes</span><span class="p">(</span><span class="n">input_bytes</span><span class="p">),</span>
+<a id="L-19" name="L-19" href="#L-19"></a><span class="w">        </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="fm">panic!</span><span class="p">(</span><span class="s">&quot;Invalid input, error: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">),</span>
+<a id="L-20" name="L-20" href="#L-20"></a><span class="w">    </span><span class="p">};</span>
+<a id="L-21" name="L-21" href="#L-21"></a>
+<a id="L-22" name="L-22" href="#L-22"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="k">u8</span><span class="p">;</span><span class="w"> </span><span class="mi">32</span><span class="p">];</span>
+<a id="L-23" name="L-23" href="#L-23"></a>
+<a id="L-24" name="L-24" href="#L-24"></a><span class="w">    </span><span class="c1">// Compute SHA-256 hashing &#39;n&#39; times</span>
+<a id="L-25" name="L-25" href="#L-25"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="n">_</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="mi">0</span><span class="o">..</span><span class="n">n</span><span class="w"> </span><span class="p">{</span>
+<a id="L-26" name="L-26" href="#L-26"></a><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">hasher</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Sha256</span><span class="p">::</span><span class="n">new</span><span class="p">();</span>
+<a id="L-27" name="L-27" href="#L-27"></a><span class="w">        </span><span class="n">hasher</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">hash</span><span class="p">);</span>
+<a id="L-28" name="L-28" href="#L-28"></a><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">digest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">hasher</span><span class="p">.</span><span class="n">finalize</span><span class="p">();</span>
+<a id="L-29" name="L-29" href="#L-29"></a><span class="w">        </span><span class="n">hash</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Into</span><span class="p">::</span><span class="o">&lt;</span><span class="p">[</span><span class="kt">u8</span><span class="p">;</span><span class="w"> </span><span class="mi">32</span><span class="p">]</span><span class="o">&gt;</span><span class="p">::</span><span class="n">into</span><span class="p">(</span><span class="o">*</span><span class="n">digest</span><span class="p">);</span>
+<a id="L-30" name="L-30" href="#L-30"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-31" name="L-31" href="#L-31"></a>
+<a id="L-32" name="L-32" href="#L-32"></a><span class="w">    </span><span class="c1">// Split &#39;hash&#39; value into chunks of 32 bits and write them to ziskos output</span>
+<a id="L-33" name="L-33" href="#L-33"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="mi">0</span><span class="o">..</span><span class="mi">8</span><span class="w"> </span><span class="p">{</span>
+<a id="L-34" name="L-34" href="#L-34"></a><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">byteorder</span><span class="p">::</span><span class="n">BigEndian</span><span class="p">::</span><span class="n">read_u32</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">hash</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="o">..</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">4</span><span class="p">]);</span>
+<a id="L-35" name="L-35" href="#L-35"></a><span class="w">        </span><span class="n">set_output</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">val</span><span class="p">);</span>
+<a id="L-36" name="L-36" href="#L-36"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-37" name="L-37" href="#L-37"></a><span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Cargo.toml</span></code>:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">[package]</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;sha_hasher&quot;</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="n">edition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;2021&quot;</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="n">default-run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;sha_hasher&quot;</span>
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="k">[dependencies]</span>
+<a id="L-8" name="L-8" href="#L-8"></a><span class="n">byteorder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1.5.0&quot;</span>
+<a id="L-9" name="L-9" href="#L-9"></a><span class="n">sha2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.10.8&quot;</span>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="n">ziskos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">git</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/0xPolygonHermez/zisk.git&quot;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="input-output-data">
+<h3>Input/Output Data<a class="headerlink" href="#input-output-data" title="Link to this heading">#</a></h3>
+<p>To provide input data for ZisK, you need to write that data in a binary file (e.g., <code class="docutils literal notranslate"><span class="pre">input.bin</span></code>).</p>
+<p>If your program requires complex input data, consider using a serialization mechanism (like <a class="reference external" href="https://crates.io/crates/bincode"><code class="docutils literal notranslate"><span class="pre">bincode</span></code></a> crate) to store it in <code class="docutils literal notranslate"><span class="pre">input.bin</span></code> file.</p>
+<p>In your program, use the <code class="docutils literal notranslate"><span class="pre">ziskos::read_input_slice()</span></code> function to retrieve the input data from the <code class="docutils literal notranslate"><span class="pre">input.bin</span></code> file:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1">// Read the input data as a byte array from ziskos</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="kd">let</span><span class="w"> </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">read_input_slice</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>To write public output data, use the <code class="docutils literal notranslate"><span class="pre">ziskos::set_output()</span></code> function. Since the function accepts <code class="docutils literal notranslate"><span class="pre">u32</span></code> values, split the output data into 32-bit chunks if necessary and increase the <code class="docutils literal notranslate"><span class="pre">id</span></code> parameter of the function in each call:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1">// Split &#39;hash&#39; value into chunks of 32 bits and write them to ziskos output</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="k">for</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="mi">0</span><span class="o">..</span><span class="mi">8</span><span class="w"> </span><span class="p">{</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">byteorder</span><span class="p">::</span><span class="n">BigEndian</span><span class="p">::</span><span class="n">read_u32</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">hash</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="o">..</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">4</span><span class="p">]);</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="w">    </span><span class="n">set_output</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">val</span><span class="p">);</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="build">
+<h2>Build<a class="headerlink" href="#build" title="Link to this heading">#</a></h2>
+<p>Before compiling your program for ZisK, you can test it on the native architecture just like any regular Rust program using the <code class="docutils literal notranslate"><span class="pre">cargo</span></code> command.</p>
+<p>Once your program is ready to run on ZisK, compile it into an ELF file (RISC-V architecture), using the <code class="docutils literal notranslate"><span class="pre">cargo-zisk</span></code> CLI tool:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>build
+</pre></div>
+</div>
+<p>This command compiles the program using the <code class="docutils literal notranslate"><span class="pre">zisk</span></code> target. The resulting <code class="docutils literal notranslate"><span class="pre">sha_hasher</span></code> ELF file (without extension) is generated in the <code class="docutils literal notranslate"><span class="pre">./target/riscv64ima-zisk-zkvm-elf/debug</span></code> directory.</p>
+<p>For production, compile the ELF file with the <code class="docutils literal notranslate"><span class="pre">--release</span></code> flag, similar to how you compile Rust projects:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>build<span class="w"> </span>--release
+</pre></div>
+</div>
+<p>In this case, the <code class="docutils literal notranslate"><span class="pre">sha_hasher</span></code> ELF file will be generated in the <code class="docutils literal notranslate"><span class="pre">./target/riscv64ima-zisk-zkvm-elf/release</span></code> directory.</p>
+</section>
+<section id="execute">
+<h2>Execute<a class="headerlink" href="#execute" title="Link to this heading">#</a></h2>
+<p>You can test your compiled program using the ZisK emulator (<code class="docutils literal notranslate"><span class="pre">ziskemu</span></code>) before generating a proof. Use the <code class="docutils literal notranslate"><span class="pre">-e</span></code> (<code class="docutils literal notranslate"><span class="pre">--elf</span></code>) flag to specify the location of the ELF file and the <code class="docutils literal notranslate"><span class="pre">-i</span></code> (<code class="docutils literal notranslate"><span class="pre">--inputs</span></code>) flag to specify the location of the input file:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>build<span class="w"> </span>--release
+<a id="L-2" name="L-2" href="#L-2"></a>ziskemu<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/release/sha_hasher<span class="w"> </span>-i<span class="w"> </span>build/input.bin
+</pre></div>
+</div>
+<p>Alternatively, you can build and execute the program in the ZisK emulator with a single command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>-i<span class="w"> </span>build/input.bin
+</pre></div>
+</div>
+<p>If the program requires a large number of ZisK steps, you might encounter the following error:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="n">Error</span> <span class="n">during</span> <span class="n">emulation</span><span class="p">:</span> <span class="n">EmulationNoCompleted</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">Error</span><span class="p">:</span> <span class="n">Error</span> <span class="n">executing</span> <span class="n">Run</span> <span class="n">command</span>
+</pre></div>
+</div>
+<p>To resolve this, you can increase the number of execution steps using the <code class="docutils literal notranslate"><span class="pre">-n</span></code> (<code class="docutils literal notranslate"><span class="pre">--max-steps</span></code>) flag. For example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>ziskemu<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/release/sha_hasher<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-n<span class="w"> </span><span class="m">10000000000</span>
+</pre></div>
+</div>
+</section>
+<section id="metrics-and-statistics">
+<h2>Metrics and Statistics<a class="headerlink" href="#metrics-and-statistics" title="Link to this heading">#</a></h2>
+<section id="performance-metrics">
+<h3>Performance Metrics<a class="headerlink" href="#performance-metrics" title="Link to this heading">#</a></h3>
+<p>You can get performance metrics related to the program execution in ZisK using the <code class="docutils literal notranslate"><span class="pre">-m</span></code> (<code class="docutils literal notranslate"><span class="pre">--log-metrics</span></code>) flag in the <code class="docutils literal notranslate"><span class="pre">cargo-zisk</span> <span class="pre">run</span></code> command or in <code class="docutils literal notranslate"><span class="pre">ziskemu</span></code> tool:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-m
+</pre></div>
+</div>
+<p>Or</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>ziskemu<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/release/sha_hasher<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-m
+</pre></div>
+</div>
+<p>The output will include details such as execution time, throughput, and clock cycles per step:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="n">process_rom</span><span class="p">()</span> <span class="n">steps</span><span class="o">=</span><span class="mi">85309</span> <span class="n">duration</span><span class="o">=</span><span class="mf">0.0009</span> <span class="n">tp</span><span class="o">=</span><span class="mf">89.8565</span> <span class="n">Msteps</span><span class="o">/</span><span class="n">s</span> <span class="n">freq</span><span class="o">=</span><span class="mf">3051.0000</span> <span class="mf">33.9542</span> <span class="n">clocks</span><span class="o">/</span><span class="n">step</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="mi">98211882</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="n">bd13089b</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="mi">6</span><span class="n">ccf1fca</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="o">...</span>
+</pre></div>
+</div>
+</section>
+<section id="execution-statistics">
+<h3>Execution Statistics<a class="headerlink" href="#execution-statistics" title="Link to this heading">#</a></h3>
+<p>You can get statistics related to the program execution in Zisk using the <code class="docutils literal notranslate"><span class="pre">-x</span></code> (<code class="docutils literal notranslate"><span class="pre">--stats</span></code>) flag in the <code class="docutils literal notranslate"><span class="pre">cargo-zisk</span> <span class="pre">run</span></code> command or in <code class="docutils literal notranslate"><span class="pre">ziskemu</span></code> tool:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-x
+</pre></div>
+</div>
+<p>Or</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>ziskemu<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/release/sha_hasher<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-x
+</pre></div>
+</div>
+<p>The output will include details such as cost definitions, total cost, register reads/writes, opcode statistics, etc:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="n">Cost</span> <span class="n">definitions</span><span class="p">:</span>
+<a id="L-2" name="L-2" href="#L-2"></a>    <span class="n">AREA_PER_SEC</span><span class="p">:</span> <span class="mi">1000000</span> <span class="n">steps</span>
+<a id="L-3" name="L-3" href="#L-3"></a>    <span class="n">COST_MEMA_R1</span><span class="p">:</span> <span class="mf">0.00002</span> <span class="n">sec</span>
+<a id="L-4" name="L-4" href="#L-4"></a>    <span class="n">COST_MEMA_R2</span><span class="p">:</span> <span class="mf">0.00004</span> <span class="n">sec</span>
+<a id="L-5" name="L-5" href="#L-5"></a>    <span class="n">COST_MEMA_W1</span><span class="p">:</span> <span class="mf">0.00004</span> <span class="n">sec</span>
+<a id="L-6" name="L-6" href="#L-6"></a>    <span class="n">COST_MEMA_W2</span><span class="p">:</span> <span class="mf">0.00008</span> <span class="n">sec</span>
+<a id="L-7" name="L-7" href="#L-7"></a>    <span class="n">COST_USUAL</span><span class="p">:</span> <span class="mf">0.000008</span> <span class="n">sec</span>
+<a id="L-8" name="L-8" href="#L-8"></a>    <span class="n">COST_STEP</span><span class="p">:</span> <span class="mf">0.00005</span> <span class="n">sec</span>
+<a id="L-9" name="L-9" href="#L-9"></a>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="n">Total</span> <span class="n">Cost</span><span class="p">:</span> <span class="mf">12.81</span> <span class="n">sec</span>
+<a id="L-11" name="L-11" href="#L-11"></a>    <span class="n">Main</span> <span class="n">Cost</span><span class="p">:</span> <span class="mf">4.27</span> <span class="n">sec</span> <span class="mi">85308</span> <span class="n">steps</span>
+<a id="L-12" name="L-12" href="#L-12"></a>    <span class="n">Mem</span> <span class="n">Cost</span><span class="p">:</span> <span class="mf">2.22</span> <span class="n">sec</span> <span class="mi">222052</span> <span class="n">steps</span>
+<a id="L-13" name="L-13" href="#L-13"></a>    <span class="n">Mem</span> <span class="n">Align</span><span class="p">:</span> <span class="mf">0.05</span> <span class="n">sec</span> <span class="mi">2701</span> <span class="n">steps</span>
+<a id="L-14" name="L-14" href="#L-14"></a>    <span class="n">Opcodes</span><span class="p">:</span> <span class="mf">6.24</span> <span class="n">sec</span> <span class="mi">1270</span> <span class="n">steps</span> <span class="p">(</span><span class="mi">81182</span> <span class="n">ops</span><span class="p">)</span>
+<a id="L-15" name="L-15" href="#L-15"></a>    <span class="n">Usual</span><span class="p">:</span> <span class="mf">0.03</span> <span class="n">sec</span> <span class="mi">4127</span> <span class="n">steps</span>
+<a id="L-16" name="L-16" href="#L-16"></a>    <span class="n">Memory</span><span class="p">:</span> <span class="mi">135563</span> <span class="n">a</span> <span class="n">reads</span> <span class="o">+</span> <span class="mi">1625</span> <span class="n">na1</span> <span class="n">reads</span> <span class="o">+</span> <span class="mi">10</span> <span class="n">na2</span> <span class="n">reads</span> <span class="o">+</span> <span class="mi">84328</span> <span class="n">a</span> <span class="n">writes</span> <span class="o">+</span> <span class="mi">524</span> <span class="n">na1</span> <span class="n">writes</span> <span class="o">+</span> <span class="mi">2</span> <span class="n">na2</span> <span class="n">writes</span> <span class="o">=</span> <span class="mi">137198</span> <span class="n">reads</span> <span class="o">+</span> <span class="mi">84854</span> <span class="n">writes</span> <span class="o">=</span> <span class="mi">222052</span> <span class="n">r</span><span class="o">/</span><span class="n">w</span>
+<a id="L-17" name="L-17" href="#L-17"></a>
+<a id="L-18" name="L-18" href="#L-18"></a><span class="n">Opcodes</span><span class="p">:</span>
+<a id="L-19" name="L-19" href="#L-19"></a>    <span class="n">flag</span><span class="p">:</span> <span class="mf">0.00</span> <span class="n">sec</span> <span class="p">(</span><span class="mi">0</span> <span class="n">steps</span><span class="o">/</span><span class="n">op</span><span class="p">)</span> <span class="p">(</span><span class="mi">89</span> <span class="n">ops</span><span class="p">)</span>
+<a id="L-20" name="L-20" href="#L-20"></a>    <span class="n">copyb</span><span class="p">:</span> <span class="mf">0.00</span> <span class="n">sec</span> <span class="p">(</span><span class="mi">0</span> <span class="n">steps</span><span class="o">/</span><span class="n">op</span><span class="p">)</span> <span class="p">(</span><span class="mi">10568</span> <span class="n">ops</span><span class="p">)</span>
+<a id="L-21" name="L-21" href="#L-21"></a>    <span class="n">add</span><span class="p">:</span> <span class="mf">1.12</span> <span class="n">sec</span> <span class="p">(</span><span class="mi">77</span> <span class="n">steps</span><span class="o">/</span><span class="n">op</span><span class="p">)</span> <span class="p">(</span><span class="mi">14569</span> <span class="n">ops</span><span class="p">)</span>
+<a id="L-22" name="L-22" href="#L-22"></a>    <span class="n">ltu</span><span class="p">:</span> <span class="mf">0.01</span> <span class="n">sec</span> <span class="p">(</span><span class="mi">77</span> <span class="n">steps</span><span class="o">/</span><span class="n">op</span><span class="p">)</span> <span class="p">(</span><span class="mi">101</span> <span class="n">ops</span><span class="p">)</span>
+<a id="L-23" name="L-23" href="#L-23"></a>    <span class="o">...</span>
+<a id="L-24" name="L-24" href="#L-24"></a>    <span class="n">xor</span><span class="p">:</span> <span class="mf">1.06</span> <span class="n">sec</span> <span class="p">(</span><span class="mi">77</span> <span class="n">steps</span><span class="o">/</span><span class="n">op</span><span class="p">)</span> <span class="p">(</span><span class="mi">13774</span> <span class="n">ops</span><span class="p">)</span>
+<a id="L-25" name="L-25" href="#L-25"></a>    <span class="n">signextend_b</span><span class="p">:</span> <span class="mf">0.03</span> <span class="n">sec</span> <span class="p">(</span><span class="mi">109</span> <span class="n">steps</span><span class="o">/</span><span class="n">op</span><span class="p">)</span> <span class="p">(</span><span class="mi">320</span> <span class="n">ops</span><span class="p">)</span>
+<a id="L-26" name="L-26" href="#L-26"></a>    <span class="n">signextend_w</span><span class="p">:</span> <span class="mf">0.03</span> <span class="n">sec</span> <span class="p">(</span><span class="mi">109</span> <span class="n">steps</span><span class="o">/</span><span class="n">op</span><span class="p">)</span> <span class="p">(</span><span class="mi">320</span> <span class="n">ops</span><span class="p">)</span>
+<a id="L-27" name="L-27" href="#L-27"></a>
+<a id="L-28" name="L-28" href="#L-28"></a><span class="mi">98211882</span>
+<a id="L-29" name="L-29" href="#L-29"></a><span class="n">bd13089b</span>
+<a id="L-30" name="L-30" href="#L-30"></a><span class="mi">6</span><span class="n">ccf1fca</span>
+<a id="L-31" name="L-31" href="#L-31"></a><span class="o">...</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="prove">
+<h2>Prove<a class="headerlink" href="#prove" title="Link to this heading">#</a></h2>
+<section id="program-setup">
+<h3>Program Setup<a class="headerlink" href="#program-setup" title="Link to this heading">#</a></h3>
+<p>Before generating a proof (or verifying the constraints), you need to generate the program setup files. This must be done the first time after building the program ELF file, or any time it changes:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>rom-setup<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/release/sha_hasher<span class="w"> </span>-k<span class="w"> </span><span class="nv">$HOME</span>/.zisk/provingKey
+</pre></div>
+</div>
+<p>In this command:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-e</span></code> (<code class="docutils literal notranslate"><span class="pre">--elf</span></code>) specifies the ELF file location.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-k</span></code> (<code class="docutils literal notranslate"><span class="pre">--proving-key</span></code>) specifies the directory containing the proving key. This is optional and defaults to <code class="docutils literal notranslate"><span class="pre">$HOME/.zisk/provingKey</span></code>.</p></li>
+</ul>
+<p>The program setup files will be generated in the <code class="docutils literal notranslate"><span class="pre">cache</span></code> directory located at <code class="docutils literal notranslate"><span class="pre">$HOME/.zisk</span></code>.</p>
+<p>To clean the <code class="docutils literal notranslate"><span class="pre">cache</span></code> directory content, use the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>clean
+</pre></div>
+</div>
+</section>
+<section id="verify-constraints">
+<h3>Verify Constraints<a class="headerlink" href="#verify-constraints" title="Link to this heading">#</a></h3>
+<p>Before generating a proof (which can take some time), you can verify that all constraints are satisfied:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="nv">LIB_EXT</span><span class="o">=</span><span class="k">$(</span><span class="o">[[</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>uname<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;Darwin&quot;</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;dylib&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;so&quot;</span><span class="k">)</span>
+<a id="L-2" name="L-2" href="#L-2"></a>cargo-zisk<span class="w"> </span>verify-constraints<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/release/sha_hasher<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-w<span class="w"> </span><span class="nv">$HOME</span>/.zisk/bin/libzisk_witness.<span class="nv">$LIB_EXT</span><span class="w"> </span>-k<span class="w"> </span><span class="nv">$HOME</span>/.zisk/provingKey
+</pre></div>
+</div>
+<p>In this command:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-e</span></code> (<code class="docutils literal notranslate"><span class="pre">--elf</span></code>) specifies the ELF file location.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-i</span></code> (<code class="docutils literal notranslate"><span class="pre">--input</span></code>) specifies the input file location.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-w</span></code> (<code class="docutils literal notranslate"><span class="pre">--witness</span></code>) specifies the location of the witness library. This is optional and defaults to <code class="docutils literal notranslate"><span class="pre">$HOME/.zisk/bin/libzisk_witness.$LIB_EXT</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-k</span></code> (<code class="docutils literal notranslate"><span class="pre">--proving-key</span></code>) specifies the directory containing the proving key. This is optional and defaults to <code class="docutils literal notranslate"><span class="pre">$HOME/.zisk/provingKey</span></code>.</p></li>
+</ul>
+<p>If everything is correct, you will see an output similar to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>[INFO ] GlCstVfy: --&gt; Checking global constraints
+<a id="L-2" name="L-2" href="#L-2"></a>[INFO ] CstrVrfy: ··· ✓ All global constraints were successfully verified
+<a id="L-3" name="L-3" href="#L-3"></a>[INFO ] CstrVrfy: ··· ✓ All constraints were verified
+</pre></div>
+</div>
+</section>
+<section id="generate-proof">
+<h3>Generate Proof<a class="headerlink" href="#generate-proof" title="Link to this heading">#</a></h3>
+<p>To generate a proof, run the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="nv">LIB_EXT</span><span class="o">=</span><span class="k">$(</span><span class="o">[[</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>uname<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;Darwin&quot;</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;dylib&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;so&quot;</span><span class="k">)</span>
+<a id="L-2" name="L-2" href="#L-2"></a>cargo-zisk<span class="w"> </span>prove<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/release/sha_hasher<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-w<span class="w"> </span><span class="nv">$HOME</span>/.zisk/bin/libzisk_witness.<span class="nv">$LIB_EXT</span><span class="w"> </span>-k<span class="w"> </span><span class="nv">$HOME</span>/.zisk/provingKey<span class="w"> </span>-o<span class="w"> </span>proof<span class="w"> </span>-a<span class="w"> </span>-y
+</pre></div>
+</div>
+<p>In this command:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-e</span></code> (<code class="docutils literal notranslate"><span class="pre">--elf</span></code>) specifies the ELF file location.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-i</span></code> (<code class="docutils literal notranslate"><span class="pre">--input</span></code>) specifies the input file location.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-w</span></code> (<code class="docutils literal notranslate"><span class="pre">--witness</span></code>) specifies the location of the witness library. This is optional and defaults to <code class="docutils literal notranslate"><span class="pre">$HOME/.zisk/bin/libzisk_witness.$LIB_EXT</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-k</span></code> (<code class="docutils literal notranslate"><span class="pre">--proving-key</span></code>) specifies the directory containing the proving key. This is optional and defaults to <code class="docutils literal notranslate"><span class="pre">$HOME/.zisk/provingKey</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-o</span></code> (<code class="docutils literal notranslate"><span class="pre">--output</span></code>) determines the output directory (in this example <code class="docutils literal notranslate"><span class="pre">proof</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-a</span></code> (<code class="docutils literal notranslate"><span class="pre">--aggregation</span></code>) indicates that a final aggregated proof (containing all generated sub-proofs) should be produced.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-y</span></code> (<code class="docutils literal notranslate"><span class="pre">--verify-proofs</span></code>) instructs the tool to verify the proof immediately after it is generated (verification can also be performed later using the <code class="docutils literal notranslate"><span class="pre">cargo-zisk</span> <span class="pre">verify</span></code> command).</p></li>
+</ul>
+<p>If the process is successful, you should see a message similar to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>...
+<a id="L-2" name="L-2" href="#L-2"></a>[INFO ] ProofMan:     ✓ Vadcop Final proof was verified
+<a id="L-3" name="L-3" href="#L-3"></a>[INFO ]      stop &lt;&lt;&lt; GENERATING_VADCOP_PROOF 91706ms
+<a id="L-4" name="L-4" href="#L-4"></a>[INFO ] ProofMan: Proofs generated successfully
+</pre></div>
+</div>
+</section>
+<section id="concurrent-proof-generation">
+<h3>Concurrent Proof Generation<a class="headerlink" href="#concurrent-proof-generation" title="Link to this heading">#</a></h3>
+<p>Zisk proofs can be generated using multiple processes concurrently to improve performance and scalability. The standard MPI (Message Passing Interface) approach is used to launch these processes, which can run either on the same server or across multiple servers.</p>
+<p>To execute a Zisk proof using multiple processes, use the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>mpirun<span class="w"> </span>--bind-to<span class="w"> </span>none<span class="w"> </span>-np<span class="w"> </span>&lt;num_processes&gt;<span class="w"> </span>-x<span class="w"> </span><span class="nv">OMP_NUM_THREADS</span><span class="o">=</span>&lt;num_threads_per_process&gt;<span class="w"> </span>-x<span class="w"> </span><span class="nv">RAYON_NUM_THREADS</span><span class="o">=</span>&lt;num_threads_per_process&gt;<span class="w"> </span>target/release/cargo-zisk<span class="w"> </span>&lt;zisk<span class="w"> </span>arguments&gt;
+</pre></div>
+</div>
+<p>In this command:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;num_processes&gt;</span></code> specifies the number of processes to launch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;num_threads_per_process&gt;</span></code> sets the number of threads used by each process via the <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> and <code class="docutils literal notranslate"><span class="pre">RAYON_NUM_THREADS</span></code> environment variables.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">none</span></code> prevents binding processes to specific cores, allowing the operating system to schedule them dynamically for better load balancing.</p></li>
+</ul>
+<p>Running a Zisk proof with multiple processes enables efficient workload distribution across multiple servers. <strong>On a single server with many cores, splitting execution into smaller subsets of cores generally improves performance by increasing concurrency</strong>. As a general rule, <code class="docutils literal notranslate"><span class="pre">&lt;num_processes&gt;</span></code> * <code class="docutils literal notranslate"><span class="pre">&lt;num_threads_per_process&gt;</span></code> should match the number of available CPU cores or double that if hyperthreading is enabled.</p>
+<p>The total memory requirement increases proportionally with the number of processes. If each process requires approximately 25GB of memory, running P processes will require roughly (25 * P)GB of memory. Ensure that the system has sufficient available memory to accommodate all running processes.</p>
+</section>
+<section id="gpu-proof-generation">
+<h3>GPU Proof Generation<a class="headerlink" href="#gpu-proof-generation" title="Link to this heading">#</a></h3>
+<p>Zisk proofs can also be generated using GPUs to significantly improve performance and scalability.
+Follow these steps to enable GPU support:</p>
+<ol class="arabic">
+<li><p>GPU support is only available for NVIDIA GPUs.</p></li>
+<li><p>Make sure the <a class="reference external" href="https://developer.nvidia.com/cuda-downloads">CUDA Toolkit</a> is installed.</p></li>
+<li><p>Build Zisk with GPU support enabled.</p>
+<p><strong>Note:</strong> It is recommended to compile Zisk directly on the server where it will be executed. The binary will be optimized for the local GPU architecture, which can lead to better runtime performance.</p>
+<p>GPU support must be enabled at compile time. Follow the instructions in the <strong>Build ZisK</strong> section under <strong>Option 2: Building from source</strong> in the <a class="reference internal" href="installation.html"><span class="std std-doc">Installation</span></a> guide, but replace the build command with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span>--features<span class="w"> </span>gpu
+</pre></div>
+</div>
+</li>
+<li><p>Regenerate constant tree files:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>check-setup<span class="w"> </span>-a
+</pre></div>
+</div>
+</li>
+</ol>
+<p>You can combine GPU-based execution with concurrent proof generation using multiple processes, as described in the <strong>Concurrent Proof Generation</strong> section.</p>
+<blockquote>
+<div><p><strong>Note:</strong> GPU memory is typically more limited than CPU memory. When combining GPU execution with concurrent proof generation, ensure that each process has sufficient memory available on the GPU to avoid out-of-memory errors.</p>
+</div></blockquote>
+</section>
+<section id="verify-proof">
+<h3>Verify Proof<a class="headerlink" href="#verify-proof" title="Link to this heading">#</a></h3>
+<p>To verify a generated proof, use the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>verify<span class="w"> </span>-p<span class="w"> </span>./proof/vadcop_final_proof.bin<span class="w"> </span>-s<span class="w"> </span><span class="nv">$HOME</span>/.zisk/provingKey/zisk/vadcop_final/vadcop_final.starkinfo.json<span class="w"> </span>-e<span class="w"> </span><span class="nv">$HOME</span>/.zisk/provingKey/zisk/vadcop_final/vadcop_final.verifier.bin<span class="w"> </span>-k<span class="w"> </span><span class="nv">$HOME</span>/.zisk/provingKey/zisk/vadcop_final/vadcop_final.verkey.json
+</pre></div>
+</div>
+<p>In this command:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-p</span></code> (<code class="docutils literal notranslate"><span class="pre">--proof</span></code>) specifies the final proof file generated with cargo-zisk prove.</p></li>
+<li><p>The remaining flags specify the files required for verification; they are optional, set by default to the files found in the <code class="docutils literal notranslate"><span class="pre">$HOME/.zisk</span></code> directory.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#code-changes">Code changes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#example-program">Example program</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#input-output-data">Input/Output Data</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build">Build</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#execute">Execute</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#metrics-and-statistics">Metrics and Statistics</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#performance-metrics">Performance Metrics</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#execution-statistics">Execution Statistics</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prove">Prove</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#program-setup">Program Setup</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-constraints">Verify Constraints</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-proof">Generate Proof</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#concurrent-proof-generation">Concurrent Proof Generation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-proof-generation">GPU Proof Generation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-proof">Verify Proof</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

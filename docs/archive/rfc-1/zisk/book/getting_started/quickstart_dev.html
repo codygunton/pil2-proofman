@@ -1,0 +1,719 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Quickstart &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'zisk/book/getting_started/quickstart_dev';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Quickstart</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#requirements">Requirements</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#clone-repositories">Clone Repositories</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-a-verifiable-rust-program">Compile a Verifiable Rust Program</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#create-new-hello-world-project">Create New Hello World Project</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-and-run">Compile and Run</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#updating-the-toolchain">Updating the Toolchain</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manual-ziskemu-update">Manual Ziskemu Update</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#easy-input-update-for-64-bit-values">Easy Input Update for 64-bit Values</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prepare-your-setup">Prepare Your Setup</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-zisk-pil">Compile Zisk PIL</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-pils-with-std-mock-for-testing-without-std">Compile PILs with <code class="docutils literal notranslate"><span class="pre">std_mock</span></code> (for testing without <code class="docutils literal notranslate"><span class="pre">std</span></code>):</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-the-pil2-stark-c-library-run-only-once">Compile the PIl2 Stark C++ Library (run only once):</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-pil-helpers-rust-code">Generate PIL-Helpers Rust Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-setup-data">Generate Setup Data</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-witness-computation-library-libzisk-witness-so">Compile Witness Computation library (<code class="docutils literal notranslate"><span class="pre">libzisk_witness.so</span></code>)</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-verify-proofs">Generate &amp; Verify Proofs</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-constraints-only">Verify Constraints Only</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-a-proof">Generate a Proof</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#distributed-prove">Distributed prove</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-the-proof">Verify the Proof</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-the-aggregated-proof">Verify the aggregated Proof</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="quickstart">
+<h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">#</a></h1>
+<p>In this guide, we will walk you through the steps to create a simple Zisk project.</p>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">#</a></h2>
+<p>Before you begin, ensure that you have <a class="reference external" href="https://www.rust-lang.org/tools/install">Rust</a> installed on your system.</p>
+<p>Optional recommendations:</p>
+<ul class="simple">
+<li><p>Use the <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer">rust-analyzer</a> extension for VS Code to enhance your Rust development experience.</p></li>
+<li><p>Use the <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer">PIL2 Highlight syntax code</a> for VS Code to highlight PIL2 code when writing it.</p></li>
+</ul>
+</section>
+<section id="clone-repositories">
+<h2>Clone Repositories<a class="headerlink" href="#clone-repositories" title="Link to this heading">#</a></h2>
+<p>Run the following commands to clone the necessary repositories:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>git<span class="w"> </span>clone<span class="w"> </span>-b<span class="w"> </span>develop<span class="w"> </span>https://github.com/0xPolygonHermez/pil2-compiler.git
+<a id="L-2" name="L-2" href="#L-2"></a>git<span class="w"> </span>clone<span class="w"> </span>-b<span class="w"> </span>develop<span class="w"> </span>https://github.com/0xPolygonHermez/zisk.git
+<a id="L-3" name="L-3" href="#L-3"></a>git<span class="w"> </span>clone<span class="w"> </span>-b<span class="w"> </span>develop<span class="w"> </span>https://github.com/0xPolygonHermez/pil2-proofman.git
+<a id="L-4" name="L-4" href="#L-4"></a>git<span class="w"> </span>clone<span class="w"> </span>-b<span class="w"> </span>develop<span class="w"> </span>https://github.com/0xPolygonHermez/pil2-proofman-js
+</pre></div>
+</div>
+</section>
+<section id="compile-a-verifiable-rust-program">
+<h2>Compile a Verifiable Rust Program<a class="headerlink" href="#compile-a-verifiable-rust-program" title="Link to this heading">#</a></h2>
+<section id="setup">
+<h3>Setup<a class="headerlink" href="#setup" title="Link to this heading">#</a></h3>
+<p>Install qemu:
+<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">qemu-system</span></code></p>
+</section>
+<section id="create-new-hello-world-project">
+<h3>Create New Hello World Project<a class="headerlink" href="#create-new-hello-world-project" title="Link to this heading">#</a></h3>
+<p>Create a new project using the Zisk toolchain:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>sdk<span class="w"> </span>new<span class="w"> </span>hello_world
+<a id="L-2" name="L-2" href="#L-2"></a><span class="nb">cd</span><span class="w"> </span>hello_world
+</pre></div>
+</div>
+<p>Edit file <code class="docutils literal notranslate"><span class="pre">build.rs</span></code> file to modify the <code class="docutils literal notranslate"><span class="pre">OUTPUT_DIR</span></code> variable to <code class="docutils literal notranslate"><span class="pre">build</span></code>:</p>
+<div class="highlight-rust=3 notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>use std::path::Path;
+<a id="L-2" name="L-2" href="#L-2"></a>
+<a id="L-3" name="L-3" href="#L-3"></a>// Define constants for the directory and file names
+<a id="L-4" name="L-4" href="#L-4"></a>const OUTPUT_DIR: &amp;str = &quot;build&quot;;
+<a id="L-5" name="L-5" href="#L-5"></a>const FILE_NAME: &amp;str = &quot;input.bin&quot;;
+</pre></div>
+</div>
+</section>
+<section id="compile-and-run">
+<h3>Compile and Run<a class="headerlink" href="#compile-and-run" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>RISC-V mode:</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>run<span class="w"> </span>--release
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Zisk mode:</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--sim
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Ziskemu execution:</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>ziskemu<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-x<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/release/hello_world
+</pre></div>
+</div>
+</section>
+<section id="updating-the-toolchain">
+<h3>Updating the Toolchain<a class="headerlink" href="#updating-the-toolchain" title="Link to this heading">#</a></h3>
+<p>To update the Zisk toolchain:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>ziskup
+</pre></div>
+</div>
+<p>If <code class="docutils literal notranslate"><span class="pre">ziskup</span></code> fails, you can manually update <code class="docutils literal notranslate"><span class="pre">ziskemu</span></code>.</p>
+</section>
+<section id="manual-ziskemu-update">
+<h3>Manual Ziskemu Update<a class="headerlink" href="#manual-ziskemu-update" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="nb">cd</span><span class="w"> </span>zisk
+<a id="L-2" name="L-2" href="#L-2"></a>git<span class="w"> </span>pull
+<a id="L-3" name="L-3" href="#L-3"></a>cargo<span class="w"> </span>install<span class="w"> </span>--path<span class="w"> </span>emulator
+<a id="L-4" name="L-4" href="#L-4"></a>cp<span class="w"> </span>~/.cargo/bin/ziskemu<span class="w"> </span>~/.zisk/bin/
+</pre></div>
+</div>
+<p>Run the emulator with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>ziskemu<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-x<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/debug/hello_world
+</pre></div>
+</div>
+</section>
+<section id="easy-input-update-for-64-bit-values">
+<h3>Easy Input Update for 64-bit Values<a class="headerlink" href="#easy-input-update-for-64-bit-values" title="Link to this heading">#</a></h3>
+<p>To put <code class="docutils literal notranslate"><span class="pre">0x0100</span></code>, reverse hex sequence:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="nb">echo</span><span class="w"> </span>-en<span class="w"> </span><span class="s2">&quot;\x00\x01\x00\x00\x00\x00\x00\x00&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>input_two_segments.bin
+</pre></div>
+</div>
+<p>To input <code class="docutils literal notranslate"><span class="pre">0x0234</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="nb">echo</span><span class="w"> </span>-en<span class="w"> </span><span class="s2">&quot;\x34\x02\x00\x00\x00\x00\x00\x00&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>input_two_segments.bin
+</pre></div>
+</div>
+</section>
+</section>
+<section id="prepare-your-setup">
+<h2>Prepare Your Setup<a class="headerlink" href="#prepare-your-setup" title="Link to this heading">#</a></h2>
+<p>All following commands should be executed in the <code class="docutils literal notranslate"><span class="pre">zisk</span></code> folder.</p>
+<section id="compile-zisk-pil">
+<h3>Compile Zisk PIL<a class="headerlink" href="#compile-zisk-pil" title="Link to this heading">#</a></h3>
+<p>!!!!!! Download pil2-proofman to be able to compile the std
+node –max-old-space-size=131072 –stack-size=1500 ../pil2-proofman-js/src/main_setup.js -a pil/zisk_pre_040.pilout -b build/build_pre_040 -t ../pil2-proofman/pil2-stark/build/bctree -i ./build/keccakf_fixed.bin
+com es genera el fixed.bin???</p>
+<p>cargo run –release –bin keccakf_fixed_gen</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>node<span class="w"> </span>--max-old-space-size<span class="o">=</span><span class="m">65536</span><span class="w"> </span>../pil2-compiler/src/pil.js<span class="w"> </span>pil/zisk.pil<span class="w"> </span>-I<span class="w"> </span>pil,../pil2-proofman/pil2-components/lib/std/pil,state-machines,precompiles<span class="w"> </span>-o<span class="w"> </span>pil/zisk.pilout
+</pre></div>
+</div>
+</section>
+<section id="compile-pils-with-std-mock-for-testing-without-std">
+<h3>Compile PILs with <code class="docutils literal notranslate"><span class="pre">std_mock</span></code> (for testing without <code class="docutils literal notranslate"><span class="pre">std</span></code>):<a class="headerlink" href="#compile-pils-with-std-mock-for-testing-without-std" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>node<span class="w"> </span>../pil2-compiler/src/pil.js<span class="w"> </span>pil/zisk.pil<span class="w"> </span>-I<span class="w"> </span>pil,../pil2-components/lib/std_mock/pil,state-machines<span class="w"> </span>-o<span class="w"> </span>pil/zisk.pilout
+</pre></div>
+</div>
+</section>
+<section id="compile-the-pil2-stark-c-library-run-only-once">
+<h3>Compile the PIl2 Stark C++ Library (run only once):<a class="headerlink" href="#compile-the-pil2-stark-c-library-run-only-once" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="o">(</span><span class="nb">cd</span><span class="w"> </span>../pil2-proofman/pil2-stark<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>submodule<span class="w"> </span>init<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>clean<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>-j<span class="w"> </span>starks_lib<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>-j<span class="w"> </span>bctree<span class="o">)</span>
+</pre></div>
+</div>
+</section>
+<section id="generate-pil-helpers-rust-code">
+<h3>Generate PIL-Helpers Rust Code<a class="headerlink" href="#generate-pil-helpers-rust-code" title="Link to this heading">#</a></h3>
+<p>Run this whenever the <code class="docutils literal notranslate"><span class="pre">.pilout</span></code> file changes:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="o">(</span><span class="nb">cd</span><span class="w"> </span>../pil2-proofman<span class="p">;</span><span class="w"> </span>cargo<span class="w"> </span>run<span class="w"> </span>--bin<span class="w"> </span>proofman-cli<span class="w"> </span>pil-helpers<span class="w"> </span>--pilout<span class="w"> </span>../zisk/pil/zisk.pilout<span class="w"> </span>--path<span class="w"> </span>../zisk/pil/src/<span class="w"> </span>-o<span class="o">)</span>
+</pre></div>
+</div>
+</section>
+<section id="generate-setup-data">
+<h3>Generate Setup Data<a class="headerlink" href="#generate-setup-data" title="Link to this heading">#</a></h3>
+<p>Run this whenever the <code class="docutils literal notranslate"><span class="pre">.pilout</span></code> file changes:</p>
+<div class="highlight-bash[] notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>node --max-old-space-size=131072 --stack-size=1500 ../pil2-proofman-js/src/main_setup.js -a pil/zisk.pilout -b build -t ../pil2-proofman/pil2-stark/build/bctree
+</pre></div>
+</div>
+</section>
+<section id="compile-witness-computation-library-libzisk-witness-so">
+<h3>Compile Witness Computation library (<code class="docutils literal notranslate"><span class="pre">libzisk_witness.so</span></code>)<a class="headerlink" href="#compile-witness-computation-library-libzisk-witness-so" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo<span class="w"> </span>build<span class="w"> </span>--release
+</pre></div>
+</div>
+<blockquote>
+<div><p>If you get a library not found error, set the path manually:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">RUSTFLAGS</span><span class="o">=</span><span class="s2">&quot;-L native={path to your pil2-stark folder}/pil2-stark/lib&quot;</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+</section>
+<section id="generate-verify-proofs">
+<h2>Generate &amp; Verify Proofs<a class="headerlink" href="#generate-verify-proofs" title="Link to this heading">#</a></h2>
+<p>Sample inputs are located in <code class="docutils literal notranslate"><span class="pre">zisk/emulator/benches/data</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">input_one_segment.bin</span></code>: single SHA</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">input_two_segments.bin</span></code>: 512 SHA</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">input.bin</span></code>: large number of SHA</p></li>
+</ul>
+<section id="verify-constraints-only">
+<h3>Verify Constraints Only<a class="headerlink" href="#verify-constraints-only" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>//<span class="w"> </span>Using<span class="w"> </span>input_one_segment.bin
+<a id="L-2" name="L-2" href="#L-2"></a><span class="o">(</span>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>../pil2-proofman<span class="p">;</span><span class="w"> </span>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>proofman-cli<span class="w"> </span>verify-constraints<span class="w"> </span>--witness-lib<span class="w"> </span>../zisk/target/release/libzisk_witness.so<span class="w"> </span>--rom<span class="w"> </span>../zisk/emulator/benches/data/my.elf<span class="w"> </span>-i<span class="w"> </span>../zisk/emulator/benches/data/input_one_segment.bin<span class="w"> </span>--proving-key<span class="w"> </span>../zisk/build/provingKey<span class="o">)</span>
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a>//<span class="w"> </span>Using<span class="w"> </span>input_two_segments.bin
+<a id="L-5" name="L-5" href="#L-5"></a><span class="o">(</span>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>../pil2-proofman<span class="p">;</span><span class="w"> </span>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>proofman-cli<span class="w"> </span>verify-constraints<span class="w"> </span>--witness-lib<span class="w"> </span>../zisk/target/release/libzisk_witness.so<span class="w"> </span>--rom<span class="w"> </span>../zisk/emulator/benches/data/my.elf<span class="w"> </span>-i<span class="w"> </span>../zisk/emulator/benches/data/input_two_segments.bin<span class="w"> </span>--proving-key<span class="w"> </span>../zisk/build/provingKey<span class="o">)</span><span class="sb">`</span>
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a>//<span class="w"> </span>Using<span class="w"> </span>input.bin
+<a id="L-8" name="L-8" href="#L-8"></a><span class="o">(</span>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>../pil2-proofman<span class="p">;</span><span class="w"> </span>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>proofman-cli<span class="w"> </span>verify-constraints<span class="w"> </span>--witness-lib<span class="w"> </span>../zisk/target/release/libzisk_witness.so<span class="w"> </span>--rom<span class="w"> </span>../zisk/emulator/benches/data/my.elf<span class="w"> </span>-i<span class="w"> </span>../zisk/emulator/benches/data/input.bin<span class="w"> </span>--proving-key<span class="w"> </span>../zisk/build/provingKey<span class="o">)</span><span class="sb">`</span>
+</pre></div>
+</div>
+</section>
+<section id="generate-a-proof">
+<h3>Generate a Proof<a class="headerlink" href="#generate-a-proof" title="Link to this heading">#</a></h3>
+<p>To generate the aggregated proofs, add <code class="docutils literal notranslate"><span class="pre">-a</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>//<span class="w"> </span>Using<span class="w"> </span>input_one_segment.bin
+<a id="L-2" name="L-2" href="#L-2"></a><span class="o">(</span>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>../pil2-proofman<span class="p">;</span><span class="w"> </span>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>proofman-cli<span class="w"> </span>prove<span class="w"> </span>--witness-lib<span class="w"> </span>../zisk/target/release/libzisk_witness.so<span class="w"> </span>--rom<span class="w"> </span>../zisk/emulator/benches/data/my.elf<span class="w"> </span>-i<span class="w"> </span>../zisk/emulator/benches/data/input_one_segment.bin<span class="w"> </span>--proving-key<span class="w"> </span>../zisk/build/provingKey<span class="w"> </span>--output-dir<span class="w"> </span>../zisk/proofs<span class="w"> </span>-a<span class="w"> </span>-v<span class="o">)</span>
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a>//<span class="w"> </span>Using<span class="w"> </span>input_two_segments.bin
+<a id="L-5" name="L-5" href="#L-5"></a><span class="o">(</span>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>../pil2-proofman<span class="p">;</span><span class="w"> </span>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>proofman-cli<span class="w"> </span>prove<span class="w"> </span>--witness-lib<span class="w"> </span>../zisk/target/release/libzisk_witness.so<span class="w"> </span>--rom<span class="w"> </span>../zisk/emulator/benches/data/my.elf<span class="w"> </span>-i<span class="w"> </span>../zisk/emulator/benches/data/input_two_segments.bin<span class="w"> </span>--proving-key<span class="w"> </span>../zisk/build/provingKey<span class="w"> </span>--output-dir<span class="w"> </span>../zisk/proofs<span class="w"> </span>-a<span class="w"> </span>-v<span class="o">)</span>
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a>//<span class="w"> </span>Using<span class="w"> </span>input.bin
+<a id="L-8" name="L-8" href="#L-8"></a><span class="o">(</span>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>../pil2-proofman<span class="p">;</span><span class="w"> </span>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>proofman-cli<span class="w"> </span>prove<span class="w"> </span>--witness-lib<span class="w"> </span>../zisk/target/release/libzisk_witness.so<span class="w"> </span>--rom<span class="w"> </span>../zisk/emulator/benches/data/my.elf<span class="w"> </span>-i<span class="w"> </span>../zisk/emulator/benches/data/input.bin<span class="w"> </span>--proving-key<span class="w"> </span>../zisk/build/provingKey<span class="w"> </span>--output-dir<span class="w"> </span>../zisk/proofs<span class="w"> </span>-a<span class="w"> </span>-v<span class="o">)</span>
+</pre></div>
+</div>
+</section>
+<section id="distributed-prove">
+<h3>Distributed prove<a class="headerlink" href="#distributed-prove" title="Link to this heading">#</a></h3>
+<p>Zisk can run proves using multiple processes in the same server or in multiple servers. To use zisk in distributed mode you need to have installed a mpi library. To use the distributed mode the compilation command is:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo-zisk<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span>--features<span class="w"> </span>distributed
+</pre></div>
+</div>
+<p>Then the execution command will be:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>mpirun<span class="w"> </span>--bind-to<span class="w"> </span>none<span class="w"> </span>-np<span class="w"> </span>&lt;number_processes&gt;<span class="w"> </span>-x<span class="w"> </span><span class="nv">OMP_NUM_THREADS</span><span class="o">=</span>&lt;number_of_threads_per_process&gt;<span class="w"> </span>target/release/cargo-zisk<span class="w"> </span>prove<span class="w"> </span>-e<span class="w"> </span>target/riscv64ima-zisk-zkvm-elf/release/sha_hasher<span class="w"> </span>-i<span class="w"> </span>build/input.bin<span class="w"> </span>-w<span class="w"> </span><span class="nv">$HOME</span>/.zisk/bin/libzisk_witness.so<span class="w"> </span>-k<span class="w"> </span><span class="nv">$HOME</span>/.zisk/provingKey<span class="w"> </span>-o<span class="w"> </span>proof<span class="w"> </span>-a<span class="w"> </span>-y
+</pre></div>
+</div>
+</section>
+<section id="verify-the-proof">
+<h3>Verify the Proof<a class="headerlink" href="#verify-the-proof" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>node<span class="w"> </span>../pil2-proofman-js/src/main_verify<span class="w"> </span>-k<span class="w"> </span>./build/provingKey<span class="w"> </span>-p<span class="w"> </span>./proofs
+</pre></div>
+</div>
+</section>
+<section id="verify-the-aggregated-proof">
+<h3>Verify the aggregated Proof<a class="headerlink" href="#verify-the-aggregated-proof" title="Link to this heading">#</a></h3>
+<p>If the aggregation proofs are being generated, can be verified with the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>node<span class="w"> </span>../pil2-proofman-js/src/main_verify<span class="w"> </span>-k<span class="w"> </span>./build/provingKey/<span class="w"> </span>-p<span class="w"> </span>./proofs<span class="w"> </span>-t<span class="w"> </span>vadcop_final
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#requirements">Requirements</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#clone-repositories">Clone Repositories</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-a-verifiable-rust-program">Compile a Verifiable Rust Program</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#create-new-hello-world-project">Create New Hello World Project</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-and-run">Compile and Run</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#updating-the-toolchain">Updating the Toolchain</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manual-ziskemu-update">Manual Ziskemu Update</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#easy-input-update-for-64-bit-values">Easy Input Update for 64-bit Values</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prepare-your-setup">Prepare Your Setup</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-zisk-pil">Compile Zisk PIL</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-pils-with-std-mock-for-testing-without-std">Compile PILs with <code class="docutils literal notranslate"><span class="pre">std_mock</span></code> (for testing without <code class="docutils literal notranslate"><span class="pre">std</span></code>):</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-the-pil2-stark-c-library-run-only-once">Compile the PIl2 Stark C++ Library (run only once):</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-pil-helpers-rust-code">Generate PIL-Helpers Rust Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-setup-data">Generate Setup Data</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-witness-computation-library-libzisk-witness-so">Compile Witness Computation library (<code class="docutils literal notranslate"><span class="pre">libzisk_witness.so</span></code>)</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-verify-proofs">Generate &amp; Verify Proofs</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-constraints-only">Verify Constraints Only</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-a-proof">Generate a Proof</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#distributed-prove">Distributed prove</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-the-proof">Verify the Proof</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-the-aggregated-proof">Verify the aggregated Proof</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

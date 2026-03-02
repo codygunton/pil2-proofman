@@ -1,0 +1,863 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Architecture Overview &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>window.MathJax = {"tex": {"macros": {"F": "\\mathbb{F}_p", "Fext": "\\mathbb{F}_{p^3}", "ZH": "Z_H", "MT": "\\mathsf{MT}", "Hash": "\\mathsf{H}", "Poseidon": "\\mathsf{Poseidon2}", "LinHash": "\\mathsf{LinearHash}", "T": "\\mathcal{T}", "abs": "\\mathsf{absorb}", "sq": "\\mathsf{squeeze}", "sqidx": "\\mathsf{squeeze\\_indices}", "Fold": "\\mathsf{Fold}", "INTT": "\\mathsf{INTT}", "NTT": "\\mathsf{NTT}", "longto": "\\longrightarrow", "longfrom": "\\longleftarrow"}}, "options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'part-machine/architecture';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Bus Architecture" href="buses.html" />
+    <link rel="prev" title="ZisK Machine" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">ZisK Machine</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Architecture Overview</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#airgroup-structure">Airgroup Structure</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#air-inventory">AIR Inventory</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stark-parameters-per-air">STARK Parameters per AIR</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="architecture-overview">
+<span id="sec-architecture"></span><h1>Architecture Overview<a class="headerlink" href="#architecture-overview" title="Link to this heading">#</a></h1>
+<p>ZisK is a zero-knowledge virtual machine that proves correct execution
+of RISC-V programs.
+It decomposes computation into a single <em>airgroup</em> named “ZisK”
+containing 21 specialized AIRs (Algebraic Intermediate Representations),
+each responsible for a different aspect of execution:
+instruction dispatch, memory, arithmetic, bitwise operations,
+cryptographic precompiles, and lookup tables.</p>
+<p>The AIRs communicate via <em>buses</em>—shared lookup and permutation
+arguments that enforce consistency between components.
+The central interconnect is the <em>operation bus</em>: the Main CPU AIR
+dispatches operations to coprocessors (Binary, Arith, etc.) via lookup
+assumes, and each coprocessor proves correctness via lookup proves on
+the same bus.</p>
+<section id="airgroup-structure">
+<span id="sec-airgroup"></span><h2>Airgroup Structure<a class="headerlink" href="#airgroup-structure" title="Link to this heading">#</a></h2>
+<p>All 21 AIRs belong to a single airgroup (“ZisK”).
+The aggregation type is <strong>sum</strong> (logup) at stage 2,
+meaning the global constraint checks that the sum of all <span class="math notranslate nohighlight">\(\mathrm{gsum}\)</span>
+boundary values across all AIRs equals zero.</p>
+<p>Configuration parameters:</p>
+<ul class="simple">
+<li><p>Lattice size: <span class="math notranslate nohighlight">\(L = 368\)</span> (no elliptic-curve mode).</p></li>
+<li><p>Transcript arity: <span class="math notranslate nohighlight">\(a = 4\)</span> (Poseidon2 sponge width <span class="math notranslate nohighlight">\(= 16\)</span>).</p></li>
+<li><p>Number of public inputs: 68
+(4 for <code class="docutils literal notranslate"><span class="pre">rom_root</span></code> <span class="math notranslate nohighlight">\(+\)</span> 64 for <code class="docutils literal notranslate"><span class="pre">inputs</span></code>).</p></li>
+<li><p>Stage-2 challenges: 2 (<span class="math notranslate nohighlight">\(\alpha, \gamma\)</span>).</p></li>
+<li><p>Proof values: 2 at stage 1
+(<code class="docutils literal notranslate"><span class="pre">enable_input_data</span></code>, <code class="docutils literal notranslate"><span class="pre">enable_rom_data</span></code>).</p></li>
+</ul>
+</section>
+<section id="air-inventory">
+<span id="sec-air-inventory"></span><h2>AIR Inventory<a class="headerlink" href="#air-inventory" title="Link to this heading">#</a></h2>
+<p>Each AIR is implemented as a Rust state machine in <code class="docutils literal notranslate"><span class="pre">zisk/state-machines/</span></code>.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Trace size</p></th>
+<th class="head"><p>Role</p></th>
+<th class="head"><p>Compressor?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/main/src/main_sm.html#MainSM"><span>Main</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-40"><span>$2^{22}$</span></a></p></td>
+<td><p>CPU instruction dispatch</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/rom/src/rom.html#RomSM"><span>Rom</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-41"><span>$2^{22}$</span></a></p></td>
+<td><p>Program ROM lookup table</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/mem/src/mem.html#Mem"><span>Mem</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-44"><span>$2^{22}$</span></a></p></td>
+<td><p>Main memory (sorted by addr+step)</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/mem/src/rom_data_sm.html#RomDataSM"><span>RomData</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-45"><span>$2^{21}$</span></a></p></td>
+<td><p>Immutable ROM data region</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/mem/src/input_data_sm.html#InputDataSM"><span>InputData</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-46"><span>$2^{21}$</span></a></p></td>
+<td><p>Free input data region</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/mem/src/mem_align_sm.html#MemAlignSM"><span>MemAlign</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-48"><span>$2^{21}$</span></a></p></td>
+<td><p>Unaligned memory access logic</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/mem/src/mem_align_byte_sm.html#MemAlignByteSM"><span>MemAlignByte</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-49"><span>$2^{22}$</span></a></p></td>
+<td><p>Byte-level memory alignment</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p>7</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/mem/src/mem_align_read_byte_instance.html#MemAlignReadByteInstance"><span>MemAlignReadByte</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-50"><span>$2^{22}$</span></a></p></td>
+<td><p>Read-side byte alignment</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p>8</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/mem/src/mem_align_write_byte_instance.html#MemAlignWriteByteInstance"><span>MemAlignWriteByte</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-51"><span>$2^{22}$</span></a></p></td>
+<td><p>Write-side byte alignment</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p>9</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/arith/src/arith.html#ArithSM"><span>Arith</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-56"><span>$2^{21}$</span></a></p></td>
+<td><p>64-bit multiply/divide</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p>10</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/binary/src/binary.html#BinarySM"><span>Binary</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-62"><span>$2^{22}$</span></a></p></td>
+<td><p>Bitwise AND, OR, XOR, comparisons</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p>11</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/binary/src/binary_add.html#BinaryAddSM"><span>BinaryAdd</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-63"><span>$2^{22}$</span></a></p></td>
+<td><p>Dedicated 64-bit addition</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p>12</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/binary/src/binary_extension.html#BinaryExtensionSM"><span>BinaryExtension</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-65"><span>$2^{22}$</span></a></p></td>
+<td><p>Shifts, sign-extension</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p>13</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/precompiles/big_int/src/add256.html#Add256SM"><span>Add256</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-74"><span>$2^{20}$</span></a></p></td>
+<td><p>256-bit addition</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p>14</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/precompiles/arith_eq/src/arith_eq.html#ArithEqSM"><span>ArithEq</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-75"><span>$2^{20}$</span></a></p></td>
+<td><p>256-bit field arithmetic (secp256k1, BN254)</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p>15</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/precompiles/arith_eq_384/src/arith_eq_384.html#ArithEq384SM"><span>ArithEq384</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-76"><span>$2^{20}$</span></a></p></td>
+<td><p>384-bit field arithmetic (BLS12-381)</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p>16</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/precompiles/keccakf/src/keccakf.html#KeccakfSM"><span>Keccakf</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-79"><span>$2^{17}$</span></a></p></td>
+<td><p>Keccak-f[1600] permutation</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p>17</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/precompiles/sha256f/src/sha256f.html#Sha256fSM"><span>Sha256f</span></a></p></td>
+<td><p><a class="reference external" href="../_modules/zisk/pil/zisk.html#L-82"><span>$2^{18}$</span></a></p></td>
+<td><p>SHA-256 compression function</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p>18</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/frequent-ops/src/frequent_ops_table.html#FrequentOpsTable"><span>SpecifiedRanges</span></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(2^{20}\)</span></p></td>
+<td><p>Range check lookup table</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p>19</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/frequent-ops/src/frequent_ops_table.html#FrequentOpsTable"><span>VirtualTable0</span></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(2^{21}\)</span></p></td>
+<td><p>Packed lookup tables (7 tables)</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p>20</p></td>
+<td><p><a class="reference external" href="../_modules/zisk/state-machines/frequent-ops/src/frequent_ops_table.html#FrequentOpsTable"><span>VirtualTable1</span></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(2^{21}\)</span></p></td>
+<td><p>Packed lookup tables (3 tables)</p></td>
+<td><p>No</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>AIRs marked “Compressor = Yes” have STARK verifier circuits exceeding
+<span class="math notranslate nohighlight">\(2^{17}\)</span> rows, requiring the optional Compressor stage in the recursion
+pipeline (see the <em>Recursion Pipeline</em>).</p>
+</section>
+<section id="stark-parameters-per-air">
+<span id="sec-air-params"></span><h2>STARK Parameters per AIR<a class="headerlink" href="#stark-parameters-per-air" title="Link to this heading">#</a></h2>
+<p>Each AIR defines a STARK instance with concrete parameters.
+All AIRs share: blowup factor <span class="math notranslate nohighlight">\(\beta = 2\)</span>, Merkle arity <span class="math notranslate nohighlight">\(a = 4\)</span>,
+quotient degree <span class="math notranslate nohighlight">\(d = 2\)</span> (except Rom with <span class="math notranslate nohighlight">\(d = 1\)</span>), and cubic extension
+<span class="math notranslate nohighlight">\(\Fext\)</span> (<span class="math notranslate nohighlight">\(q_{\mathrm{dim}} = 3\)</span>).</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(n\)</span></p></th>
+<th class="head"><p>Witness</p></th>
+<th class="head"><p>Intmd</p></th>
+<th class="head"><p>Const</p></th>
+<th class="head"><p>Eval pts</p></th>
+<th class="head"><p>FRI rounds</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Main</p></td>
+<td><p>22</p></td>
+<td><p>38</p></td>
+<td><p>8</p></td>
+<td><p>3</p></td>
+<td><p>61</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rom</p></td>
+<td><p>22</p></td>
+<td><p>1</p></td>
+<td><p>2</p></td>
+<td><p>1</p></td>
+<td><p>18</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>Mem</p></td>
+<td><p>22</p></td>
+<td><p>13</p></td>
+<td><p>3</p></td>
+<td><p>2</p></td>
+<td><p>29</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p>RomData</p></td>
+<td><p>21</p></td>
+<td><p>6</p></td>
+<td><p>3</p></td>
+<td><p>2</p></td>
+<td><p>19</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>InputData</p></td>
+<td><p>21</p></td>
+<td><p>9</p></td>
+<td><p>6</p></td>
+<td><p>2</p></td>
+<td><p>27</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemAlign</p></td>
+<td><p>21</p></td>
+<td><p>29</p></td>
+<td><p>6</p></td>
+<td><p>2</p></td>
+<td><p>59</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>MemAlignByte</p></td>
+<td><p>22</p></td>
+<td><p>16</p></td>
+<td><p>4</p></td>
+<td><p>1</p></td>
+<td><p>25</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemAlignReadByte</p></td>
+<td><p>22</p></td>
+<td><p>10</p></td>
+<td><p>3</p></td>
+<td><p>1</p></td>
+<td><p>18</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>MemAlignWriteByte</p></td>
+<td><p>22</p></td>
+<td><p>14</p></td>
+<td><p>4</p></td>
+<td><p>1</p></td>
+<td><p>23</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p>Arith</p></td>
+<td><p>21</p></td>
+<td><p>44</p></td>
+<td><p>15</p></td>
+<td><p>1</p></td>
+<td><p>64</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>Binary</p></td>
+<td><p>22</p></td>
+<td><p>39</p></td>
+<td><p>5</p></td>
+<td><p>1</p></td>
+<td><p>49</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p>BinaryAdd</p></td>
+<td><p>22</p></td>
+<td><p>10</p></td>
+<td><p>3</p></td>
+<td><p>1</p></td>
+<td><p>18</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>BinaryExtension</p></td>
+<td><p>22</p></td>
+<td><p>29</p></td>
+<td><p>6</p></td>
+<td><p>1</p></td>
+<td><p>40</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p>Add256</p></td>
+<td><p>20</p></td>
+<td><p>47</p></td>
+<td><p>17</p></td>
+<td><p>1</p></td>
+<td><p>69</p></td>
+<td><p>6</p></td>
+</tr>
+<tr class="row-even"><td><p>ArithEq</p></td>
+<td><p>20</p></td>
+<td><p>39</p></td>
+<td><p>14</p></td>
+<td><p>2</p></td>
+<td><p>434</p></td>
+<td><p>6</p></td>
+</tr>
+<tr class="row-odd"><td><p>ArithEq384</p></td>
+<td><p>20</p></td>
+<td><p>33</p></td>
+<td><p>14</p></td>
+<td><p>2</p></td>
+<td><p>536</p></td>
+<td><p>6</p></td>
+</tr>
+<tr class="row-even"><td><p>Keccakf</p></td>
+<td><p>17</p></td>
+<td><p>2137</p></td>
+<td><p>293</p></td>
+<td><p>2</p></td>
+<td><p>4065</p></td>
+<td><p>5</p></td>
+</tr>
+<tr class="row-odd"><td><p>Sha256f</p></td>
+<td><p>18</p></td>
+<td><p>102</p></td>
+<td><p>7</p></td>
+<td><p>2</p></td>
+<td><p>1265</p></td>
+<td><p>6</p></td>
+</tr>
+<tr class="row-even"><td><p>SpecifiedRanges</p></td>
+<td><p>20</p></td>
+<td><p>33</p></td>
+<td><p>17</p></td>
+<td><p>34</p></td>
+<td><p>88</p></td>
+<td><p>6</p></td>
+</tr>
+<tr class="row-odd"><td><p>VirtualTable0</p></td>
+<td><p>21</p></td>
+<td><p>8</p></td>
+<td><p>5</p></td>
+<td><p>52</p></td>
+<td><p>69</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>VirtualTable1</p></td>
+<td><p>21</p></td>
+<td><p>8</p></td>
+<td><p>5</p></td>
+<td><p>73</p></td>
+<td><p>90</p></td>
+<td><p>7</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Columns:</strong>
+<span class="math notranslate nohighlight">\(n\)</span> = trace size exponent (<span class="math notranslate nohighlight">\(N = 2^n\)</span>),
+Witness = stage-1 committed columns,
+Intmd = stage-2 intermediate columns,
+Const = constant (setup) columns,
+Eval pts = evaluation map entries (polynomial openings in the FRI batching),
+FRI rounds = number of folding rounds.
+The number of FRI queries ranges from 217 (Keccakf) to 232 (ArithEq384),
+targeting approximately 100 bits of security.</p>
+<p><strong>Notable outliers.</strong>
+Keccakf has by far the most columns (2137 witness <span class="math notranslate nohighlight">\(+\)</span> 293 intermediate)
+because each Keccak-f round requires extensive bit-level decomposition.
+ArithEq384 has the most evaluation points (536) due to the large number
+of constraint polynomials in its 384-bit modular arithmetic verification.
+The lookup table AIRs (SpecifiedRanges, VirtualTable0, VirtualTable1)
+have many constant columns (up to 73) because the precomputed table values
+are committed as constant polynomials during setup.</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">ZisK Machine</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="buses.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Bus Architecture</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#airgroup-structure">Airgroup Structure</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#air-inventory">AIR Inventory</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stark-parameters-per-air">STARK Parameters per AIR</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

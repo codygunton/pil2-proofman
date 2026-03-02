@@ -1,0 +1,672 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>STARK Protocol: Query Phase &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>window.MathJax = {"tex": {"macros": {"F": "\\mathbb{F}_p", "Fext": "\\mathbb{F}_{p^3}", "ZH": "Z_H", "MT": "\\mathsf{MT}", "Hash": "\\mathsf{H}", "Poseidon": "\\mathsf{Poseidon2}", "LinHash": "\\mathsf{LinearHash}", "T": "\\mathcal{T}", "abs": "\\mathsf{absorb}", "sq": "\\mathsf{squeeze}", "sqidx": "\\mathsf{squeeze\\_indices}", "Fold": "\\mathsf{Fold}", "INTT": "\\mathsf{INTT}", "NTT": "\\mathsf{NTT}", "longto": "\\longrightarrow", "longfrom": "\\longleftarrow"}}, "options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'part-stark/query-phase';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Multi-AIR Challenge Binding" href="challenge-binding.html" />
+    <link rel="prev" title="STARK Protocol: Commitment Phase" href="commitment-phase.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">STARK Protocol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>STARK Protocol: Query Phase</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcript-reconstruction">Transcript Reconstruction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#constraint-check">Constraint Check</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#grinding-check">Grinding Check</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#final-polynomial-degree-check">Final Polynomial Degree Check</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#query-derivation">Query Derivation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#merkle-tree-verification">Merkle Tree Verification</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fri-polynomial-consistency">FRI Polynomial Consistency</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fri-folding-verification">FRI Folding Verification</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="stark-protocol-query-phase">
+<span id="protocol-query-phase"></span><span id="sec-query-phase"></span><h1>STARK Protocol: Query Phase<a class="headerlink" href="#stark-protocol-query-phase" title="Link to this heading">#</a></h1>
+<p>The query phase is the second half of the STARK protocol.
+At the start of verification, the verifier receives:
+the proof <span class="math notranslate nohighlight">\(\pi\)</span>, the verification key <span class="math notranslate nohighlight">\(\mathrm{vk}\)</span>,
+the public inputs, and the AIR constraint definitions.
+The verifier first replays the prover’s transcript to rederive all challenges
+(using the same sequence of absorbs and squeezes shown in <a class="reference internal" href="commitment-phase.html#sec-commitment-phase"><span class="std std-ref">STARK Protocol: Commitment Phase</span></a>),
+then performs the checks detailed below.</p>
+<p>For the complete protocol as a single self-contained description,
+see <a class="reference internal" href="full-protocol.html#sec-full-protocol"><span class="std std-ref">The Full Protocol, Rolled Out</span></a>.</p>
+<section id="transcript-reconstruction">
+<span id="sec-transcript-reconstruction"></span><h2>Transcript Reconstruction<a class="headerlink" href="#transcript-reconstruction" title="Link to this heading">#</a></h2>
+<p>The verifier replays the prover’s Fiat-Shamir transcript to rederive all challenges
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-396"><code class="docutils literal notranslate"><span class="pre">verifier.py#transcript-reconstruct</span></code></a>).
+The transcript operations must occur in exactly the same order as during proving:</p>
+<ol class="arabic simple">
+<li><p>Seed the transcript (same as prover: multi-AIR or standalone mode).</p></li>
+<li><p>For each stage <span class="math notranslate nohighlight">\(s = 2, \ldots, S+1\)</span>:
+squeeze the stage-<span class="math notranslate nohighlight">\(s\)</span> challenges, then absorb <span class="math notranslate nohighlight">\(r_s\)</span> and any
+intermediate values for stage <span class="math notranslate nohighlight">\(s\)</span>.</p></li>
+<li><p>Squeeze the evaluation challenge <span class="math notranslate nohighlight">\(\xi\)</span>.</p></li>
+<li><p>Absorb the evaluation hash <span class="math notranslate nohighlight">\(\LinHash(\{e_{p,o}\})\)</span>.</p></li>
+<li><p>Squeeze the batching challenges <span class="math notranslate nohighlight">\(v_1, v_2\)</span>.</p></li>
+<li><p>For each FRI round <span class="math notranslate nohighlight">\(k = 0, \ldots, K-1\)</span>:
+absorb <span class="math notranslate nohighlight">\(r_k^{\mathrm{FRI}}\)</span> and squeeze the fold challenge <span class="math notranslate nohighlight">\(\beta_k\)</span>.</p></li>
+<li><p>Absorb <span class="math notranslate nohighlight">\(\LinHash(F_K)\)</span>.</p></li>
+<li><p>Squeeze the grinding challenge <span class="math notranslate nohighlight">\(\chi_{\mathrm{grind}}\)</span>.</p></li>
+</ol>
+</section>
+<section id="constraint-check">
+<span id="sec-constraint-check"></span><h2>Constraint Check<a class="headerlink" href="#constraint-check" title="Link to this heading">#</a></h2>
+<p>Verify that the quotient polynomial is consistent with the constraint polynomial
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-745"><code class="docutils literal notranslate"><span class="pre">verifier.py#constraint-check</span></code></a>).</p>
+<ol class="arabic">
+<li><p>Evaluate the combined constraint polynomial at <span class="math notranslate nohighlight">\(\xi\)</span>
+using the claimed evaluations <span class="math notranslate nohighlight">\(\{e_{p,o}\}\)</span>
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-765"><code class="docutils literal notranslate"><span class="pre">verifier.py#compute-constraint</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   C(\xi) = v_c^{J-1} \cdot C_0(\xi) + v_c^{J-2} \cdot C_1(\xi)
+            + \cdots + C_{J-1}(\xi),
+   \]</div>
+<p>where each <span class="math notranslate nohighlight">\(C_j(\xi)\)</span> is computed from the evaluations via the
+AIR constraint expressions and <span class="math notranslate nohighlight">\(J\)</span> is the number of constraints.</p>
+</li>
+<li><p>Compute the vanishing polynomial at <span class="math notranslate nohighlight">\(\xi\)</span>
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-770"><code class="docutils literal notranslate"><span class="pre">verifier.py#compute-vanishing</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   \ZH(\xi) = \xi^N - 1.
+   \]</div>
+</li>
+<li><p>Reconstruct the quotient evaluation from the split pieces
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-706"><code class="docutils literal notranslate"><span class="pre">verifier.py#quotient-reconstruct</span></code></a>):</p>
+<div class="math notranslate nohighlight" id="equation-eq-quotient-reconstruct">
+<span class="eqno">(8)<a class="headerlink" href="#equation-eq-quotient-reconstruct" title="Link to this equation">#</a></span>\[Q(\xi) = \sum_{j=0}^{d-1} \xi^{jN} \cdot e_{Q_j, 0}.\]</div>
+</li>
+<li><p><strong>Check</strong>
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-778"><code class="docutils literal notranslate"><span class="pre">verifier.py#verify-quotient-div</span></code></a>):</p>
+<div class="math notranslate nohighlight" id="equation-eq-constraint-check">
+<span class="eqno">(9)<a class="headerlink" href="#equation-eq-constraint-check" title="Link to this equation">#</a></span>\[\boxed{Q(\xi) = \frac{C(\xi)}{\ZH(\xi)}.}\]</div>
+</li>
+</ol>
+</section>
+<section id="grinding-check">
+<span id="sec-grinding-check"></span><h2>Grinding Check<a class="headerlink" href="#grinding-check" title="Link to this heading">#</a></h2>
+<p><strong>Check</strong>
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-98"><code class="docutils literal notranslate"><span class="pre">verifier.py#grinding-check</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+\Poseidon(\chi_{\mathrm{grind}} \,\|\, \eta)
+\text{ has } b_{\mathrm{pow}} \text{ leading zero bits}.
+\]</div>
+</section>
+<section id="final-polynomial-degree-check">
+<span id="sec-degree-check"></span><h2>Final Polynomial Degree Check<a class="headerlink" href="#final-polynomial-degree-check" title="Link to this heading">#</a></h2>
+<p>(<a class="reference external" href="../_modules/protocol/verifier.html#L-992"><code class="docutils literal notranslate"><span class="pre">verifier.py#degree-check</span></code></a>)</p>
+<ol class="arabic">
+<li><p>Convert the final polynomial <span class="math notranslate nohighlight">\(F_K\)</span> from evaluation form to coefficient form
+via <span class="math notranslate nohighlight">\(\INTT\)</span>
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-1010"><code class="docutils literal notranslate"><span class="pre">verifier.py#final-poly-intt</span></code></a>).</p></li>
+<li><p>Let <span class="math notranslate nohighlight">\(D = 2^{b_K - (n_{\mathrm{ext}} - n)}\)</span> be the degree bound
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-1015"><code class="docutils literal notranslate"><span class="pre">verifier.py#degree-bound</span></code></a>).</p></li>
+<li><p><strong>Check:</strong> all coefficients above degree <span class="math notranslate nohighlight">\(D\)</span> are zero
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-1020"><code class="docutils literal notranslate"><span class="pre">verifier.py#check-high-coeffs</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   \hat{F}_K[i] = 0 \quad \text{for all } i \geq D.
+   \]</div>
+</li>
+</ol>
+</section>
+<section id="query-derivation">
+<span id="sec-queries"></span><h2>Query Derivation<a class="headerlink" href="#query-derivation" title="Link to this heading">#</a></h2>
+<ol class="arabic">
+<li><p>Initialize a fresh transcript <span class="math notranslate nohighlight">\(\T'\)</span> and seed it
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-106"><code class="docutils literal notranslate"><span class="pre">verifier.py#derive-queries</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   \T'.\abs(\chi_{\mathrm{grind}},\; \eta).
+   \]</div>
+</li>
+<li><p>Derive <span class="math notranslate nohighlight">\(Q_{\mathrm{queries}}\)</span> query indices
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-110"><code class="docutils literal notranslate"><span class="pre">verifier.py#verifier-squeeze-query-indices</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   (q_1, \ldots, q_{Q_{\mathrm{queries}}})
+   \;\leftarrow\; \T'.\sqidx(Q_{\mathrm{queries}},\; b_0).
+   \]</div>
+</li>
+</ol>
+</section>
+<section id="merkle-tree-verification">
+<span id="sec-merkle-check"></span><h2>Merkle Tree Verification<a class="headerlink" href="#merkle-tree-verification" title="Link to this heading">#</a></h2>
+<p>For each query <span class="math notranslate nohighlight">\(q\)</span> and each commitment
+(stage 1, stage 2, quotient, constants, and any custom commits):</p>
+<ol class="arabic simple">
+<li><p>Hash the leaf values via Poseidon2 linear hashing.</p></li>
+<li><p>Walk the authentication path using the provided siblings.</p></li>
+<li><p><strong>Check:</strong> the computed root matches the committed root
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-829"><code class="docutils literal notranslate"><span class="pre">verifier.py#stage-merkle-check</span></code></a> for stage trees,
+<a class="reference external" href="../_modules/protocol/verifier.html#L-829"><code class="docutils literal notranslate"><span class="pre">verifier.py#stage-merkle-check</span></code></a> for constants,
+<a class="reference external" href="../_modules/protocol/verifier.html#L-906"><code class="docutils literal notranslate"><span class="pre">verifier.py#fri-merkle-check</span></code></a> for FRI layers).</p></li>
+</ol>
+</section>
+<section id="fri-polynomial-consistency">
+<span id="sec-fri-consistency"></span><h2>FRI Polynomial Consistency<a class="headerlink" href="#fri-polynomial-consistency" title="Link to this heading">#</a></h2>
+<p>For each query point <span class="math notranslate nohighlight">\(q \in \{q_1, \ldots, q_{Q_{\mathrm{queries}}}\}\)</span>
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-784"><code class="docutils literal notranslate"><span class="pre">_verify_fri_consistency</span></code></a>):</p>
+<ol class="arabic">
+<li><p>Let <span class="math notranslate nohighlight">\(x_q = g \cdot \omega_{\mathrm{ext}}^q \in H^*\)</span> be the evaluation point.</p></li>
+<li><p>Using the polynomial values extracted from Merkle proofs at index <span class="math notranslate nohighlight">\(q\)</span>,
+compute <span class="math notranslate nohighlight">\(F(x_q)\)</span> via the batching formula <a class="reference internal" href="commitment-phase.html#equation-eq-fri-polynomial">(6)</a>
+(<a class="reference external" href="../_modules/protocol/fri_polynomial.html#L-251"><code class="docutils literal notranslate"><span class="pre">fri_polynomial.py#batching-formula</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   F(x_q) = \sum_{g \in \mathcal{G}} v_1^{|\mathcal{G}|-1-g}
+            \Biggl(
+              \frac{1}{x_q - \xi \cdot \omega^{o_g}}
+              \sum_{j=0}^{n_g} v_2^{n_g - j}
+              \bigl(p_j(x_q) - e_j\bigr)
+            \Biggr).
+   \]</div>
+</li>
+<li><p><strong>Check:</strong> <span class="math notranslate nohighlight">\(F(x_q)\)</span> matches the value committed in the first FRI layer
+at the corresponding index.</p></li>
+</ol>
+</section>
+<section id="fri-folding-verification">
+<span id="sec-fri-fold-verify"></span><h2>FRI Folding Verification<a class="headerlink" href="#fri-folding-verification" title="Link to this heading">#</a></h2>
+<p>For each FRI round <span class="math notranslate nohighlight">\(k = 1, \ldots, K\)</span> and each query <span class="math notranslate nohighlight">\(q\)</span>
+(<a class="reference external" href="../_modules/protocol/verifier.html#L-933"><code class="docutils literal notranslate"><span class="pre">_verify_fri_folding</span></code></a>):</p>
+<ol class="arabic">
+<li><p>Extract the <span class="math notranslate nohighlight">\(f = 2^{b_{k-1} - b_k}\)</span> sibling evaluations from the
+layer-<span class="math notranslate nohighlight">\((k-1)\)</span> Merkle proof (all members of the coset group
+containing query <span class="math notranslate nohighlight">\(q\)</span>).</p></li>
+<li><p>Interpolate the siblings to coefficient form
+(size-<span class="math notranslate nohighlight">\(f\)</span> interpolation).</p></li>
+<li><p>Apply coset correction and evaluate at the transformed challenge point
+(<a class="reference external" href="../_modules/protocol/fri.html#L-86"><code class="docutils literal notranslate"><span class="pre">verify_fold</span></code></a>):</p>
+<div class="math notranslate nohighlight">
+\[
+   \hat{\beta}_k = \frac{\beta_{k-1}}{g^{\,2^{n_{\mathrm{ext}} - b_{k-1}}} \cdot \omega_{b_{k-1}}^{\,q}},
+   \]</div>
+<p>where <span class="math notranslate nohighlight">\(\omega_{b_{k-1}}\)</span> is the primitive <span class="math notranslate nohighlight">\(2^{b_{k-1}}\)</span>-th root of unity
+and <span class="math notranslate nohighlight">\(g^{2^{n_{\mathrm{ext}} - b_{k-1}}}\)</span> is the accumulated coset shift
+at FRI level <span class="math notranslate nohighlight">\(k-1\)</span>.</p>
+</li>
+<li><p>Compute the folded value:</p>
+<div class="math notranslate nohighlight">
+\[
+   v = \sum_{i=0}^{f-1} c_i \cdot \hat{\beta}_k^{\;i},
+   \]</div>
+<p>where <span class="math notranslate nohighlight">\(c_0, \ldots, c_{f-1}\)</span> are the interpolated coefficients.</p>
+</li>
+<li><p><strong>Check:</strong>
+<span class="math notranslate nohighlight">\(v\)</span> matches the committed value in layer <span class="math notranslate nohighlight">\(k\)</span>
+(or in the final polynomial <span class="math notranslate nohighlight">\(F_K\)</span> for the last round).</p></li>
+</ol>
+<p><strong>Acceptance.</strong>
+The verifier accepts if and only if all checks in
+<a class="reference internal" href="#sec-constraint-check"><span class="std std-ref">Constraint Check</span></a>, <a class="reference internal" href="#sec-grinding-check"><span class="std std-ref">Grinding Check</span></a>, <a class="reference internal" href="#sec-degree-check"><span class="std std-ref">Final Polynomial Degree Check</span></a>, <a class="reference internal" href="#sec-merkle-check"><span class="std std-ref">Merkle Tree Verification</span></a>, <a class="reference internal" href="#sec-fri-consistency"><span class="std std-ref">FRI Polynomial Consistency</span></a>, <a class="reference internal" href="#sec-fri-fold-verify"><span class="std std-ref">FRI Folding Verification</span></a> pass.</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="commitment-phase.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">STARK Protocol: Commitment Phase</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="challenge-binding.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Multi-AIR Challenge Binding</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcript-reconstruction">Transcript Reconstruction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#constraint-check">Constraint Check</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#grinding-check">Grinding Check</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#final-polynomial-degree-check">Final Polynomial Degree Check</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#query-derivation">Query Derivation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#merkle-tree-verification">Merkle Tree Verification</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fri-polynomial-consistency">FRI Polynomial Consistency</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fri-folding-verification">FRI Folding Verification</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

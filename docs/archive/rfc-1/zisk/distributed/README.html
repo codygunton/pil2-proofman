@@ -1,0 +1,1322 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ZisK Distributed Proving System &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'zisk/distributed/README';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>ZisK Distributed Proving System</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#architecture">Architecture</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#proof-generation-process">Proof Generation Process</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#key-concepts">Key Concepts</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick Start</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manual-build-and-run">Manual Build and Run</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#docker-deployment">Docker Deployment</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinator">Coordinator</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinator-configuration">Coordinator Configuration</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration-files-examples">Configuration Files examples</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#webhook-url">Webhook URL</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#fields-description">Fields Description</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#error-object-structure">Error Object Structure</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#webhook-implementation-guidelines">Webhook Implementation Guidelines</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#command-line-arguments">Command Line Arguments</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#worker">Worker</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#worker-configuration">Worker Configuration</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#input-files-handling">Input Files Handling</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Configuration Files examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#launching-a-proof">Launching a proof</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#administrative-operations">Administrative Operations</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#health-checks-and-monitoring">Health Checks and Monitoring</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting">Troubleshooting</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#common-issues">Common Issues</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#debug-mode">Debug Mode</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#log-files">Log Files</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="zisk-distributed-proving-system">
+<h1>ZisK Distributed Proving System<a class="headerlink" href="#zisk-distributed-proving-system" title="Link to this heading">#</a></h1>
+<p>A distributed proof generation system for the ZisK zkVM that orchestrates proof tasks across multiple worker nodes. The system enables horizontal scaling of proof generation workloads, allowing you to distribute computationally intensive proving operations across multiple machines for improved performance and throughput.</p>
+<section id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">#</a></h2>
+<p>The system is composed of two main actors:</p>
+<ul class="simple">
+<li><p><strong>Coordinator:</strong> Manages incoming proof requests and splits the work, based on required compute capacity, across distributed available workers.</p></li>
+<li><p><strong>Worker:</strong> Registers to the coordinator, reporting its compute capacity, and waits for tasks to be assigned. A <strong>Worker</strong> can be a single machine or a cluster of machines.</p></li>
+</ul>
+</section>
+<section id="proof-generation-process">
+<h2>Proof Generation Process<a class="headerlink" href="#proof-generation-process" title="Link to this heading">#</a></h2>
+<p>The process of generating a proof proceeds as follows:</p>
+<ol class="arabic simple">
+<li><p>The <strong>Coordinator</strong> starts on a host and listens for incoming proof requests.</p></li>
+<li><p><strong>Worker</strong> nodes connect to the Coordinator, registering their compute capacity and availability.</p></li>
+<li><p>When a proof generation request is received, the Coordinator splits the work across multiple Workers according to the requested compute capacity. A proof generation job is divided into three phases:</p>
+<ul class="simple">
+<li><p><strong>Partial Contributions:</strong> Each Worker computes its partial challenges.</p></li>
+<li><p><strong>Prove:</strong> Workers compute the global challenge and generate their respective partial proofs.</p></li>
+<li><p><strong>Aggregation:</strong> A designated Worker aggregates all partial proofs and produces the final proof for the client.</p></li>
+</ul>
+</li>
+<li><p>The Coordinator collects the final proof and returns it to the client.</p></li>
+</ol>
+<section id="key-concepts">
+<h3>Key Concepts<a class="headerlink" href="#key-concepts" title="Link to this heading">#</a></h3>
+<p><strong>Worker Selection:</strong> The Coordinator selects Workers based on their reported compute capacity and availability. When a proof request is received, the Coordinator evaluates the required compute capacity and selects Workers sequentially from the pool of available Workers until the total capacity requirement is met. When a worker is assigned to a job, it is marked as busy and will not receive new tasks until it completes the current job.</p>
+<p><strong>Aggregator Selection:</strong> The first Worker to send its partial proof to the Coordinator is selected as the Aggregator to perform the aggregation of all partial proofs into the final proof. The other Workers are marked as available again after sending their partial proofs.</p>
+</section>
+</section>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<section id="manual-build-and-run">
+<h3>Manual Build and Run<a class="headerlink" href="#manual-build-and-run" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># Build binaries (from project root)</span>
+<a id="L-2" name="L-2" href="#L-2"></a>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>--bin<span class="w"> </span>zisk-worker
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="c1"># Run coordinator</span>
+<a id="L-5" name="L-5" href="#L-5"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="c1"># Run a worker node (in another terminal)</span>
+<a id="L-8" name="L-8" href="#L-8"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-worker<span class="w"> </span>--<span class="w"> </span>--elf<span class="w"> </span>&lt;elf-file-path&gt;<span class="w"> </span>--inputs-folder<span class="w"> </span>&lt;inputs-folder&gt;
+<a id="L-9" name="L-9" href="#L-9"></a>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="c1"># Generate a proof (in another terminal)</span>
+<a id="L-11" name="L-11" href="#L-11"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>prove<span class="w"> </span>--input<span class="w"> </span>&lt;input-filename&gt;<span class="w"> </span>--compute-capacity<span class="w"> </span><span class="m">10</span>
+</pre></div>
+</div>
+</section>
+<section id="docker-deployment">
+<h3>Docker Deployment<a class="headerlink" href="#docker-deployment" title="Link to this heading">#</a></h3>
+<p>The easiest way to run the distributed system:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># 0. Build the Docker image (CPU-only, default)</span>
+<a id="L-2" name="L-2" href="#L-2"></a>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>zisk-distributed:latest<span class="w"> </span>-f<span class="w"> </span>distributed/Dockerfile<span class="w"> </span>.
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="c1"># 0b. Build with GPU support (if needed)</span>
+<a id="L-5" name="L-5" href="#L-5"></a>docker<span class="w"> </span>build<span class="w"> </span>--build-arg<span class="w"> </span><span class="nv">GPU</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>-t<span class="w"> </span>zisk-distributed:gpu<span class="w"> </span>-f<span class="w"> </span>distributed/Dockerfile<span class="w"> </span>.
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="c1"># Create a user-defined network so container names resolve via DNS</span>
+<a id="L-8" name="L-8" href="#L-8"></a>docker<span class="w"> </span>network<span class="w"> </span>create<span class="w"> </span>zisk-net<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<a id="L-9" name="L-9" href="#L-9"></a>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="c1"># 1. Start coordinator container (detached)</span>
+<a id="L-11" name="L-11" href="#L-11"></a><span class="nv">LOGS_DIR</span><span class="o">=</span><span class="s2">&quot;&lt;logs-folder&gt;&quot;</span>
+<a id="L-12" name="L-12" href="#L-12"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--rm<span class="w"> </span>--name<span class="w"> </span>zisk-coordinator<span class="w"> </span><span class="se">\</span>
+<a id="L-13" name="L-13" href="#L-13"></a><span class="w">  </span>--network<span class="w"> </span>zisk-net<span class="w"> </span><span class="se">\</span>
+<a id="L-14" name="L-14" href="#L-14"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$LOGS_DIR</span><span class="s2">:/var/log/distributed&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-15" name="L-15" href="#L-15"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">RUST_LOG</span><span class="o">=</span>info<span class="w"> </span><span class="se">\</span>
+<a id="L-16" name="L-16" href="#L-16"></a><span class="w">  </span>zisk-distributed:latest<span class="w"> </span><span class="se">\</span>
+<a id="L-17" name="L-17" href="#L-17"></a><span class="w">  </span>zisk-coordinator<span class="w"> </span>--config<span class="w"> </span>/app/config/coordinator/dev.toml
+<a id="L-18" name="L-18" href="#L-18"></a>
+<a id="L-19" name="L-19" href="#L-19"></a><span class="c1"># 2. View coordinator logs</span>
+<a id="L-20" name="L-20" href="#L-20"></a>docker<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>zisk-coordinator
+<a id="L-21" name="L-21" href="#L-21"></a>
+<a id="L-22" name="L-22" href="#L-22"></a><span class="c1"># 3. Start worker container(s) in a different terminal(s) - they connect to coordinator by container name</span>
+<a id="L-23" name="L-23" href="#L-23"></a><span class="c1"># Replace paths with your actual directories</span>
+<a id="L-24" name="L-24" href="#L-24"></a><span class="nv">LOGS_DIR</span><span class="o">=</span><span class="s2">&quot;&lt;logs-folder&gt;&quot;</span>
+<a id="L-25" name="L-25" href="#L-25"></a><span class="nv">PROVING_KEY_DIR</span><span class="o">=</span><span class="s2">&quot;&lt;provingKey-folder&gt;&quot;</span>
+<a id="L-26" name="L-26" href="#L-26"></a><span class="nv">ELF_DIR</span><span class="o">=</span><span class="s2">&quot;&lt;elf-folder&gt;&quot;</span>
+<a id="L-27" name="L-27" href="#L-27"></a><span class="nv">INPUTS_DIR</span><span class="o">=</span><span class="s2">&quot;&lt;inputs-folder&gt;&quot;</span>
+<a id="L-28" name="L-28" href="#L-28"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--rm<span class="w"> </span>--name<span class="w"> </span>zisk-worker-1<span class="w"> </span><span class="se">\</span>
+<a id="L-29" name="L-29" href="#L-29"></a><span class="w">  </span>--network<span class="w"> </span>zisk-net<span class="w"> </span>--shm-size<span class="o">=</span>20g<span class="w"> </span><span class="se">\</span>
+<a id="L-30" name="L-30" href="#L-30"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$LOGS_DIR</span><span class="s2">:/var/log/distributed&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-31" name="L-31" href="#L-31"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$HOME</span><span class="s2">/.zisk/cache:/app/.zisk/cache:ro&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-32" name="L-32" href="#L-32"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PROVING_KEY_DIR</span><span class="s2">:/app/proving-keys:ro&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-33" name="L-33" href="#L-33"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$ELF_DIR</span><span class="s2">:/app/elf:ro&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-34" name="L-34" href="#L-34"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$INPUTS_DIR</span><span class="s2">:/app/inputs:ro&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-35" name="L-35" href="#L-35"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">RUST_LOG</span><span class="o">=</span>info<span class="w"> </span><span class="se">\</span>
+<a id="L-36" name="L-36" href="#L-36"></a><span class="w">  </span>zisk-distributed:latest<span class="w"> </span>zisk-worker<span class="w"> </span>--coordinator-url<span class="w"> </span>http://zisk-coordinator:50051<span class="w"> </span><span class="se">\</span>
+<a id="L-37" name="L-37" href="#L-37"></a><span class="w">    </span>--elf<span class="w"> </span>/app/elf/zec.elf<span class="w"> </span>--proving-key<span class="w"> </span>/app/proving-keys<span class="w"> </span>--inputs-folder<span class="w"> </span>/app/inputs
+<a id="L-38" name="L-38" href="#L-38"></a>
+<a id="L-39" name="L-39" href="#L-39"></a><span class="c1"># 4. View coordinator logs</span>
+<a id="L-40" name="L-40" href="#L-40"></a>docker<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>zisk-worker-1
+<a id="L-41" name="L-41" href="#L-41"></a>
+<a id="L-42" name="L-42" href="#L-42"></a><span class="c1"># Generate a proof (use filename only, not full path)</span>
+<a id="L-43" name="L-43" href="#L-43"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>zisk-coordinator<span class="w"> </span><span class="se">\</span>
+<a id="L-44" name="L-44" href="#L-44"></a><span class="w">  </span>zisk-coordinator<span class="w"> </span>prove<span class="w"> </span>--input<span class="w"> </span>&lt;input-filename&gt;<span class="w"> </span>--compute-capacity<span class="w"> </span><span class="m">10</span>
+<a id="L-45" name="L-45" href="#L-45"></a>
+<a id="L-46" name="L-46" href="#L-46"></a><span class="c1"># Stop containers</span>
+<a id="L-47" name="L-47" href="#L-47"></a>docker<span class="w"> </span>stop<span class="w"> </span>zisk-coordinator<span class="w"> </span>zisk-worker-1
+<a id="L-48" name="L-48" href="#L-48"></a>docker<span class="w"> </span>rm<span class="w"> </span>zisk-coordinator<span class="w"> </span>zisk-worker-1
+</pre></div>
+</div>
+<p><strong>Note:</strong></p>
+<ul class="simple">
+<li><p><strong>GPU Support:</strong> Use <code class="docutils literal notranslate"><span class="pre">--build-arg</span> <span class="pre">GPU=true</span></code> when building if you need GPU acceleration</p></li>
+<li><p><strong>Configuration:</strong> Built-in configs are used by default, no external mounting needed</p></li>
+<li><p><strong>Paths in container:</strong></p>
+<ul>
+<li><p>Configuration: <code class="docutils literal notranslate"><span class="pre">/app/config/{coordinator,worker}/</span></code></p></li>
+<li><p>Binaries: <code class="docutils literal notranslate"><span class="pre">/app/bin/</span></code></p></li>
+<li><p>Cache: <code class="docutils literal notranslate"><span class="pre">/app/.zisk/cache/</span></code> (mounted from host <code class="docutils literal notranslate"><span class="pre">$HOME/.zisk/cache</span></code>)</p></li>
+<li><p>Logs: <code class="docutils literal notranslate"><span class="pre">/var/log/distributed/</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<section id="coordinator">
+<h2>Coordinator<a class="headerlink" href="#coordinator" title="Link to this heading">#</a></h2>
+<p>The coordinator is responsible for managing the distributed proof generation process. It receives proof requests from clients and assigns work to available workers.</p>
+<p>To start a coordinator instance with default settings:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator
+</pre></div>
+</div>
+<section id="coordinator-configuration">
+<h3>Coordinator Configuration<a class="headerlink" href="#coordinator-configuration" title="Link to this heading">#</a></h3>
+<p>The coordinator can be configured using either a <strong>TOML configuration file</strong> or <strong>command-line arguments</strong>.
+If no configuration file is explicitly provided, the system falls back to the <code class="docutils literal notranslate"><span class="pre">ZISK_COORDINATOR_CONFIG_PATH</span></code> environment variable to locate one. If neither the CLI argument nor environment variable is set, built-in defaults are used.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># You can specify the configuration file path using a command line argument:</span>
+<a id="L-2" name="L-2" href="#L-2"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>--<span class="w"> </span>--config<span class="w"> </span>/path/to/my-config.toml
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="c1"># You can specify the configuration file path using an environment variable:</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ZISK_COORDINATOR_CONFIG_PATH</span><span class="o">=</span><span class="s2">&quot;/path/to/my-config.toml&quot;</span>
+<a id="L-6" name="L-6" href="#L-6"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator
+</pre></div>
+</div>
+<p>The table below lists the available configuration options for the Coordinator:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>TOML Key</p></th>
+<th class="head"><p>CLI Argument</p></th>
+<th class="head"><p>Environment Variable</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">service.name</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>ZisK Distributed Coordinator</p></td>
+<td><p>Service name</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">service.environment</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>development</p></td>
+<td><p>Service environment (development, staging, production)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">server.host</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>0.0.0.0</p></td>
+<td><p>Server host</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">server.port</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--port</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>50051</p></td>
+<td><p>Server port</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">server.proofs_dir</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--proofs-dir</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>proofs</p></td>
+<td><p>Directory to save generated proofs</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">server.shutdown_timeout_seconds</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>30</p></td>
+<td><p>Graceful shutdown timeout in seconds</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">logging.level</span></code></p></td>
+<td><p>-</p></td>
+<td><p>RUST_LOG</p></td>
+<td><p>String</p></td>
+<td><p>debug</p></td>
+<td><p>Logging level (error, warn, info, debug, trace)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">logging.format</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>pretty</p></td>
+<td><p>Logging format (pretty, json, compact)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">logging.file_path</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>-</p></td>
+<td><p><em>Optional</em>. Log file path (enables file logging)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coordinator.max_workers_per_job</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>10</p></td>
+<td><p>Maximum workers per proof job</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">coordinator.max_total_workers</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>1000</p></td>
+<td><p>Maximum total registered workers</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coordinator.phase1_timeout_seconds</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>300</p></td>
+<td><p>Phase 1 timeout in seconds</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">coordinator.phase2_timeout_seconds</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>600</p></td>
+<td><p>Phase 2 timeout in seconds</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coordinator.webhook_url</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--webhook-url</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>-</p></td>
+<td><p><em>Optional</em>. Webhook URL to notify on job completion</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="configuration-files-examples">
+<h4>Configuration Files examples<a class="headerlink" href="#configuration-files-examples" title="Link to this heading">#</a></h4>
+<p>Example development configuration file:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">[service]</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;ZisK Distributed Coordinator&quot;</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="n">environment</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;development&quot;</span>
+<a id="L-4" name="L-4" href="#L-4"></a>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="k">[logging]</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;debug&quot;</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="n">format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;pretty&quot;</span>
+</pre></div>
+</div>
+<p>Example production configuration file:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">[service]</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;ZisK Distributed Coordinator&quot;</span><span class="w">  </span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="n">environment</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;production&quot;</span>
+<a id="L-4" name="L-4" href="#L-4"></a>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="k">[server]</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="n">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.0.0.0&quot;</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">50051</span>
+<a id="L-8" name="L-8" href="#L-8"></a><span class="n">proofs_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;proofs&quot;</span>
+<a id="L-9" name="L-9" href="#L-9"></a>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="k">[logging]</span>
+<a id="L-11" name="L-11" href="#L-11"></a><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;info&quot;</span>
+<a id="L-12" name="L-12" href="#L-12"></a><span class="n">format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;json&quot;</span>
+<a id="L-13" name="L-13" href="#L-13"></a><span class="n">file_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/var/log/distributed/coordinator.log&quot;</span>
+<a id="L-14" name="L-14" href="#L-14"></a>
+<a id="L-15" name="L-15" href="#L-15"></a><span class="k">[coordinator]</span>
+<a id="L-16" name="L-16" href="#L-16"></a><span class="n">max_workers_per_job</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span><span class="w">      </span><span class="c1"># Maximum workers per proof job</span>
+<a id="L-17" name="L-17" href="#L-17"></a><span class="n">max_total_workers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="w">      </span><span class="c1"># Maximum total registered workers  </span>
+<a id="L-18" name="L-18" href="#L-18"></a><span class="n">phase1_timeout_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">600</span><span class="w">  </span><span class="c1"># 10 minutes for phase 1</span>
+<a id="L-19" name="L-19" href="#L-19"></a><span class="n">phase2_timeout_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1200</span><span class="w"> </span><span class="c1"># 20 minutes for phase 2</span>
+<a id="L-20" name="L-20" href="#L-20"></a><span class="n">webhook_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://webhook.example.com/notify?job_id={$job_id}&quot;</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="webhook-url">
+<h3>Webhook URL<a class="headerlink" href="#webhook-url" title="Link to this heading">#</a></h3>
+<p>The Coordinator can notify an external service when a job finishes by sending a request to a configured webhook URL.
+The placeholder {$job_id} can be included in the URL and will be replaced with the finished job’s ID.
+If no placeholder is provided, the Coordinator automatically appends /{job_id} to the end of the URL.</p>
+<p>All webhook notifications are sent as JSON POST requests with the following structure:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="p">{</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="w">  </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;job_12345&quot;</span><span class="p">,</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="w">  </span><span class="nt">&quot;duration_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">45000</span><span class="p">,</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="w">  </span><span class="nt">&quot;proof&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">&lt;array</span><span class="w"> </span><span class="err">o</span><span class="kc">f</span><span class="w"> </span><span class="err">u</span><span class="mf">64...</span><span class="err">&gt;</span><span class="p">,</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-10-03T14:30:00Z&quot;</span><span class="p">,</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+<a id="L-8" name="L-8" href="#L-8"></a><span class="p">}</span>
+</pre></div>
+</div>
+<section id="fields-description">
+<h4>Fields Description<a class="headerlink" href="#fields-description" title="Link to this heading">#</a></h4>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">job_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p>Unique identifier for the proof generation job</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if proof generation completed successfully, <code class="docutils literal notranslate"><span class="pre">false</span></code> if it failed</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">duration_ms</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">number</span></code></p></td>
+<td><p>Total execution time in milliseconds from job start to completion</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">proof</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">array&lt;u64&gt;</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Final proof data as array of integers (only present on success)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timestamp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p>ISO 8601 timestamp when the notification was sent</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">error</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">object</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Error details (only present on failure)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="error-object-structure">
+<h4>Error Object Structure<a class="headerlink" href="#error-object-structure" title="Link to this heading">#</a></h4>
+<p>When <code class="docutils literal notranslate"><span class="pre">success</span></code> is <code class="docutils literal notranslate"><span class="pre">false</span></code>, the <code class="docutils literal notranslate"><span class="pre">error</span></code> field contains:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="p">{</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="w">  </span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;WORKER_FAILURE&quot;</span><span class="p">,</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Worker node-003 failed during proof generation: Out of memory&quot;</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Successful Proof Generation Example::</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="p">{</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="w">  </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;job_abc123&quot;</span><span class="p">,</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="w">  </span><span class="nt">&quot;duration_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">32500</span><span class="p">,</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="w">  </span><span class="nt">&quot;proof&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">1234567890</span><span class="p">,</span><span class="w"> </span><span class="mi">9876543210</span><span class="p">,</span><span class="w"> </span><span class="mi">1357924680</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">],</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-10-03T14:30:25Z&quot;</span><span class="p">,</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+<a id="L-8" name="L-8" href="#L-8"></a><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Failed Job Example:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="p">{</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="w">  </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;job_def456&quot;</span><span class="p">,</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="w">  </span><span class="nt">&quot;duration_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">15000</span><span class="p">,</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="w">  </span><span class="nt">&quot;proof&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-10-03T14:31:10Z&quot;</span><span class="p">,</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="L-8" name="L-8" href="#L-8"></a><span class="w">    </span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;WORKER_ERROR&quot;</span><span class="p">,</span>
+<a id="L-9" name="L-9" href="#L-9"></a><span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Memory exhaustion during proof generation&quot;</span>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-11" name="L-11" href="#L-11"></a><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="webhook-implementation-guidelines">
+<h4>Webhook Implementation Guidelines<a class="headerlink" href="#webhook-implementation-guidelines" title="Link to this heading">#</a></h4>
+<p><em>HTTP Requirements:</em></p>
+<ul class="simple">
+<li><p><strong>Method</strong>: POST</p></li>
+<li><p><strong>Content-Type</strong>: <code class="docutils literal notranslate"><span class="pre">application/json</span></code></p></li>
+<li><p><strong>Timeout</strong>: 10 seconds (configurable)</p></li>
+<li><p><strong>Retry</strong>: Currently no automatic retries (implement idempotency)</p></li>
+</ul>
+<p><em>Recommended Response:</em></p>
+<p>Your webhook endpoint should respond with:</p>
+<ul class="simple">
+<li><p><strong>Success</strong>: HTTP 200-299 status code</p></li>
+<li><p><strong>Body</strong>: Any valid response (ignored by coordinator)</p></li>
+</ul>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">200</span> <span class="ne">OK</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="p">{</span><span class="nt">&quot;received&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;job_abc123&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>If your webhook endpoint is unavailable or returns an error:</p>
+<ul class="simple">
+<li><p>The coordinator logs the failure but continues operation</p></li>
+<li><p>No automatic retries are performed</p></li>
+<li><p>Consider implementing your own retry mechanism or message queue</p></li>
+</ul>
+</section>
+</section>
+<section id="command-line-arguments">
+<h3>Command Line Arguments<a class="headerlink" href="#command-line-arguments" title="Link to this heading">#</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># Show help</span>
+<a id="L-2" name="L-2" href="#L-2"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>--<span class="w"> </span>--help
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="c1"># Run coordinator with custom port</span>
+<a id="L-5" name="L-5" href="#L-5"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>--<span class="w"> </span>--port<span class="w"> </span><span class="m">50051</span>
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="c1"># Run with specific configuration</span>
+<a id="L-8" name="L-8" href="#L-8"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>--<span class="w"> </span>--config<span class="w"> </span>production.toml
+<a id="L-9" name="L-9" href="#L-9"></a>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="c1"># Run with webhook URL  </span>
+<a id="L-11" name="L-11" href="#L-11"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>--<span class="w"> </span>--webhook-url<span class="w"> </span>http://webhook.example.com/notify<span class="w"> </span>--port<span class="w"> </span><span class="m">50051</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="worker">
+<h2>Worker<a class="headerlink" href="#worker" title="Link to this heading">#</a></h2>
+<p>The worker is responsible for executing proof generation tasks assigned by the coordinator. It registers with the coordinator, reports its compute capacity, and waits for tasks to be assigned.</p>
+<p>To start a worker instance with default settings:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-worker<span class="w"> </span>--<span class="w"> </span>--elf<span class="w"> </span>&lt;elf-file-path&gt;<span class="w"> </span>--inputs-folder<span class="w"> </span>&lt;inputs-folder&gt;
+</pre></div>
+</div>
+<section id="worker-configuration">
+<h3>Worker Configuration<a class="headerlink" href="#worker-configuration" title="Link to this heading">#</a></h3>
+<p>The worker can be configured using either a <strong>TOML configuration file</strong> or <strong>command-line arguments</strong>.
+If no configuration file is explicitly provided, the system falls back to the <code class="docutils literal notranslate"><span class="pre">ZISK_WORKER_CONFIG_PATH</span></code> environment variable to locate one. If neither the CLI argument nor environment variable is set, built-in defaults are used.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># You can specify the configuration file path using a command line argument:</span>
+<a id="L-2" name="L-2" href="#L-2"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-worker<span class="w"> </span>--<span class="w"> </span>--config<span class="w"> </span>/path/to/my-config.toml
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="c1"># You can specify the configuration file path using an environment variable:</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ZISK_WORKER_CONFIG_PATH</span><span class="o">=</span><span class="s2">&quot;/path/to/my-config.toml&quot;</span>
+<a id="L-6" name="L-6" href="#L-6"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-worker
+</pre></div>
+</div>
+</section>
+<section id="input-files-handling">
+<h3>Input Files Handling<a class="headerlink" href="#input-files-handling" title="Link to this heading">#</a></h3>
+<p>Workers need to know where to find input files for proof generation. The <code class="docutils literal notranslate"><span class="pre">--inputs-folder</span></code> parameter specifies the base directory where input files are stored:</p>
+<ul class="simple">
+<li><p><strong>Default</strong>: Current working directory (<code class="docutils literal notranslate"><span class="pre">.</span></code>) if not specified</p></li>
+<li><p><strong>Usage</strong>: When the coordinator sends a prove command with an input filename, the worker combines <code class="docutils literal notranslate"><span class="pre">--inputs-folder</span></code> + <code class="docutils literal notranslate"><span class="pre">filename</span></code> to locate the file</p></li>
+<li><p><strong>Benefits</strong>: Allows input files to be organized in a dedicated directory, separate from the worker executable</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># Worker with inputs in specific folder</span>
+<a id="L-2" name="L-2" href="#L-2"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-worker<span class="w"> </span>--<span class="w"> </span>--elf<span class="w"> </span>program.elf<span class="w"> </span>--inputs-folder<span class="w"> </span>/data/inputs/
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="c1"># Coordinator requests proof for &quot;input.bin&quot; -&gt; Worker looks for &quot;/data/inputs/input.bin&quot;</span>
+<a id="L-5" name="L-5" href="#L-5"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>--<span class="w"> </span>prove<span class="w"> </span>--input<span class="w"> </span>input.bin<span class="w"> </span>--compute-capacity<span class="w"> </span><span class="m">10</span>
+</pre></div>
+</div>
+<p>The table below lists the available configuration options for the Worker:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>TOML Key</p></th>
+<th class="head"><p>CLI Argument</p></th>
+<th class="head"><p>Environment Variable</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">worker.worker_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--worker-id</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>Auto-generated UUID</p></td>
+<td><p>Unique worker identifier</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">worker.compute_capacity.compute_units</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--compute-capacity</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>10</p></td>
+<td><p>Worker compute capacity (in compute units)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">worker.environment</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>development</p></td>
+<td><p>Service environment (development, staging, production)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">worker.inputs_folder</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--inputs-folder</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>.</p></td>
+<td><p>Path to folder containing input files</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">coordinator.url</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--coordinator-url</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>http://127.0.0.1:50051</p></td>
+<td><p>Coordinator server URL</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">connection.reconnect_interval_seconds</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>5</p></td>
+<td><p>Reconnection interval in seconds</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">connection.heartbeat_timeout_seconds</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>30</p></td>
+<td><p>Heartbeat timeout in seconds</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">logging.level</span></code></p></td>
+<td><p>-</p></td>
+<td><p>RUST_LOG</p></td>
+<td><p>String</p></td>
+<td><p>debug</p></td>
+<td><p>Logging level (error, warn, info, debug, trace)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">logging.format</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>pretty</p></td>
+<td><p>Logging format (pretty, json, compact)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">logging.file_path</span></code></p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>-</p></td>
+<td><p><em>Optional</em>. Log file path (enables file logging)</p></td>
+</tr>
+<tr class="row-even"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--witness-lib</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>~/.zisk/bin/libzisk_witness.so</p></td>
+<td><p>Path to witness computation dynamic library</p></td>
+</tr>
+<tr class="row-odd"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--proving-key</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>~/.zisk/provingKey</p></td>
+<td><p>Path to setup folder</p></td>
+</tr>
+<tr class="row-even"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--elf</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>-</p></td>
+<td><p>Path to ELF file</p></td>
+</tr>
+<tr class="row-odd"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--asm</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>~/.zisk/cache</p></td>
+<td><p>Path to ASM file (mutually exclusive with <code class="docutils literal notranslate"><span class="pre">--emulator</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--emulator</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Boolean</p></td>
+<td><p>false</p></td>
+<td><p>Use prebuilt emulator (mutually exclusive with <code class="docutils literal notranslate"><span class="pre">--asm</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--asm-port</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>23115</p></td>
+<td><p>Base port for Assembly microservices</p></td>
+</tr>
+<tr class="row-even"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--shared-tables</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Boolean</p></td>
+<td><p>false</p></td>
+<td><p>Whether to share tables when worker is running in a cluster</p></td>
+</tr>
+<tr class="row-odd"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-v</span></code>, <code class="docutils literal notranslate"><span class="pre">-vv</span></code>, <code class="docutils literal notranslate"><span class="pre">-vvv</span></code>, …</p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>0</p></td>
+<td><p>Verbosity level (0=error, 1=warn, 2=info, 3=debug, 4=trace)</p></td>
+</tr>
+<tr class="row-even"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-d</span></code>, <code class="docutils literal notranslate"><span class="pre">--debug</span></code></p></td>
+<td><p>-</p></td>
+<td><p>String</p></td>
+<td><p>-</p></td>
+<td><p>Enable debug mode with optional component filter</p></td>
+</tr>
+<tr class="row-odd"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--verify-constraints</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Boolean</p></td>
+<td><p>false</p></td>
+<td><p>Whether to verify constraints</p></td>
+</tr>
+<tr class="row-even"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--unlock-mapped-memory</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Boolean</p></td>
+<td><p>false</p></td>
+<td><p>Unlock memory map for the ROM file (mutually exclusive with <code class="docutils literal notranslate"><span class="pre">--emulator</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-f</span></code>, <code class="docutils literal notranslate"><span class="pre">--final-snark</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Boolean</p></td>
+<td><p>false</p></td>
+<td><p>Whether to generate the final SNARK</p></td>
+</tr>
+<tr class="row-even"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-z</span></code>, <code class="docutils literal notranslate"><span class="pre">--preallocate</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Boolean</p></td>
+<td><p>false</p></td>
+<td><p>GPU preallocation flag</p></td>
+</tr>
+<tr class="row-odd"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-t</span></code>, <code class="docutils literal notranslate"><span class="pre">--max-streams</span></code></p></td>
+<td><p></p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-n</span></code>, <code class="docutils literal notranslate"><span class="pre">--number-threads-witness</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>-</p></td>
+<td><p>Number of threads for witness computation</p></td>
+</tr>
+<tr class="row-odd"><td><p>-</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-x</span></code>, <code class="docutils literal notranslate"><span class="pre">--max-witness-stored</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Number</p></td>
+<td><p>-</p></td>
+<td><p>Maximum number of witnesses to store in memory</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="id1">
+<h4>Configuration Files examples<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<p>Example development configuration file:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">[worker]</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">compute_capacity</span><span class="p">.</span><span class="n">compute_units</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="n">environment</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;development&quot;</span>
+<a id="L-4" name="L-4" href="#L-4"></a>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="k">[logging]</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;debug&quot;</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="n">format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;pretty&quot;</span>
+</pre></div>
+</div>
+<p>Example production configuration file:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">[worker]</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">worker_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my-worker-001&quot;</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="n">compute_capacity</span><span class="p">.</span><span class="n">compute_units</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="n">environment</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;production&quot;</span>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="n">inputs_folder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/app/inputs&quot;</span>
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="k">[coordinator]</span>
+<a id="L-8" name="L-8" href="#L-8"></a><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://127.0.0.1:50051&quot;</span>
+<a id="L-9" name="L-9" href="#L-9"></a>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="k">[connection]</span>
+<a id="L-11" name="L-11" href="#L-11"></a><span class="n">reconnect_interval_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span>
+<a id="L-12" name="L-12" href="#L-12"></a><span class="n">heartbeat_timeout_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
+<a id="L-13" name="L-13" href="#L-13"></a>
+<a id="L-14" name="L-14" href="#L-14"></a><span class="k">[logging]</span>
+<a id="L-15" name="L-15" href="#L-15"></a><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;info&quot;</span>
+<a id="L-16" name="L-16" href="#L-16"></a><span class="n">format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;pretty&quot;</span>
+<a id="L-17" name="L-17" href="#L-17"></a><span class="n">file_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/var/log/distributed/worker-001.log&quot;</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="launching-a-proof">
+<h2>Launching a proof<a class="headerlink" href="#launching-a-proof" title="Link to this heading">#</a></h2>
+<p>To launch a proof generation request, use the <code class="docutils literal notranslate"><span class="pre">prove</span></code> command of the <code class="docutils literal notranslate"><span class="pre">zisk-coordinator</span></code> binary, specifying the input filename and desired compute capacity.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>--<span class="w"> </span>prove<span class="w"> </span>--input<span class="w"> </span>&lt;input_filename&gt;<span class="w"> </span>--compute-capacity<span class="w"> </span><span class="m">10</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--compute-capacity</span></code> flag indicates the total compute units required to generate a proof. The coordinator will assign one or more workers to meet this capacity, distributing the workload if multiple workers are needed. Requests exceeding the combined capacity of available workers will not be processed and an error will be returned.</p>
+</section>
+<section id="administrative-operations">
+<h2>Administrative Operations<a class="headerlink" href="#administrative-operations" title="Link to this heading">#</a></h2>
+<section id="health-checks-and-monitoring">
+<h3>Health Checks and Monitoring<a class="headerlink" href="#health-checks-and-monitoring" title="Link to this heading">#</a></h3>
+<p>The coordinator exposes administrative endpoints for monitoring:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># Basic health check</span>
+<a id="L-2" name="L-2" href="#L-2"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/HealthCheck
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="c1"># System status</span>
+<a id="L-5" name="L-5" href="#L-5"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/SystemStatus
+<a id="L-6" name="L-6" href="#L-6"></a>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="c1"># List active jobs</span>
+<a id="L-8" name="L-8" href="#L-8"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;active_only&quot;: true}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-9" name="L-9" href="#L-9"></a><span class="w">  </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/JobsList
+<a id="L-10" name="L-10" href="#L-10"></a>
+<a id="L-11" name="L-11" href="#L-11"></a><span class="c1"># List connected workers</span>
+<a id="L-12" name="L-12" href="#L-12"></a>grpcurl<span class="w"> </span>-plaintext<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;available_only&quot;: true}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="L-13" name="L-13" href="#L-13"></a><span class="w">  </span><span class="m">127</span>.0.0.1:50051<span class="w"> </span>zisk.distributed.api.v1.ZiskDistributedApi/WorkersList
+</pre></div>
+</div>
+</section>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">#</a></h2>
+<section id="common-issues">
+<h3>Common Issues<a class="headerlink" href="#common-issues" title="Link to this heading">#</a></h3>
+<p><strong>Worker can’t connect to coordinator:</strong></p>
+<ul class="simple">
+<li><p>Verify coordinator is running and accessible on the specified port</p></li>
+<li><p>Check firewall settings if coordinator and worker are on different machines</p></li>
+<li><p>Ensure correct URL format: <code class="docutils literal notranslate"><span class="pre">http://host:port</span></code> (not <code class="docutils literal notranslate"><span class="pre">https://</span></code> for default setup)</p></li>
+</ul>
+<p><strong>Configuration not loading:</strong></p>
+<ul class="simple">
+<li><p>Verify TOML syntax with a TOML validator</p></li>
+<li><p>Check file permissions on configuration files</p></li>
+<li><p>Use CLI overrides to test specific values</p></li>
+</ul>
+<p><strong>Worker not receiving tasks:</strong></p>
+<ul class="simple">
+<li><p>Check worker registration in coordinator logs</p></li>
+<li><p>Verify compute capacity is appropriate for available tasks</p></li>
+<li><p>Ensure worker ID is unique if running multiple workers</p></li>
+<li><p>Confirm coordinator has active jobs to distribute</p></li>
+</ul>
+<p><strong>Input file not found errors:</strong></p>
+<ul class="simple">
+<li><p>Verify the input file exists in the worker’s <code class="docutils literal notranslate"><span class="pre">--inputs-folder</span></code> directory</p></li>
+<li><p>Check file permissions - worker needs read access to input files</p></li>
+<li><p>Ensure you’re using the filename only (not full path) when launching proofs</p></li>
+<li><p>Confirm <code class="docutils literal notranslate"><span class="pre">--inputs-folder</span></code> path is correct and accessible</p></li>
+</ul>
+<p><strong>Port conflicts:</strong></p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--port</span></code> flag or update configuration file to change ports</p></li>
+<li><p>Check for other services using the same ports</p></li>
+</ul>
+</section>
+<section id="debug-mode">
+<h3>Debug Mode<a class="headerlink" href="#debug-mode" title="Link to this heading">#</a></h3>
+<p>Enable detailed logging for troubleshooting by modifying configuration files or using CLI arguments:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="c1"># Coordinator with debug logging (via config file)</span>
+<a id="L-2" name="L-2" href="#L-2"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-coordinator<span class="w"> </span>--<span class="w"> </span>--config<span class="w"> </span>debug-coordinator.toml
+<a id="L-3" name="L-3" href="#L-3"></a>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="c1"># Worker with debug logging (via config file)</span>
+<a id="L-5" name="L-5" href="#L-5"></a>cargo<span class="w"> </span>run<span class="w"> </span>--release<span class="w"> </span>--bin<span class="w"> </span>zisk-worker<span class="w"> </span>--<span class="w"> </span>--config<span class="w"> </span>debug-worker.toml
+</pre></div>
+</div>
+<p>Where <code class="docutils literal notranslate"><span class="pre">debug-coordinator.toml</span></code> or <code class="docutils literal notranslate"><span class="pre">debug-worker.toml</span></code> contains:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">[logging]</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;debug&quot;</span>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="n">format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;pretty&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="log-files">
+<h3>Log Files<a class="headerlink" href="#log-files" title="Link to this heading">#</a></h3>
+<p>When file logging is enabled, logs are written into specified paths in the configuration files. Ensure the application has write permissions to these paths.</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="k">[logging]</span>
+<a id="L-2" name="L-2" href="#L-2"></a><span class="n">file_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/var/log/distributed/coordinator.log&quot;</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#architecture">Architecture</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#proof-generation-process">Proof Generation Process</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#key-concepts">Key Concepts</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick Start</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manual-build-and-run">Manual Build and Run</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#docker-deployment">Docker Deployment</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinator">Coordinator</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinator-configuration">Coordinator Configuration</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration-files-examples">Configuration Files examples</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#webhook-url">Webhook URL</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#fields-description">Fields Description</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#error-object-structure">Error Object Structure</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#webhook-implementation-guidelines">Webhook Implementation Guidelines</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#command-line-arguments">Command Line Arguments</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#worker">Worker</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#worker-configuration">Worker Configuration</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#input-files-handling">Input Files Handling</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Configuration Files examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#launching-a-proof">Launching a proof</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#administrative-operations">Administrative Operations</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#health-checks-and-monitoring">Health Checks and Monitoring</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting">Troubleshooting</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#common-issues">Common Issues</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#debug-mode">Debug Mode</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#log-files">Log Files</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
