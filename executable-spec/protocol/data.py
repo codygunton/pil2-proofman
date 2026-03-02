@@ -3,7 +3,7 @@
 Architecture Overview:
     The STARK prover/verifier uses a two-layer data model:
 
-    1. ProofContext (protocol/proof_context.py)
+    1. Raw numpy arrays (in protocol/stages.py and protocol/verifier.py)
        - Buffer-based storage with C++ compatible layout
        - Used by: Merkle tree building, NTT, FRI polynomial computation
        - Efficient for bulk protocol operations
@@ -13,8 +13,9 @@ Architecture Overview:
        - Used by: Constraint modules, witness modules
        - Readable for AIR-specific code
 
-    The bridge functions (_build_prover_data_base, _build_prover_data_extended)
-    convert from ProofContext to ProverData when needed for constraint/witness
+    The bridge functions (_build_prover_data_base, _build_prover_data_extended
+    in stages.py; _build_verifier_data in verifier.py) convert from the raw
+    numpy arrays to ProverData/VerifierData when needed for constraint/witness
     module evaluation.
 
 Usage:
