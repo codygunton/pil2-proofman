@@ -27,7 +27,7 @@ def collect_rust_files(app: Sphinx) -> Dict[str, Tuple[str, Dict, Path]]:
     Returns:
         Dict mapping relative path to (code, tags, source_path)
     """
-    zisk_root = Path(app.confdir).parent.parent / 'zisk'
+    zisk_root = Path(app.confdir) / 'zisk'
     if not zisk_root.exists():
         logger.warning(f"[rust_viewcode] zisk submodule not found at {zisk_root}")
         return {}

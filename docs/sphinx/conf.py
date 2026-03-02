@@ -95,7 +95,7 @@ autoapi_own_page_level = "module"
 autoapi_member_order = "bysource"
 
 # -- Rust source code viewing -------------------------------------------------
-rust_source_paths = ["state-machines"]  # Relative to zisk/ submodule
+rust_source_paths = ["state-machines", "precompiles"]  # Relative to zisk/ submodule
 autoapi_add_toctree_entry = False
 autoapi_keep_files = True
 autoapi_python_use_implicit_namespaces = True
