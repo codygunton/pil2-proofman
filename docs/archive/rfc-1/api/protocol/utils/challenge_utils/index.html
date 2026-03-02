@@ -1,0 +1,599 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>protocol.utils.challenge_utils &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/protocol/utils/challenge_utils/index';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>protocol.utils.challenge_utils</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.utils.challenge_utils.calculate_internal_contribution"><code class="docutils literal notranslate"><span class="pre">calculate_internal_contribution()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.utils.challenge_utils.derive_global_challenge"><code class="docutils literal notranslate"><span class="pre">derive_global_challenge()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.utils.challenge_utils.accumulate_contributions"><code class="docutils literal notranslate"><span class="pre">accumulate_contributions()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.utils.challenge_utils.derive_global_challenge_multi_air"><code class="docutils literal notranslate"><span class="pre">derive_global_challenge_multi_air()</span></code></a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-protocol.utils.challenge_utils">
+<span id="protocol-utils-challenge-utils"></span><h1>protocol.utils.challenge_utils<a class="headerlink" href="#module-protocol.utils.challenge_utils" title="Link to this heading">#</a></h1>
+<p>Utilities for computing global_challenge following C++ pattern.</p>
+<p>The global_challenge is derived from publics and proof values using Fiat-Shamir,
+matching the C++ implementation in proofman/src/challenge_accumulation.rs</p>
+<p>The computation has three steps:
+1. Hash [verkey, root1, air_values] through transcript to get 16-element state
+2. Expand to latticeSize elements via Poseidon2 hash chain
+3. Hash [publics, proof_values_stage1, expanded_contribution] to get challenge</p>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.utils.challenge_utils.calculate_internal_contribution" title="protocol.utils.challenge_utils.calculate_internal_contribution"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_internal_contribution</span></code></a>(→ list[int])</p></td>
+<td><p>Compute internal contribution by hashing verkey + root1 + air_values.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.utils.challenge_utils.derive_global_challenge" title="protocol.utils.challenge_utils.derive_global_challenge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">derive_global_challenge</span></code></a>(→ list[int])</p></td>
+<td><p>Derive global_challenge from publics and proof values.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.utils.challenge_utils.accumulate_contributions" title="protocol.utils.challenge_utils.accumulate_contributions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">accumulate_contributions</span></code></a>(→ list[int])</p></td>
+<td><p>Element-wise sum of per-AIR contribution vectors (mod Goldilocks prime).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.utils.challenge_utils.derive_global_challenge_multi_air" title="protocol.utils.challenge_utils.derive_global_challenge_multi_air"><code class="xref py py-obj docutils literal notranslate"><span class="pre">derive_global_challenge_multi_air</span></code></a>(→ list[int])</p></td>
+<td><p>Derive global_challenge from multiple AIR contributions.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.utils.challenge_utils.calculate_internal_contribution">
+<span class="sig-prename descclassname"><span class="pre">protocol.utils.challenge_utils.</span></span><span class="sig-name descname"><span class="pre">calculate_internal_contribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../stark_info/index.html#protocol.stark_info.StarkInfo" title="protocol.stark_info.StarkInfo"><span class="pre">protocol.stark_info.StarkInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">verkey</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">air_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">368</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../../_modules/protocol/utils/challenge_utils.html#calculate_internal_contribution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.utils.challenge_utils.calculate_internal_contribution" title="Link to this definition">#</a></dt>
+<dd><p>Compute internal contribution by hashing verkey + root1 + air_values.</p>
+<p>This matches C++ calculate_internal_contributions() in challenge_accumulation.rs.</p>
+<p>The C++ algorithm:
+1. Hash [verkey, root1, air_values] through transcript
+2. Get 16-element state
+3. Expand to lattice_size via Poseidon2 hash chain</p>
+<dl>
+<dt>Args:</dt><dd><p>stark_info: STARK configuration with transcript parameters
+verkey: 4-element verification key (constant polynomial tree root)
+root1: 4-element Stage 1 Merkle root (witness commitment)
+air_values: Optional air-specific values (empty for simple AIR)
+lattice_size: Size of contribution (from globalInfo.latticeSize)</p>
+</dd>
+<dt>Returns:</dt><dd><p>List of lattice_size field elements representing the expanded contribution.</p>
+</dd>
+<dt>C++ reference (challenge_accumulation.rs lines 46-72):</dt><dd><p>values_to_hash = [verkey[0..4], root1[0..4], air_values…]
+hash = Transcript::new()
+hash.put(values_to_hash)
+contribution = hash.get_state()</p>
+<p>// Expand to lattice_size via hash chain
+values_row[0..16] = contribution[0..16]
+n_hashes = lattice_size / 16 - 1
+for j in 0..n_hashes:</p>
+<blockquote>
+<div><p>values_row[(j+1)*16..(j+2)*16] = poseidon2_hash(values_row[j*16..(j+1)*16])</p>
+</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.utils.challenge_utils.derive_global_challenge">
+<span class="sig-prename descclassname"><span class="pre">protocol.utils.challenge_utils.</span></span><span class="sig-name descname"><span class="pre">derive_global_challenge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../stark_info/index.html#protocol.stark_info.StarkInfo" title="protocol.stark_info.StarkInfo"><span class="pre">protocol.stark_info.StarkInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">publics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verkey</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">air_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proof_values_stage1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">368</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../../_modules/protocol/utils/challenge_utils.html#derive_global_challenge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.utils.challenge_utils.derive_global_challenge" title="Link to this definition">#</a></dt>
+<dd><p>Derive global_challenge from publics and proof values.</p>
+<p>Implements C++ pattern from challenge_accumulation.rs (lines 84-111).</p>
+<p>Three-step process:
+1. Compute internal contribution = hash([verkey, root1, air_values])
+2. Expand contribution to lattice_size via Poseidon2 chain
+3. Hash [publics, proof_values_stage1, expanded_contribution] and extract challenge</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>stark_info: STARK configuration with transcript parameters
+publics: Public input array (from params.publicInputs)
+root1: Stage 1 Merkle root (from witness commitment)
+verkey: Verification key from constant polynomial tree
+air_values: Optional air-specific values (default: empty)
+proof_values_stage1: Optional Stage 1 proof values (default: empty)
+lattice_size: Size of contribution (from globalInfo.latticeSize)</p>
+</dd>
+<dt>Returns:</dt><dd><p>List of 3 field elements [c0, c1, c2] representing cubic extension challenge</p>
+</dd>
+<dt>C++ reference (challenge_accumulation.rs):</dt><dd><p>transcript = Transcript::new()
+transcript.put(publics)
+transcript.put(proof_values_stage1)  // if not empty
+contribution = calculate_internal_contributions(verkey, root1, air_values)
+transcript.put(contribution)  // all lattice_size elements!
+global_challenge = transcript.get_field()  // 3 elements</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.utils.challenge_utils.accumulate_contributions">
+<span class="sig-prename descclassname"><span class="pre">protocol.utils.challenge_utils.</span></span><span class="sig-name descname"><span class="pre">accumulate_contributions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contributions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">368</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../../_modules/protocol/utils/challenge_utils.html#accumulate_contributions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.utils.challenge_utils.accumulate_contributions" title="Link to this definition">#</a></dt>
+<dd><p>Element-wise sum of per-AIR contribution vectors (mod Goldilocks prime).</p>
+<p>Implements C++ add_contributions() for CurveType::None in challenge_accumulation.rs.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>contributions: List of per-AIR contribution vectors (each lattice_size elements).
+lattice_size: Size of each contribution vector.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Accumulated vector of lattice_size elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.utils.challenge_utils.derive_global_challenge_multi_air">
+<span class="sig-prename descclassname"><span class="pre">protocol.utils.challenge_utils.</span></span><span class="sig-name descname"><span class="pre">derive_global_challenge_multi_air</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">publics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_publics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proof_values_stage1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contributions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transcript_arity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merkle_tree_custom</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">368</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../../_modules/protocol/utils/challenge_utils.html#derive_global_challenge_multi_air"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.utils.challenge_utils.derive_global_challenge_multi_air" title="Link to this definition">#</a></dt>
+<dd><p>Derive global_challenge from multiple AIR contributions.</p>
+<p>Implements C++ calculate_global_challenge() in challenge_accumulation.rs:
+1. Accumulate per-AIR contributions via element-wise addition
+2. Hash [publics, proof_values_stage1, accumulated] via transcript
+3. Extract 3-element cubic extension challenge</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>publics: Public inputs (n_publics elements).
+n_publics: Number of public inputs to hash.
+proof_values_stage1: Stage 1 proof values (first component of each FF3).
+contributions: List of per-AIR expanded contribution vectors.
+transcript_arity: Transcript Poseidon2 arity (from globalInfo).
+merkle_tree_custom: Merkle tree custom flag.
+lattice_size: Contribution vector size (from globalInfo.latticeSize).</p>
+</dd>
+<dt>Returns:</dt><dd><p>List of 3 field elements [c0, c1, c2] representing cubic extension challenge.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.utils.challenge_utils.calculate_internal_contribution"><code class="docutils literal notranslate"><span class="pre">calculate_internal_contribution()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.utils.challenge_utils.derive_global_challenge"><code class="docutils literal notranslate"><span class="pre">derive_global_challenge()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.utils.challenge_utils.accumulate_contributions"><code class="docutils literal notranslate"><span class="pre">accumulate_contributions()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.utils.challenge_utils.derive_global_challenge_multi_air"><code class="docutils literal notranslate"><span class="pre">derive_global_challenge_multi_air()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

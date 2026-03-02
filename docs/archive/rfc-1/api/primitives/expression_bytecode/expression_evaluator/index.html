@@ -1,0 +1,1106 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>primitives.expression_bytecode.expression_evaluator &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/primitives/expression_bytecode/expression_evaluator/index';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="primitives.expression_bytecode.expressions_bin" href="../expressions_bin/index.html" />
+    <link rel="prev" title="primitives.expression_bytecode" href="../index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../../index.html">executable-spec/</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../../index.html">primitives</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 current active has-children"><a class="reference internal" href="../index.html">primitives.expression_bytecode</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l4 current active"><a class="current reference internal" href="#">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>primitives.expression_bytecode.expression_evaluator</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.FastValue"><code class="docutils literal notranslate"><span class="pre">FastValue</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.NROWS_PACK"><code class="docutils literal notranslate"><span class="pre">NROWS_PACK</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.PUBLIC_INPUTS_OFFSET"><code class="docutils literal notranslate"><span class="pre">PUBLIC_INPUTS_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.NUMBERS_OFFSET"><code class="docutils literal notranslate"><span class="pre">NUMBERS_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.AIR_VALUES_OFFSET"><code class="docutils literal notranslate"><span class="pre">AIR_VALUES_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.PROOF_VALUES_OFFSET"><code class="docutils literal notranslate"><span class="pre">PROOF_VALUES_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.AIRGROUP_VALUES_OFFSET"><code class="docutils literal notranslate"><span class="pre">AIRGROUP_VALUES_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.CHALLENGES_OFFSET"><code class="docutils literal notranslate"><span class="pre">CHALLENGES_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.EVALS_OFFSET"><code class="docutils literal notranslate"><span class="pre">EVALS_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet"><code class="docutils literal notranslate"><span class="pre">BufferSet</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.trace"><code class="docutils literal notranslate"><span class="pre">BufferSet.trace</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.aux_trace"><code class="docutils literal notranslate"><span class="pre">BufferSet.aux_trace</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols"><code class="docutils literal notranslate"><span class="pre">BufferSet.const_pols</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols_extended"><code class="docutils literal notranslate"><span class="pre">BufferSet.const_pols_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.public_inputs"><code class="docutils literal notranslate"><span class="pre">BufferSet.public_inputs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.challenges"><code class="docutils literal notranslate"><span class="pre">BufferSet.challenges</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.evals"><code class="docutils literal notranslate"><span class="pre">BufferSet.evals</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.air_values"><code class="docutils literal notranslate"><span class="pre">BufferSet.air_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.airgroup_values"><code class="docutils literal notranslate"><span class="pre">BufferSet.airgroup_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.proof_values"><code class="docutils literal notranslate"><span class="pre">BufferSet.proof_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.x_div_x_sub"><code class="docutils literal notranslate"><span class="pre">BufferSet.x_div_x_sub</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.custom_commits"><code class="docutils literal notranslate"><span class="pre">BufferSet.custom_commits</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params"><code class="docutils literal notranslate"><span class="pre">Params</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.exp_id"><code class="docutils literal notranslate"><span class="pre">Params.exp_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.dim"><code class="docutils literal notranslate"><span class="pre">Params.dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.stage"><code class="docutils literal notranslate"><span class="pre">Params.stage</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.stage_pos"><code class="docutils literal notranslate"><span class="pre">Params.stage_pos</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.pols_map_id"><code class="docutils literal notranslate"><span class="pre">Params.pols_map_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.row_offset_index"><code class="docutils literal notranslate"><span class="pre">Params.row_offset_index</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.inverse"><code class="docutils literal notranslate"><span class="pre">Params.inverse</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.batch"><code class="docutils literal notranslate"><span class="pre">Params.batch</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.op"><code class="docutils literal notranslate"><span class="pre">Params.op</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.value"><code class="docutils literal notranslate"><span class="pre">Params.value</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest"><code class="docutils literal notranslate"><span class="pre">Dest</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.dest"><code class="docutils literal notranslate"><span class="pre">Dest.dest</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.exp_id"><code class="docutils literal notranslate"><span class="pre">Dest.exp_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.offset"><code class="docutils literal notranslate"><span class="pre">Dest.offset</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.stage_pos"><code class="docutils literal notranslate"><span class="pre">Dest.stage_pos</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.stage_cols"><code class="docutils literal notranslate"><span class="pre">Dest.stage_cols</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.expr"><code class="docutils literal notranslate"><span class="pre">Dest.expr</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.dim"><code class="docutils literal notranslate"><span class="pre">Dest.dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.domain_size"><code class="docutils literal notranslate"><span class="pre">Dest.domain_size</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.params"><code class="docutils literal notranslate"><span class="pre">Dest.params</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.stark_info"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.stark_info</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.prover_helpers"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.prover_helpers</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_queries"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_queries</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.verify"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.verify</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.xis"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.xis</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.next_strides</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.next_strides_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offsets</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offsets_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_sections_n</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offsets_custom_fixed</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offsets_custom_fixed_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n_custom_fixed"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_sections_n_custom_fixed</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.min_row</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.max_row</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.min_row_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.max_row_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offset_fri_pol"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offset_fri_pol</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.buffer_commits_size"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.buffer_commits_size</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_stages"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_stages</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_publics"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_publics</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_challenges"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_challenges</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_evals"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_evals</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.rows_per_batch"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.rows_per_batch</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.set_xi"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.set_xi()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expression"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.calculate_expression()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expressions"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.calculate_expressions()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack"><code class="docutils literal notranslate"><span class="pre">ExpressionsPack</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack.rows_per_batch"><code class="docutils literal notranslate"><span class="pre">ExpressionsPack.rows_per_batch</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack.calculate_expressions"><code class="docutils literal notranslate"><span class="pre">ExpressionsPack.calculate_expressions()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-primitives.expression_bytecode.expression_evaluator">
+<span id="primitives-expression-bytecode-expression-evaluator"></span><h1>primitives.expression_bytecode.expression_evaluator<a class="headerlink" href="#module-primitives.expression_bytecode.expression_evaluator" title="Link to this heading">#</a></h1>
+<p>Expression bytecode evaluator for STARK constraint polynomials.</p>
+<p>Recovered from git history (731d33f4~1) and adapted to current codebase.</p>
+<dl class="simple">
+<dt>Mathematical variables used throughout this module:</dt><dd><p>N       – domain size (number of trace rows, = 2^n_bits)
+N_ext   – extended domain size (= 2^n_bits_ext), used for quotient evaluation
+xi      – challenge evaluation point (random point from Fiat-Shamir transcript)
+zh/Z_H  – vanishing polynomial Z_H(x) = x^N - 1
+zi      – inverse vanishing polynomial 1/Z_H(x)
+o       – row offset for shifted polynomial evaluation (from opening points)</p>
+</dd>
+</dl>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.FastValue" title="primitives.expression_bytecode.expression_evaluator.FastValue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FastValue</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.NROWS_PACK" title="primitives.expression_bytecode.expression_evaluator.NROWS_PACK"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NROWS_PACK</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.PUBLIC_INPUTS_OFFSET" title="primitives.expression_bytecode.expression_evaluator.PUBLIC_INPUTS_OFFSET"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PUBLIC_INPUTS_OFFSET</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.NUMBERS_OFFSET" title="primitives.expression_bytecode.expression_evaluator.NUMBERS_OFFSET"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NUMBERS_OFFSET</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.AIR_VALUES_OFFSET" title="primitives.expression_bytecode.expression_evaluator.AIR_VALUES_OFFSET"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AIR_VALUES_OFFSET</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.PROOF_VALUES_OFFSET" title="primitives.expression_bytecode.expression_evaluator.PROOF_VALUES_OFFSET"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PROOF_VALUES_OFFSET</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.AIRGROUP_VALUES_OFFSET" title="primitives.expression_bytecode.expression_evaluator.AIRGROUP_VALUES_OFFSET"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AIRGROUP_VALUES_OFFSET</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.CHALLENGES_OFFSET" title="primitives.expression_bytecode.expression_evaluator.CHALLENGES_OFFSET"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CHALLENGES_OFFSET</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.EVALS_OFFSET" title="primitives.expression_bytecode.expression_evaluator.EVALS_OFFSET"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EVALS_OFFSET</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.BufferSet" title="primitives.expression_bytecode.expression_evaluator.BufferSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BufferSet</span></code></a></p></td>
+<td><p>Container for flat polynomial buffers used by the bytecode evaluator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.Params" title="primitives.expression_bytecode.expression_evaluator.Params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code></a></p></td>
+<td><p>Operand specification for expression evaluation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.Dest" title="primitives.expression_bytecode.expression_evaluator.Dest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Dest</span></code></a></p></td>
+<td><p>Destination buffer for expression results.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx" title="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExpressionsCtx</span></code></a></p></td>
+<td><p>Memory layout and stride mappings for polynomial access.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack" title="primitives.expression_bytecode.expression_evaluator.ExpressionsPack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExpressionsPack</span></code></a></p></td>
+<td><p>Bytecode interpreter for constraint polynomial evaluation.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.FastValue">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">FastValue</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#FastValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.FastValue" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.NROWS_PACK">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">NROWS_PACK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">65536</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#NROWS_PACK"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.NROWS_PACK" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.PUBLIC_INPUTS_OFFSET">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">PUBLIC_INPUTS_OFFSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#PUBLIC_INPUTS_OFFSET"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.PUBLIC_INPUTS_OFFSET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.NUMBERS_OFFSET">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">NUMBERS_OFFSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#NUMBERS_OFFSET"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.NUMBERS_OFFSET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.AIR_VALUES_OFFSET">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">AIR_VALUES_OFFSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#AIR_VALUES_OFFSET"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.AIR_VALUES_OFFSET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.PROOF_VALUES_OFFSET">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">PROOF_VALUES_OFFSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#PROOF_VALUES_OFFSET"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.PROOF_VALUES_OFFSET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.AIRGROUP_VALUES_OFFSET">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">AIRGROUP_VALUES_OFFSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#AIRGROUP_VALUES_OFFSET"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.AIRGROUP_VALUES_OFFSET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.CHALLENGES_OFFSET">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">CHALLENGES_OFFSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#CHALLENGES_OFFSET"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.CHALLENGES_OFFSET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.EVALS_OFFSET">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">EVALS_OFFSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#EVALS_OFFSET"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.EVALS_OFFSET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">BufferSet</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet" title="Link to this definition">#</a></dt>
+<dd><p>Container for flat polynomial buffers used by the bytecode evaluator.</p>
+<p>This replaces the deleted ProofContext class with a minimal set of buffers
+needed by the expression interpreter.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.trace">
+<span class="sig-name descname"><span class="pre">trace</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.trace" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.aux_trace">
+<span class="sig-name descname"><span class="pre">aux_trace</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.aux_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.aux_trace" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols">
+<span class="sig-name descname"><span class="pre">const_pols</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.const_pols"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols_extended">
+<span class="sig-name descname"><span class="pre">const_pols_extended</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.const_pols_extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols_extended" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.public_inputs">
+<span class="sig-name descname"><span class="pre">public_inputs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.public_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.public_inputs" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.challenges">
+<span class="sig-name descname"><span class="pre">challenges</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.challenges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.challenges" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.evals">
+<span class="sig-name descname"><span class="pre">evals</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.evals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.evals" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.air_values">
+<span class="sig-name descname"><span class="pre">air_values</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.air_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.air_values" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.airgroup_values">
+<span class="sig-name descname"><span class="pre">airgroup_values</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.airgroup_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.airgroup_values" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.proof_values">
+<span class="sig-name descname"><span class="pre">proof_values</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.proof_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.proof_values" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.x_div_x_sub">
+<span class="sig-name descname"><span class="pre">x_div_x_sub</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.x_div_x_sub"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.x_div_x_sub" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.BufferSet.custom_commits">
+<span class="sig-name descname"><span class="pre">custom_commits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#BufferSet.custom_commits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.custom_commits" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">Params</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params" title="Link to this definition">#</a></dt>
+<dd><p>Operand specification for expression evaluation.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.exp_id">
+<span class="sig-name descname"><span class="pre">exp_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.exp_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.exp_id" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.dim">
+<span class="sig-name descname"><span class="pre">dim</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.dim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.dim" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.stage">
+<span class="sig-name descname"><span class="pre">stage</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.stage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.stage" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.stage_pos">
+<span class="sig-name descname"><span class="pre">stage_pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.stage_pos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.stage_pos" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.pols_map_id">
+<span class="sig-name descname"><span class="pre">pols_map_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.pols_map_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.pols_map_id" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.row_offset_index">
+<span class="sig-name descname"><span class="pre">row_offset_index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.row_offset_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.row_offset_index" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.inverse">
+<span class="sig-name descname"><span class="pre">inverse</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.inverse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.inverse" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.batch">
+<span class="sig-name descname"><span class="pre">batch</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.batch" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.op">
+<span class="sig-name descname"><span class="pre">op</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tmp'</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.op"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.op" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Params.value">
+<span class="sig-name descname"><span class="pre">value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Params.value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Params.value" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">Dest</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest" title="Link to this definition">#</a></dt>
+<dd><p>Destination buffer for expression results.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest.dest">
+<span class="sig-name descname"><span class="pre">dest</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest.dest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest.dest" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest.exp_id">
+<span class="sig-name descname"><span class="pre">exp_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-1</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest.exp_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest.exp_id" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest.offset">
+<span class="sig-name descname"><span class="pre">offset</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest.offset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest.offset" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest.stage_pos">
+<span class="sig-name descname"><span class="pre">stage_pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest.stage_pos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest.stage_pos" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest.stage_cols">
+<span class="sig-name descname"><span class="pre">stage_cols</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest.stage_cols"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest.stage_cols" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest.expr">
+<span class="sig-name descname"><span class="pre">expr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest.expr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest.expr" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest.dim">
+<span class="sig-name descname"><span class="pre">dim</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest.dim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest.dim" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest.domain_size">
+<span class="sig-name descname"><span class="pre">domain_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest.domain_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest.domain_size" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.Dest.params">
+<span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.Params" title="primitives.expression_bytecode.expression_evaluator.Params"><span class="pre">Params</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#Dest.params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.Dest.params" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">ExpressionsCtx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../../protocol/stark_info/index.html#protocol.stark_info.StarkInfo" title="protocol.stark_info.StarkInfo"><span class="pre">protocol.stark_info.StarkInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">prover_helpers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../../protocol/air_config/index.html#protocol.air_config.ProverHelpers" title="protocol.air_config.ProverHelpers"><span class="pre">protocol.air_config.ProverHelpers</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_queries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx" title="Link to this definition">#</a></dt>
+<dd><p>Memory layout and stride mappings for polynomial access.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.stark_info">
+<span class="sig-name descname"><span class="pre">stark_info</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.stark_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.stark_info" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.prover_helpers">
+<span class="sig-name descname"><span class="pre">prover_helpers</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.prover_helpers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.prover_helpers" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_queries">
+<span class="sig-name descname"><span class="pre">n_queries</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.n_queries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_queries" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.verify">
+<span class="sig-name descname"><span class="pre">verify</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.verify"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.verify" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.xis">
+<span class="sig-name descname"><span class="pre">xis</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.xis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.xis" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides">
+<span class="sig-name descname"><span class="pre">next_strides</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.next_strides"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides_extended">
+<span class="sig-name descname"><span class="pre">next_strides_extended</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.next_strides_extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides_extended" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets">
+<span class="sig-name descname"><span class="pre">map_offsets</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.map_offsets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_extended">
+<span class="sig-name descname"><span class="pre">map_offsets_extended</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.map_offsets_extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_extended" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n">
+<span class="sig-name descname"><span class="pre">map_sections_n</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.map_sections_n"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed">
+<span class="sig-name descname"><span class="pre">map_offsets_custom_fixed</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.map_offsets_custom_fixed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed_extended">
+<span class="sig-name descname"><span class="pre">map_offsets_custom_fixed_extended</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.map_offsets_custom_fixed_extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed_extended" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n_custom_fixed">
+<span class="sig-name descname"><span class="pre">map_sections_n_custom_fixed</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.map_sections_n_custom_fixed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n_custom_fixed" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row">
+<span class="sig-name descname"><span class="pre">min_row</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.min_row"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row">
+<span class="sig-name descname"><span class="pre">max_row</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.max_row"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row_extended">
+<span class="sig-name descname"><span class="pre">min_row_extended</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.min_row_extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row_extended" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row_extended">
+<span class="sig-name descname"><span class="pre">max_row_extended</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.max_row_extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row_extended" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offset_fri_pol">
+<span class="sig-name descname"><span class="pre">map_offset_fri_pol</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.map_offset_fri_pol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offset_fri_pol" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.buffer_commits_size">
+<span class="sig-name descname"><span class="pre">buffer_commits_size</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.buffer_commits_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.buffer_commits_size" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_stages">
+<span class="sig-name descname"><span class="pre">n_stages</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.n_stages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_stages" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_publics">
+<span class="sig-name descname"><span class="pre">n_publics</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.n_publics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_publics" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_challenges">
+<span class="sig-name descname"><span class="pre">n_challenges</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.n_challenges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_challenges" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_evals">
+<span class="sig-name descname"><span class="pre">n_evals</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.n_evals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_evals" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.rows_per_batch">
+<span class="sig-name descname"><span class="pre">rows_per_batch</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.rows_per_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.rows_per_batch" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.set_xi">
+<span class="sig-name descname"><span class="pre">set_xi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.set_xi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.set_xi" title="Link to this definition">#</a></dt>
+<dd><p>Set xi evaluation points for FRI division.</p>
+<p>xi = challenge evaluation point (random point from Fiat-Shamir transcript).
+Used to compute x/(x - xi) for FRI opening checks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expression">
+<span class="sig-name descname"><span class="pre">calculate_expression</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.BufferSet" title="primitives.expression_bytecode.expression_evaluator.BufferSet"><span class="pre">BufferSet</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expression_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compilation_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.calculate_expression"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expression" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate a single expression into dest buffer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expressions">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">calculate_expressions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.BufferSet" title="primitives.expression_bytecode.expression_evaluator.BufferSet"><span class="pre">BufferSet</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.Dest" title="primitives.expression_bytecode.expression_evaluator.Dest"><span class="pre">Dest</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain_extended</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compilation_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify_constraints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsCtx.calculate_expressions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expressions" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate expressions across domain. Overridden by ExpressionsPack.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsPack">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expression_evaluator.</span></span><span class="sig-name descname"><span class="pre">ExpressionsPack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../../protocol/stark_info/index.html#protocol.stark_info.StarkInfo" title="protocol.stark_info.StarkInfo"><span class="pre">protocol.stark_info.StarkInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">expressions_bin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../expressions_bin/index.html#primitives.expression_bytecode.expressions_bin.ExpressionsBin" title="primitives.expression_bytecode.expressions_bin.ExpressionsBin"><span class="pre">primitives.expression_bytecode.expressions_bin.ExpressionsBin</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">prover_helpers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../../protocol/air_config/index.html#protocol.air_config.ProverHelpers" title="protocol.air_config.ProverHelpers"><span class="pre">protocol.air_config.ProverHelpers</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nrows_pack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">NROWS_PACK</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_queries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsPack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx" title="primitives.expression_bytecode.expression_evaluator.ExpressionsCtx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExpressionsCtx</span></code></a></p>
+<p>Bytecode interpreter for constraint polynomial evaluation.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsPack.rows_per_batch">
+<span class="sig-name descname"><span class="pre">rows_per_batch</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsPack.rows_per_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack.rows_per_batch" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expression_evaluator.ExpressionsPack.calculate_expressions">
+<span class="sig-name descname"><span class="pre">calculate_expressions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.BufferSet" title="primitives.expression_bytecode.expression_evaluator.BufferSet"><span class="pre">BufferSet</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#primitives.expression_bytecode.expression_evaluator.Dest" title="primitives.expression_bytecode.expression_evaluator.Dest"><span class="pre">Dest</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain_extended</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compilation_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify_constraints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expression_evaluator.html#ExpressionsPack.calculate_expressions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack.calculate_expressions" title="Link to this definition">#</a></dt>
+<dd><p>Execute bytecode to evaluate constraint expressions.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">primitives.expression_bytecode</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../expressions_bin/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">primitives.expression_bytecode.expressions_bin</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.FastValue"><code class="docutils literal notranslate"><span class="pre">FastValue</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.NROWS_PACK"><code class="docutils literal notranslate"><span class="pre">NROWS_PACK</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.PUBLIC_INPUTS_OFFSET"><code class="docutils literal notranslate"><span class="pre">PUBLIC_INPUTS_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.NUMBERS_OFFSET"><code class="docutils literal notranslate"><span class="pre">NUMBERS_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.AIR_VALUES_OFFSET"><code class="docutils literal notranslate"><span class="pre">AIR_VALUES_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.PROOF_VALUES_OFFSET"><code class="docutils literal notranslate"><span class="pre">PROOF_VALUES_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.AIRGROUP_VALUES_OFFSET"><code class="docutils literal notranslate"><span class="pre">AIRGROUP_VALUES_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.CHALLENGES_OFFSET"><code class="docutils literal notranslate"><span class="pre">CHALLENGES_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.EVALS_OFFSET"><code class="docutils literal notranslate"><span class="pre">EVALS_OFFSET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet"><code class="docutils literal notranslate"><span class="pre">BufferSet</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.trace"><code class="docutils literal notranslate"><span class="pre">BufferSet.trace</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.aux_trace"><code class="docutils literal notranslate"><span class="pre">BufferSet.aux_trace</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols"><code class="docutils literal notranslate"><span class="pre">BufferSet.const_pols</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.const_pols_extended"><code class="docutils literal notranslate"><span class="pre">BufferSet.const_pols_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.public_inputs"><code class="docutils literal notranslate"><span class="pre">BufferSet.public_inputs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.challenges"><code class="docutils literal notranslate"><span class="pre">BufferSet.challenges</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.evals"><code class="docutils literal notranslate"><span class="pre">BufferSet.evals</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.air_values"><code class="docutils literal notranslate"><span class="pre">BufferSet.air_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.airgroup_values"><code class="docutils literal notranslate"><span class="pre">BufferSet.airgroup_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.proof_values"><code class="docutils literal notranslate"><span class="pre">BufferSet.proof_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.x_div_x_sub"><code class="docutils literal notranslate"><span class="pre">BufferSet.x_div_x_sub</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.BufferSet.custom_commits"><code class="docutils literal notranslate"><span class="pre">BufferSet.custom_commits</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params"><code class="docutils literal notranslate"><span class="pre">Params</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.exp_id"><code class="docutils literal notranslate"><span class="pre">Params.exp_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.dim"><code class="docutils literal notranslate"><span class="pre">Params.dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.stage"><code class="docutils literal notranslate"><span class="pre">Params.stage</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.stage_pos"><code class="docutils literal notranslate"><span class="pre">Params.stage_pos</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.pols_map_id"><code class="docutils literal notranslate"><span class="pre">Params.pols_map_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.row_offset_index"><code class="docutils literal notranslate"><span class="pre">Params.row_offset_index</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.inverse"><code class="docutils literal notranslate"><span class="pre">Params.inverse</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.batch"><code class="docutils literal notranslate"><span class="pre">Params.batch</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.op"><code class="docutils literal notranslate"><span class="pre">Params.op</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Params.value"><code class="docutils literal notranslate"><span class="pre">Params.value</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest"><code class="docutils literal notranslate"><span class="pre">Dest</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.dest"><code class="docutils literal notranslate"><span class="pre">Dest.dest</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.exp_id"><code class="docutils literal notranslate"><span class="pre">Dest.exp_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.offset"><code class="docutils literal notranslate"><span class="pre">Dest.offset</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.stage_pos"><code class="docutils literal notranslate"><span class="pre">Dest.stage_pos</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.stage_cols"><code class="docutils literal notranslate"><span class="pre">Dest.stage_cols</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.expr"><code class="docutils literal notranslate"><span class="pre">Dest.expr</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.dim"><code class="docutils literal notranslate"><span class="pre">Dest.dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.domain_size"><code class="docutils literal notranslate"><span class="pre">Dest.domain_size</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.Dest.params"><code class="docutils literal notranslate"><span class="pre">Dest.params</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.stark_info"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.stark_info</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.prover_helpers"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.prover_helpers</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_queries"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_queries</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.verify"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.verify</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.xis"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.xis</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.next_strides</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.next_strides_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.next_strides_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offsets</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offsets_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_sections_n</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offsets_custom_fixed</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offsets_custom_fixed_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offsets_custom_fixed_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_sections_n_custom_fixed"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_sections_n_custom_fixed</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.min_row</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.max_row</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.min_row_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.min_row_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.max_row_extended"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.max_row_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.map_offset_fri_pol"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.map_offset_fri_pol</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.buffer_commits_size"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.buffer_commits_size</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_stages"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_stages</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_publics"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_publics</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_challenges"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_challenges</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.n_evals"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.n_evals</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.rows_per_batch"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.rows_per_batch</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.set_xi"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.set_xi()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expression"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.calculate_expression()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsCtx.calculate_expressions"><code class="docutils literal notranslate"><span class="pre">ExpressionsCtx.calculate_expressions()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack"><code class="docutils literal notranslate"><span class="pre">ExpressionsPack</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack.rows_per_batch"><code class="docutils literal notranslate"><span class="pre">ExpressionsPack.rows_per_batch</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expression_evaluator.ExpressionsPack.calculate_expressions"><code class="docutils literal notranslate"><span class="pre">ExpressionsPack.calculate_expressions()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

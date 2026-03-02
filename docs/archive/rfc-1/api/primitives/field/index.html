@@ -1,0 +1,915 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>primitives.field &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/primitives/field/index';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="primitives.goldilocks_jit" href="../goldilocks_jit/index.html" />
+    <link rel="prev" title="primitives.expression_bytecode.witness_generation" href="../expression_bytecode/witness_generation/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">executable-spec/</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">primitives</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>primitives.field</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#type-discipline">Type Discipline</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.GOLDILOCKS_PRIME"><code class="docutils literal notranslate"><span class="pre">GOLDILOCKS_PRIME</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FIELD_EXTENSION_DEGREE"><code class="docutils literal notranslate"><span class="pre">FIELD_EXTENSION_DEGREE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FIELD_EXTENSION"><code class="docutils literal notranslate"><span class="pre">FIELD_EXTENSION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FF"><code class="docutils literal notranslate"><span class="pre">FF</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FF3"><code class="docutils literal notranslate"><span class="pre">FF3</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FF3Poly"><code class="docutils literal notranslate"><span class="pre">FF3Poly</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FFPoly"><code class="docutils literal notranslate"><span class="pre">FFPoly</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FF3Array"><code class="docutils literal notranslate"><span class="pre">FF3Array</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FFArray"><code class="docutils literal notranslate"><span class="pre">FFArray</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.HashOutput"><code class="docutils literal notranslate"><span class="pre">HashOutput</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.InterleavedFF3"><code class="docutils literal notranslate"><span class="pre">InterleavedFF3</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_coeffs"><code class="docutils literal notranslate"><span class="pre">ff3_coeffs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_array"><code class="docutils literal notranslate"><span class="pre">ff3_array()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_array_from_base"><code class="docutils literal notranslate"><span class="pre">ff3_array_from_base()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_flat_list"><code class="docutils literal notranslate"><span class="pre">ff3_from_flat_list()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_to_flat_list"><code class="docutils literal notranslate"><span class="pre">ff3_to_flat_list()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_json"><code class="docutils literal notranslate"><span class="pre">ff3_from_json()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_to_json"><code class="docutils literal notranslate"><span class="pre">ff3_to_json()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_interleaved_numpy"><code class="docutils literal notranslate"><span class="pre">ff3_from_interleaved_numpy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_to_interleaved_numpy"><code class="docutils literal notranslate"><span class="pre">ff3_to_interleaved_numpy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3"><code class="docutils literal notranslate"><span class="pre">ff3()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_base"><code class="docutils literal notranslate"><span class="pre">ff3_from_base()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_numpy_coeffs"><code class="docutils literal notranslate"><span class="pre">ff3_from_numpy_coeffs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_to_numpy_coeffs"><code class="docutils literal notranslate"><span class="pre">ff3_to_numpy_coeffs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_buffer_at"><code class="docutils literal notranslate"><span class="pre">ff3_from_buffer_at()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_store_to_buffer"><code class="docutils literal notranslate"><span class="pre">ff3_store_to_buffer()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ntt"><code class="docutils literal notranslate"><span class="pre">ntt</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.intt"><code class="docutils literal notranslate"><span class="pre">intt</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.SHIFT"><code class="docutils literal notranslate"><span class="pre">SHIFT</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.SHIFT_INV"><code class="docutils literal notranslate"><span class="pre">SHIFT_INV</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.W"><code class="docutils literal notranslate"><span class="pre">W</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.W_INV"><code class="docutils literal notranslate"><span class="pre">W_INV</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.get_omega"><code class="docutils literal notranslate"><span class="pre">get_omega()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.get_omega_inv"><code class="docutils literal notranslate"><span class="pre">get_omega_inv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.batch_inverse"><code class="docutils literal notranslate"><span class="pre">batch_inverse()</span></code></a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-primitives.field">
+<span id="primitives-field"></span><h1>primitives.field<a class="headerlink" href="#module-primitives.field" title="Link to this heading">#</a></h1>
+<p>Goldilocks field GF(p) and cubic extension GF(p^3).</p>
+<p>Uses galois library for all field arithmetic. FF and FF3 are the field types.</p>
+<section id="type-discipline">
+<h2>Type Discipline<a class="headerlink" href="#type-discipline" title="Link to this heading">#</a></h2>
+<p>When to use FF (base field):
+- Domain generators (omega, omega_extended)
+- Shift values for coset evaluation
+- Single field element constants
+- Hash outputs (4 base field elements)</p>
+<p>When to use FF3 (extension field):
+- Polynomial evaluations (prover and verifier)
+- Challenges (derived from Fiat-Shamir transcript)
+- Constraint polynomial values
+- FRI folding values
+- Polynomial batching coefficients (vf1, vf2)</p>
+<p>Interleaved Format (InterleavedFF3):
+- Used for C++ compatibility and bulk operations
+- Layout: [c0_0, c1_0, c2_0, c0_1, c1_1, c2_1, …]
+- Each FF3 element has 3 consecutive coefficients
+- Convert with: ff3_from_interleaved_numpy(), ff3_to_interleaved_numpy()</p>
+<p>FF3 is loaded from a pre-computed cache file (ff3_cache.pkl) to avoid the ~7s
+initialization cost of galois.GF() for extension fields. To regenerate the cache:</p>
+<blockquote>
+<div><p>python -c “from primitives.field import _regenerate_ff3_cache; _regenerate_ff3_cache()”</p>
+</div></blockquote>
+</section>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.GOLDILOCKS_PRIME" title="primitives.field.GOLDILOCKS_PRIME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GOLDILOCKS_PRIME</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.FIELD_EXTENSION_DEGREE" title="primitives.field.FIELD_EXTENSION_DEGREE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FIELD_EXTENSION_DEGREE</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.FIELD_EXTENSION" title="primitives.field.FIELD_EXTENSION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FIELD_EXTENSION</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.FF" title="primitives.field.FF"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FF</span></code></a></p></td>
+<td><p>Base field GF(p) - Goldilocks prime field.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.FF3" title="primitives.field.FF3"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FF3</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.FF3Poly" title="primitives.field.FF3Poly"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FF3Poly</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.FFPoly" title="primitives.field.FFPoly"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FFPoly</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.FF3Array" title="primitives.field.FF3Array"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FF3Array</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.FFArray" title="primitives.field.FFArray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FFArray</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.HashOutput" title="primitives.field.HashOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HashOutput</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.InterleavedFF3" title="primitives.field.InterleavedFF3"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InterleavedFF3</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.ntt" title="primitives.field.ntt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ntt</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.intt" title="primitives.field.intt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">intt</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.SHIFT" title="primitives.field.SHIFT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SHIFT</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.SHIFT_INV" title="primitives.field.SHIFT_INV"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SHIFT_INV</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.W" title="primitives.field.W"><code class="xref py py-obj docutils literal notranslate"><span class="pre">W</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.W_INV" title="primitives.field.W_INV"><code class="xref py py-obj docutils literal notranslate"><span class="pre">W_INV</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.ff3_coeffs" title="primitives.field.ff3_coeffs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_coeffs</span></code></a>(→ list[int])</p></td>
+<td><p>Extract ascending-order coefficients [a0, a1, a2] from FF3 element.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.ff3_array" title="primitives.field.ff3_array"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_array</span></code></a>(→ FF3)</p></td>
+<td><p>Construct FF3 array from parallel coefficient lists.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.ff3_array_from_base" title="primitives.field.ff3_array_from_base"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_array_from_base</span></code></a>(→ FF3)</p></td>
+<td><p>Construct FF3 array from base field values (c1=c2=0).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.ff3_from_flat_list" title="primitives.field.ff3_from_flat_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_from_flat_list</span></code></a>(→ FF3)</p></td>
+<td><p>Convert flattened [c0,c1,c2,c0,c1,c2,...] to FF3 array.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.ff3_to_flat_list" title="primitives.field.ff3_to_flat_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_to_flat_list</span></code></a>(→ list[int])</p></td>
+<td><p>Convert FF3 array to flattened [c0,c1,c2,c0,c1,c2,...].</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.ff3_from_json" title="primitives.field.ff3_from_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_from_json</span></code></a>(→ FF3)</p></td>
+<td><p>Parse JSON [[c0,c1,c2],...] to FF3 array.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.ff3_to_json" title="primitives.field.ff3_to_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_to_json</span></code></a>(→ list[list[int]])</p></td>
+<td><p>Convert FF3 array to JSON [[c0,c1,c2],...] format.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.ff3_from_interleaved_numpy" title="primitives.field.ff3_from_interleaved_numpy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_from_interleaved_numpy</span></code></a>(→ FF3)</p></td>
+<td><p>Convert interleaved numpy [c0,c1,c2,c0,c1,c2,...] to FF3 array.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.ff3_to_interleaved_numpy" title="primitives.field.ff3_to_interleaved_numpy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_to_interleaved_numpy</span></code></a>(→ numpy.ndarray)</p></td>
+<td><p>Convert FF3 array to interleaved numpy [c0,c1,c2,c0,c1,c2,...].</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.ff3" title="primitives.field.ff3"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3</span></code></a>(→ FF3)</p></td>
+<td><p>Construct FF3 scalar from ascending-order coefficients [c0, c1, c2].</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.ff3_from_base" title="primitives.field.ff3_from_base"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_from_base</span></code></a>(→ FF3)</p></td>
+<td><p>Embed base field element into FF3 as (val, 0, 0).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.ff3_from_numpy_coeffs" title="primitives.field.ff3_from_numpy_coeffs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_from_numpy_coeffs</span></code></a>(→ FF3)</p></td>
+<td><p>Convert numpy [c0, c1, c2] to FF3 scalar.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.ff3_to_numpy_coeffs" title="primitives.field.ff3_to_numpy_coeffs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_to_numpy_coeffs</span></code></a>(→ numpy.ndarray)</p></td>
+<td><p>Convert FF3 scalar to numpy [c0, c1, c2].</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.ff3_from_buffer_at" title="primitives.field.ff3_from_buffer_at"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_from_buffer_at</span></code></a>(→ FF3)</p></td>
+<td><p>Extract FF3 elements from buffer at coefficient indices.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.ff3_store_to_buffer" title="primitives.field.ff3_store_to_buffer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff3_store_to_buffer</span></code></a>(→ None)</p></td>
+<td><p>Store FF3 elements to buffer at coefficient indices.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.get_omega" title="primitives.field.get_omega"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_omega</span></code></a>(→ int)</p></td>
+<td><p>Return primitive 2^n_bits-th root of unity.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.field.get_omega_inv" title="primitives.field.get_omega_inv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_omega_inv</span></code></a>(→ int)</p></td>
+<td><p>Return inverse of primitive 2^n_bits-th root of unity.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.field.batch_inverse" title="primitives.field.batch_inverse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_inverse</span></code></a>(→ galois.Array)</p></td>
+<td><p>Montgomery batch inversion for any galois array.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.GOLDILOCKS_PRIME">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">GOLDILOCKS_PRIME</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">18446744069414584321</span></em><a class="reference internal" href="../../../_modules/primitives/field.html#GOLDILOCKS_PRIME"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.GOLDILOCKS_PRIME" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.FIELD_EXTENSION_DEGREE">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">FIELD_EXTENSION_DEGREE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="reference internal" href="../../../_modules/primitives/field.html#FIELD_EXTENSION_DEGREE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.FIELD_EXTENSION_DEGREE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.FIELD_EXTENSION">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">FIELD_EXTENSION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="reference internal" href="../../../_modules/primitives/field.html#FIELD_EXTENSION"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.FIELD_EXTENSION" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.FF">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">FF</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#FF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.FF" title="Link to this definition">#</a></dt>
+<dd><p>Base field GF(p) - Goldilocks prime field.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.FF3">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">FF3</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#FF3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.FF3" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.FF3Poly">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">FF3Poly</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#FF3Poly"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.FF3Poly" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.FFPoly">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">FFPoly</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#FFPoly"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.FFPoly" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.FF3Array">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">FF3Array</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#FF3Array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.FF3Array" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.FFArray">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">FFArray</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#FFArray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.FFArray" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.HashOutput">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">HashOutput</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#HashOutput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.HashOutput" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.InterleavedFF3">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">InterleavedFF3</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#InterleavedFF3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.InterleavedFF3" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_coeffs">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_coeffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">elem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FF3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_coeffs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_coeffs" title="Link to this definition">#</a></dt>
+<dd><p>Extract ascending-order coefficients [a0, a1, a2] from FF3 element.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_array">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FF3</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_array" title="Link to this definition">#</a></dt>
+<dd><p>Construct FF3 array from parallel coefficient lists.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_array_from_base">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_array_from_base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FF3</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_array_from_base"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_array_from_base" title="Link to this definition">#</a></dt>
+<dd><p>Construct FF3 array from base field values (c1=c2=0).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_from_flat_list">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_from_flat_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coeffs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FF3</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_from_flat_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_from_flat_list" title="Link to this definition">#</a></dt>
+<dd><p>Convert flattened [c0,c1,c2,c0,c1,c2,…] to FF3 array.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_to_flat_list">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_to_flat_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FF3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_to_flat_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_to_flat_list" title="Link to this definition">#</a></dt>
+<dd><p>Convert FF3 array to flattened [c0,c1,c2,c0,c1,c2,…].</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_from_json">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_arr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FF3</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_from_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_from_json" title="Link to this definition">#</a></dt>
+<dd><p>Parse JSON [[c0,c1,c2],…] to FF3 array.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_to_json">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FF3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_to_json" title="Link to this definition">#</a></dt>
+<dd><p>Convert FF3 array to JSON [[c0,c1,c2],…] format.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_from_interleaved_numpy">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_from_interleaved_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FF3</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_from_interleaved_numpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_from_interleaved_numpy" title="Link to this definition">#</a></dt>
+<dd><p>Convert interleaved numpy [c0,c1,c2,c0,c1,c2,…] to FF3 array.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_to_interleaved_numpy">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_to_interleaved_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FF3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_to_interleaved_numpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_to_interleaved_numpy" title="Link to this definition">#</a></dt>
+<dd><p>Convert FF3 array to interleaved numpy [c0,c1,c2,c0,c1,c2,…].</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coeffs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FF3</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3" title="Link to this definition">#</a></dt>
+<dd><p>Construct FF3 scalar from ascending-order coefficients [c0, c1, c2].</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_from_base">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_from_base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FF3</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_from_base"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_from_base" title="Link to this definition">#</a></dt>
+<dd><p>Embed base field element into FF3 as (val, 0, 0).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_from_numpy_coeffs">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_from_numpy_coeffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FF3</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_from_numpy_coeffs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_from_numpy_coeffs" title="Link to this definition">#</a></dt>
+<dd><p>Convert numpy [c0, c1, c2] to FF3 scalar.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_to_numpy_coeffs">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_to_numpy_coeffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">elem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FF3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_to_numpy_coeffs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_to_numpy_coeffs" title="Link to this definition">#</a></dt>
+<dd><p>Convert FF3 scalar to numpy [c0, c1, c2].</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_from_buffer_at">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_from_buffer_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FF3</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_from_buffer_at"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_from_buffer_at" title="Link to this definition">#</a></dt>
+<dd><p>Extract FF3 elements from buffer at coefficient indices.</p>
+<p>Each index points to c0, with c1 at index+1, c2 at index+2.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.ff3_store_to_buffer">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ff3_store_to_buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FF3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ff3_store_to_buffer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ff3_store_to_buffer" title="Link to this definition">#</a></dt>
+<dd><p>Store FF3 elements to buffer at coefficient indices.</p>
+<p>Each index points to c0, stores c1 at index+1, c2 at index+2.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.ntt">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">ntt</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#ntt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.ntt" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.intt">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">intt</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#intt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.intt" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.SHIFT">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">SHIFT</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#SHIFT"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.SHIFT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.SHIFT_INV">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">SHIFT_INV</span></span><a class="reference internal" href="../../../_modules/primitives/field.html#SHIFT_INV"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.SHIFT_INV" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.W">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">W</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[1,</span> <span class="pre">18446744069414584320,</span> <span class="pre">281474976710656,</span> <span class="pre">16777216,</span> <span class="pre">4096,</span> <span class="pre">64,</span> <span class="pre">8,</span> <span class="pre">2198989700608,...</span></em><a class="reference internal" href="../../../_modules/primitives/field.html#W"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.W" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.field.W_INV">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">W_INV</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[1,</span> <span class="pre">18446744069414584320,</span> <span class="pre">18446462594437873665,</span> <span class="pre">18446742969902956801,</span> <span class="pre">18442240469788262401,...</span></em><a class="reference internal" href="../../../_modules/primitives/field.html#W_INV"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.W_INV" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.get_omega">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">get_omega</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#get_omega"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.get_omega" title="Link to this definition">#</a></dt>
+<dd><p>Return primitive 2^n_bits-th root of unity.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.get_omega_inv">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">get_omega_inv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#get_omega_inv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.get_omega_inv" title="Link to this definition">#</a></dt>
+<dd><p>Return inverse of primitive 2^n_bits-th root of unity.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.field.batch_inverse">
+<span class="sig-prename descclassname"><span class="pre">primitives.field.</span></span><span class="sig-name descname"><span class="pre">batch_inverse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">galois.Array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">galois.Array</span></span></span><a class="reference internal" href="../../../_modules/primitives/field.html#batch_inverse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.field.batch_inverse" title="Link to this definition">#</a></dt>
+<dd><p>Montgomery batch inversion for any galois array.</p>
+<p>Converts N field inversions into 3N-3 multiplications + 1 inversion.
+Works with any galois FieldArray type (FF, FF3, or any GF).</p>
+<p>Algorithm:
+1. Forward pass: Compute prefix products cumprods[i] = a[0] * a[1] * … * a[i]
+2. Single inversion: inv_total = cumprods[N-1]^(-1)
+3. Backward pass: Extract individual inverses using cumprods</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>values: Galois FieldArray to invert (must all be non-zero)</p>
+</dd>
+<dt>Returns:</dt><dd><p>Galois FieldArray where result[i] = values[i]^(-1)</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError: If any element is zero</p>
+</dd>
+</dl>
+<p>Reference: pil2-stark/src/goldilocks/src/goldilocks_base_field.hpp::batchInverse</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../expression_bytecode/witness_generation/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">primitives.expression_bytecode.witness_generation</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../goldilocks_jit/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">primitives.goldilocks_jit</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#type-discipline">Type Discipline</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.GOLDILOCKS_PRIME"><code class="docutils literal notranslate"><span class="pre">GOLDILOCKS_PRIME</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FIELD_EXTENSION_DEGREE"><code class="docutils literal notranslate"><span class="pre">FIELD_EXTENSION_DEGREE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FIELD_EXTENSION"><code class="docutils literal notranslate"><span class="pre">FIELD_EXTENSION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FF"><code class="docutils literal notranslate"><span class="pre">FF</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FF3"><code class="docutils literal notranslate"><span class="pre">FF3</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FF3Poly"><code class="docutils literal notranslate"><span class="pre">FF3Poly</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FFPoly"><code class="docutils literal notranslate"><span class="pre">FFPoly</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FF3Array"><code class="docutils literal notranslate"><span class="pre">FF3Array</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.FFArray"><code class="docutils literal notranslate"><span class="pre">FFArray</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.HashOutput"><code class="docutils literal notranslate"><span class="pre">HashOutput</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.InterleavedFF3"><code class="docutils literal notranslate"><span class="pre">InterleavedFF3</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_coeffs"><code class="docutils literal notranslate"><span class="pre">ff3_coeffs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_array"><code class="docutils literal notranslate"><span class="pre">ff3_array()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_array_from_base"><code class="docutils literal notranslate"><span class="pre">ff3_array_from_base()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_flat_list"><code class="docutils literal notranslate"><span class="pre">ff3_from_flat_list()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_to_flat_list"><code class="docutils literal notranslate"><span class="pre">ff3_to_flat_list()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_json"><code class="docutils literal notranslate"><span class="pre">ff3_from_json()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_to_json"><code class="docutils literal notranslate"><span class="pre">ff3_to_json()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_interleaved_numpy"><code class="docutils literal notranslate"><span class="pre">ff3_from_interleaved_numpy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_to_interleaved_numpy"><code class="docutils literal notranslate"><span class="pre">ff3_to_interleaved_numpy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3"><code class="docutils literal notranslate"><span class="pre">ff3()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_base"><code class="docutils literal notranslate"><span class="pre">ff3_from_base()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_numpy_coeffs"><code class="docutils literal notranslate"><span class="pre">ff3_from_numpy_coeffs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_to_numpy_coeffs"><code class="docutils literal notranslate"><span class="pre">ff3_to_numpy_coeffs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_from_buffer_at"><code class="docutils literal notranslate"><span class="pre">ff3_from_buffer_at()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ff3_store_to_buffer"><code class="docutils literal notranslate"><span class="pre">ff3_store_to_buffer()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.ntt"><code class="docutils literal notranslate"><span class="pre">ntt</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.intt"><code class="docutils literal notranslate"><span class="pre">intt</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.SHIFT"><code class="docutils literal notranslate"><span class="pre">SHIFT</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.SHIFT_INV"><code class="docutils literal notranslate"><span class="pre">SHIFT_INV</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.W"><code class="docutils literal notranslate"><span class="pre">W</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.W_INV"><code class="docutils literal notranslate"><span class="pre">W_INV</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.get_omega"><code class="docutils literal notranslate"><span class="pre">get_omega()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.get_omega_inv"><code class="docutils literal notranslate"><span class="pre">get_omega_inv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.field.batch_inverse"><code class="docutils literal notranslate"><span class="pre">batch_inverse()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

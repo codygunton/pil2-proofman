@@ -1,0 +1,733 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>protocol.simple_pilout &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/protocol/simple_pilout/index';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="protocol.stages" href="../stages/index.html" />
+    <link rel="prev" title="protocol.prover" href="../prover/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">executable-spec/</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">protocol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>protocol.simple_pilout</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.LATTICE_SIZE"><code class="docutils literal notranslate"><span class="pre">LATTICE_SIZE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.TRANSCRIPT_ARITY"><code class="docutils literal notranslate"><span class="pre">TRANSCRIPT_ARITY</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data.air_config"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data.air_config</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data.trace"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data.trace</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data.const_pols"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data.const_pols</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data.const_pols_extended"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data.const_pols_extended</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.SimplePiloutStage1Result"><code class="docutils literal notranslate"><span class="pre">SimplePiloutStage1Result</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.SimplePiloutStage1Result.verkeys"><code class="docutils literal notranslate"><span class="pre">SimplePiloutStage1Result.verkeys</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.SimplePiloutStage1Result.stage1_commitments"><code class="docutils literal notranslate"><span class="pre">SimplePiloutStage1Result.stage1_commitments</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.SimplePiloutStage1Result.global_challenge"><code class="docutils literal notranslate"><span class="pre">SimplePiloutStage1Result.global_challenge</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData"><code class="docutils literal notranslate"><span class="pre">AIRProveData</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.air_config"><code class="docutils literal notranslate"><span class="pre">AIRProveData.air_config</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.trace"><code class="docutils literal notranslate"><span class="pre">AIRProveData.trace</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.const_pols"><code class="docutils literal notranslate"><span class="pre">AIRProveData.const_pols</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.const_pols_extended"><code class="docutils literal notranslate"><span class="pre">AIRProveData.const_pols_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.public_inputs"><code class="docutils literal notranslate"><span class="pre">AIRProveData.public_inputs</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.prove_simple_pilout"><code class="docutils literal notranslate"><span class="pre">prove_simple_pilout()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.prove_simple_pilout_stage1"><code class="docutils literal notranslate"><span class="pre">prove_simple_pilout_stage1()</span></code></a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-protocol.simple_pilout">
+<span id="protocol-simple-pilout"></span><h1>protocol.simple_pilout<a class="headerlink" href="#module-protocol.simple_pilout" title="Link to this heading">#</a></h1>
+<p>Multi-AIR proving coordination for the Simple pilout.</p>
+<p>The Simple pilout contains five AIRs: SimpleLeft, SimpleRight, U8Air, U16Air,
+SpecifiedRanges. C++ proofman proves all five simultaneously and derives the
+global_challenge by element-wise accumulating each AIR’s Poseidon2 lattice
+contribution before any AIR advances to Stage 2.</p>
+<p>prove_simple_pilout() implements the full protocol, producing byte-identical
+proofs to C++ proofman.</p>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">protocol.simple_pilout</span><span class="w"> </span><span class="kn">import</span> <span class="n">AIRProveData</span><span class="p">,</span> <span class="n">prove_simple_pilout</span>
+<a id="L-2" name="L-2" href="#L-2"></a>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="n">proofs</span> <span class="o">=</span> <span class="n">prove_simple_pilout</span><span class="p">({</span>
+<a id="L-4" name="L-4" href="#L-4"></a>    <span class="s1">&#39;SimpleLeft&#39;</span><span class="p">:</span> <span class="n">AIRProveData</span><span class="p">(</span><span class="n">air_config</span><span class="o">=...</span><span class="p">,</span> <span class="n">trace</span><span class="o">=...</span><span class="p">,</span> <span class="o">...</span><span class="p">),</span>
+<a id="L-5" name="L-5" href="#L-5"></a>    <span class="o">...</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="p">})</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="c1"># proofs[&#39;SimpleLeft&#39;] is the full proof dict for that AIR</span>
+</pre></div>
+</div>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.simple_pilout.LATTICE_SIZE" title="protocol.simple_pilout.LATTICE_SIZE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LATTICE_SIZE</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.simple_pilout.TRANSCRIPT_ARITY" title="protocol.simple_pilout.TRANSCRIPT_ARITY"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TRANSCRIPT_ARITY</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.simple_pilout.AIRStage1Data" title="protocol.simple_pilout.AIRStage1Data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AIRStage1Data</span></code></a></p></td>
+<td><p>All data needed to commit Stage 1 for one AIR in the Simple pilout.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.simple_pilout.SimplePiloutStage1Result" title="protocol.simple_pilout.SimplePiloutStage1Result"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimplePiloutStage1Result</span></code></a></p></td>
+<td><p>Stage-1 results for all five Simple AIRs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.simple_pilout.AIRProveData" title="protocol.simple_pilout.AIRProveData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AIRProveData</span></code></a></p></td>
+<td><p>All data needed to fully prove one AIR in the Simple pilout.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.simple_pilout.prove_simple_pilout" title="protocol.simple_pilout.prove_simple_pilout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prove_simple_pilout</span></code></a>(→ dict[str, dict])</p></td>
+<td><p>Prove all Simple pilout AIRs with the shared multi-AIR global challenge.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.simple_pilout.prove_simple_pilout_stage1" title="protocol.simple_pilout.prove_simple_pilout_stage1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prove_simple_pilout_stage1</span></code></a>(→ SimplePiloutStage1Result)</p></td>
+<td><p>Commit Stage 1 for all Simple pilout AIRs and derive the multi-AIR global challenge.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="protocol.simple_pilout.LATTICE_SIZE">
+<span class="sig-prename descclassname"><span class="pre">protocol.simple_pilout.</span></span><span class="sig-name descname"><span class="pre">LATTICE_SIZE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">368</span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#LATTICE_SIZE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.LATTICE_SIZE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="protocol.simple_pilout.TRANSCRIPT_ARITY">
+<span class="sig-prename descclassname"><span class="pre">protocol.simple_pilout.</span></span><span class="sig-name descname"><span class="pre">TRANSCRIPT_ARITY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#TRANSCRIPT_ARITY"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.TRANSCRIPT_ARITY" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRStage1Data">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.simple_pilout.</span></span><span class="sig-name descname"><span class="pre">AIRStage1Data</span></span><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRStage1Data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRStage1Data" title="Link to this definition">#</a></dt>
+<dd><p>All data needed to commit Stage 1 for one AIR in the Simple pilout.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRStage1Data.air_config">
+<span class="sig-name descname"><span class="pre">air_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../air_config/index.html#protocol.air_config.AirConfig" title="protocol.air_config.AirConfig"><span class="pre">protocol.air_config.AirConfig</span></a></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRStage1Data.air_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRStage1Data.air_config" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRStage1Data.trace">
+<span class="sig-name descname"><span class="pre">trace</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRStage1Data.trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRStage1Data.trace" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRStage1Data.const_pols">
+<span class="sig-name descname"><span class="pre">const_pols</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRStage1Data.const_pols"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRStage1Data.const_pols" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRStage1Data.const_pols_extended">
+<span class="sig-name descname"><span class="pre">const_pols_extended</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRStage1Data.const_pols_extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRStage1Data.const_pols_extended" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.simple_pilout.SimplePiloutStage1Result">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.simple_pilout.</span></span><span class="sig-name descname"><span class="pre">SimplePiloutStage1Result</span></span><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#SimplePiloutStage1Result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.SimplePiloutStage1Result" title="Link to this definition">#</a></dt>
+<dd><p>Stage-1 results for all five Simple AIRs.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.SimplePiloutStage1Result.verkeys">
+<span class="sig-name descname"><span class="pre">verkeys</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#SimplePiloutStage1Result.verkeys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.SimplePiloutStage1Result.verkeys" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.SimplePiloutStage1Result.stage1_commitments">
+<span class="sig-name descname"><span class="pre">stage1_commitments</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#SimplePiloutStage1Result.stage1_commitments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.SimplePiloutStage1Result.stage1_commitments" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.SimplePiloutStage1Result.global_challenge">
+<span class="sig-name descname"><span class="pre">global_challenge</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#SimplePiloutStage1Result.global_challenge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.SimplePiloutStage1Result.global_challenge" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRProveData">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.simple_pilout.</span></span><span class="sig-name descname"><span class="pre">AIRProveData</span></span><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRProveData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRProveData" title="Link to this definition">#</a></dt>
+<dd><p>All data needed to fully prove one AIR in the Simple pilout.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRProveData.air_config">
+<span class="sig-name descname"><span class="pre">air_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../air_config/index.html#protocol.air_config.AirConfig" title="protocol.air_config.AirConfig"><span class="pre">protocol.air_config.AirConfig</span></a></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRProveData.air_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRProveData.air_config" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRProveData.trace">
+<span class="sig-name descname"><span class="pre">trace</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRProveData.trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRProveData.trace" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRProveData.const_pols">
+<span class="sig-name descname"><span class="pre">const_pols</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRProveData.const_pols"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRProveData.const_pols" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRProveData.const_pols_extended">
+<span class="sig-name descname"><span class="pre">const_pols_extended</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRProveData.const_pols_extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRProveData.const_pols_extended" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.simple_pilout.AIRProveData.public_inputs">
+<span class="sig-name descname"><span class="pre">public_inputs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#AIRProveData.public_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.AIRProveData.public_inputs" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.simple_pilout.prove_simple_pilout">
+<span class="sig-prename descclassname"><span class="pre">protocol.simple_pilout.</span></span><span class="sig-name descname"><span class="pre">prove_simple_pilout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">air_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#protocol.simple_pilout.AIRProveData" title="protocol.simple_pilout.AIRProveData"><span class="pre">AIRProveData</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#prove_simple_pilout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.prove_simple_pilout" title="Link to this definition">#</a></dt>
+<dd><p>Prove all Simple pilout AIRs with the shared multi-AIR global challenge.</p>
+<dl class="simple">
+<dt>Implements the full C++ proofman VADCOP protocol:</dt><dd><ol class="arabic simple">
+<li><p>Commit Stage 1 for all AIRs (exactly once per AIR).</p></li>
+<li><p>Compute each AIR’s Poseidon2 lattice contribution from (verkey, root1).</p></li>
+<li><p>Accumulate contributions element-wise → shared global challenge.</p></li>
+<li><p>Run Stage 2+ for each AIR using the shared challenge.</p></li>
+</ol>
+</dd>
+<dt>Args:</dt><dd><p>air_data: Dict mapping AIR name → AIRProveData for all five Simple AIRs.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Dict mapping AIR name → proof dict (same structure as gen_proof() returns).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.simple_pilout.prove_simple_pilout_stage1">
+<span class="sig-prename descclassname"><span class="pre">protocol.simple_pilout.</span></span><span class="sig-name descname"><span class="pre">prove_simple_pilout_stage1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">air_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#protocol.simple_pilout.AIRStage1Data" title="protocol.simple_pilout.AIRStage1Data"><span class="pre">AIRStage1Data</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#protocol.simple_pilout.SimplePiloutStage1Result" title="protocol.simple_pilout.SimplePiloutStage1Result"><span class="pre">SimplePiloutStage1Result</span></a></span></span><a class="reference internal" href="../../../_modules/protocol/simple_pilout.html#prove_simple_pilout_stage1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.simple_pilout.prove_simple_pilout_stage1" title="Link to this definition">#</a></dt>
+<dd><p>Commit Stage 1 for all Simple pilout AIRs and derive the multi-AIR global challenge.</p>
+<dl class="simple">
+<dt>Implements the C++ proofman pattern from challenge_accumulation.rs:</dt><dd><ol class="arabic simple">
+<li><p>For each AIR: build const tree (verkey) and commit Stage-1 witness (root1).</p></li>
+<li><p>For each AIR: compute Poseidon2 lattice contribution from (verkey, root1).</p></li>
+<li><p>Accumulate all contributions element-wise (mod Goldilocks prime).</p></li>
+<li><p>Hash accumulated contribution with publics → global_challenge.</p></li>
+</ol>
+</dd>
+</dl>
+<p>The Simple pilout has n_publics=0 and no proof_values_stage1, so only the
+five AIR contributions enter the challenge hash.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>air_data: Dict mapping AIR name → AIRStage1Data for all five Simple AIRs.</dt><dd><p>Keys must include: ‘SimpleLeft’, ‘SimpleRight’, ‘U8Air’, ‘U16Air’,
+‘SpecifiedRanges’ (order determines accumulation order).</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>SimplePiloutStage1Result with verkeys, stage1_commitments, and global_challenge.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../prover/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">protocol.prover</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../stages/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">protocol.stages</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.LATTICE_SIZE"><code class="docutils literal notranslate"><span class="pre">LATTICE_SIZE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.TRANSCRIPT_ARITY"><code class="docutils literal notranslate"><span class="pre">TRANSCRIPT_ARITY</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data.air_config"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data.air_config</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data.trace"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data.trace</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data.const_pols"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data.const_pols</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRStage1Data.const_pols_extended"><code class="docutils literal notranslate"><span class="pre">AIRStage1Data.const_pols_extended</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.SimplePiloutStage1Result"><code class="docutils literal notranslate"><span class="pre">SimplePiloutStage1Result</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.SimplePiloutStage1Result.verkeys"><code class="docutils literal notranslate"><span class="pre">SimplePiloutStage1Result.verkeys</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.SimplePiloutStage1Result.stage1_commitments"><code class="docutils literal notranslate"><span class="pre">SimplePiloutStage1Result.stage1_commitments</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.SimplePiloutStage1Result.global_challenge"><code class="docutils literal notranslate"><span class="pre">SimplePiloutStage1Result.global_challenge</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData"><code class="docutils literal notranslate"><span class="pre">AIRProveData</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.air_config"><code class="docutils literal notranslate"><span class="pre">AIRProveData.air_config</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.trace"><code class="docutils literal notranslate"><span class="pre">AIRProveData.trace</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.const_pols"><code class="docutils literal notranslate"><span class="pre">AIRProveData.const_pols</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.const_pols_extended"><code class="docutils literal notranslate"><span class="pre">AIRProveData.const_pols_extended</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.AIRProveData.public_inputs"><code class="docutils literal notranslate"><span class="pre">AIRProveData.public_inputs</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.prove_simple_pilout"><code class="docutils literal notranslate"><span class="pre">prove_simple_pilout()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.simple_pilout.prove_simple_pilout_stage1"><code class="docutils literal notranslate"><span class="pre">prove_simple_pilout_stage1()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

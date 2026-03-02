@@ -1,0 +1,810 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>protocol.proof &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/protocol/proof/index';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="protocol.prover" href="../prover/index.html" />
+    <link rel="prev" title="protocol.pcs" href="../pcs/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">executable-spec/</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">protocol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>protocol.proof</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.Hash"><code class="docutils literal notranslate"><span class="pre">Hash</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.MerkleProof"><code class="docutils literal notranslate"><span class="pre">MerkleProof</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.MerkleProof.v"><code class="docutils literal notranslate"><span class="pre">MerkleProof.v</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.MerkleProof.mp"><code class="docutils literal notranslate"><span class="pre">MerkleProof.mp</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.ProofTree"><code class="docutils literal notranslate"><span class="pre">ProofTree</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.ProofTree.root"><code class="docutils literal notranslate"><span class="pre">ProofTree.root</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.ProofTree.last_levels"><code class="docutils literal notranslate"><span class="pre">ProofTree.last_levels</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.ProofTree.pol_queries"><code class="docutils literal notranslate"><span class="pre">ProofTree.pol_queries</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.FriProof"><code class="docutils literal notranslate"><span class="pre">FriProof</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.FriProof.trees"><code class="docutils literal notranslate"><span class="pre">FriProof.trees</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.FriProof.trees_fri"><code class="docutils literal notranslate"><span class="pre">FriProof.trees_fri</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.FriProof.pol"><code class="docutils literal notranslate"><span class="pre">FriProof.pol</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof"><code class="docutils literal notranslate"><span class="pre">STARKProof</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.roots"><code class="docutils literal notranslate"><span class="pre">STARKProof.roots</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.last_levels"><code class="docutils literal notranslate"><span class="pre">STARKProof.last_levels</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.evals"><code class="docutils literal notranslate"><span class="pre">STARKProof.evals</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.airgroup_values"><code class="docutils literal notranslate"><span class="pre">STARKProof.airgroup_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.air_values"><code class="docutils literal notranslate"><span class="pre">STARKProof.air_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.custom_commits"><code class="docutils literal notranslate"><span class="pre">STARKProof.custom_commits</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.fri"><code class="docutils literal notranslate"><span class="pre">STARKProof.fri</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.nonce"><code class="docutils literal notranslate"><span class="pre">STARKProof.nonce</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.proof_to_json"><code class="docutils literal notranslate"><span class="pre">proof_to_json()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.load_proof_from_json"><code class="docutils literal notranslate"><span class="pre">load_proof_from_json()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.from_vadcop_final_bytes"><code class="docutils literal notranslate"><span class="pre">from_vadcop_final_bytes()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.from_bytes_full"><code class="docutils literal notranslate"><span class="pre">from_bytes_full()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.to_bytes_partial"><code class="docutils literal notranslate"><span class="pre">to_bytes_partial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.to_bytes_full"><code class="docutils literal notranslate"><span class="pre">to_bytes_full()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.to_bytes_full_from_dict"><code class="docutils literal notranslate"><span class="pre">to_bytes_full_from_dict()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.validate_proof_structure"><code class="docutils literal notranslate"><span class="pre">validate_proof_structure()</span></code></a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-protocol.proof">
+<span id="protocol-proof"></span><h1>protocol.proof<a class="headerlink" href="#module-protocol.proof" title="Link to this heading">#</a></h1>
+<p>STARK proof data structures and serialization.</p>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.proof.Hash" title="protocol.proof.Hash"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Hash</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.proof.MerkleProof" title="protocol.proof.MerkleProof"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MerkleProof</span></code></a></p></td>
+<td><p>Merkle authentication path: leaf values and sibling hashes.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.proof.ProofTree" title="protocol.proof.ProofTree"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProofTree</span></code></a></p></td>
+<td><p>Merkle tree commitment with query proofs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.proof.FriProof" title="protocol.proof.FriProof"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FriProof</span></code></a></p></td>
+<td><p>FRI opening proof: folding trees and final polynomial.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.proof.STARKProof" title="protocol.proof.STARKProof"><code class="xref py py-obj docutils literal notranslate"><span class="pre">STARKProof</span></code></a></p></td>
+<td><p>Complete STARK proof for a single AIR.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.proof.proof_to_json" title="protocol.proof.proof_to_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">proof_to_json</span></code></a>(→ dict[str, Any])</p></td>
+<td><p>Convert STARK proof to JSON-serializable dictionary.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.proof.load_proof_from_json" title="protocol.proof.load_proof_from_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_proof_from_json</span></code></a>(→ tuple[STARKProof, dict[str, Any]])</p></td>
+<td><p>Load STARK proof from JSON file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.proof.from_vadcop_final_bytes" title="protocol.proof.from_vadcop_final_bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_vadcop_final_bytes</span></code></a>(→ tuple[STARKProof, numpy.ndarray])</p></td>
+<td><p>Parse a VadcopFinal proof binary with embedded publics header.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.proof.from_bytes_full" title="protocol.proof.from_bytes_full"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_bytes_full</span></code></a>(→ STARKProof)</p></td>
+<td><p>Deserialize binary proof to STARKProof structure.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.proof.to_bytes_partial" title="protocol.proof.to_bytes_partial"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_bytes_partial</span></code></a>(→ tuple[bytes, bytes])</p></td>
+<td><p>Serialize proof header and footer (without query proofs) for partial comparison.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.proof.to_bytes_full" title="protocol.proof.to_bytes_full"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_bytes_full</span></code></a>(→ bytes)</p></td>
+<td><p>Serialize complete STARK proof to binary format (requires query proofs).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.proof.to_bytes_full_from_dict" title="protocol.proof.to_bytes_full_from_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_bytes_full_from_dict</span></code></a>(→ bytes)</p></td>
+<td><p>Serialize proof dictionary to binary format matching C++ proof2pointer().</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.proof.validate_proof_structure" title="protocol.proof.validate_proof_structure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_proof_structure</span></code></a>(→ list[str])</p></td>
+<td><p>Validate that proof structure matches STARK configuration.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="protocol.proof.Hash">
+<span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">Hash</span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#Hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.Hash" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.proof.MerkleProof">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">MerkleProof</span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#MerkleProof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.MerkleProof" title="Link to this definition">#</a></dt>
+<dd><p>Merkle authentication path: leaf values and sibling hashes.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.MerkleProof.v">
+<span class="sig-name descname"><span class="pre">v</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#MerkleProof.v"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.MerkleProof.v" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.MerkleProof.mp">
+<span class="sig-name descname"><span class="pre">mp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#MerkleProof.mp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.MerkleProof.mp" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.proof.ProofTree">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">ProofTree</span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#ProofTree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.ProofTree" title="Link to this definition">#</a></dt>
+<dd><p>Merkle tree commitment with query proofs.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.ProofTree.root">
+<span class="sig-name descname"><span class="pre">root</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Hash</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#ProofTree.root"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.ProofTree.root" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.ProofTree.last_levels">
+<span class="sig-name descname"><span class="pre">last_levels</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#ProofTree.last_levels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.ProofTree.last_levels" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.ProofTree.pol_queries">
+<span class="sig-name descname"><span class="pre">pol_queries</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#protocol.proof.MerkleProof" title="protocol.proof.MerkleProof"><span class="pre">MerkleProof</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#ProofTree.pol_queries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.ProofTree.pol_queries" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.proof.FriProof">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">FriProof</span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#FriProof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.FriProof" title="Link to this definition">#</a></dt>
+<dd><p>FRI opening proof: folding trees and final polynomial.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.FriProof.trees">
+<span class="sig-name descname"><span class="pre">trees</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#protocol.proof.ProofTree" title="protocol.proof.ProofTree"><span class="pre">ProofTree</span></a></em><a class="reference internal" href="../../../_modules/protocol/proof.html#FriProof.trees"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.FriProof.trees" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.FriProof.trees_fri">
+<span class="sig-name descname"><span class="pre">trees_fri</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#protocol.proof.ProofTree" title="protocol.proof.ProofTree"><span class="pre">ProofTree</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#FriProof.trees_fri"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.FriProof.trees_fri" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.FriProof.pol">
+<span class="sig-name descname"><span class="pre">pol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#FriProof.pol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.FriProof.pol" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.proof.STARKProof">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">STARKProof</span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#STARKProof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.STARKProof" title="Link to this definition">#</a></dt>
+<dd><p>Complete STARK proof for a single AIR.</p>
+<p>Contains all components needed to verify that a prover knows a valid
+execution trace satisfying the AIR constraints.</p>
+<dl>
+<dt>Attributes:</dt><dd><dl class="simple">
+<dt>roots: Merkle roots for each stage commitment (stages 1 to n_stages+1).</dt><dd><p>roots[0] is stage 1 (witness), roots[-1] is quotient polynomial.</p>
+</dd>
+<dt>last_levels: Pre-verified Merkle nodes for last_level_verification optimization.</dt><dd><p>Indexed by tree: [stage_0, …, stage_n, const_tree].</p>
+</dd>
+<dt>evals: Polynomial evaluations at challenge point xi. Each entry is</dt><dd><p>[c0, c1, c2] coefficients of an FF3 extension field element.</p>
+</dd>
+<dt>airgroup_values: Values shared across all AIRs in an airgroup (e.g., gsum_result).</dt><dd><p>Used for cross-AIR boundary constraints. Each is [c0, c1, c2].</p>
+</dd>
+<dt>air_values: Values specific to this individual AIR instance.</dt><dd><p>Stage 1 values are single FF, stage 2+ are FF3 [c0, c1, c2].</p>
+</dd>
+</dl>
+<p>custom_commits: Names of custom commitment schemes used (if any).
+fri: FRI protocol data - folding trees, query proofs, and final polynomial.
+nonce: Grinding nonce satisfying the grinding constraint.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.STARKProof.roots">
+<span class="sig-name descname"><span class="pre">roots</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Hash</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#STARKProof.roots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.STARKProof.roots" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.STARKProof.last_levels">
+<span class="sig-name descname"><span class="pre">last_levels</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#STARKProof.last_levels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.STARKProof.last_levels" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.STARKProof.evals">
+<span class="sig-name descname"><span class="pre">evals</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#STARKProof.evals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.STARKProof.evals" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.STARKProof.airgroup_values">
+<span class="sig-name descname"><span class="pre">airgroup_values</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#STARKProof.airgroup_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.STARKProof.airgroup_values" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.STARKProof.air_values">
+<span class="sig-name descname"><span class="pre">air_values</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#STARKProof.air_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.STARKProof.air_values" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.STARKProof.custom_commits">
+<span class="sig-name descname"><span class="pre">custom_commits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#STARKProof.custom_commits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.STARKProof.custom_commits" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.STARKProof.fri">
+<span class="sig-name descname"><span class="pre">fri</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#protocol.proof.FriProof" title="protocol.proof.FriProof"><span class="pre">FriProof</span></a></em><a class="reference internal" href="../../../_modules/protocol/proof.html#STARKProof.fri"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.STARKProof.fri" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.proof.STARKProof.nonce">
+<span class="sig-name descname"><span class="pre">nonce</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../_modules/protocol/proof.html#STARKProof.nonce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.STARKProof.nonce" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.proof.proof_to_json">
+<span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">proof_to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proof</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#protocol.proof.STARKProof" title="protocol.proof.STARKProof"><span class="pre">STARKProof</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_stages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_field_elements</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">HASH_SIZE</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#proof_to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.proof_to_json" title="Link to this definition">#</a></dt>
+<dd><p>Convert STARK proof to JSON-serializable dictionary.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.proof.load_proof_from_json">
+<span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">load_proof_from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#protocol.proof.STARKProof" title="protocol.proof.STARKProof"><span class="pre">STARKProof</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#load_proof_from_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.load_proof_from_json" title="Link to this definition">#</a></dt>
+<dd><p>Load STARK proof from JSON file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.proof.from_vadcop_final_bytes">
+<span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">from_vadcop_final_bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#protocol.proof.STARKProof" title="protocol.proof.STARKProof"><span class="pre">STARKProof</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#from_vadcop_final_bytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.from_vadcop_final_bytes" title="Link to this definition">#</a></dt>
+<dd><p>Parse a VadcopFinal proof binary with embedded publics header.</p>
+<p>VadcopFinal proofs prepend [n_publics: u64] [publics: n_publics * u64]
+before the standard proof body (ref: recursion.rs lines 622-627).</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>Tuple of (STARKProof, publics_array) where publics_array is numpy uint64.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.proof.from_bytes_full">
+<span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">from_bytes_full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#protocol.proof.STARKProof" title="protocol.proof.STARKProof"><span class="pre">STARKProof</span></a></span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#from_bytes_full"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.from_bytes_full" title="Link to this definition">#</a></dt>
+<dd><p>Deserialize binary proof to STARKProof structure.</p>
+<p>Parses the binary format produced by C++ proof2pointer() into a structured
+STARKProof dataclass with typed fields for all proof components.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.proof.to_bytes_partial">
+<span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">to_bytes_partial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proof_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#to_bytes_partial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.to_bytes_partial" title="Link to this definition">#</a></dt>
+<dd><p>Serialize proof header and footer (without query proofs) for partial comparison.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.proof.to_bytes_full">
+<span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">to_bytes_full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proof</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#protocol.proof.STARKProof" title="protocol.proof.STARKProof"><span class="pre">STARKProof</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#to_bytes_full"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.to_bytes_full" title="Link to this definition">#</a></dt>
+<dd><p>Serialize complete STARK proof to binary format (requires query proofs).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.proof.to_bytes_full_from_dict">
+<span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">to_bytes_full_from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proof_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#to_bytes_full_from_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.to_bytes_full_from_dict" title="Link to this definition">#</a></dt>
+<dd><p>Serialize proof dictionary to binary format matching C++ proof2pointer().</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.proof.validate_proof_structure">
+<span class="sig-prename descclassname"><span class="pre">protocol.proof.</span></span><span class="sig-name descname"><span class="pre">validate_proof_structure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proof</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#protocol.proof.STARKProof" title="protocol.proof.STARKProof"><span class="pre">STARKProof</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/protocol/proof.html#validate_proof_structure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.proof.validate_proof_structure" title="Link to this definition">#</a></dt>
+<dd><p>Validate that proof structure matches STARK configuration.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../pcs/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">protocol.pcs</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../prover/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">protocol.prover</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.Hash"><code class="docutils literal notranslate"><span class="pre">Hash</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.MerkleProof"><code class="docutils literal notranslate"><span class="pre">MerkleProof</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.MerkleProof.v"><code class="docutils literal notranslate"><span class="pre">MerkleProof.v</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.MerkleProof.mp"><code class="docutils literal notranslate"><span class="pre">MerkleProof.mp</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.ProofTree"><code class="docutils literal notranslate"><span class="pre">ProofTree</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.ProofTree.root"><code class="docutils literal notranslate"><span class="pre">ProofTree.root</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.ProofTree.last_levels"><code class="docutils literal notranslate"><span class="pre">ProofTree.last_levels</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.ProofTree.pol_queries"><code class="docutils literal notranslate"><span class="pre">ProofTree.pol_queries</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.FriProof"><code class="docutils literal notranslate"><span class="pre">FriProof</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.FriProof.trees"><code class="docutils literal notranslate"><span class="pre">FriProof.trees</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.FriProof.trees_fri"><code class="docutils literal notranslate"><span class="pre">FriProof.trees_fri</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.FriProof.pol"><code class="docutils literal notranslate"><span class="pre">FriProof.pol</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof"><code class="docutils literal notranslate"><span class="pre">STARKProof</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.roots"><code class="docutils literal notranslate"><span class="pre">STARKProof.roots</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.last_levels"><code class="docutils literal notranslate"><span class="pre">STARKProof.last_levels</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.evals"><code class="docutils literal notranslate"><span class="pre">STARKProof.evals</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.airgroup_values"><code class="docutils literal notranslate"><span class="pre">STARKProof.airgroup_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.air_values"><code class="docutils literal notranslate"><span class="pre">STARKProof.air_values</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.custom_commits"><code class="docutils literal notranslate"><span class="pre">STARKProof.custom_commits</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.fri"><code class="docutils literal notranslate"><span class="pre">STARKProof.fri</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.STARKProof.nonce"><code class="docutils literal notranslate"><span class="pre">STARKProof.nonce</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.proof_to_json"><code class="docutils literal notranslate"><span class="pre">proof_to_json()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.load_proof_from_json"><code class="docutils literal notranslate"><span class="pre">load_proof_from_json()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.from_vadcop_final_bytes"><code class="docutils literal notranslate"><span class="pre">from_vadcop_final_bytes()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.from_bytes_full"><code class="docutils literal notranslate"><span class="pre">from_bytes_full()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.to_bytes_partial"><code class="docutils literal notranslate"><span class="pre">to_bytes_partial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.to_bytes_full"><code class="docutils literal notranslate"><span class="pre">to_bytes_full()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.to_bytes_full_from_dict"><code class="docutils literal notranslate"><span class="pre">to_bytes_full_from_dict()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.proof.validate_proof_structure"><code class="docutils literal notranslate"><span class="pre">validate_proof_structure()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

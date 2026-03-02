@@ -1,0 +1,1379 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>primitives.expression_bytecode.expressions_bin &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/primitives/expression_bytecode/expressions_bin/index';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="primitives.expression_bytecode.witness_generation" href="../witness_generation/index.html" />
+    <link rel="prev" title="primitives.expression_bytecode.expression_evaluator" href="../expression_evaluator/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../../index.html">executable-spec/</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../../index.html">primitives</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 current active has-children"><a class="reference internal" href="../index.html">primitives.expression_bytecode</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4 current active"><a class="current reference internal" href="#">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>primitives.expression_bytecode.expressions_bin</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.EXPRESSIONS_SECTION"><code class="docutils literal notranslate"><span class="pre">EXPRESSIONS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.CONSTRAINTS_SECTION"><code class="docutils literal notranslate"><span class="pre">CONSTRAINTS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HINTS_SECTION"><code class="docutils literal notranslate"><span class="pre">HINTS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.N_SECTIONS"><code class="docutils literal notranslate"><span class="pre">N_SECTIONS</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.GLOBAL_CONSTRAINTS_SECTION"><code class="docutils literal notranslate"><span class="pre">GLOBAL_CONSTRAINTS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.GLOBAL_HINTS_SECTION"><code class="docutils literal notranslate"><span class="pre">GLOBAL_HINTS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.N_GLOBAL_SECTIONS"><code class="docutils literal notranslate"><span class="pre">N_GLOBAL_SECTIONS</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType"><code class="docutils literal notranslate"><span class="pre">OpType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.const_"><code class="docutils literal notranslate"><span class="pre">OpType.const_</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.cm"><code class="docutils literal notranslate"><span class="pre">OpType.cm</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.tmp"><code class="docutils literal notranslate"><span class="pre">OpType.tmp</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.public_"><code class="docutils literal notranslate"><span class="pre">OpType.public_</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.airgroupvalue"><code class="docutils literal notranslate"><span class="pre">OpType.airgroupvalue</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.challenge"><code class="docutils literal notranslate"><span class="pre">OpType.challenge</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.number"><code class="docutils literal notranslate"><span class="pre">OpType.number</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.string_"><code class="docutils literal notranslate"><span class="pre">OpType.string_</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.airvalue"><code class="docutils literal notranslate"><span class="pre">OpType.airvalue</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.proofvalue"><code class="docutils literal notranslate"><span class="pre">OpType.proofvalue</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.custom"><code class="docutils literal notranslate"><span class="pre">OpType.custom</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.x"><code class="docutils literal notranslate"><span class="pre">OpType.x</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.Zi"><code class="docutils literal notranslate"><span class="pre">OpType.Zi</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.eval"><code class="docutils literal notranslate"><span class="pre">OpType.eval</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.xDivXSubXi"><code class="docutils literal notranslate"><span class="pre">OpType.xDivXSubXi</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.q"><code class="docutils literal notranslate"><span class="pre">OpType.q</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.f"><code class="docutils literal notranslate"><span class="pre">OpType.f</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.optype_from_string"><code class="docutils literal notranslate"><span class="pre">optype_from_string()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams"><code class="docutils literal notranslate"><span class="pre">ParserParams</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.stage"><code class="docutils literal notranslate"><span class="pre">ParserParams.stage</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.exp_id"><code class="docutils literal notranslate"><span class="pre">ParserParams.exp_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_temp1"><code class="docutils literal notranslate"><span class="pre">ParserParams.n_temp1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_temp3"><code class="docutils literal notranslate"><span class="pre">ParserParams.n_temp3</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_ops"><code class="docutils literal notranslate"><span class="pre">ParserParams.n_ops</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.ops_offset"><code class="docutils literal notranslate"><span class="pre">ParserParams.ops_offset</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_args"><code class="docutils literal notranslate"><span class="pre">ParserParams.n_args</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.args_offset"><code class="docutils literal notranslate"><span class="pre">ParserParams.args_offset</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.first_row"><code class="docutils literal notranslate"><span class="pre">ParserParams.first_row</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.last_row"><code class="docutils literal notranslate"><span class="pre">ParserParams.last_row</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.dest_dim"><code class="docutils literal notranslate"><span class="pre">ParserParams.dest_dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.dest_id"><code class="docutils literal notranslate"><span class="pre">ParserParams.dest_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.im_pol"><code class="docutils literal notranslate"><span class="pre">ParserParams.im_pol</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.line"><code class="docutils literal notranslate"><span class="pre">ParserParams.line</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs"><code class="docutils literal notranslate"><span class="pre">ParserArgs</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.ops"><code class="docutils literal notranslate"><span class="pre">ParserArgs.ops</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.args"><code class="docutils literal notranslate"><span class="pre">ParserArgs.args</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.numbers"><code class="docutils literal notranslate"><span class="pre">ParserArgs.numbers</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.n_numbers"><code class="docutils literal notranslate"><span class="pre">ParserArgs.n_numbers</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue"><code class="docutils literal notranslate"><span class="pre">HintFieldValue</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.operand"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.operand</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.id"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.commit_id"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.commit_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.row_offset_index"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.row_offset_index</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.dim"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.value"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.value</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.string_value"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.string_value</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.pos"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.pos</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintField"><code class="docutils literal notranslate"><span class="pre">HintField</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintField.name"><code class="docutils literal notranslate"><span class="pre">HintField.name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintField.values"><code class="docutils literal notranslate"><span class="pre">HintField.values</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.Hint"><code class="docutils literal notranslate"><span class="pre">Hint</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.Hint.name"><code class="docutils literal notranslate"><span class="pre">Hint.name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.Hint.fields"><code class="docutils literal notranslate"><span class="pre">Hint.fields</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader"><code class="docutils literal notranslate"><span class="pre">BinFileReader</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.path"><code class="docutils literal notranslate"><span class="pre">BinFileReader.path</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.pos"><code class="docutils literal notranslate"><span class="pre">BinFileReader.pos</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.reading_section"><code class="docutils literal notranslate"><span class="pre">BinFileReader.reading_section</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.sections"><code class="docutils literal notranslate"><span class="pre">BinFileReader.sections</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.n_sections"><code class="docutils literal notranslate"><span class="pre">BinFileReader.n_sections</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_bytes"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_bytes()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u8_le"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_u8_le()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u16_le"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_u16_le()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u32_le"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_u32_le()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u64_le"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_u64_le()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_string"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_string()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.start_read_section"><code class="docutils literal notranslate"><span class="pre">BinFileReader.start_read_section()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.end_read_section"><code class="docutils literal notranslate"><span class="pre">BinFileReader.end_read_section()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_ops_total"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.n_ops_total</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_args_total"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.n_args_total</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_info"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.expressions_info</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.constraints_info_debug"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.constraints_info_debug</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.hints"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.hints</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_expressions"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.expressions_bin_args_expressions</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_constraints"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.expressions_bin_args_constraints</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp1"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.max_tmp1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp3"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.max_tmp3</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_args"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.max_args</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_ops"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.max_ops</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.from_file"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.from_file()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_expression"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.get_expression()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_ids_by_name"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.get_hint_ids_by_name()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_number_hint_ids_by_name"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.get_number_hint_ids_by_name()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_field"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.get_hint_field()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-primitives.expression_bytecode.expressions_bin">
+<span id="primitives-expression-bytecode-expressions-bin"></span><h1>primitives.expression_bytecode.expressions_bin<a class="headerlink" href="#module-primitives.expression_bytecode.expressions_bin" title="Link to this heading">#</a></h1>
+<p>Expression binary parser.</p>
+<p>Faithful translation from:
+- pil2-stark/src/starkpil/expressions_bin.hpp
+- pil2-stark/src/starkpil/expressions_bin.cpp</p>
+<p>Parses compiled expression bytecode from expressions.bin files.
+The binary file contains:
+1. Expression bytecode (operations and arguments)
+2. Constraint bytecode (for debugging/verification)
+3. Hints (for witness generation)</p>
+<dl class="simple">
+<dt>Key types referenced by OpType:</dt><dd><p>Zi          – inverse vanishing polynomial 1/Z_H(x) where Z_H(x) = x^N - 1
+xDivXSubXi  – x/(x - xi), precomputed quotient for FRI opening
+xi          – challenge evaluation point (random point from Fiat-Shamir)</p>
+</dd>
+</dl>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.EXPRESSIONS_SECTION" title="primitives.expression_bytecode.expressions_bin.EXPRESSIONS_SECTION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EXPRESSIONS_SECTION</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.CONSTRAINTS_SECTION" title="primitives.expression_bytecode.expressions_bin.CONSTRAINTS_SECTION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CONSTRAINTS_SECTION</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.HINTS_SECTION" title="primitives.expression_bytecode.expressions_bin.HINTS_SECTION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HINTS_SECTION</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.N_SECTIONS" title="primitives.expression_bytecode.expressions_bin.N_SECTIONS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">N_SECTIONS</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.GLOBAL_CONSTRAINTS_SECTION" title="primitives.expression_bytecode.expressions_bin.GLOBAL_CONSTRAINTS_SECTION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GLOBAL_CONSTRAINTS_SECTION</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.GLOBAL_HINTS_SECTION" title="primitives.expression_bytecode.expressions_bin.GLOBAL_HINTS_SECTION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GLOBAL_HINTS_SECTION</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.N_GLOBAL_SECTIONS" title="primitives.expression_bytecode.expressions_bin.N_GLOBAL_SECTIONS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">N_GLOBAL_SECTIONS</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.OpType" title="primitives.expression_bytecode.expressions_bin.OpType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OpType</span></code></a></p></td>
+<td><p>Operation argument types.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.ParserParams" title="primitives.expression_bytecode.expressions_bin.ParserParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParserParams</span></code></a></p></td>
+<td><p>Parameters for a single expression.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.ParserArgs" title="primitives.expression_bytecode.expressions_bin.ParserArgs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParserArgs</span></code></a></p></td>
+<td><p>Global bytecode and constants.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue" title="primitives.expression_bytecode.expressions_bin.HintFieldValue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HintFieldValue</span></code></a></p></td>
+<td><p>Hint field value.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.HintField" title="primitives.expression_bytecode.expressions_bin.HintField"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HintField</span></code></a></p></td>
+<td><p>Hint field.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.Hint" title="primitives.expression_bytecode.expressions_bin.Hint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Hint</span></code></a></p></td>
+<td><p>Hint for witness generation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.BinFileReader" title="primitives.expression_bytecode.expressions_bin.BinFileReader"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BinFileReader</span></code></a></p></td>
+<td><p>Binary file reader with little-endian decoding.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin" title="primitives.expression_bytecode.expressions_bin.ExpressionsBin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExpressionsBin</span></code></a></p></td>
+<td><p>Compiled expression database.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.optype_from_string" title="primitives.expression_bytecode.expressions_bin.optype_from_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">optype_from_string</span></code></a>(→ OpType)</p></td>
+<td><p>Convert string to OpType enum.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.EXPRESSIONS_SECTION">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">EXPRESSIONS_SECTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#EXPRESSIONS_SECTION"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.EXPRESSIONS_SECTION" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.CONSTRAINTS_SECTION">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">CONSTRAINTS_SECTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#CONSTRAINTS_SECTION"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.CONSTRAINTS_SECTION" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HINTS_SECTION">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">HINTS_SECTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HINTS_SECTION"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HINTS_SECTION" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.N_SECTIONS">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">N_SECTIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#N_SECTIONS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.N_SECTIONS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.GLOBAL_CONSTRAINTS_SECTION">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">GLOBAL_CONSTRAINTS_SECTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#GLOBAL_CONSTRAINTS_SECTION"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.GLOBAL_CONSTRAINTS_SECTION" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.GLOBAL_HINTS_SECTION">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">GLOBAL_HINTS_SECTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#GLOBAL_HINTS_SECTION"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.GLOBAL_HINTS_SECTION" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.N_GLOBAL_SECTIONS">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">N_GLOBAL_SECTIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#N_GLOBAL_SECTIONS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.N_GLOBAL_SECTIONS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">OpType</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<p>Operation argument types.</p>
+<p>Corresponds to C++ enum opType in stark_info.hpp (lines 30-49).
+These define the source/destination types for expression operands.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.const_">
+<span class="sig-name descname"><span class="pre">const_</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.const_"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.const_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.cm">
+<span class="sig-name descname"><span class="pre">cm</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.cm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.cm" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.tmp">
+<span class="sig-name descname"><span class="pre">tmp</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.tmp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.tmp" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.public_">
+<span class="sig-name descname"><span class="pre">public_</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.public_"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.public_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.airgroupvalue">
+<span class="sig-name descname"><span class="pre">airgroupvalue</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.airgroupvalue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.airgroupvalue" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.challenge">
+<span class="sig-name descname"><span class="pre">challenge</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.challenge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.challenge" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.number">
+<span class="sig-name descname"><span class="pre">number</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.number" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.string_">
+<span class="sig-name descname"><span class="pre">string_</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.string_"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.string_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.airvalue">
+<span class="sig-name descname"><span class="pre">airvalue</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.airvalue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.airvalue" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.proofvalue">
+<span class="sig-name descname"><span class="pre">proofvalue</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">9</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.proofvalue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.proofvalue" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.custom">
+<span class="sig-name descname"><span class="pre">custom</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.custom"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.custom" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.x">
+<span class="sig-name descname"><span class="pre">x</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">11</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.x"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.x" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.Zi">
+<span class="sig-name descname"><span class="pre">Zi</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">12</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.Zi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.Zi" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.eval">
+<span class="sig-name descname"><span class="pre">eval</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">13</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.eval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.eval" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.xDivXSubXi">
+<span class="sig-name descname"><span class="pre">xDivXSubXi</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">14</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.xDivXSubXi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.xDivXSubXi" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.q">
+<span class="sig-name descname"><span class="pre">q</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.q"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.q" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.OpType.f">
+<span class="sig-name descname"><span class="pre">f</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#OpType.f"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.OpType.f" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.optype_from_string">
+<span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">optype_from_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.OpType" title="primitives.expression_bytecode.expressions_bin.OpType"><span class="pre">OpType</span></a></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#optype_from_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.optype_from_string" title="Link to this definition">#</a></dt>
+<dd><p>Convert string to OpType enum.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">ParserParams</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams" title="Link to this definition">#</a></dt>
+<dd><p>Parameters for a single expression.</p>
+<p>Corresponds to C++ struct ParserParams in expressions_bin.hpp (lines 53-69).</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><p>stage: Proof stage (0=custom, 1=trace, 2+=intermediate)
+exp_id: Expression ID in the expression database
+n_temp1: Number of scalar temporaries needed
+n_temp3: Number of field extension (dim=3) temporaries needed
+n_ops: Number of operations in this expression
+ops_offset: Offset into global ops array
+n_args: Number of arguments (8 per operation)
+args_offset: Offset into global args array
+first_row: First valid row for cyclic constraints
+last_row: Last valid row for cyclic constraints
+dest_dim: Destination dimension (1 or 3)
+dest_id: Destination identifier
+im_pol: Is intermediate polynomial
+line: Source code line (for debugging)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.stage">
+<span class="sig-name descname"><span class="pre">stage</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.stage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.stage" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.exp_id">
+<span class="sig-name descname"><span class="pre">exp_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.exp_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.exp_id" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.n_temp1">
+<span class="sig-name descname"><span class="pre">n_temp1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.n_temp1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_temp1" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.n_temp3">
+<span class="sig-name descname"><span class="pre">n_temp3</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.n_temp3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_temp3" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.n_ops">
+<span class="sig-name descname"><span class="pre">n_ops</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.n_ops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_ops" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.ops_offset">
+<span class="sig-name descname"><span class="pre">ops_offset</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.ops_offset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.ops_offset" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.n_args">
+<span class="sig-name descname"><span class="pre">n_args</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.n_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_args" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.args_offset">
+<span class="sig-name descname"><span class="pre">args_offset</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.args_offset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.args_offset" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.first_row">
+<span class="sig-name descname"><span class="pre">first_row</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.first_row"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.first_row" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.last_row">
+<span class="sig-name descname"><span class="pre">last_row</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.last_row"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.last_row" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.dest_dim">
+<span class="sig-name descname"><span class="pre">dest_dim</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.dest_dim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.dest_dim" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.dest_id">
+<span class="sig-name descname"><span class="pre">dest_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.dest_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.dest_id" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.im_pol">
+<span class="sig-name descname"><span class="pre">im_pol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.im_pol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.im_pol" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserParams.line">
+<span class="sig-name descname"><span class="pre">line</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserParams.line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserParams.line" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserArgs">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">ParserArgs</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserArgs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserArgs" title="Link to this definition">#</a></dt>
+<dd><p>Global bytecode and constants.</p>
+<p>Corresponds to C++ struct ParserArgs in expressions_bin.hpp (lines 71-77).</p>
+<dl>
+<dt>Attributes:</dt><dd><dl class="simple">
+<dt>ops: Operation codes (uint8). Each value is 0-2:</dt><dd><p>0 = dim1 x dim1 -&gt; dim1 (scalar operation)
+1 = dim3 x dim1 -&gt; dim3 (field extension x scalar)
+2 = dim3 x dim3 -&gt; dim3 (field extension x field extension)</p>
+</dd>
+<dt>args: Operation arguments (uint16). 8 values per operation:</dt><dd><p>[0] = operation type (0=add, 1=sub, 2=mul, 3=sub_swap)
+[1] = destination temp index
+[2] = source A type (OpType value or temp buffer index)
+[3] = source A column/index
+[4] = source A stride index (for opening points)
+[5] = source B type
+[6] = source B column/index
+[7] = source B stride index</p>
+</dd>
+</dl>
+<p>numbers: Literal constants (Goldilocks field elements as uint64)
+n_numbers: Number of literal constants</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserArgs.ops">
+<span class="sig-name descname"><span class="pre">ops</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserArgs.ops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.ops" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserArgs.args">
+<span class="sig-name descname"><span class="pre">args</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserArgs.args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.args" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserArgs.numbers">
+<span class="sig-name descname"><span class="pre">numbers</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserArgs.numbers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.numbers" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ParserArgs.n_numbers">
+<span class="sig-name descname"><span class="pre">n_numbers</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ParserArgs.n_numbers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.n_numbers" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintFieldValue">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">HintFieldValue</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintFieldValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue" title="Link to this definition">#</a></dt>
+<dd><p>Hint field value.</p>
+<p>Corresponds to C++ struct HintFieldValue in expressions_bin.hpp (lines 30-39).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintFieldValue.operand">
+<span class="sig-name descname"><span class="pre">operand</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.OpType" title="primitives.expression_bytecode.expressions_bin.OpType"><span class="pre">OpType</span></a></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintFieldValue.operand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.operand" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintFieldValue.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintFieldValue.id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.id" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintFieldValue.commit_id">
+<span class="sig-name descname"><span class="pre">commit_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintFieldValue.commit_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.commit_id" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintFieldValue.row_offset_index">
+<span class="sig-name descname"><span class="pre">row_offset_index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintFieldValue.row_offset_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.row_offset_index" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintFieldValue.dim">
+<span class="sig-name descname"><span class="pre">dim</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintFieldValue.dim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.dim" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintFieldValue.value">
+<span class="sig-name descname"><span class="pre">value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintFieldValue.value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.value" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintFieldValue.string_value">
+<span class="sig-name descname"><span class="pre">string_value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintFieldValue.string_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.string_value" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintFieldValue.pos">
+<span class="sig-name descname"><span class="pre">pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintFieldValue.pos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.pos" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintField">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">HintField</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintField"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintField" title="Link to this definition">#</a></dt>
+<dd><p>Hint field.</p>
+<p>Corresponds to C++ struct HintField in expressions_bin.hpp (lines 41-44).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintField.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintField.name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintField.name" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.HintField.values">
+<span class="sig-name descname"><span class="pre">values</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue" title="primitives.expression_bytecode.expressions_bin.HintFieldValue"><span class="pre">HintFieldValue</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#HintField.values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.HintField.values" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.Hint">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">Hint</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#Hint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.Hint" title="Link to this definition">#</a></dt>
+<dd><p>Hint for witness generation.</p>
+<p>Corresponds to C++ struct Hint in expressions_bin.hpp (lines 47-51).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.Hint.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#Hint.name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.Hint.name" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.Hint.fields">
+<span class="sig-name descname"><span class="pre">fields</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.HintField" title="primitives.expression_bytecode.expressions_bin.HintField"><span class="pre">HintField</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#Hint.fields"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.Hint.fields" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">BinFileReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader" title="Link to this definition">#</a></dt>
+<dd><p>Binary file reader with little-endian decoding.</p>
+<p>Mimics C++ BinFileUtils::BinFile interface for reading.</p>
+<p>Corresponds to C++ BinFile constructor in binfile_utils.cpp (lines 63-131).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.path">
+<span class="sig-name descname"><span class="pre">path</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.path" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.pos">
+<span class="sig-name descname"><span class="pre">pos</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.pos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.pos" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.reading_section">
+<span class="sig-name descname"><span class="pre">reading_section</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.reading_section"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.reading_section" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.sections">
+<span class="sig-name descname"><span class="pre">sections</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.sections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.sections" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.n_sections">
+<span class="sig-name descname"><span class="pre">n_sections</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.n_sections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.n_sections" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.read_bytes">
+<span class="sig-name descname"><span class="pre">read_bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.read_bytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_bytes" title="Link to this definition">#</a></dt>
+<dd><p>Read n raw bytes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.read_u8_le">
+<span class="sig-name descname"><span class="pre">read_u8_le</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.read_u8_le"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u8_le" title="Link to this definition">#</a></dt>
+<dd><p>Read uint8 little-endian.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.read_u16_le">
+<span class="sig-name descname"><span class="pre">read_u16_le</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.read_u16_le"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u16_le" title="Link to this definition">#</a></dt>
+<dd><p>Read uint16 little-endian.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.read_u32_le">
+<span class="sig-name descname"><span class="pre">read_u32_le</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.read_u32_le"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u32_le" title="Link to this definition">#</a></dt>
+<dd><p>Read uint32 little-endian.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.read_u64_le">
+<span class="sig-name descname"><span class="pre">read_u64_le</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.read_u64_le"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u64_le" title="Link to this definition">#</a></dt>
+<dd><p>Read uint64 little-endian.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.read_string">
+<span class="sig-name descname"><span class="pre">read_string</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.read_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_string" title="Link to this definition">#</a></dt>
+<dd><p>Read null-terminated string.</p>
+<p>Corresponds to C++ BinFile::readString() which reads until null byte.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.start_read_section">
+<span class="sig-name descname"><span class="pre">start_read_section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">section_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">section_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.start_read_section"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.start_read_section" title="Link to this definition">#</a></dt>
+<dd><p>Start reading a section.</p>
+<p>Corresponds to C++ BinFile::startReadSection() (lines 138-157).</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>section_id: Section identifier
+section_pos: Section instance index (default 0)</p>
+</dd>
+<dt>Raises:</dt><dd><p>ValueError: If section doesn’t exist</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.BinFileReader.end_read_section">
+<span class="sig-name descname"><span class="pre">end_read_section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">check</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#BinFileReader.end_read_section"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.end_read_section" title="Link to this definition">#</a></dt>
+<dd><p>End reading a section.</p>
+<p>Corresponds to C++ BinFile::endReadSection() (lines 159-166).</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>check: If True, verify we read exactly section_size bytes</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">primitives.expression_bytecode.expressions_bin.</span></span><span class="sig-name descname"><span class="pre">ExpressionsBin</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin" title="Link to this definition">#</a></dt>
+<dd><p>Compiled expression database.</p>
+<p>Corresponds to C++ class ExpressionsBin in expressions_bin.hpp (lines 79-145).</p>
+<p>This class loads and manages compiled expression bytecode from .bin files.
+The bytecode represents arithmetic constraint expressions compiled into
+a stack-based operation sequence.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_ops_total">
+<span class="sig-name descname"><span class="pre">n_ops_total</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.n_ops_total"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_ops_total" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_args_total">
+<span class="sig-name descname"><span class="pre">n_args_total</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.n_args_total"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_args_total" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_info">
+<span class="sig-name descname"><span class="pre">expressions_info</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.ParserParams" title="primitives.expression_bytecode.expressions_bin.ParserParams"><span class="pre">ParserParams</span></a><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.expressions_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_info" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.constraints_info_debug">
+<span class="sig-name descname"><span class="pre">constraints_info_debug</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.ParserParams" title="primitives.expression_bytecode.expressions_bin.ParserParams"><span class="pre">ParserParams</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.constraints_info_debug"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.constraints_info_debug" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.hints">
+<span class="sig-name descname"><span class="pre">hints</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.Hint" title="primitives.expression_bytecode.expressions_bin.Hint"><span class="pre">Hint</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.hints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.hints" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_expressions">
+<span class="sig-name descname"><span class="pre">expressions_bin_args_expressions</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.expressions_bin_args_expressions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_expressions" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_constraints">
+<span class="sig-name descname"><span class="pre">expressions_bin_args_constraints</span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.expressions_bin_args_constraints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_constraints" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp1">
+<span class="sig-name descname"><span class="pre">max_tmp1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.max_tmp1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp1" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp3">
+<span class="sig-name descname"><span class="pre">max_tmp3</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.max_tmp3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp3" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_args">
+<span class="sig-name descname"><span class="pre">max_args</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.max_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_args" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_ops">
+<span class="sig-name descname"><span class="pre">max_ops</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.max_ops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_ops" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.from_file">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_bin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verifier_bin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin" title="primitives.expression_bytecode.expressions_bin.ExpressionsBin"><span class="pre">ExpressionsBin</span></a></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.from_file" title="Link to this definition">#</a></dt>
+<dd><p>Load ExpressionsBin from binary file.</p>
+<p>Corresponds to C++ constructor (lines 3-13 of expressions_bin.cpp).</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>file_path: Path to .bin file
+global_bin: Load as global constraints binary
+verifier_bin: Load as verifier binary</p>
+</dd>
+<dt>Returns:</dt><dd><p>Loaded ExpressionsBin instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_expression">
+<span class="sig-name descname"><span class="pre">get_expression</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.ParserParams" title="primitives.expression_bytecode.expressions_bin.ParserParams"><span class="pre">ParserParams</span></a></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.get_expression"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_expression" title="Link to this definition">#</a></dt>
+<dd><p>Get expression parameters by ID.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>exp_id: Expression ID</p>
+</dd>
+<dt>Returns:</dt><dd><p>ParserParams for the expression</p>
+</dd>
+<dt>Raises:</dt><dd><p>KeyError: If expression ID not found</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_ids_by_name">
+<span class="sig-name descname"><span class="pre">get_hint_ids_by_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.get_hint_ids_by_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_ids_by_name" title="Link to this definition">#</a></dt>
+<dd><p>Get hint indices by name.</p>
+<p>Corresponds to C++ ExpressionsBin::getHintIdsByName()
+(lines 684-691 of expressions_bin.cpp).</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>name: Hint name to search for</p>
+</dd>
+<dt>Returns:</dt><dd><p>List of hint indices with matching name</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_number_hint_ids_by_name">
+<span class="sig-name descname"><span class="pre">get_number_hint_ids_by_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.get_number_hint_ids_by_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_number_hint_ids_by_name" title="Link to this definition">#</a></dt>
+<dd><p>Get count of hints by name.</p>
+<p>Corresponds to C++ ExpressionsBin::getNumberHintIdsByName()
+(lines 694-704 of expressions_bin.cpp).</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>name: Hint name to search for</p>
+</dd>
+<dt>Returns:</dt><dd><p>Number of hints with matching name</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_field">
+<span class="sig-name descname"><span class="pre">get_hint_field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hint_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#primitives.expression_bytecode.expressions_bin.HintField" title="primitives.expression_bytecode.expressions_bin.HintField"><span class="pre">HintField</span></a></span></span><a class="reference internal" href="../../../../_modules/primitives/expression_bytecode/expressions_bin.html#ExpressionsBin.get_hint_field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_field" title="Link to this definition">#</a></dt>
+<dd><p>Get a specific field from a hint by name.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>hint_id: Index into self.hints
+field_name: Name of field (e.g., “numerator”, “denominator”, “reference”)</p>
+</dd>
+<dt>Returns:</dt><dd><p>HintField containing the field values</p>
+</dd>
+<dt>Raises:</dt><dd><p>ValueError: If field not found in hint</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../expression_evaluator/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">primitives.expression_bytecode.expression_evaluator</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../witness_generation/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">primitives.expression_bytecode.witness_generation</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.EXPRESSIONS_SECTION"><code class="docutils literal notranslate"><span class="pre">EXPRESSIONS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.CONSTRAINTS_SECTION"><code class="docutils literal notranslate"><span class="pre">CONSTRAINTS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HINTS_SECTION"><code class="docutils literal notranslate"><span class="pre">HINTS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.N_SECTIONS"><code class="docutils literal notranslate"><span class="pre">N_SECTIONS</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.GLOBAL_CONSTRAINTS_SECTION"><code class="docutils literal notranslate"><span class="pre">GLOBAL_CONSTRAINTS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.GLOBAL_HINTS_SECTION"><code class="docutils literal notranslate"><span class="pre">GLOBAL_HINTS_SECTION</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.N_GLOBAL_SECTIONS"><code class="docutils literal notranslate"><span class="pre">N_GLOBAL_SECTIONS</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType"><code class="docutils literal notranslate"><span class="pre">OpType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.const_"><code class="docutils literal notranslate"><span class="pre">OpType.const_</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.cm"><code class="docutils literal notranslate"><span class="pre">OpType.cm</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.tmp"><code class="docutils literal notranslate"><span class="pre">OpType.tmp</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.public_"><code class="docutils literal notranslate"><span class="pre">OpType.public_</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.airgroupvalue"><code class="docutils literal notranslate"><span class="pre">OpType.airgroupvalue</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.challenge"><code class="docutils literal notranslate"><span class="pre">OpType.challenge</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.number"><code class="docutils literal notranslate"><span class="pre">OpType.number</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.string_"><code class="docutils literal notranslate"><span class="pre">OpType.string_</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.airvalue"><code class="docutils literal notranslate"><span class="pre">OpType.airvalue</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.proofvalue"><code class="docutils literal notranslate"><span class="pre">OpType.proofvalue</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.custom"><code class="docutils literal notranslate"><span class="pre">OpType.custom</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.x"><code class="docutils literal notranslate"><span class="pre">OpType.x</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.Zi"><code class="docutils literal notranslate"><span class="pre">OpType.Zi</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.eval"><code class="docutils literal notranslate"><span class="pre">OpType.eval</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.xDivXSubXi"><code class="docutils literal notranslate"><span class="pre">OpType.xDivXSubXi</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.q"><code class="docutils literal notranslate"><span class="pre">OpType.q</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.OpType.f"><code class="docutils literal notranslate"><span class="pre">OpType.f</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.optype_from_string"><code class="docutils literal notranslate"><span class="pre">optype_from_string()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams"><code class="docutils literal notranslate"><span class="pre">ParserParams</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.stage"><code class="docutils literal notranslate"><span class="pre">ParserParams.stage</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.exp_id"><code class="docutils literal notranslate"><span class="pre">ParserParams.exp_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_temp1"><code class="docutils literal notranslate"><span class="pre">ParserParams.n_temp1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_temp3"><code class="docutils literal notranslate"><span class="pre">ParserParams.n_temp3</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_ops"><code class="docutils literal notranslate"><span class="pre">ParserParams.n_ops</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.ops_offset"><code class="docutils literal notranslate"><span class="pre">ParserParams.ops_offset</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.n_args"><code class="docutils literal notranslate"><span class="pre">ParserParams.n_args</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.args_offset"><code class="docutils literal notranslate"><span class="pre">ParserParams.args_offset</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.first_row"><code class="docutils literal notranslate"><span class="pre">ParserParams.first_row</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.last_row"><code class="docutils literal notranslate"><span class="pre">ParserParams.last_row</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.dest_dim"><code class="docutils literal notranslate"><span class="pre">ParserParams.dest_dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.dest_id"><code class="docutils literal notranslate"><span class="pre">ParserParams.dest_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.im_pol"><code class="docutils literal notranslate"><span class="pre">ParserParams.im_pol</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserParams.line"><code class="docutils literal notranslate"><span class="pre">ParserParams.line</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs"><code class="docutils literal notranslate"><span class="pre">ParserArgs</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.ops"><code class="docutils literal notranslate"><span class="pre">ParserArgs.ops</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.args"><code class="docutils literal notranslate"><span class="pre">ParserArgs.args</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.numbers"><code class="docutils literal notranslate"><span class="pre">ParserArgs.numbers</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ParserArgs.n_numbers"><code class="docutils literal notranslate"><span class="pre">ParserArgs.n_numbers</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue"><code class="docutils literal notranslate"><span class="pre">HintFieldValue</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.operand"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.operand</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.id"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.commit_id"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.commit_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.row_offset_index"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.row_offset_index</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.dim"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.value"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.value</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.string_value"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.string_value</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintFieldValue.pos"><code class="docutils literal notranslate"><span class="pre">HintFieldValue.pos</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintField"><code class="docutils literal notranslate"><span class="pre">HintField</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintField.name"><code class="docutils literal notranslate"><span class="pre">HintField.name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.HintField.values"><code class="docutils literal notranslate"><span class="pre">HintField.values</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.Hint"><code class="docutils literal notranslate"><span class="pre">Hint</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.Hint.name"><code class="docutils literal notranslate"><span class="pre">Hint.name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.Hint.fields"><code class="docutils literal notranslate"><span class="pre">Hint.fields</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader"><code class="docutils literal notranslate"><span class="pre">BinFileReader</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.path"><code class="docutils literal notranslate"><span class="pre">BinFileReader.path</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.pos"><code class="docutils literal notranslate"><span class="pre">BinFileReader.pos</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.reading_section"><code class="docutils literal notranslate"><span class="pre">BinFileReader.reading_section</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.sections"><code class="docutils literal notranslate"><span class="pre">BinFileReader.sections</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.n_sections"><code class="docutils literal notranslate"><span class="pre">BinFileReader.n_sections</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_bytes"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_bytes()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u8_le"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_u8_le()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u16_le"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_u16_le()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u32_le"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_u32_le()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_u64_le"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_u64_le()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.read_string"><code class="docutils literal notranslate"><span class="pre">BinFileReader.read_string()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.start_read_section"><code class="docutils literal notranslate"><span class="pre">BinFileReader.start_read_section()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.BinFileReader.end_read_section"><code class="docutils literal notranslate"><span class="pre">BinFileReader.end_read_section()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_ops_total"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.n_ops_total</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.n_args_total"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.n_args_total</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_info"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.expressions_info</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.constraints_info_debug"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.constraints_info_debug</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.hints"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.hints</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_expressions"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.expressions_bin_args_expressions</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.expressions_bin_args_constraints"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.expressions_bin_args_constraints</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp1"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.max_tmp1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_tmp3"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.max_tmp3</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_args"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.max_args</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.max_ops"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.max_ops</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.from_file"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.from_file()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_expression"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.get_expression()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_ids_by_name"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.get_hint_ids_by_name()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_number_hint_ids_by_name"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.get_number_hint_ids_by_name()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#primitives.expression_bytecode.expressions_bin.ExpressionsBin.get_hint_field"><code class="docutils literal notranslate"><span class="pre">ExpressionsBin.get_hint_field()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

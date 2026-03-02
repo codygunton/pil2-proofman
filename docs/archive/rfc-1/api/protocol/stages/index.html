@@ -1,0 +1,775 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>protocol.stages &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/protocol/stages/index';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="protocol.stark_info" href="../stark_info/index.html" />
+    <link rel="prev" title="protocol.simple_pilout" href="../simple_pilout/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">executable-spec/</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">protocol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>protocol.stages</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.BufferOffset"><code class="docutils literal notranslate"><span class="pre">BufferOffset</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.StageIndex"><code class="docutils literal notranslate"><span class="pre">StageIndex</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.ChallengesDict"><code class="docutils literal notranslate"><span class="pre">ChallengesDict</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.calculate_witness"><code class="docutils literal notranslate"><span class="pre">calculate_witness()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.setupCtx"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.setupCtx</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.stage_trees"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.stage_trees</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.const_tree"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.const_tree</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.build_const_tree"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.build_const_tree()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.get_const_query_proof"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.get_const_query_proof()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.extendAndMerkelize"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.extendAndMerkelize()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.get_stage_query_proof"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.get_stage_query_proof()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.get_stage_tree"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.get_stage_tree()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.commitStage"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.commitStage()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.computeFriPol"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.computeFriPol()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.calculateQuotientPolynomial"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.calculateQuotientPolynomial()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.calculateFRIPolynomial"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.calculateFRIPolynomial()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.computeLEv"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.computeLEv()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.computeEvals"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.computeEvals()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.evmap"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.evmap()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-protocol.stages">
+<span id="protocol-stages"></span><h1>protocol.stages<a class="headerlink" href="#module-protocol.stages" title="Link to this heading">#</a></h1>
+<p>Polynomial commitment stage orchestration.</p>
+<p>This module provides the PolynomialCommitter class which manages the polynomial commitment
+phase of STARK proof generation. For each “stage” of the protocol, PolynomialCommitter:</p>
+<ol class="arabic simple">
+<li><p>Takes polynomial evaluations from explicit buffers</p></li>
+<li><p>Extends them to the evaluation domain (via NTT)</p></li>
+<li><p>Builds a Merkle tree commitment</p></li>
+<li><p>Returns the Merkle root</p></li>
+</ol>
+<p>Stages in the STARK protocol:
+- Stage 1: Witness polynomials (execution trace)
+- Stage 2: Intermediate polynomials (lookup/permutation support)
+- Stage Q (nStages+1): Quotient polynomial (constraint checking)</p>
+<p>The Merkle trees are retained for later query proof generation during FRI.</p>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.stages.BufferOffset" title="protocol.stages.BufferOffset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BufferOffset</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.stages.StageIndex" title="protocol.stages.StageIndex"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StageIndex</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.stages.ChallengesDict" title="protocol.stages.ChallengesDict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChallengesDict</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.stages.PolynomialCommitter" title="protocol.stages.PolynomialCommitter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PolynomialCommitter</span></code></a></p></td>
+<td><p>Polynomial commitment orchestrator for STARK proof generation.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.stages.calculate_witness" title="protocol.stages.calculate_witness"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_witness</span></code></a>(→ numpy.ndarray)</p></td>
+<td><p>Calculate witness polynomials using per-AIR witness modules.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="protocol.stages.BufferOffset">
+<span class="sig-prename descclassname"><span class="pre">protocol.stages.</span></span><span class="sig-name descname"><span class="pre">BufferOffset</span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#BufferOffset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.BufferOffset" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="protocol.stages.StageIndex">
+<span class="sig-prename descclassname"><span class="pre">protocol.stages.</span></span><span class="sig-name descname"><span class="pre">StageIndex</span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#StageIndex"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.StageIndex" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="protocol.stages.ChallengesDict">
+<span class="sig-prename descclassname"><span class="pre">protocol.stages.</span></span><span class="sig-name descname"><span class="pre">ChallengesDict</span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#ChallengesDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.ChallengesDict" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="protocol.stages.calculate_witness">
+<span class="sig-prename descclassname"><span class="pre">protocol.stages.</span></span><span class="sig-name descname"><span class="pre">calculate_witness</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stark_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../stark_info/index.html#protocol.stark_info.StarkInfo" title="protocol.stark_info.StarkInfo"><span class="pre">protocol.stark_info.StarkInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const_pols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">challenges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ChallengesDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expressions_bin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#calculate_witness"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.calculate_witness" title="Link to this definition">#</a></dt>
+<dd><p>Calculate witness polynomials using per-AIR witness modules.</p>
+<p>Computes im_cluster and gsum columns using the AIR-specific witness module.
+If the hand-written module defers Stage-2 (returns empty dicts), falls back
+to the compiled expression bytecode at expressions_bin.</p>
+<dl>
+<dt>Args:</dt><dd><p>stark_info: StarkInfo with AIR name and polynomial mappings
+trace: Stage 1 trace buffer
+aux_trace: Auxiliary trace buffer
+const_pols: Base domain constant polynomials
+challenges: Named challenges dict for stage 2
+expressions_bin: Optional path to .bin bytecode for Stage-2 fallback.</p>
+<blockquote>
+<div><p>Used when the hand-written module returns empty dicts from
+compute_intermediates/compute_grand_sums.</p>
+</div></blockquote>
+</dd>
+<dt>Returns:</dt><dd><dl class="simple">
+<dt>airgroup_values: Cross-AIR accumulator values (gsum/gprod boundaries)</dt><dd><p>Array of FF3 elements in interleaved format, empty for standalone AIRs</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.stages.</span></span><span class="sig-name descname"><span class="pre">PolynomialCommitter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">setupCtx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../air_config/index.html#protocol.air_config.AirConfig" title="protocol.air_config.AirConfig"><span class="pre">protocol.air_config.AirConfig</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter" title="Link to this definition">#</a></dt>
+<dd><p>Polynomial commitment orchestrator for STARK proof generation.</p>
+<p>The PolynomialCommitter class manages polynomial commitment via Merkle trees:
+- Maintains one Merkle tree per polynomial commitment stage
+- Handles polynomial extension (NTT) and tree construction
+- Provides query proof generation for FRI verification</p>
+<p>NTT (Number Theoretic Transform) objects are created internally to hide
+FFT implementation details from the protocol layer. The protocol only
+needs to know about polynomial commitment, not how it’s implemented.</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><p>setupCtx: AIR configuration with domain sizes and parameters
+stage_trees: Merkle trees for each commitment stage (1, 2, Q)
+const_tree: Merkle tree for constant polynomials (if present)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.setupCtx">
+<span class="sig-name descname"><span class="pre">setupCtx</span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.setupCtx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.setupCtx" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.stage_trees">
+<span class="sig-name descname"><span class="pre">stage_trees</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">StageIndex</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../../primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree" title="primitives.merkle_tree.MerkleTree"><span class="pre">primitives.merkle_tree.MerkleTree</span></a><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.stage_trees"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.stage_trees" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.const_tree">
+<span class="sig-name descname"><span class="pre">const_tree</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../../primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree" title="primitives.merkle_tree.MerkleTree"><span class="pre">primitives.merkle_tree.MerkleTree</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.const_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.const_tree" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.build_const_tree">
+<span class="sig-name descname"><span class="pre">build_const_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">constPolsExtended</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">primitives.merkle_tree.MerkleRoot</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.build_const_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.build_const_tree" title="Link to this definition">#</a></dt>
+<dd><p>Build Merkle tree for constant polynomials.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.get_const_query_proof">
+<span class="sig-name descname"><span class="pre">get_const_query_proof</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../primitives/merkle_tree/index.html#primitives.merkle_tree.QueryProof" title="primitives.merkle_tree.QueryProof"><span class="pre">primitives.merkle_tree.QueryProof</span></a></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.get_const_query_proof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.get_const_query_proof" title="Link to this definition">#</a></dt>
+<dd><p>Extract query proof from constant polynomial tree.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.extendAndMerkelize">
+<span class="sig-name descname"><span class="pre">extendAndMerkelize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auxTrace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">primitives.merkle_tree.MerkleRoot</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.extendAndMerkelize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.extendAndMerkelize" title="Link to this definition">#</a></dt>
+<dd><p>Extend polynomial from N to N_ext and build Merkle tree commitment.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.get_stage_query_proof">
+<span class="sig-name descname"><span class="pre">get_stage_query_proof</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../primitives/merkle_tree/index.html#primitives.merkle_tree.QueryProof" title="primitives.merkle_tree.QueryProof"><span class="pre">primitives.merkle_tree.QueryProof</span></a></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.get_stage_query_proof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.get_stage_query_proof" title="Link to this definition">#</a></dt>
+<dd><p>Extract query proof from a stored stage tree.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.get_stage_tree">
+<span class="sig-name descname"><span class="pre">get_stage_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree" title="primitives.merkle_tree.MerkleTree"><span class="pre">primitives.merkle_tree.MerkleTree</span></a></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.get_stage_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.get_stage_tree" title="Link to this definition">#</a></dt>
+<dd><p>Get the Merkle tree for a specific stage.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.commitStage">
+<span class="sig-name descname"><span class="pre">commitStage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auxTrace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">primitives.merkle_tree.MerkleRoot</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.commitStage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.commitStage" title="Link to this definition">#</a></dt>
+<dd><p>Execute a commitment stage (witness or quotient polynomial).</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>step: Stage number (1 = witness, 2 = intermediate, n_stages+1 = quotient)
+trace: Stage 1 trace buffer
+auxTrace: Auxiliary trace buffer</p>
+</dd>
+<dt>Returns:</dt><dd><p>Merkle root (HASH_SIZE integers)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.computeFriPol">
+<span class="sig-name descname"><span class="pre">computeFriPol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auxTrace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.computeFriPol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.computeFriPol" title="Link to this definition">#</a></dt>
+<dd><p>Compute quotient polynomial Q for FRI commitment.</p>
+<ol class="arabic simple">
+<li><p>INTT constraint polynomial (extended domain -&gt; coefficients)</p></li>
+<li><p>Apply shift factors S[p] = (shift^-1)^(N*p) for coset correction</p></li>
+<li><p>Reorganize from degree-major to evaluation-major layout</p></li>
+<li><p>NTT back to extended domain evaluations</p></li>
+</ol>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.calculateQuotientPolynomial">
+<span class="sig-name descname"><span class="pre">calculateQuotientPolynomial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const_pols_extended</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">challenges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ChallengesDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prover_helpers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../air_config/index.html#protocol.air_config.ProverHelpers" title="protocol.air_config.ProverHelpers"><span class="pre">protocol.air_config.ProverHelpers</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">airgroup_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.calculateQuotientPolynomial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.calculateQuotientPolynomial" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate constraint expression across the extended domain.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>trace: Stage 1 trace buffer
+aux_trace: Auxiliary trace buffer
+const_pols_extended: Extended constant polynomials
+challenges: Named challenges dict
+prover_helpers: ProverHelpers with zerofiers
+airgroup_values: Airgroup values array (interleaved FF3)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.calculateFRIPolynomial">
+<span class="sig-name descname"><span class="pre">calculateFRIPolynomial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const_pols_extended</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">primitives.field.FF3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vf1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">primitives.field.FF3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vf2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">primitives.field.FF3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prover_helpers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../air_config/index.html#protocol.air_config.ProverHelpers" title="protocol.air_config.ProverHelpers"><span class="pre">protocol.air_config.ProverHelpers</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.calculateFRIPolynomial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.calculateFRIPolynomial" title="Link to this definition">#</a></dt>
+<dd><p>Compute FRI polynomial F = linear combination of committed polys at xi*w^offset.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>trace: Stage 1 trace buffer
+aux_trace: Auxiliary trace buffer
+const_pols_extended: Extended constant polynomials
+evals: Polynomial evaluations array
+xi: Evaluation point challenge
+vf1: FRI batching challenge 1
+vf2: FRI batching challenge 2
+prover_helpers: ProverHelpers with precomputed domain values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.computeLEv">
+<span class="sig-name descname"><span class="pre">computeLEv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xiChallenge</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">openingPoints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.computeLEv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.computeLEv" title="Link to this definition">#</a></dt>
+<dd><p>Compute Lagrange evaluation coefficients.</p>
+<p>LEv[k, i] = ((xi * w^openingPoint[i]) * shift^-1)^k</p>
+<p>Vectorized: compute all opening points in parallel for each k.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>xiChallenge: Challenge point (FF3 as numpy array)
+openingPoints: List of opening point indices</p>
+</dd>
+<dt>Returns:</dt><dd><p>Lagrange evaluation coefficients in flattened numpy array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.computeEvals">
+<span class="sig-name descname"><span class="pre">computeEvals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const_pols_extended</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LEv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">openingPoints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.computeEvals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.computeEvals" title="Link to this definition">#</a></dt>
+<dd><p>Compute polynomial evaluations at opening points.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.stages.PolynomialCommitter.evmap">
+<span class="sig-name descname"><span class="pre">evmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const_pols_extended</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LEv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">openingPoints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../_modules/protocol/stages.html#PolynomialCommitter.evmap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.stages.PolynomialCommitter.evmap" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate polynomials at opening points using vectorized operations.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../simple_pilout/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">protocol.simple_pilout</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../stark_info/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">protocol.stark_info</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.BufferOffset"><code class="docutils literal notranslate"><span class="pre">BufferOffset</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.StageIndex"><code class="docutils literal notranslate"><span class="pre">StageIndex</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.ChallengesDict"><code class="docutils literal notranslate"><span class="pre">ChallengesDict</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.calculate_witness"><code class="docutils literal notranslate"><span class="pre">calculate_witness()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.setupCtx"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.setupCtx</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.stage_trees"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.stage_trees</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.const_tree"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.const_tree</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.build_const_tree"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.build_const_tree()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.get_const_query_proof"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.get_const_query_proof()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.extendAndMerkelize"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.extendAndMerkelize()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.get_stage_query_proof"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.get_stage_query_proof()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.get_stage_tree"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.get_stage_tree()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.commitStage"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.commitStage()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.computeFriPol"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.computeFriPol()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.calculateQuotientPolynomial"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.calculateQuotientPolynomial()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.calculateFRIPolynomial"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.calculateFRIPolynomial()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.computeLEv"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.computeLEv()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.computeEvals"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.computeEvals()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.stages.PolynomialCommitter.evmap"><code class="docutils literal notranslate"><span class="pre">PolynomialCommitter.evmap()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

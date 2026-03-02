@@ -1,0 +1,705 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>protocol.pcs &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/protocol/pcs/index';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="protocol.proof" href="../proof/index.html" />
+    <link rel="prev" title="protocol.global_info" href="../global_info/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">executable-spec/</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">protocol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>protocol.pcs</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.EvalPoly"><code class="docutils literal notranslate"><span class="pre">EvalPoly</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.Nonce"><code class="docutils literal notranslate"><span class="pre">Nonce</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.QueryIndex"><code class="docutils literal notranslate"><span class="pre">QueryIndex</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.n_bits_ext"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.n_bits_ext</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.fri_round_log_sizes"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.fri_round_log_sizes</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.n_queries"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.n_queries</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.merkle_arity"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.merkle_arity</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.pow_bits"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.pow_bits</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.last_level_verification"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.last_level_verification</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.hash_commits"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.hash_commits</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.transcript_arity"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.transcript_arity</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.merkle_tree_custom"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.merkle_tree_custom</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof"><code class="docutils literal notranslate"><span class="pre">FriProof</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.fri_roots"><code class="docutils literal notranslate"><span class="pre">FriProof.fri_roots</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.final_pol"><code class="docutils literal notranslate"><span class="pre">FriProof.final_pol</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.nonce"><code class="docutils literal notranslate"><span class="pre">FriProof.nonce</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.query_proofs"><code class="docutils literal notranslate"><span class="pre">FriProof.query_proofs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.query_indices"><code class="docutils literal notranslate"><span class="pre">FriProof.query_indices</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs"><code class="docutils literal notranslate"><span class="pre">FriPcs</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs.config"><code class="docutils literal notranslate"><span class="pre">FriPcs.config</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs.fri_trees"><code class="docutils literal notranslate"><span class="pre">FriPcs.fri_trees</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs.prove"><code class="docutils literal notranslate"><span class="pre">FriPcs.prove()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs.get_fri_tree"><code class="docutils literal notranslate"><span class="pre">FriPcs.get_fri_tree()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-protocol.pcs">
+<span id="protocol-pcs"></span><h1>protocol.pcs<a class="headerlink" href="#module-protocol.pcs" title="Link to this heading">#</a></h1>
+<p>FRI Polynomial Commitment Scheme.</p>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.pcs.EvalPoly" title="protocol.pcs.EvalPoly"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EvalPoly</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.pcs.Nonce" title="protocol.pcs.Nonce"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Nonce</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.pcs.QueryIndex" title="protocol.pcs.QueryIndex"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueryIndex</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.pcs.FriPcsConfig" title="protocol.pcs.FriPcsConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FriPcsConfig</span></code></a></p></td>
+<td><p>FRI PCS parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#protocol.pcs.FriProof" title="protocol.pcs.FriProof"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FriProof</span></code></a></p></td>
+<td><p>FRI proof: roots, final polynomial, grinding nonce, and query proofs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#protocol.pcs.FriPcs" title="protocol.pcs.FriPcs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FriPcs</span></code></a></p></td>
+<td><p>FRI Polynomial Commitment Scheme.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="protocol.pcs.EvalPoly">
+<span class="sig-prename descclassname"><span class="pre">protocol.pcs.</span></span><span class="sig-name descname"><span class="pre">EvalPoly</span></span><a class="reference internal" href="../../../_modules/protocol/pcs.html#EvalPoly"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.EvalPoly" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="protocol.pcs.Nonce">
+<span class="sig-prename descclassname"><span class="pre">protocol.pcs.</span></span><span class="sig-name descname"><span class="pre">Nonce</span></span><a class="reference internal" href="../../../_modules/protocol/pcs.html#Nonce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.Nonce" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="protocol.pcs.QueryIndex">
+<span class="sig-prename descclassname"><span class="pre">protocol.pcs.</span></span><span class="sig-name descname"><span class="pre">QueryIndex</span></span><a class="reference internal" href="../../../_modules/protocol/pcs.html#QueryIndex"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.QueryIndex" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.pcs.</span></span><span class="sig-name descname"><span class="pre">FriPcsConfig</span></span><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig" title="Link to this definition">#</a></dt>
+<dd><p>FRI PCS parameters.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig.n_bits_ext">
+<span class="sig-name descname"><span class="pre">n_bits_ext</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig.n_bits_ext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig.n_bits_ext" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig.fri_round_log_sizes">
+<span class="sig-name descname"><span class="pre">fri_round_log_sizes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig.fri_round_log_sizes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig.fri_round_log_sizes" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig.n_queries">
+<span class="sig-name descname"><span class="pre">n_queries</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig.n_queries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig.n_queries" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig.merkle_arity">
+<span class="sig-name descname"><span class="pre">merkle_arity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig.merkle_arity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig.merkle_arity" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig.pow_bits">
+<span class="sig-name descname"><span class="pre">pow_bits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig.pow_bits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig.pow_bits" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig.last_level_verification">
+<span class="sig-name descname"><span class="pre">last_level_verification</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig.last_level_verification"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig.last_level_verification" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig.hash_commits">
+<span class="sig-name descname"><span class="pre">hash_commits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig.hash_commits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig.hash_commits" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig.transcript_arity">
+<span class="sig-name descname"><span class="pre">transcript_arity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig.transcript_arity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig.transcript_arity" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcsConfig.merkle_tree_custom">
+<span class="sig-name descname"><span class="pre">merkle_tree_custom</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcsConfig.merkle_tree_custom"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcsConfig.merkle_tree_custom" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.pcs.FriProof">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.pcs.</span></span><span class="sig-name descname"><span class="pre">FriProof</span></span><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriProof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriProof" title="Link to this definition">#</a></dt>
+<dd><p>FRI proof: roots, final polynomial, grinding nonce, and query proofs.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriProof.fri_roots">
+<span class="sig-name descname"><span class="pre">fri_roots</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">primitives.merkle_tree.MerkleRoot</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriProof.fri_roots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriProof.fri_roots" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriProof.final_pol">
+<span class="sig-name descname"><span class="pre">final_pol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">primitives.field.FF3Poly</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriProof.final_pol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriProof.final_pol" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriProof.nonce">
+<span class="sig-name descname"><span class="pre">nonce</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Nonce</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriProof.nonce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriProof.nonce" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriProof.query_proofs">
+<span class="sig-name descname"><span class="pre">query_proofs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../primitives/merkle_tree/index.html#primitives.merkle_tree.QueryProof" title="primitives.merkle_tree.QueryProof"><span class="pre">primitives.merkle_tree.QueryProof</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriProof.query_proofs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriProof.query_proofs" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriProof.query_indices">
+<span class="sig-name descname"><span class="pre">query_indices</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">QueryIndex</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriProof.query_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriProof.query_indices" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcs">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">protocol.pcs.</span></span><span class="sig-name descname"><span class="pre">FriPcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#protocol.pcs.FriPcsConfig" title="protocol.pcs.FriPcsConfig"><span class="pre">FriPcsConfig</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcs" title="Link to this definition">#</a></dt>
+<dd><p>FRI Polynomial Commitment Scheme.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcs.config">
+<span class="sig-name descname"><span class="pre">config</span></span><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcs.config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcs.config" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcs.fri_trees">
+<span class="sig-name descname"><span class="pre">fri_trees</span></span><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcs.fri_trees"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcs.fri_trees" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcs.prove">
+<span class="sig-name descname"><span class="pre">prove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polynomial</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EvalPoly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transcript</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../primitives/transcript/index.html#primitives.transcript.Transcript" title="primitives.transcript.Transcript"><span class="pre">primitives.transcript.Transcript</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">stage_trees</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree" title="primitives.merkle_tree.MerkleTree"><span class="pre">primitives.merkle_tree.MerkleTree</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#protocol.pcs.FriProof" title="protocol.pcs.FriProof"><span class="pre">FriProof</span></a></span></span><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcs.prove"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcs.prove" title="Link to this definition">#</a></dt>
+<dd><p>Generate FRI proof: commit-fold, finalize, grind, query.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="protocol.pcs.FriPcs.get_fri_tree">
+<span class="sig-name descname"><span class="pre">get_fri_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fri_round</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree" title="primitives.merkle_tree.MerkleTree"><span class="pre">primitives.merkle_tree.MerkleTree</span></a></span></span><a class="reference internal" href="../../../_modules/protocol/pcs.html#FriPcs.get_fri_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#protocol.pcs.FriPcs.get_fri_tree" title="Link to this definition">#</a></dt>
+<dd><p>Get Merkle tree for given FRI layer.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../global_info/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">protocol.global_info</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../proof/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">protocol.proof</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.EvalPoly"><code class="docutils literal notranslate"><span class="pre">EvalPoly</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.Nonce"><code class="docutils literal notranslate"><span class="pre">Nonce</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.QueryIndex"><code class="docutils literal notranslate"><span class="pre">QueryIndex</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.n_bits_ext"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.n_bits_ext</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.fri_round_log_sizes"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.fri_round_log_sizes</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.n_queries"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.n_queries</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.merkle_arity"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.merkle_arity</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.pow_bits"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.pow_bits</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.last_level_verification"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.last_level_verification</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.hash_commits"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.hash_commits</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.transcript_arity"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.transcript_arity</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcsConfig.merkle_tree_custom"><code class="docutils literal notranslate"><span class="pre">FriPcsConfig.merkle_tree_custom</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof"><code class="docutils literal notranslate"><span class="pre">FriProof</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.fri_roots"><code class="docutils literal notranslate"><span class="pre">FriProof.fri_roots</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.final_pol"><code class="docutils literal notranslate"><span class="pre">FriProof.final_pol</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.nonce"><code class="docutils literal notranslate"><span class="pre">FriProof.nonce</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.query_proofs"><code class="docutils literal notranslate"><span class="pre">FriProof.query_proofs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriProof.query_indices"><code class="docutils literal notranslate"><span class="pre">FriProof.query_indices</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs"><code class="docutils literal notranslate"><span class="pre">FriPcs</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs.config"><code class="docutils literal notranslate"><span class="pre">FriPcs.config</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs.fri_trees"><code class="docutils literal notranslate"><span class="pre">FriPcs.fri_trees</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs.prove"><code class="docutils literal notranslate"><span class="pre">FriPcs.prove()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#protocol.pcs.FriPcs.get_fri_tree"><code class="docutils literal notranslate"><span class="pre">FriPcs.get_fri_tree()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

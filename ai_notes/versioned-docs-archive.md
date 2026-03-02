@@ -62,7 +62,10 @@ for each new tag.
 
 ## Notes
 
-- The built HTML is ~5–10 MB per version. Acceptable for a one-time archive.
+- The built HTML is ~17 MB per version (excluding `_modules/`). Acceptable for a one-time archive.
+- `docs/.gitignore` has a bare `index.html` rule. The `!archive/**/index.html` exception allows
+  archive index files through. Without it, all directory URLs 404 (files like `genindex.html`
+  still serve, but `/rfc-1/` itself does not). This exception is already in place; just be aware.
 - Do NOT add `docs/archive/` to `.gitignore` — it must be committed.
 - The archive is a snapshot of both the markdown prose and the autoapi Python
   source links at that exact tag.
