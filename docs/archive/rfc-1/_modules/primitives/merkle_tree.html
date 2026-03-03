@@ -1,0 +1,1385 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>primitives.merkle_tree &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/primitives/merkle_tree';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for primitives.merkle_tree</h1><div class="highlight"><pre>
+<span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="sd">&quot;&quot;&quot;Merkle tree commitment using Poseidon2.&quot;&quot;&quot;</span>
+<a id="L-2" name="L-2" href="#L-2"></a>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<a id="L-4" name="L-4" href="#L-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<a id="L-5" name="L-5" href="#L-5"></a>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="L-7" name="L-7" href="#L-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">poseidon2_ffi</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_seq</span><span class="p">,</span> <span class="n">linear_hash</span>
+<a id="L-8" name="L-8" href="#L-8"></a>
+<a id="L-9" name="L-9" href="#L-9"></a><span class="c1"># --- Constants ---</span>
+<a id="L-10" name="L-10" href="#L-10"></a>
+<div class="viewcode-block" id="HASH_SIZE">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.HASH_SIZE">[docs]</a>
+<a id="L-11" name="L-11" href="#L-11"></a><span class="n">HASH_SIZE</span> <span class="o">=</span> <span class="mi">4</span></div>
+
+<a id="L-12" name="L-12" href="#L-12"></a>
+<a id="L-13" name="L-13" href="#L-13"></a><span class="c1"># --- Type Aliases ---</span>
+<a id="L-14" name="L-14" href="#L-14"></a>
+<div class="viewcode-block" id="MerkleRoot">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleRoot">[docs]</a>
+<a id="L-15" name="L-15" href="#L-15"></a><span class="n">MerkleRoot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="LeafData">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.LeafData">[docs]</a>
+<a id="L-16" name="L-16" href="#L-16"></a><span class="n">LeafData</span> <span class="o">=</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span></div>
+
+<a id="L-17" name="L-17" href="#L-17"></a>
+<a id="L-18" name="L-18" href="#L-18"></a>
+<a id="L-19" name="L-19" href="#L-19"></a><span class="c1"># --- FFI Boundary Helpers ---</span>
+<a id="L-20" name="L-20" href="#L-20"></a>
+<a id="L-21" name="L-21" href="#L-21"></a><span class="k">def</span><span class="w"> </span><span class="nf">_to_int_list</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<a id="L-22" name="L-22" href="#L-22"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert FF/FF3/int elements to plain int for FFI calls.&quot;&quot;&quot;</span>
+<a id="L-23" name="L-23" href="#L-23"></a>    <span class="k">return</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+<a id="L-24" name="L-24" href="#L-24"></a>
+<a id="L-25" name="L-25" href="#L-25"></a>
+<a id="L-26" name="L-26" href="#L-26"></a><span class="c1"># --- Data Classes ---</span>
+<a id="L-27" name="L-27" href="#L-27"></a>
+<a id="L-28" name="L-28" href="#L-28"></a><span class="nd">@dataclass</span>
+<div class="viewcode-block" id="QueryProof">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.QueryProof">[docs]</a>
+<a id="L-29" name="L-29" href="#L-29"></a><span class="k">class</span><span class="w"> </span><span class="nc">QueryProof</span><span class="p">:</span>
+<a id="L-30" name="L-30" href="#L-30"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Query proof containing leaf values and Merkle authentication path.</span>
+<a id="L-31" name="L-31" href="#L-31"></a>
+<a id="L-32" name="L-32" href="#L-32"></a><span class="sd">    Corresponds to C++ MerkleProof in proof_stark.hpp lines 39-69.</span>
+<a id="L-33" name="L-33" href="#L-33"></a>
+<a id="L-34" name="L-34" href="#L-34"></a><span class="sd">    Attributes:</span>
+<a id="L-35" name="L-35" href="#L-35"></a><span class="sd">        v: Leaf values at query index - list of columns, each column is a list of elements</span>
+<a id="L-36" name="L-36" href="#L-36"></a><span class="sd">           For base field polynomials: [[val1], [val2], ...] (one element per column)</span>
+<a id="L-37" name="L-37" href="#L-37"></a><span class="sd">           For extension field: [[v0, v1, v2], ...] (FIELD_EXTENSION elements per column)</span>
+<a id="L-38" name="L-38" href="#L-38"></a><span class="sd">        mp: Merkle path - list of sibling hashes per level, from leaf to root</span>
+<a id="L-39" name="L-39" href="#L-39"></a><span class="sd">           Each level has (arity - 1) * HASH_SIZE elements</span>
+<a id="L-40" name="L-40" href="#L-40"></a><span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="QueryProof.v">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.QueryProof.v">[docs]</a>
+<a id="L-41" name="L-41" href="#L-41"></a>    <span class="n">v</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QueryProof.mp">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.QueryProof.mp">[docs]</a>
+<a id="L-42" name="L-42" href="#L-42"></a>    <span class="n">mp</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+</div>
+
+<a id="L-43" name="L-43" href="#L-43"></a>
+<a id="L-44" name="L-44" href="#L-44"></a>
+<a id="L-45" name="L-45" href="#L-45"></a><span class="c1"># --- Data Layout ---</span>
+<a id="L-46" name="L-46" href="#L-46"></a>
+<a id="L-47" name="L-47" href="#L-47"></a><span class="c1"># &lt;doc-anchor id=&quot;form-row&quot;&gt;</span>
+<div class="viewcode-block" id="transpose_for_merkle">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.transpose_for_merkle">[docs]</a>
+<a id="L-48" name="L-48" href="#L-48"></a><span class="k">def</span><span class="w"> </span><span class="nf">transpose_for_merkle</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">elem_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<a id="L-49" name="L-49" href="#L-49"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Transpose data layout for Merkle tree construction.</span>
+<a id="L-50" name="L-50" href="#L-50"></a>
+<a id="L-51" name="L-51" href="#L-51"></a><span class="sd">    Reorders elements so that those belonging to the same Merkle leaf are contiguous.</span>
+<a id="L-52" name="L-52" href="#L-52"></a><span class="sd">    This matches the pil2-stark C++ memory layout convention.</span>
+<a id="L-53" name="L-53" href="#L-53"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-54" name="L-54" href="#L-54"></a>    <span class="n">h</span> <span class="o">=</span> <span class="n">height</span> <span class="o">//</span> <span class="n">width</span>
+<a id="L-55" name="L-55" href="#L-55"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">elem_size</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+<a id="L-56" name="L-56" href="#L-56"></a>    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
+
+<a id="L-57" name="L-57" href="#L-57"></a>
+<a id="L-58" name="L-58" href="#L-58"></a>
+<a id="L-59" name="L-59" href="#L-59"></a><span class="c1"># --- Merkle Tree ---</span>
+<a id="L-60" name="L-60" href="#L-60"></a>
+<div class="viewcode-block" id="MerkleTree">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree">[docs]</a>
+<a id="L-61" name="L-61" href="#L-61"></a><span class="k">class</span><span class="w"> </span><span class="nc">MerkleTree</span><span class="p">:</span>
+<a id="L-62" name="L-62" href="#L-62"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Variable-arity Merkle tree using Poseidon2 hashing.&quot;&quot;&quot;</span>
+<a id="L-63" name="L-63" href="#L-63"></a>
+<a id="L-64" name="L-64" href="#L-64"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="L-65" name="L-65" href="#L-65"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="L-66" name="L-66" href="#L-66"></a>        <span class="n">arity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<a id="L-67" name="L-67" href="#L-67"></a>        <span class="n">last_level_verification</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<a id="L-68" name="L-68" href="#L-68"></a>        <span class="n">custom</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="L-69" name="L-69" href="#L-69"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-70" name="L-70" href="#L-70"></a>        <span class="k">if</span> <span class="n">arity</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]:</span>
+<a id="L-71" name="L-71" href="#L-71"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;arity must be 2, 3, or 4, got </span><span class="si">{</span><span class="n">arity</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="L-72" name="L-72" href="#L-72"></a>
+<div class="viewcode-block" id="MerkleTree.arity">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.arity">[docs]</a>
+<a id="L-73" name="L-73" href="#L-73"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">=</span> <span class="n">arity</span></div>
+
+<div class="viewcode-block" id="MerkleTree.last_level_verification">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.last_level_verification">[docs]</a>
+<a id="L-74" name="L-74" href="#L-74"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">last_level_verification</span> <span class="o">=</span> <span class="n">last_level_verification</span></div>
+
+<div class="viewcode-block" id="MerkleTree.custom">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.custom">[docs]</a>
+<a id="L-75" name="L-75" href="#L-75"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">custom</span> <span class="o">=</span> <span class="n">custom</span></div>
+
+<div class="viewcode-block" id="MerkleTree.n_field_elements">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.n_field_elements">[docs]</a>
+<a id="L-76" name="L-76" href="#L-76"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">n_field_elements</span> <span class="o">=</span> <span class="n">HASH_SIZE</span></div>
+
+<div class="viewcode-block" id="MerkleTree.sponge_width">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.sponge_width">[docs]</a>
+<a id="L-77" name="L-77" href="#L-77"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span> <span class="o">=</span> <span class="p">{</span><span class="mi">2</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">:</span> <span class="mi">16</span><span class="p">}[</span><span class="n">arity</span><span class="p">]</span></div>
+
+<a id="L-78" name="L-78" href="#L-78"></a>
+<div class="viewcode-block" id="MerkleTree.height">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.height">[docs]</a>
+<a id="L-79" name="L-79" href="#L-79"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="MerkleTree.width">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.width">[docs]</a>
+<a id="L-80" name="L-80" href="#L-80"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="MerkleTree.nodes">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.nodes">[docs]</a>
+<a id="L-81" name="L-81" href="#L-81"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="MerkleTree.num_nodes">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.num_nodes">[docs]</a>
+<a id="L-82" name="L-82" href="#L-82"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">num_nodes</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<a id="L-83" name="L-83" href="#L-83"></a>
+<a id="L-84" name="L-84" href="#L-84"></a>        <span class="c1"># Store source data for query proof value extraction</span>
+<div class="viewcode-block" id="MerkleTree.source_data">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.source_data">[docs]</a>
+<a id="L-85" name="L-85" href="#L-85"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">source_data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="MerkleTree.n_cols">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.n_cols">[docs]</a>
+<a id="L-86" name="L-86" href="#L-86"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">n_cols</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Number of columns (polynomials)</span></div>
+
+<a id="L-87" name="L-87" href="#L-87"></a>
+<a id="L-88" name="L-88" href="#L-88"></a>    <span class="c1"># --- Core Operations ---</span>
+<a id="L-89" name="L-89" href="#L-89"></a>
+<a id="L-90" name="L-90" href="#L-90"></a>    <span class="c1"># &lt;doc-anchor id=&quot;build-tree&quot;&gt;</span>
+<div class="viewcode-block" id="MerkleTree.merkelize">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.merkelize">[docs]</a>
+<a id="L-91" name="L-91" href="#L-91"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">merkelize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">LeafData</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-92" name="L-92" href="#L-92"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Build Merkle tree from source data.</span>
+<a id="L-93" name="L-93" href="#L-93"></a>
+<a id="L-94" name="L-94" href="#L-94"></a><span class="sd">        Args:</span>
+<a id="L-95" name="L-95" href="#L-95"></a><span class="sd">            source: Flattened leaf data (height * width elements)</span>
+<a id="L-96" name="L-96" href="#L-96"></a><span class="sd">            height: Number of leaves (rows)</span>
+<a id="L-97" name="L-97" href="#L-97"></a><span class="sd">            width: Elements per leaf (columns * elem_size)</span>
+<a id="L-98" name="L-98" href="#L-98"></a><span class="sd">            n_cols: Number of polynomial columns (for query proof extraction)</span>
+<a id="L-99" name="L-99" href="#L-99"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="L-100" name="L-100" href="#L-100"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">height</span>
+<a id="L-101" name="L-101" href="#L-101"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">width</span>
+<a id="L-102" name="L-102" href="#L-102"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">n_cols</span> <span class="o">=</span> <span class="n">n_cols</span> <span class="k">if</span> <span class="n">n_cols</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">width</span>
+<a id="L-103" name="L-103" href="#L-103"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">num_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_num_nodes</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>
+<a id="L-104" name="L-104" href="#L-104"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_nodes</span>
+<a id="L-105" name="L-105" href="#L-105"></a>
+<a id="L-106" name="L-106" href="#L-106"></a>        <span class="c1"># Convert to int at FFI boundary (supports FF/FF3 arrays)</span>
+<a id="L-107" name="L-107" href="#L-107"></a>        <span class="n">int_source</span> <span class="o">=</span> <span class="n">_to_int_list</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+<a id="L-108" name="L-108" href="#L-108"></a>
+<a id="L-109" name="L-109" href="#L-109"></a>        <span class="c1"># Store source data for later query proof extraction</span>
+<a id="L-110" name="L-110" href="#L-110"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">source_data</span> <span class="o">=</span> <span class="n">int_source</span>
+<a id="L-111" name="L-111" href="#L-111"></a>
+<a id="L-112" name="L-112" href="#L-112"></a>        <span class="k">if</span> <span class="n">height</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-113" name="L-113" href="#L-113"></a>            <span class="k">return</span>
+<a id="L-114" name="L-114" href="#L-114"></a>
+<a id="L-115" name="L-115" href="#L-115"></a>        <span class="c1"># Hash each leaf row</span>
+<a id="L-116" name="L-116" href="#L-116"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">height</span><span class="p">):</span>
+<a id="L-117" name="L-117" href="#L-117"></a>            <span class="n">row_start</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">width</span>
+<a id="L-118" name="L-118" href="#L-118"></a>            <span class="n">row_data</span> <span class="o">=</span> <span class="n">int_source</span><span class="p">[</span><span class="n">row_start</span><span class="p">:</span><span class="n">row_start</span> <span class="o">+</span> <span class="n">width</span><span class="p">]</span>
+<a id="L-119" name="L-119" href="#L-119"></a>            <span class="n">leaf_hash</span> <span class="o">=</span> <span class="n">linear_hash</span><span class="p">(</span><span class="n">row_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span><span class="p">)</span>
+<a id="L-120" name="L-120" href="#L-120"></a>            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">HASH_SIZE</span><span class="p">):</span>
+<a id="L-121" name="L-121" href="#L-121"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">leaf_hash</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+<a id="L-122" name="L-122" href="#L-122"></a>
+<a id="L-123" name="L-123" href="#L-123"></a>        <span class="c1"># Build internal nodes bottom-up</span>
+<a id="L-124" name="L-124" href="#L-124"></a>        <span class="n">pending</span> <span class="o">=</span> <span class="n">height</span>
+<a id="L-125" name="L-125" href="#L-125"></a>        <span class="n">next_index</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="L-126" name="L-126" href="#L-126"></a>
+<a id="L-127" name="L-127" href="#L-127"></a>        <span class="k">while</span> <span class="n">pending</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="L-128" name="L-128" href="#L-128"></a>            <span class="n">extra_zeros</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="p">(</span><span class="n">pending</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span><span class="p">))</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-129" name="L-129" href="#L-129"></a>            <span class="k">if</span> <span class="n">extra_zeros</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-130" name="L-130" href="#L-130"></a>                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">extra_zeros</span> <span class="o">*</span> <span class="n">HASH_SIZE</span><span class="p">):</span>
+<a id="L-131" name="L-131" href="#L-131"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">next_index</span> <span class="o">+</span> <span class="n">pending</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="L-132" name="L-132" href="#L-132"></a>
+<a id="L-133" name="L-133" href="#L-133"></a>            <span class="n">next_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">pending</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-134" name="L-134" href="#L-134"></a>
+<a id="L-135" name="L-135" href="#L-135"></a>            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">next_n</span><span class="p">):</span>
+<a id="L-136" name="L-136" href="#L-136"></a>                <span class="n">hash_input</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span>
+<a id="L-137" name="L-137" href="#L-137"></a>                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span><span class="p">):</span>
+<a id="L-138" name="L-138" href="#L-138"></a>                    <span class="n">child_idx</span> <span class="o">=</span> <span class="n">next_index</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">HASH_SIZE</span>
+<a id="L-139" name="L-139" href="#L-139"></a>                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">HASH_SIZE</span><span class="p">):</span>
+<a id="L-140" name="L-140" href="#L-140"></a>                        <span class="k">if</span> <span class="n">a</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span><span class="p">:</span>
+<a id="L-141" name="L-141" href="#L-141"></a>                            <span class="n">hash_input</span><span class="p">[</span><span class="n">a</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">child_idx</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span>
+<a id="L-142" name="L-142" href="#L-142"></a>
+<a id="L-143" name="L-143" href="#L-143"></a>                <span class="n">parent_hash</span> <span class="o">=</span> <span class="n">hash_seq</span><span class="p">(</span><span class="n">hash_input</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span><span class="p">)</span>
+<a id="L-144" name="L-144" href="#L-144"></a>                <span class="n">parent_idx</span> <span class="o">=</span> <span class="n">next_index</span> <span class="o">+</span> <span class="p">(</span><span class="n">pending</span> <span class="o">+</span> <span class="n">extra_zeros</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">HASH_SIZE</span>
+<a id="L-145" name="L-145" href="#L-145"></a>                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">HASH_SIZE</span><span class="p">):</span>
+<a id="L-146" name="L-146" href="#L-146"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">parent_idx</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">parent_hash</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+<a id="L-147" name="L-147" href="#L-147"></a>
+<a id="L-148" name="L-148" href="#L-148"></a>            <span class="n">next_index</span> <span class="o">+=</span> <span class="p">(</span><span class="n">pending</span> <span class="o">+</span> <span class="n">extra_zeros</span><span class="p">)</span> <span class="o">*</span> <span class="n">HASH_SIZE</span>
+<a id="L-149" name="L-149" href="#L-149"></a>            <span class="n">pending</span> <span class="o">=</span> <span class="n">next_n</span></div>
+
+<a id="L-150" name="L-150" href="#L-150"></a>
+<a id="L-151" name="L-151" href="#L-151"></a>    <span class="c1"># &lt;doc-anchor id=&quot;merkle-root&quot;&gt;</span>
+<div class="viewcode-block" id="MerkleTree.get_root">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_root">[docs]</a>
+<a id="L-152" name="L-152" href="#L-152"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_root</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MerkleRoot</span><span class="p">:</span>
+<a id="L-153" name="L-153" href="#L-153"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the Merkle root commitment.&quot;&quot;&quot;</span>
+<a id="L-154" name="L-154" href="#L-154"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_nodes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-155" name="L-155" href="#L-155"></a>            <span class="k">return</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">HASH_SIZE</span>
+<a id="L-156" name="L-156" href="#L-156"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_nodes</span> <span class="o">-</span> <span class="n">HASH_SIZE</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">num_nodes</span><span class="p">]</span></div>
+
+<a id="L-157" name="L-157" href="#L-157"></a>
+<div class="viewcode-block" id="MerkleTree.get_group_proof">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_group_proof">[docs]</a>
+<a id="L-158" name="L-158" href="#L-158"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_group_proof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<a id="L-159" name="L-159" href="#L-159"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate Merkle proof (siblings only) for leaf at index.&quot;&quot;&quot;</span>
+<a id="L-160" name="L-160" href="#L-160"></a>        <span class="n">proof</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-161" name="L-161" href="#L-161"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_collect_proof_siblings</span><span class="p">(</span><span class="n">proof</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">)</span>
+<a id="L-162" name="L-162" href="#L-162"></a>        <span class="k">return</span> <span class="n">proof</span></div>
+
+<a id="L-163" name="L-163" href="#L-163"></a>
+<a id="L-164" name="L-164" href="#L-164"></a>    <span class="c1"># &lt;doc-anchor id=&quot;opening-proof&quot;&gt;</span>
+<div class="viewcode-block" id="MerkleTree.get_query_proof">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_query_proof">[docs]</a>
+<a id="L-165" name="L-165" href="#L-165"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_query_proof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">elem_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QueryProof</span><span class="p">:</span>
+<a id="L-166" name="L-166" href="#L-166"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract complete query proof with leaf values and Merkle path.</span>
+<a id="L-167" name="L-167" href="#L-167"></a>
+<a id="L-168" name="L-168" href="#L-168"></a><span class="sd">        This is the main method for generating query proofs for STARK proofs.</span>
+<a id="L-169" name="L-169" href="#L-169"></a><span class="sd">        It returns both the polynomial values at the query index and the</span>
+<a id="L-170" name="L-170" href="#L-170"></a><span class="sd">        Merkle authentication path.</span>
+<a id="L-171" name="L-171" href="#L-171"></a>
+<a id="L-172" name="L-172" href="#L-172"></a><span class="sd">        Args:</span>
+<a id="L-173" name="L-173" href="#L-173"></a><span class="sd">            idx: Query index (leaf index in the tree)</span>
+<a id="L-174" name="L-174" href="#L-174"></a><span class="sd">            elem_size: Elements per column (1 for base field, 3 for extension)</span>
+<a id="L-175" name="L-175" href="#L-175"></a>
+<a id="L-176" name="L-176" href="#L-176"></a><span class="sd">        Returns:</span>
+<a id="L-177" name="L-177" href="#L-177"></a><span class="sd">            QueryProof with:</span>
+<a id="L-178" name="L-178" href="#L-178"></a><span class="sd">            - v: List of column values at idx, each is [elem_size] elements</span>
+<a id="L-179" name="L-179" href="#L-179"></a><span class="sd">            - mp: List of sibling hashes per level, structured for C++ compatibility</span>
+<a id="L-180" name="L-180" href="#L-180"></a>
+<a id="L-181" name="L-181" href="#L-181"></a><span class="sd">        Raises:</span>
+<a id="L-182" name="L-182" href="#L-182"></a><span class="sd">            ValueError: If source_data not available or idx out of range</span>
+<a id="L-183" name="L-183" href="#L-183"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="L-184" name="L-184" href="#L-184"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-185" name="L-185" href="#L-185"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Source data not stored - cannot extract leaf values&quot;</span><span class="p">)</span>
+<a id="L-186" name="L-186" href="#L-186"></a>        <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">idx</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">:</span>
+<a id="L-187" name="L-187" href="#L-187"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Query index </span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> out of range [0, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<a id="L-188" name="L-188" href="#L-188"></a>
+<a id="L-189" name="L-189" href="#L-189"></a>        <span class="c1"># Extract leaf values from source data</span>
+<a id="L-190" name="L-190" href="#L-190"></a>        <span class="c1"># Source layout: height rows, each row has width elements</span>
+<a id="L-191" name="L-191" href="#L-191"></a>        <span class="c1"># width = n_cols * elem_size (for base field elem_size=1)</span>
+<a id="L-192" name="L-192" href="#L-192"></a>        <span class="n">row_start</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span>
+<a id="L-193" name="L-193" href="#L-193"></a>        <span class="n">row_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_data</span><span class="p">[</span><span class="n">row_start</span><span class="p">:</span><span class="n">row_start</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">]</span>
+<a id="L-194" name="L-194" href="#L-194"></a>
+<a id="L-195" name="L-195" href="#L-195"></a>        <span class="c1"># Split row into columns</span>
+<a id="L-196" name="L-196" href="#L-196"></a>        <span class="n">v</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-197" name="L-197" href="#L-197"></a>        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cols</span><span class="p">):</span>
+<a id="L-198" name="L-198" href="#L-198"></a>            <span class="n">col_start</span> <span class="o">=</span> <span class="n">col</span> <span class="o">*</span> <span class="n">elem_size</span>
+<a id="L-199" name="L-199" href="#L-199"></a>            <span class="n">col_values</span> <span class="o">=</span> <span class="n">row_data</span><span class="p">[</span><span class="n">col_start</span><span class="p">:</span><span class="n">col_start</span> <span class="o">+</span> <span class="n">elem_size</span><span class="p">]</span>
+<a id="L-200" name="L-200" href="#L-200"></a>            <span class="n">v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col_values</span><span class="p">)</span>
+<a id="L-201" name="L-201" href="#L-201"></a>
+<a id="L-202" name="L-202" href="#L-202"></a>        <span class="c1"># Get Merkle siblings</span>
+<a id="L-203" name="L-203" href="#L-203"></a>        <span class="n">flat_siblings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_group_proof</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+<a id="L-204" name="L-204" href="#L-204"></a>
+<a id="L-205" name="L-205" href="#L-205"></a>        <span class="c1"># Structure siblings into levels</span>
+<a id="L-206" name="L-206" href="#L-206"></a>        <span class="c1"># Each level has (arity - 1) * HASH_SIZE elements</span>
+<a id="L-207" name="L-207" href="#L-207"></a>        <span class="n">siblings_per_level</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">HASH_SIZE</span>
+<a id="L-208" name="L-208" href="#L-208"></a>        <span class="n">mp</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-209" name="L-209" href="#L-209"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">flat_siblings</span><span class="p">),</span> <span class="n">siblings_per_level</span><span class="p">):</span>
+<a id="L-210" name="L-210" href="#L-210"></a>            <span class="n">level</span> <span class="o">=</span> <span class="n">flat_siblings</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">siblings_per_level</span><span class="p">]</span>
+<a id="L-211" name="L-211" href="#L-211"></a>            <span class="n">mp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+<a id="L-212" name="L-212" href="#L-212"></a>
+<a id="L-213" name="L-213" href="#L-213"></a>        <span class="k">return</span> <span class="n">QueryProof</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">,</span> <span class="n">mp</span><span class="o">=</span><span class="n">mp</span><span class="p">)</span></div>
+
+<a id="L-214" name="L-214" href="#L-214"></a>
+<div class="viewcode-block" id="MerkleTree.get_last_level_nodes">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_last_level_nodes">[docs]</a>
+<a id="L-215" name="L-215" href="#L-215"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_last_level_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<a id="L-216" name="L-216" href="#L-216"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract last level verification nodes.</span>
+<a id="L-217" name="L-217" href="#L-217"></a>
+<a id="L-218" name="L-218" href="#L-218"></a><span class="sd">        When lastLevelVerification &gt; 0, the verifier needs access to</span>
+<a id="L-219" name="L-219" href="#L-219"></a><span class="sd">        the internal nodes at (total_levels - lastLevelVerification) from bottom.</span>
+<a id="L-220" name="L-220" href="#L-220"></a><span class="sd">        This is equivalent to lastLevelVerification levels below the root.</span>
+<a id="L-221" name="L-221" href="#L-221"></a>
+<a id="L-222" name="L-222" href="#L-222"></a><span class="sd">        Returns:</span>
+<a id="L-223" name="L-223" href="#L-223"></a><span class="sd">            List of arity^lastLevelVerification * HASH_SIZE elements,</span>
+<a id="L-224" name="L-224" href="#L-224"></a><span class="sd">            or empty list if lastLevelVerification == 0.</span>
+<a id="L-225" name="L-225" href="#L-225"></a><span class="sd">            The actual nodes are at the beginning, followed by zero padding</span>
+<a id="L-226" name="L-226" href="#L-226"></a><span class="sd">            if the actual node count is less than arity^lastLevelVerification.</span>
+<a id="L-227" name="L-227" href="#L-227"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="L-228" name="L-228" href="#L-228"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_level_verification</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-229" name="L-229" href="#L-229"></a>            <span class="k">return</span> <span class="p">[]</span>
+<a id="L-230" name="L-230" href="#L-230"></a>
+<a id="L-231" name="L-231" href="#L-231"></a>        <span class="c1"># Trace through tree structure to find the target level&#39;s offset</span>
+<a id="L-232" name="L-232" href="#L-232"></a>        <span class="c1"># Target level is last_level_verification levels below the root</span>
+<a id="L-233" name="L-233" href="#L-233"></a>        <span class="n">pending</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span>
+<a id="L-234" name="L-234" href="#L-234"></a>        <span class="n">next_index</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="L-235" name="L-235" href="#L-235"></a>        <span class="n">levels_info</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># [(offset, n_nodes_at_level), ...]</span>
+<a id="L-236" name="L-236" href="#L-236"></a>
+<a id="L-237" name="L-237" href="#L-237"></a>        <span class="k">while</span> <span class="n">pending</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="L-238" name="L-238" href="#L-238"></a>            <span class="n">extra_zeros</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="p">(</span><span class="n">pending</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span><span class="p">))</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-239" name="L-239" href="#L-239"></a>            <span class="n">next_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">pending</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-240" name="L-240" href="#L-240"></a>            <span class="n">levels_info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">next_index</span> <span class="o">*</span> <span class="n">HASH_SIZE</span><span class="p">,</span> <span class="n">pending</span><span class="p">))</span>
+<a id="L-241" name="L-241" href="#L-241"></a>            <span class="n">next_index</span> <span class="o">+=</span> <span class="n">pending</span> <span class="o">+</span> <span class="n">extra_zeros</span>
+<a id="L-242" name="L-242" href="#L-242"></a>            <span class="n">pending</span> <span class="o">=</span> <span class="n">next_n</span>
+<a id="L-243" name="L-243" href="#L-243"></a>
+<a id="L-244" name="L-244" href="#L-244"></a>        <span class="c1"># Root level</span>
+<a id="L-245" name="L-245" href="#L-245"></a>        <span class="n">n_levels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels_info</span><span class="p">)</span>  <span class="c1"># Number of levels excluding root</span>
+<a id="L-246" name="L-246" href="#L-246"></a>
+<a id="L-247" name="L-247" href="#L-247"></a>        <span class="c1"># Target level is last_level_verification from root (top)</span>
+<a id="L-248" name="L-248" href="#L-248"></a>        <span class="n">target_level</span> <span class="o">=</span> <span class="n">n_levels</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_level_verification</span>
+<a id="L-249" name="L-249" href="#L-249"></a>        <span class="k">if</span> <span class="n">target_level</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-250" name="L-250" href="#L-250"></a>            <span class="n">target_level</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="L-251" name="L-251" href="#L-251"></a>
+<a id="L-252" name="L-252" href="#L-252"></a>        <span class="c1"># Get offset and actual node count at target level</span>
+<a id="L-253" name="L-253" href="#L-253"></a>        <span class="n">target_offset</span><span class="p">,</span> <span class="n">actual_nodes</span> <span class="o">=</span> <span class="n">levels_info</span><span class="p">[</span><span class="n">target_level</span><span class="p">]</span>
+<a id="L-254" name="L-254" href="#L-254"></a>
+<a id="L-255" name="L-255" href="#L-255"></a>        <span class="c1"># Expected size (for padding)</span>
+<a id="L-256" name="L-256" href="#L-256"></a>        <span class="n">expected_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_level_verification</span>
+<a id="L-257" name="L-257" href="#L-257"></a>
+<a id="L-258" name="L-258" href="#L-258"></a>        <span class="c1"># Extract actual nodes and pad with zeros</span>
+<a id="L-259" name="L-259" href="#L-259"></a>        <span class="n">actual_size</span> <span class="o">=</span> <span class="n">actual_nodes</span> <span class="o">*</span> <span class="n">HASH_SIZE</span>
+<a id="L-260" name="L-260" href="#L-260"></a>        <span class="n">result</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">target_offset</span><span class="p">:</span><span class="n">target_offset</span> <span class="o">+</span> <span class="n">actual_size</span><span class="p">])</span>
+<a id="L-261" name="L-261" href="#L-261"></a>
+<a id="L-262" name="L-262" href="#L-262"></a>        <span class="c1"># Pad to expected size</span>
+<a id="L-263" name="L-263" href="#L-263"></a>        <span class="n">padding_size</span> <span class="o">=</span> <span class="n">expected_nodes</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<a id="L-264" name="L-264" href="#L-264"></a>        <span class="k">if</span> <span class="n">padding_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-265" name="L-265" href="#L-265"></a>            <span class="n">result</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">padding_size</span><span class="p">)</span>
+<a id="L-266" name="L-266" href="#L-266"></a>
+<a id="L-267" name="L-267" href="#L-267"></a>        <span class="k">return</span> <span class="n">result</span></div>
+
+<a id="L-268" name="L-268" href="#L-268"></a>
+<a id="L-269" name="L-269" href="#L-269"></a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="MerkleTree.verify_merkle_root">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.verify_merkle_root">[docs]</a>
+<a id="L-270" name="L-270" href="#L-270"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">verify_merkle_root</span><span class="p">(</span>
+<a id="L-271" name="L-271" href="#L-271"></a>        <span class="n">root</span><span class="p">:</span> <span class="n">MerkleRoot</span><span class="p">,</span>
+<a id="L-272" name="L-272" href="#L-272"></a>        <span class="n">level</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<a id="L-273" name="L-273" href="#L-273"></a>        <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="L-274" name="L-274" href="#L-274"></a>        <span class="n">last_level_verification</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="L-275" name="L-275" href="#L-275"></a>        <span class="n">arity</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="L-276" name="L-276" href="#L-276"></a>        <span class="n">sponge_width</span><span class="p">:</span> <span class="nb">int</span>
+<a id="L-277" name="L-277" href="#L-277"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="L-278" name="L-278" href="#L-278"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Verify Merkle root from last-level nodes.</span>
+<a id="L-279" name="L-279" href="#L-279"></a>
+<a id="L-280" name="L-280" href="#L-280"></a><span class="sd">        C++ reference: merkleTreeGL.hpp lines 70-99</span>
+<a id="L-281" name="L-281" href="#L-281"></a>
+<a id="L-282" name="L-282" href="#L-282"></a><span class="sd">        Computes the root by hashing up from the last level and compares</span>
+<a id="L-283" name="L-283" href="#L-283"></a><span class="sd">        against the expected root.</span>
+<a id="L-284" name="L-284" href="#L-284"></a>
+<a id="L-285" name="L-285" href="#L-285"></a><span class="sd">        Args:</span>
+<a id="L-286" name="L-286" href="#L-286"></a><span class="sd">            root: Expected root (HASH_SIZE elements)</span>
+<a id="L-287" name="L-287" href="#L-287"></a><span class="sd">            level: Last level nodes (num_nodes * HASH_SIZE elements)</span>
+<a id="L-288" name="L-288" href="#L-288"></a><span class="sd">            height: Tree height (number of leaves)</span>
+<a id="L-289" name="L-289" href="#L-289"></a><span class="sd">            last_level_verification: Number of levels to skip from bottom</span>
+<a id="L-290" name="L-290" href="#L-290"></a><span class="sd">            arity: Tree arity (2, 3, or 4)</span>
+<a id="L-291" name="L-291" href="#L-291"></a><span class="sd">            sponge_width: Hash sponge width</span>
+<a id="L-292" name="L-292" href="#L-292"></a>
+<a id="L-293" name="L-293" href="#L-293"></a><span class="sd">        Returns:</span>
+<a id="L-294" name="L-294" href="#L-294"></a><span class="sd">            True if computed root matches expected root</span>
+<a id="L-295" name="L-295" href="#L-295"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="L-296" name="L-296" href="#L-296"></a>        <span class="k">if</span> <span class="n">last_level_verification</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-297" name="L-297" href="#L-297"></a>            <span class="k">return</span> <span class="kc">True</span>  <span class="c1"># Nothing to verify</span>
+<a id="L-298" name="L-298" href="#L-298"></a>
+<a id="L-299" name="L-299" href="#L-299"></a>        <span class="c1"># Compute actual number of nodes at the target level</span>
+<a id="L-300" name="L-300" href="#L-300"></a>        <span class="c1"># Target level is last_level_verification levels below the root</span>
+<a id="L-301" name="L-301" href="#L-301"></a>        <span class="c1"># Trace down from height to find actual node count at that level</span>
+<a id="L-302" name="L-302" href="#L-302"></a>        <span class="n">pending</span> <span class="o">=</span> <span class="n">height</span>
+<a id="L-303" name="L-303" href="#L-303"></a>        <span class="n">levels_node_count</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-304" name="L-304" href="#L-304"></a>        <span class="k">while</span> <span class="n">pending</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="L-305" name="L-305" href="#L-305"></a>            <span class="n">levels_node_count</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pending</span><span class="p">)</span>
+<a id="L-306" name="L-306" href="#L-306"></a>            <span class="n">pending</span> <span class="o">=</span> <span class="p">(</span><span class="n">pending</span> <span class="o">+</span> <span class="n">arity</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">arity</span>
+<a id="L-307" name="L-307" href="#L-307"></a>
+<a id="L-308" name="L-308" href="#L-308"></a>        <span class="c1"># Target level is (n_levels - last_level_verification)</span>
+<a id="L-309" name="L-309" href="#L-309"></a>        <span class="n">n_levels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels_node_count</span><span class="p">)</span>
+<a id="L-310" name="L-310" href="#L-310"></a>        <span class="n">target_level</span> <span class="o">=</span> <span class="n">n_levels</span> <span class="o">-</span> <span class="n">last_level_verification</span>
+<a id="L-311" name="L-311" href="#L-311"></a>        <span class="k">if</span> <span class="n">target_level</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-312" name="L-312" href="#L-312"></a>            <span class="n">target_level</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="L-313" name="L-313" href="#L-313"></a>
+<a id="L-314" name="L-314" href="#L-314"></a>        <span class="n">actual_nodes</span> <span class="o">=</span> <span class="n">levels_node_count</span><span class="p">[</span><span class="n">target_level</span><span class="p">]</span> <span class="k">if</span> <span class="n">target_level</span> <span class="o">&lt;</span> <span class="n">n_levels</span> <span class="k">else</span> <span class="mi">1</span>
+<a id="L-315" name="L-315" href="#L-315"></a>
+<a id="L-316" name="L-316" href="#L-316"></a>        <span class="c1"># Compute root from last level by hashing upward</span>
+<a id="L-317" name="L-317" href="#L-317"></a>        <span class="c1"># Start with actual number of nodes (rest are zero padding)</span>
+<a id="L-318" name="L-318" href="#L-318"></a>        <span class="n">current_level</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+<a id="L-319" name="L-319" href="#L-319"></a>        <span class="n">pending</span> <span class="o">=</span> <span class="n">actual_nodes</span>
+<a id="L-320" name="L-320" href="#L-320"></a>
+<a id="L-321" name="L-321" href="#L-321"></a>        <span class="k">while</span> <span class="n">pending</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="L-322" name="L-322" href="#L-322"></a>            <span class="n">next_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">pending</span> <span class="o">+</span> <span class="n">arity</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">arity</span>
+<a id="L-323" name="L-323" href="#L-323"></a>            <span class="n">next_level</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-324" name="L-324" href="#L-324"></a>
+<a id="L-325" name="L-325" href="#L-325"></a>            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">next_n</span><span class="p">):</span>
+<a id="L-326" name="L-326" href="#L-326"></a>                <span class="n">hash_input</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">sponge_width</span>
+<a id="L-327" name="L-327" href="#L-327"></a>                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">arity</span><span class="p">):</span>
+<a id="L-328" name="L-328" href="#L-328"></a>                    <span class="n">child_idx</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">arity</span> <span class="o">+</span> <span class="n">a</span>
+<a id="L-329" name="L-329" href="#L-329"></a>                    <span class="k">if</span> <span class="n">child_idx</span> <span class="o">&lt;</span> <span class="n">pending</span><span class="p">:</span>
+<a id="L-330" name="L-330" href="#L-330"></a>                        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">HASH_SIZE</span><span class="p">):</span>
+<a id="L-331" name="L-331" href="#L-331"></a>                            <span class="k">if</span> <span class="n">a</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">sponge_width</span><span class="p">:</span>
+<a id="L-332" name="L-332" href="#L-332"></a>                                <span class="n">hash_input</span><span class="p">[</span><span class="n">a</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_level</span><span class="p">[</span><span class="n">child_idx</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span>
+<a id="L-333" name="L-333" href="#L-333"></a>
+<a id="L-334" name="L-334" href="#L-334"></a>                <span class="n">parent_hash</span> <span class="o">=</span> <span class="n">hash_seq</span><span class="p">(</span><span class="n">hash_input</span><span class="p">,</span> <span class="n">sponge_width</span><span class="p">)</span>
+<a id="L-335" name="L-335" href="#L-335"></a>                <span class="n">next_level</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">parent_hash</span><span class="p">[:</span><span class="n">HASH_SIZE</span><span class="p">])</span>
+<a id="L-336" name="L-336" href="#L-336"></a>
+<a id="L-337" name="L-337" href="#L-337"></a>            <span class="n">current_level</span> <span class="o">=</span> <span class="n">next_level</span>
+<a id="L-338" name="L-338" href="#L-338"></a>            <span class="n">pending</span> <span class="o">=</span> <span class="n">next_n</span>
+<a id="L-339" name="L-339" href="#L-339"></a>
+<a id="L-340" name="L-340" href="#L-340"></a>        <span class="c1"># Compare computed root with expected root</span>
+<a id="L-341" name="L-341" href="#L-341"></a>        <span class="k">return</span> <span class="n">current_level</span><span class="p">[:</span><span class="n">HASH_SIZE</span><span class="p">]</span> <span class="o">==</span> <span class="n">root</span><span class="p">[:</span><span class="n">HASH_SIZE</span><span class="p">]</span></div>
+
+<a id="L-342" name="L-342" href="#L-342"></a>
+<div class="viewcode-block" id="MerkleTree.verify_group_proof">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.verify_group_proof">[docs]</a>
+<a id="L-343" name="L-343" href="#L-343"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">verify_group_proof</span><span class="p">(</span>
+<a id="L-344" name="L-344" href="#L-344"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="L-345" name="L-345" href="#L-345"></a>        <span class="n">root</span><span class="p">:</span> <span class="n">MerkleRoot</span><span class="p">,</span>
+<a id="L-346" name="L-346" href="#L-346"></a>        <span class="n">proof</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+<a id="L-347" name="L-347" href="#L-347"></a>        <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="L-348" name="L-348" href="#L-348"></a>        <span class="n">leaf_data</span><span class="p">:</span> <span class="n">LeafData</span>
+<a id="L-349" name="L-349" href="#L-349"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="L-350" name="L-350" href="#L-350"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Verify Merkle proof for a leaf.&quot;&quot;&quot;</span>
+<a id="L-351" name="L-351" href="#L-351"></a>        <span class="n">computed</span> <span class="o">=</span> <span class="n">linear_hash</span><span class="p">(</span><span class="n">_to_int_list</span><span class="p">(</span><span class="n">leaf_data</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span><span class="p">)</span>
+<a id="L-352" name="L-352" href="#L-352"></a>
+<a id="L-353" name="L-353" href="#L-353"></a>        <span class="k">for</span> <span class="n">level_siblings</span> <span class="ow">in</span> <span class="n">proof</span><span class="p">:</span>
+<a id="L-354" name="L-354" href="#L-354"></a>            <span class="n">curr_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-355" name="L-355" href="#L-355"></a>            <span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-356" name="L-356" href="#L-356"></a>
+<a id="L-357" name="L-357" href="#L-357"></a>            <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span>
+<a id="L-358" name="L-358" href="#L-358"></a>            <span class="n">p</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="L-359" name="L-359" href="#L-359"></a>            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span><span class="p">):</span>
+<a id="L-360" name="L-360" href="#L-360"></a>                <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">curr_idx</span><span class="p">:</span>
+<a id="L-361" name="L-361" href="#L-361"></a>                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">HASH_SIZE</span><span class="p">):</span>
+<a id="L-362" name="L-362" href="#L-362"></a>                        <span class="k">if</span> <span class="n">i</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span><span class="p">:</span>
+<a id="L-363" name="L-363" href="#L-363"></a>                            <span class="n">inputs</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">level_siblings</span><span class="p">[</span><span class="n">p</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span>
+<a id="L-364" name="L-364" href="#L-364"></a>                    <span class="n">p</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="L-365" name="L-365" href="#L-365"></a>                <span class="k">else</span><span class="p">:</span>
+<a id="L-366" name="L-366" href="#L-366"></a>                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">HASH_SIZE</span><span class="p">):</span>
+<a id="L-367" name="L-367" href="#L-367"></a>                        <span class="k">if</span> <span class="n">i</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span><span class="p">:</span>
+<a id="L-368" name="L-368" href="#L-368"></a>                            <span class="n">inputs</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">HASH_SIZE</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">computed</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+<a id="L-369" name="L-369" href="#L-369"></a>
+<a id="L-370" name="L-370" href="#L-370"></a>            <span class="n">computed</span> <span class="o">=</span> <span class="n">hash_seq</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sponge_width</span><span class="p">)</span>
+<a id="L-371" name="L-371" href="#L-371"></a>
+<a id="L-372" name="L-372" href="#L-372"></a>        <span class="k">return</span> <span class="n">computed</span> <span class="o">==</span> <span class="n">root</span><span class="p">[:</span><span class="n">HASH_SIZE</span><span class="p">]</span></div>
+
+<a id="L-373" name="L-373" href="#L-373"></a>
+<a id="L-374" name="L-374" href="#L-374"></a>    <span class="c1"># --- Proof Size Utilities ---</span>
+<a id="L-375" name="L-375" href="#L-375"></a>
+<div class="viewcode-block" id="MerkleTree.get_merkle_proof_length">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_merkle_proof_length">[docs]</a>
+<a id="L-376" name="L-376" href="#L-376"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_merkle_proof_length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="L-377" name="L-377" href="#L-377"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of levels in a Merkle proof.&quot;&quot;&quot;</span>
+<a id="L-378" name="L-378" href="#L-378"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="L-379" name="L-379" href="#L-379"></a>            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span><span class="p">))</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_level_verification</span>
+<a id="L-380" name="L-380" href="#L-380"></a>        <span class="k">return</span> <span class="mi">0</span></div>
+
+<a id="L-381" name="L-381" href="#L-381"></a>
+<div class="viewcode-block" id="MerkleTree.get_num_siblings">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_num_siblings">[docs]</a>
+<a id="L-382" name="L-382" href="#L-382"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_siblings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="L-383" name="L-383" href="#L-383"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of sibling elements per proof level.&quot;&quot;&quot;</span>
+<a id="L-384" name="L-384" href="#L-384"></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_field_elements</span></div>
+
+<a id="L-385" name="L-385" href="#L-385"></a>
+<div class="viewcode-block" id="MerkleTree.get_merkle_proof_size">
+<a class="viewcode-back" href="../../api/primitives/merkle_tree/index.html#primitives.merkle_tree.MerkleTree.get_merkle_proof_size">[docs]</a>
+<a id="L-386" name="L-386" href="#L-386"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_merkle_proof_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="L-387" name="L-387" href="#L-387"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Total size of a Merkle proof in field elements.&quot;&quot;&quot;</span>
+<a id="L-388" name="L-388" href="#L-388"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_merkle_proof_length</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_num_siblings</span><span class="p">()</span></div>
+
+<a id="L-389" name="L-389" href="#L-389"></a>
+<a id="L-390" name="L-390" href="#L-390"></a>    <span class="c1"># --- Internal Helpers ---</span>
+<a id="L-391" name="L-391" href="#L-391"></a>
+<a id="L-392" name="L-392" href="#L-392"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_num_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="L-393" name="L-393" href="#L-393"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate total storage needed for tree nodes.&quot;&quot;&quot;</span>
+<a id="L-394" name="L-394" href="#L-394"></a>        <span class="n">num_nodes</span> <span class="o">=</span> <span class="n">height</span>
+<a id="L-395" name="L-395" href="#L-395"></a>        <span class="n">nodes_level</span> <span class="o">=</span> <span class="n">height</span>
+<a id="L-396" name="L-396" href="#L-396"></a>
+<a id="L-397" name="L-397" href="#L-397"></a>        <span class="k">while</span> <span class="n">nodes_level</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="L-398" name="L-398" href="#L-398"></a>            <span class="n">extra_zeros</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="p">(</span><span class="n">nodes_level</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span><span class="p">))</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-399" name="L-399" href="#L-399"></a>            <span class="n">num_nodes</span> <span class="o">+=</span> <span class="n">extra_zeros</span>
+<a id="L-400" name="L-400" href="#L-400"></a>            <span class="n">next_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">nodes_level</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-401" name="L-401" href="#L-401"></a>            <span class="n">num_nodes</span> <span class="o">+=</span> <span class="n">next_n</span>
+<a id="L-402" name="L-402" href="#L-402"></a>            <span class="n">nodes_level</span> <span class="o">=</span> <span class="n">next_n</span>
+<a id="L-403" name="L-403" href="#L-403"></a>
+<a id="L-404" name="L-404" href="#L-404"></a>        <span class="k">return</span> <span class="n">num_nodes</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_field_elements</span>
+<a id="L-405" name="L-405" href="#L-405"></a>
+<a id="L-406" name="L-406" href="#L-406"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_collect_proof_siblings</span><span class="p">(</span>
+<a id="L-407" name="L-407" href="#L-407"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="L-408" name="L-408" href="#L-408"></a>        <span class="n">proof</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<a id="L-409" name="L-409" href="#L-409"></a>        <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="L-410" name="L-410" href="#L-410"></a>        <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="L-411" name="L-411" href="#L-411"></a>        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span>
+<a id="L-412" name="L-412" href="#L-412"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-413" name="L-413" href="#L-413"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Recursively collect sibling hashes for proof.&quot;&quot;&quot;</span>
+<a id="L-414" name="L-414" href="#L-414"></a>        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+<a id="L-415" name="L-415" href="#L-415"></a>            <span class="k">return</span>
+<a id="L-416" name="L-416" href="#L-416"></a>
+<a id="L-417" name="L-417" href="#L-417"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_level_verification</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-418" name="L-418" href="#L-418"></a>            <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_level_verification</span><span class="p">:</span>
+<a id="L-419" name="L-419" href="#L-419"></a>                <span class="k">return</span>
+<a id="L-420" name="L-420" href="#L-420"></a>
+<a id="L-421" name="L-421" href="#L-421"></a>        <span class="n">curr_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-422" name="L-422" href="#L-422"></a>        <span class="n">next_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-423" name="L-423" href="#L-423"></a>        <span class="n">si</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">-</span> <span class="n">curr_idx</span>
+<a id="L-424" name="L-424" href="#L-424"></a>
+<a id="L-425" name="L-425" href="#L-425"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span><span class="p">):</span>
+<a id="L-426" name="L-426" href="#L-426"></a>            <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">curr_idx</span><span class="p">:</span>
+<a id="L-427" name="L-427" href="#L-427"></a>                <span class="n">node_offset</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">si</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">HASH_SIZE</span>
+<a id="L-428" name="L-428" href="#L-428"></a>                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">HASH_SIZE</span><span class="p">):</span>
+<a id="L-429" name="L-429" href="#L-429"></a>                    <span class="n">proof</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node_offset</span> <span class="o">+</span> <span class="n">j</span><span class="p">])</span>
+<a id="L-430" name="L-430" href="#L-430"></a>
+<a id="L-431" name="L-431" href="#L-431"></a>        <span class="n">extra_zeros</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="p">(</span><span class="n">n</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span><span class="p">))</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-432" name="L-432" href="#L-432"></a>        <span class="n">next_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arity</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">arity</span>
+<a id="L-433" name="L-433" href="#L-433"></a>        <span class="n">next_offset</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="n">extra_zeros</span><span class="p">)</span> <span class="o">*</span> <span class="n">HASH_SIZE</span>
+<a id="L-434" name="L-434" href="#L-434"></a>
+<a id="L-435" name="L-435" href="#L-435"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_collect_proof_siblings</span><span class="p">(</span><span class="n">proof</span><span class="p">,</span> <span class="n">next_idx</span><span class="p">,</span> <span class="n">next_offset</span><span class="p">,</span> <span class="n">next_n</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

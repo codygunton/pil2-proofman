@@ -1,0 +1,1455 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>protocol.prover &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/protocol/prover';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for protocol.prover</h1><div class="highlight"><pre>
+<span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="sd">&quot;&quot;&quot;Top-level STARK proof generation.&quot;&quot;&quot;</span>
+<a id="L-2" name="L-2" href="#L-2"></a>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+<a id="L-4" name="L-4" href="#L-4"></a>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">poseidon2_ffi</span><span class="w"> </span><span class="kn">import</span> <span class="n">linear_hash</span>
+<a id="L-7" name="L-7" href="#L-7"></a>
+<a id="L-8" name="L-8" href="#L-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">primitives.field</span><span class="w"> </span><span class="kn">import</span> <span class="n">FF3</span><span class="p">,</span> <span class="n">FIELD_EXTENSION_DEGREE</span><span class="p">,</span> <span class="n">ff3_coeffs</span><span class="p">,</span> <span class="n">ff3_from_interleaved_numpy</span>
+<a id="L-9" name="L-9" href="#L-9"></a><span class="kn">from</span><span class="w"> </span><span class="nn">primitives.merkle_tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">HASH_SIZE</span><span class="p">,</span> <span class="n">QueryProof</span>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">primitives.transcript</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transcript</span>
+<a id="L-11" name="L-11" href="#L-11"></a><span class="kn">from</span><span class="w"> </span><span class="nn">protocol.air_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirConfig</span><span class="p">,</span> <span class="n">ProverHelpers</span>
+<a id="L-12" name="L-12" href="#L-12"></a><span class="kn">from</span><span class="w"> </span><span class="nn">protocol.pcs</span><span class="w"> </span><span class="kn">import</span> <span class="n">FriPcs</span><span class="p">,</span> <span class="n">FriPcsConfig</span>
+<a id="L-13" name="L-13" href="#L-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">protocol.stages</span><span class="w"> </span><span class="kn">import</span> <span class="n">PolynomialCommitter</span><span class="p">,</span> <span class="n">calculate_witness</span>
+<a id="L-14" name="L-14" href="#L-14"></a><span class="kn">from</span><span class="w"> </span><span class="nn">protocol.stark_info</span><span class="w"> </span><span class="kn">import</span> <span class="n">StarkInfo</span>
+<a id="L-15" name="L-15" href="#L-15"></a><span class="kn">from</span><span class="w"> </span><span class="nn">protocol.utils.challenge_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">derive_global_challenge</span>
+<a id="L-16" name="L-16" href="#L-16"></a>
+<a id="L-17" name="L-17" href="#L-17"></a><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+<a id="L-18" name="L-18" href="#L-18"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">primitives.pol_map</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChallengeMap</span>
+<a id="L-19" name="L-19" href="#L-19"></a>
+<a id="L-20" name="L-20" href="#L-20"></a><span class="c1"># --- Type Aliases ---</span>
+<div class="viewcode-block" id="MerkleRoot">
+<a class="viewcode-back" href="../../api/protocol/prover/index.html#protocol.prover.MerkleRoot">[docs]</a>
+<a id="L-21" name="L-21" href="#L-21"></a><span class="n">MerkleRoot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="StageNum">
+<a class="viewcode-back" href="../../api/protocol/prover/index.html#protocol.prover.StageNum">[docs]</a>
+<a id="L-22" name="L-22" href="#L-22"></a><span class="n">StageNum</span> <span class="o">=</span> <span class="nb">int</span></div>
+
+<div class="viewcode-block" id="ChallengesDict">
+<a class="viewcode-back" href="../../api/protocol/prover/index.html#protocol.prover.ChallengesDict">[docs]</a>
+<a id="L-23" name="L-23" href="#L-23"></a><span class="n">ChallengesDict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FF3</span><span class="p">]</span></div>
+
+<a id="L-24" name="L-24" href="#L-24"></a>
+<a id="L-25" name="L-25" href="#L-25"></a><span class="c1"># --- Module Constants ---</span>
+<a id="L-26" name="L-26" href="#L-26"></a><span class="c1"># Default lattice expansion size for VADCOP protocol (CurveType::None)</span>
+<a id="L-27" name="L-27" href="#L-27"></a><span class="c1"># Reference: C++ proofman challenge_accumulation.rs</span>
+<div class="viewcode-block" id="DEFAULT_LATTICE_SIZE">
+<a class="viewcode-back" href="../../api/protocol/prover/index.html#protocol.prover.DEFAULT_LATTICE_SIZE">[docs]</a>
+<a id="L-28" name="L-28" href="#L-28"></a><span class="n">DEFAULT_LATTICE_SIZE</span> <span class="o">=</span> <span class="mi">368</span></div>
+
+<a id="L-29" name="L-29" href="#L-29"></a>
+<a id="L-30" name="L-30" href="#L-30"></a><span class="c1"># Poseidon2 linear hash width (internal state size)</span>
+<div class="viewcode-block" id="POSEIDON2_LINEAR_HASH_WIDTH">
+<a class="viewcode-back" href="../../api/protocol/prover/index.html#protocol.prover.POSEIDON2_LINEAR_HASH_WIDTH">[docs]</a>
+<a id="L-31" name="L-31" href="#L-31"></a><span class="n">POSEIDON2_LINEAR_HASH_WIDTH</span> <span class="o">=</span> <span class="mi">16</span></div>
+
+<a id="L-32" name="L-32" href="#L-32"></a>
+<a id="L-33" name="L-33" href="#L-33"></a>
+<a id="L-34" name="L-34" href="#L-34"></a><span class="c1"># --- Helper Functions ---</span>
+<a id="L-35" name="L-35" href="#L-35"></a>
+<a id="L-36" name="L-36" href="#L-36"></a>
+<a id="L-37" name="L-37" href="#L-37"></a><span class="k">def</span><span class="w"> </span><span class="nf">_get_air_values_stage1</span><span class="p">(</span><span class="n">air_config</span><span class="p">:</span> <span class="n">AirConfig</span><span class="p">,</span> <span class="n">air_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<a id="L-38" name="L-38" href="#L-38"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract stage 1 air_values for global_challenge computation.</span>
+<a id="L-39" name="L-39" href="#L-39"></a>
+<a id="L-40" name="L-40" href="#L-40"></a><span class="sd">    C++ reference: proofman.rs:3472-3540 (get_contribution_air)</span>
+<a id="L-41" name="L-41" href="#L-41"></a><span class="sd">    Only stage 1 air_values go into global_challenge hash.</span>
+<a id="L-42" name="L-42" href="#L-42"></a><span class="sd">    For simple AIRs, this returns an empty list.</span>
+<a id="L-43" name="L-43" href="#L-43"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-44" name="L-44" href="#L-44"></a>    <span class="n">stark_info</span> <span class="o">=</span> <span class="n">air_config</span><span class="o">.</span><span class="n">stark_info</span>
+<a id="L-45" name="L-45" href="#L-45"></a>    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-46" name="L-46" href="#L-46"></a>    <span class="k">if</span> <span class="p">(</span>
+<a id="L-47" name="L-47" href="#L-47"></a>        <span class="nb">hasattr</span><span class="p">(</span><span class="n">stark_info</span><span class="p">,</span> <span class="s2">&quot;air_values_map&quot;</span><span class="p">)</span>
+<a id="L-48" name="L-48" href="#L-48"></a>        <span class="ow">and</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">air_values_map</span>
+<a id="L-49" name="L-49" href="#L-49"></a>        <span class="ow">and</span> <span class="n">air_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="L-50" name="L-50" href="#L-50"></a>    <span class="p">):</span>
+<a id="L-51" name="L-51" href="#L-51"></a>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">av</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">stark_info</span><span class="o">.</span><span class="n">air_values_map</span><span class="p">):</span>
+<a id="L-52" name="L-52" href="#L-52"></a>            <span class="k">if</span> <span class="n">av</span><span class="o">.</span><span class="n">stage</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+<a id="L-53" name="L-53" href="#L-53"></a>                <span class="c1"># Stage 1 air_values are single field elements</span>
+<a id="L-54" name="L-54" href="#L-54"></a>                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">air_values</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+<a id="L-55" name="L-55" href="#L-55"></a>    <span class="k">return</span> <span class="n">result</span>
+<a id="L-56" name="L-56" href="#L-56"></a>
+<a id="L-57" name="L-57" href="#L-57"></a>
+<a id="L-58" name="L-58" href="#L-58"></a><span class="k">def</span><span class="w"> </span><span class="nf">_get_proof_values_stage1</span><span class="p">(</span><span class="n">_air_config</span><span class="p">:</span> <span class="n">AirConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<a id="L-59" name="L-59" href="#L-59"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract stage 1 proof_values for global_challenge computation.</span>
+<a id="L-60" name="L-60" href="#L-60"></a>
+<a id="L-61" name="L-61" href="#L-61"></a><span class="sd">    C++ reference: challenge_accumulation.rs:96-99</span>
+<a id="L-62" name="L-62" href="#L-62"></a><span class="sd">    proofValuesMap is empty for all currently-supported AIRs, so this</span>
+<a id="L-63" name="L-63" href="#L-63"></a><span class="sd">    always returns []. When non-empty AIRs are added, implement extraction here.</span>
+<a id="L-64" name="L-64" href="#L-64"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-65" name="L-65" href="#L-65"></a>    <span class="k">return</span> <span class="p">[]</span>
+<a id="L-66" name="L-66" href="#L-66"></a>
+<a id="L-67" name="L-67" href="#L-67"></a>
+<div class="viewcode-block" id="derive_challenges_for_stage">
+<a class="viewcode-back" href="../../api/protocol/prover/index.html#protocol.prover.derive_challenges_for_stage">[docs]</a>
+<a id="L-68" name="L-68" href="#L-68"></a><span class="k">def</span><span class="w"> </span><span class="nf">derive_challenges_for_stage</span><span class="p">(</span>
+<a id="L-69" name="L-69" href="#L-69"></a>    <span class="n">transcript</span><span class="p">:</span> <span class="n">Transcript</span><span class="p">,</span> <span class="n">challenges_map</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="s2">&quot;ChallengeMap&quot;</span><span class="p">],</span> <span class="n">stage</span><span class="p">:</span> <span class="nb">int</span>
+<a id="L-70" name="L-70" href="#L-70"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChallengesDict</span><span class="p">:</span>
+<a id="L-71" name="L-71" href="#L-71"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Derive all challenges for a stage from the transcript.</span>
+<a id="L-72" name="L-72" href="#L-72"></a>
+<a id="L-73" name="L-73" href="#L-73"></a><span class="sd">    Args:</span>
+<a id="L-74" name="L-74" href="#L-74"></a><span class="sd">        transcript: Fiat-Shamir transcript for challenge generation</span>
+<a id="L-75" name="L-75" href="#L-75"></a><span class="sd">        challenges_map: List of challenge specifications from AIR</span>
+<a id="L-76" name="L-76" href="#L-76"></a><span class="sd">        stage: Stage number to derive challenges for</span>
+<a id="L-77" name="L-77" href="#L-77"></a>
+<a id="L-78" name="L-78" href="#L-78"></a><span class="sd">    Returns:</span>
+<a id="L-79" name="L-79" href="#L-79"></a><span class="sd">        Dict mapping challenge name to FF3 value</span>
+<a id="L-80" name="L-80" href="#L-80"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-81" name="L-81" href="#L-81"></a>    <span class="n">result</span><span class="p">:</span> <span class="n">ChallengesDict</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="L-82" name="L-82" href="#L-82"></a>    <span class="k">for</span> <span class="n">challenge_spec</span> <span class="ow">in</span> <span class="n">challenges_map</span><span class="p">:</span>
+<a id="L-83" name="L-83" href="#L-83"></a>        <span class="k">if</span> <span class="n">challenge_spec</span><span class="o">.</span><span class="n">stage</span> <span class="o">==</span> <span class="n">stage</span><span class="p">:</span>
+<a id="L-84" name="L-84" href="#L-84"></a>            <span class="n">challenge</span> <span class="o">=</span> <span class="n">transcript</span><span class="o">.</span><span class="n">get_field</span><span class="p">()</span>  <span class="c1"># Returns [c0, c1, c2]</span>
+<a id="L-85" name="L-85" href="#L-85"></a>            <span class="c1"># Convert to FF3 (galois expects descending order)</span>
+<a id="L-86" name="L-86" href="#L-86"></a>            <span class="n">result</span><span class="p">[</span><span class="n">challenge_spec</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">FF3</span><span class="o">.</span><span class="n">Vector</span><span class="p">([</span><span class="n">challenge</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">challenge</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">challenge</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+<a id="L-87" name="L-87" href="#L-87"></a>    <span class="k">return</span> <span class="n">result</span></div>
+
+<a id="L-88" name="L-88" href="#L-88"></a>
+<a id="L-89" name="L-89" href="#L-89"></a>
+<a id="L-90" name="L-90" href="#L-90"></a><span class="c1"># --- Stage Helpers ---</span>
+<a id="L-91" name="L-91" href="#L-91"></a>
+<a id="L-92" name="L-92" href="#L-92"></a>
+<a id="L-93" name="L-93" href="#L-93"></a><span class="k">def</span><span class="w"> </span><span class="nf">_commit_stage1</span><span class="p">(</span>
+<a id="L-94" name="L-94" href="#L-94"></a>    <span class="n">air_config</span><span class="p">:</span> <span class="n">AirConfig</span><span class="p">,</span>
+<a id="L-95" name="L-95" href="#L-95"></a>    <span class="n">trace</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-96" name="L-96" href="#L-96"></a>    <span class="n">const_pols_extended</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-97" name="L-97" href="#L-97"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">MerkleRoot</span><span class="p">],</span> <span class="n">PolynomialCommitter</span><span class="p">]:</span>
+<a id="L-98" name="L-98" href="#L-98"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Commit stage-1 witness trace and build constant polynomial tree.</span>
+<a id="L-99" name="L-99" href="#L-99"></a>
+<a id="L-100" name="L-100" href="#L-100"></a><span class="sd">    Called by gen_proof() and prove_simple_pilout() to obtain root1 and verkey</span>
+<a id="L-101" name="L-101" href="#L-101"></a><span class="sd">    for global challenge derivation before running stages 2 through FRI.</span>
+<a id="L-102" name="L-102" href="#L-102"></a>
+<a id="L-103" name="L-103" href="#L-103"></a><span class="sd">    Args:</span>
+<a id="L-104" name="L-104" href="#L-104"></a><span class="sd">        air_config: AIR configuration with stark_info</span>
+<a id="L-105" name="L-105" href="#L-105"></a><span class="sd">        trace: Stage 1 witness trace buffer (N * cm1_cols)</span>
+<a id="L-106" name="L-106" href="#L-106"></a><span class="sd">        const_pols_extended: Constant polynomials on extended domain</span>
+<a id="L-107" name="L-107" href="#L-107"></a>
+<a id="L-108" name="L-108" href="#L-108"></a><span class="sd">    Returns:</span>
+<a id="L-109" name="L-109" href="#L-109"></a><span class="sd">        Tuple (verkey, root1, aux_trace, commitments, committer) where:</span>
+<a id="L-110" name="L-110" href="#L-110"></a><span class="sd">            verkey: Merkle root of constant polynomial tree (4 field elements)</span>
+<a id="L-111" name="L-111" href="#L-111"></a><span class="sd">            root1: Stage 1 Merkle commitment root (4 field elements)</span>
+<a id="L-112" name="L-112" href="#L-112"></a><span class="sd">            aux_trace: Zeroed auxiliary trace buffer for stages 2+</span>
+<a id="L-113" name="L-113" href="#L-113"></a><span class="sd">            commitments: List containing [root1] for proof assembly</span>
+<a id="L-114" name="L-114" href="#L-114"></a><span class="sd">            committer: PolynomialCommitter with const_tree and stage_trees[1] populated</span>
+<a id="L-115" name="L-115" href="#L-115"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-116" name="L-116" href="#L-116"></a>    <span class="n">stark_info</span> <span class="o">=</span> <span class="n">air_config</span><span class="o">.</span><span class="n">stark_info</span>
+<a id="L-117" name="L-117" href="#L-117"></a>
+<a id="L-118" name="L-118" href="#L-118"></a>    <span class="c1"># PolynomialCommitter orchestrates polynomial commitment via Merkle trees</span>
+<a id="L-119" name="L-119" href="#L-119"></a>    <span class="c1"># Manages: constant tree, stage trees (1, 2, Q), and FRI trees</span>
+<a id="L-120" name="L-120" href="#L-120"></a>    <span class="n">committer</span> <span class="o">=</span> <span class="n">PolynomialCommitter</span><span class="p">(</span><span class="n">air_config</span><span class="p">)</span>
+<a id="L-121" name="L-121" href="#L-121"></a>
+<a id="L-122" name="L-122" href="#L-122"></a>    <span class="c1"># Build the verification key from constant polynomial commitments.</span>
+<a id="L-123" name="L-123" href="#L-123"></a>    <span class="c1"># The verkey is the Merkle root (4 field elements) of the constant polynomial tree.</span>
+<a id="L-124" name="L-124" href="#L-124"></a>    <span class="c1"># AIRs without constant polynomials (e.g., purely trace-based AIRs) use a zero verkey.</span>
+<a id="L-125" name="L-125" href="#L-125"></a>    <span class="c1"># This matches C++ proofman: both prover and verifier must agree on this default,</span>
+<a id="L-126" name="L-126" href="#L-126"></a>    <span class="c1"># because verkey enters the global challenge hash.</span>
+<a id="L-127" name="L-127" href="#L-127"></a>    <span class="k">if</span> <span class="n">const_pols_extended</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">const_pols_extended</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-128" name="L-128" href="#L-128"></a>        <span class="n">verkey</span> <span class="o">=</span> <span class="n">committer</span><span class="o">.</span><span class="n">build_const_tree</span><span class="p">(</span><span class="n">const_pols_extended</span><span class="p">)</span>
+<a id="L-129" name="L-129" href="#L-129"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="L-130" name="L-130" href="#L-130"></a>        <span class="n">verkey</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">HASH_SIZE</span>
+<a id="L-131" name="L-131" href="#L-131"></a>
+<a id="L-132" name="L-132" href="#L-132"></a>    <span class="c1"># Auxiliary trace buffer: a single flat uint64 array that holds all stage polynomial</span>
+<a id="L-133" name="L-133" href="#L-133"></a>    <span class="c1"># evaluations. The buffer is partitioned into non-overlapping slices by map_offsets:</span>
+<a id="L-134" name="L-134" href="#L-134"></a>    <span class="c1">#   Stage 1 (raw trace columns)      base-domain  at map_offsets[(&quot;cm1&quot;, False)]</span>
+<a id="L-135" name="L-135" href="#L-135"></a>    <span class="c1">#                                    extended      at map_offsets[(&quot;cm1&quot;, True)]</span>
+<a id="L-136" name="L-136" href="#L-136"></a>    <span class="c1">#   Stage 2 (im_cluster, gsum, …)   base-domain  at map_offsets[(&quot;cm2&quot;, False)]</span>
+<a id="L-137" name="L-137" href="#L-137"></a>    <span class="c1">#                                    extended      at map_offsets[(&quot;cm2&quot;, True)]</span>
+<a id="L-138" name="L-138" href="#L-138"></a>    <span class="c1">#   Quotient polynomial Q(x)          extended-only at map_offsets[(&quot;q&quot;, True)]</span>
+<a id="L-139" name="L-139" href="#L-139"></a>    <span class="c1">#   FRI polynomial f(x)               extended-only at map_offsets[(&quot;f&quot;, True)]</span>
+<a id="L-140" name="L-140" href="#L-140"></a>    <span class="c1"># Total size: stark_info.map_total_n uint64 elements.</span>
+<a id="L-141" name="L-141" href="#L-141"></a>    <span class="n">aux_trace</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">stark_info</span><span class="o">.</span><span class="n">map_total_n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+<a id="L-142" name="L-142" href="#L-142"></a>
+<a id="L-143" name="L-143" href="#L-143"></a>    <span class="c1"># &lt;doc-anchor id=&quot;witness-commit&quot;&gt;</span>
+<a id="L-144" name="L-144" href="#L-144"></a>    <span class="n">root1</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">committer</span><span class="o">.</span><span class="n">commitStage</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">trace</span><span class="p">,</span> <span class="n">aux_trace</span><span class="p">))</span>
+<a id="L-145" name="L-145" href="#L-145"></a>    <span class="n">commitments</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MerkleRoot</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">root1</span><span class="p">]</span>
+<a id="L-146" name="L-146" href="#L-146"></a>
+<a id="L-147" name="L-147" href="#L-147"></a>    <span class="k">return</span> <span class="n">verkey</span><span class="p">,</span> <span class="n">root1</span><span class="p">,</span> <span class="n">aux_trace</span><span class="p">,</span> <span class="n">commitments</span><span class="p">,</span> <span class="n">committer</span>
+<a id="L-148" name="L-148" href="#L-148"></a>
+<a id="L-149" name="L-149" href="#L-149"></a>
+<a id="L-150" name="L-150" href="#L-150"></a><span class="k">def</span><span class="w"> </span><span class="nf">_gen_proof_stage2_plus</span><span class="p">(</span>
+<a id="L-151" name="L-151" href="#L-151"></a>    <span class="n">air_config</span><span class="p">:</span> <span class="n">AirConfig</span><span class="p">,</span>
+<a id="L-152" name="L-152" href="#L-152"></a>    <span class="n">trace</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-153" name="L-153" href="#L-153"></a>    <span class="n">const_pols</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-154" name="L-154" href="#L-154"></a>    <span class="n">const_pols_extended</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-155" name="L-155" href="#L-155"></a>    <span class="n">aux_trace</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-156" name="L-156" href="#L-156"></a>    <span class="n">commitments</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MerkleRoot</span><span class="p">],</span>
+<a id="L-157" name="L-157" href="#L-157"></a>    <span class="n">transcript_seed</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<a id="L-158" name="L-158" href="#L-158"></a>    <span class="n">committer</span><span class="p">:</span> <span class="n">PolynomialCommitter</span><span class="p">,</span>
+<a id="L-159" name="L-159" href="#L-159"></a>    <span class="n">air_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-160" name="L-160" href="#L-160"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<a id="L-161" name="L-161" href="#L-161"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Run proof stages 2 through FRI given committed stage-1 and global challenge.</span>
+<a id="L-162" name="L-162" href="#L-162"></a>
+<a id="L-163" name="L-163" href="#L-163"></a><span class="sd">    Called by gen_proof() (single-AIR) and prove_simple_pilout() (multi-AIR).</span>
+<a id="L-164" name="L-164" href="#L-164"></a><span class="sd">    Seeds the Fiat-Shamir transcript from transcript_seed (the global challenge)</span>
+<a id="L-165" name="L-165" href="#L-165"></a><span class="sd">    and runs all remaining protocol stages to produce the complete proof.</span>
+<a id="L-166" name="L-166" href="#L-166"></a>
+<a id="L-167" name="L-167" href="#L-167"></a><span class="sd">    Args:</span>
+<a id="L-168" name="L-168" href="#L-168"></a><span class="sd">        air_config: AIR configuration with stark_info</span>
+<a id="L-169" name="L-169" href="#L-169"></a><span class="sd">        trace: Stage 1 witness trace buffer</span>
+<a id="L-170" name="L-170" href="#L-170"></a><span class="sd">        const_pols: Constant polynomials on base domain</span>
+<a id="L-171" name="L-171" href="#L-171"></a><span class="sd">        const_pols_extended: Constant polynomials on extended domain</span>
+<a id="L-172" name="L-172" href="#L-172"></a><span class="sd">        aux_trace: Auxiliary trace buffer (stages 2+)</span>
+<a id="L-173" name="L-173" href="#L-173"></a><span class="sd">        commitments: Running list of Merkle roots (starts with [root1])</span>
+<a id="L-174" name="L-174" href="#L-174"></a><span class="sd">        transcript_seed: Global challenge for Fiat-Shamir initialization (3 field elements)</span>
+<a id="L-175" name="L-175" href="#L-175"></a><span class="sd">        committer: PolynomialCommitter with const_tree and stage_trees[1] populated</span>
+<a id="L-176" name="L-176" href="#L-176"></a><span class="sd">        air_values: Per-AIR instance values (typically zeros for simple AIRs)</span>
+<a id="L-177" name="L-177" href="#L-177"></a>
+<a id="L-178" name="L-178" href="#L-178"></a><span class="sd">    Returns:</span>
+<a id="L-179" name="L-179" href="#L-179"></a><span class="sd">        Dictionary containing the serialized proof.</span>
+<a id="L-180" name="L-180" href="#L-180"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-181" name="L-181" href="#L-181"></a>    <span class="n">stark_info</span> <span class="o">=</span> <span class="n">air_config</span><span class="o">.</span><span class="n">stark_info</span>
+<a id="L-182" name="L-182" href="#L-182"></a>
+<a id="L-183" name="L-183" href="#L-183"></a>    <span class="c1"># ProverHelpers contains precomputed tables for constraint evaluation</span>
+<a id="L-184" name="L-184" href="#L-184"></a>    <span class="c1"># Includes: L1(x) roots, zerofier roots, NTT twiddle factors</span>
+<a id="L-185" name="L-185" href="#L-185"></a>    <span class="n">prover_helpers</span> <span class="o">=</span> <span class="n">ProverHelpers</span><span class="o">.</span><span class="n">from_stark_info</span><span class="p">(</span><span class="n">stark_info</span><span class="p">,</span> <span class="n">pil1</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="L-186" name="L-186" href="#L-186"></a>
+<a id="L-187" name="L-187" href="#L-187"></a>    <span class="c1"># Initialize Fiat-Shamir transcript seeded with the global challenge</span>
+<a id="L-188" name="L-188" href="#L-188"></a>    <span class="n">transcript</span> <span class="o">=</span> <span class="n">Transcript</span><span class="p">(</span>
+<a id="L-189" name="L-189" href="#L-189"></a>        <span class="n">arity</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">transcript_arity</span><span class="p">,</span>
+<a id="L-190" name="L-190" href="#L-190"></a>        <span class="n">custom</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">merkle_tree_custom</span><span class="p">,</span>
+<a id="L-191" name="L-191" href="#L-191"></a>    <span class="p">)</span>
+<a id="L-192" name="L-192" href="#L-192"></a>    <span class="c1"># &lt;doc-anchor id=&quot;transcript-seed-vadcop&quot;&gt;</span>
+<a id="L-193" name="L-193" href="#L-193"></a>    <span class="n">transcript</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">transcript_seed</span><span class="p">)</span>
+<a id="L-194" name="L-194" href="#L-194"></a>
+<a id="L-195" name="L-195" href="#L-195"></a>    <span class="c1"># === STAGE 2: Intermediate Polynomials ===</span>
+<a id="L-196" name="L-196" href="#L-196"></a>    <span class="c1"># Generate witness polynomials that depend on stage-1 randomness</span>
+<a id="L-197" name="L-197" href="#L-197"></a>    <span class="c1"># Examples: im_cluster (lookup multiplicity), gsum (bus accumulator)</span>
+<a id="L-198" name="L-198" href="#L-198"></a>
+<a id="L-199" name="L-199" href="#L-199"></a>    <span class="c1"># &lt;doc-anchor id=&quot;derive-stage2-challenges&quot;&gt;</span>
+<a id="L-200" name="L-200" href="#L-200"></a>    <span class="c1"># Derive stage 2 challenges from transcript (Fiat-Shamir).</span>
+<a id="L-201" name="L-201" href="#L-201"></a>    <span class="n">stage2_challenges</span> <span class="o">=</span> <span class="n">derive_challenges_for_stage</span><span class="p">(</span><span class="n">transcript</span><span class="p">,</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">challenges_map</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<a id="L-202" name="L-202" href="#L-202"></a>
+<a id="L-203" name="L-203" href="#L-203"></a>    <span class="c1"># Calculate stage-2 witness polynomials — the challenge-dependent part of the witness.</span>
+<a id="L-204" name="L-204" href="#L-204"></a>    <span class="c1"># Stage-1 polynomials are the raw execution trace, fixed before any randomness.</span>
+<a id="L-205" name="L-205" href="#L-205"></a>    <span class="c1"># Stage-2 polynomials can only be computed AFTER the stage-2 challenge is derived</span>
+<a id="L-206" name="L-206" href="#L-206"></a>    <span class="c1"># from the stage-1 commitment, because they prove properties about stage-1 using</span>
+<a id="L-207" name="L-207" href="#L-207"></a>    <span class="c1"># Fiat-Shamir randomness. Examples:</span>
+<a id="L-208" name="L-208" href="#L-208"></a>    <span class="c1">#   im_cluster (lookup AIRs): multiplicity column — how many times each lookup table</span>
+<a id="L-209" name="L-209" href="#L-209"></a>    <span class="c1">#     row is queried. Required to prove the lookup argument is balanced.</span>
+<a id="L-210" name="L-210" href="#L-210"></a>    <span class="c1">#   gsum (bus AIRs): running bus accumulator — the sum of all bus messages sent and</span>
+<a id="L-211" name="L-211" href="#L-211"></a>    <span class="c1">#     received, used to prove that senders and receivers agree.</span>
+<a id="L-212" name="L-212" href="#L-212"></a>    <span class="c1"># Dispatches to the witness module registered for this AIR (SimpleLeft, Lookup2_12, …).</span>
+<a id="L-213" name="L-213" href="#L-213"></a>    <span class="c1"># Writes computed columns into aux_trace; returns airgroup_values (cross-AIR VADCOP data).</span>
+<a id="L-214" name="L-214" href="#L-214"></a>    <span class="n">airgroup_values</span> <span class="o">=</span> <span class="n">calculate_witness</span><span class="p">(</span>
+<a id="L-215" name="L-215" href="#L-215"></a>        <span class="n">stark_info</span><span class="p">,</span>
+<a id="L-216" name="L-216" href="#L-216"></a>        <span class="n">trace</span><span class="p">,</span>
+<a id="L-217" name="L-217" href="#L-217"></a>        <span class="n">aux_trace</span><span class="p">,</span>
+<a id="L-218" name="L-218" href="#L-218"></a>        <span class="n">const_pols</span><span class="p">,</span>
+<a id="L-219" name="L-219" href="#L-219"></a>        <span class="n">stage2_challenges</span><span class="p">,</span>
+<a id="L-220" name="L-220" href="#L-220"></a>        <span class="n">expressions_bin</span><span class="o">=</span><span class="n">air_config</span><span class="o">.</span><span class="n">expressions_bin</span><span class="p">,</span>
+<a id="L-221" name="L-221" href="#L-221"></a>    <span class="p">)</span>
+<a id="L-222" name="L-222" href="#L-222"></a>
+<a id="L-223" name="L-223" href="#L-223"></a>    <span class="c1"># &lt;doc-anchor id=&quot;intermediate-commit&quot;&gt;</span>
+<a id="L-224" name="L-224" href="#L-224"></a>    <span class="c1"># Commit stage 2 witness polynomials via Merkle tree</span>
+<a id="L-225" name="L-225" href="#L-225"></a>    <span class="c1"># commitments tracks roots for proof output; transcript absorbs them one-way</span>
+<a id="L-226" name="L-226" href="#L-226"></a>    <span class="n">stage2_commitment</span> <span class="o">=</span> <span class="n">committer</span><span class="o">.</span><span class="n">commitStage</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">trace</span><span class="p">,</span> <span class="n">aux_trace</span><span class="p">)</span>
+<a id="L-227" name="L-227" href="#L-227"></a>    <span class="n">commitments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">stage2_commitment</span><span class="p">))</span>
+<a id="L-228" name="L-228" href="#L-228"></a>    <span class="n">transcript</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">stage2_commitment</span><span class="p">)</span>
+<a id="L-229" name="L-229" href="#L-229"></a>
+<a id="L-230" name="L-230" href="#L-230"></a>    <span class="c1"># === STAGE Q: Quotient Polynomial ===</span>
+<a id="L-231" name="L-231" href="#L-231"></a>    <span class="c1"># Prove that all AIR constraints are satisfied by computing Q(x) = C(x) / Z_H(x)</span>
+<a id="L-232" name="L-232" href="#L-232"></a>
+<a id="L-233" name="L-233" href="#L-233"></a>    <span class="n">q_stage</span> <span class="o">=</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">n_stages</span> <span class="o">+</span> <span class="mi">1</span>
+<a id="L-234" name="L-234" href="#L-234"></a>
+<a id="L-235" name="L-235" href="#L-235"></a>    <span class="c1"># &lt;doc-anchor id=&quot;derive-stageq-challenges&quot;&gt;</span>
+<a id="L-236" name="L-236" href="#L-236"></a>    <span class="n">stageQ_challenges</span> <span class="o">=</span> <span class="n">derive_challenges_for_stage</span><span class="p">(</span>
+<a id="L-237" name="L-237" href="#L-237"></a>        <span class="n">transcript</span><span class="p">,</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">challenges_map</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">q_stage</span>
+<a id="L-238" name="L-238" href="#L-238"></a>    <span class="p">)</span>
+<a id="L-239" name="L-239" href="#L-239"></a>
+<a id="L-240" name="L-240" href="#L-240"></a>    <span class="n">all_challenges</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">stage2_challenges</span><span class="p">,</span> <span class="o">**</span><span class="n">stageQ_challenges</span><span class="p">}</span>
+<a id="L-241" name="L-241" href="#L-241"></a>
+<a id="L-242" name="L-242" href="#L-242"></a>    <span class="n">committer</span><span class="o">.</span><span class="n">calculateQuotientPolynomial</span><span class="p">(</span>
+<a id="L-243" name="L-243" href="#L-243"></a>        <span class="n">trace</span><span class="p">,</span> <span class="n">aux_trace</span><span class="p">,</span> <span class="n">const_pols_extended</span><span class="p">,</span> <span class="n">all_challenges</span><span class="p">,</span> <span class="n">prover_helpers</span><span class="p">,</span> <span class="n">airgroup_values</span>
+<a id="L-244" name="L-244" href="#L-244"></a>    <span class="p">)</span>
+<a id="L-245" name="L-245" href="#L-245"></a>
+<a id="L-246" name="L-246" href="#L-246"></a>    <span class="c1"># &lt;doc-anchor id=&quot;quotient-commit&quot;&gt;</span>
+<a id="L-247" name="L-247" href="#L-247"></a>    <span class="n">stageQ_commitment</span> <span class="o">=</span> <span class="n">committer</span><span class="o">.</span><span class="n">commitStage</span><span class="p">(</span><span class="n">q_stage</span><span class="p">,</span> <span class="n">trace</span><span class="p">,</span> <span class="n">aux_trace</span><span class="p">)</span>
+<a id="L-248" name="L-248" href="#L-248"></a>    <span class="n">commitments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">stageQ_commitment</span><span class="p">))</span>
+<a id="L-249" name="L-249" href="#L-249"></a>    <span class="n">transcript</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">stageQ_commitment</span><span class="p">)</span>
+<a id="L-250" name="L-250" href="#L-250"></a>
+<a id="L-251" name="L-251" href="#L-251"></a>    <span class="c1"># === STAGE EVALS: Polynomial Evaluations ===</span>
+<a id="L-252" name="L-252" href="#L-252"></a>    <span class="c1"># Evaluate all polynomials at random challenge point xi and its shifted variants</span>
+<a id="L-253" name="L-253" href="#L-253"></a>
+<a id="L-254" name="L-254" href="#L-254"></a>    <span class="c1"># &lt;doc-anchor id=&quot;derive-eval-challenges&quot;&gt;</span>
+<a id="L-255" name="L-255" href="#L-255"></a>    <span class="n">xi</span><span class="p">:</span> <span class="n">FF3</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="L-256" name="L-256" href="#L-256"></a>    <span class="n">eval_stage</span> <span class="o">=</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">n_stages</span> <span class="o">+</span> <span class="mi">2</span>
+<a id="L-257" name="L-257" href="#L-257"></a>    <span class="n">eval_challenges</span> <span class="o">=</span> <span class="n">derive_challenges_for_stage</span><span class="p">(</span>
+<a id="L-258" name="L-258" href="#L-258"></a>        <span class="n">transcript</span><span class="p">,</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">challenges_map</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">eval_stage</span>
+<a id="L-259" name="L-259" href="#L-259"></a>    <span class="p">)</span>
+<a id="L-260" name="L-260" href="#L-260"></a>    <span class="n">all_challenges</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">eval_challenges</span><span class="p">)</span>
+<a id="L-261" name="L-261" href="#L-261"></a>    <span class="k">for</span> <span class="n">cm</span> <span class="ow">in</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">challenges_map</span><span class="p">:</span>
+<a id="L-262" name="L-262" href="#L-262"></a>        <span class="k">if</span> <span class="n">cm</span><span class="o">.</span><span class="n">stage</span> <span class="o">==</span> <span class="n">eval_stage</span> <span class="ow">and</span> <span class="n">cm</span><span class="o">.</span><span class="n">stage_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-263" name="L-263" href="#L-263"></a>            <span class="n">xi</span> <span class="o">=</span> <span class="n">eval_challenges</span><span class="p">[</span><span class="n">cm</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+<a id="L-264" name="L-264" href="#L-264"></a>            <span class="k">break</span>
+<a id="L-265" name="L-265" href="#L-265"></a>
+<a id="L-266" name="L-266" href="#L-266"></a>    <span class="n">xi_coeffs</span> <span class="o">=</span> <span class="n">ff3_coeffs</span><span class="p">(</span><span class="n">xi</span><span class="p">)</span>
+<a id="L-267" name="L-267" href="#L-267"></a>
+<a id="L-268" name="L-268" href="#L-268"></a>    <span class="n">evals</span> <span class="o">=</span> <span class="n">_compute_all_evals</span><span class="p">(</span>
+<a id="L-269" name="L-269" href="#L-269"></a>        <span class="n">stark_info</span><span class="p">,</span> <span class="n">committer</span><span class="p">,</span> <span class="n">trace</span><span class="p">,</span> <span class="n">aux_trace</span><span class="p">,</span> <span class="n">const_pols_extended</span><span class="p">,</span> <span class="n">xi_coeffs</span>
+<a id="L-270" name="L-270" href="#L-270"></a>    <span class="p">)</span>
+<a id="L-271" name="L-271" href="#L-271"></a>
+<a id="L-272" name="L-272" href="#L-272"></a>    <span class="c1"># hash_commits controls how evaluations enter the Fiat-Shamir transcript.</span>
+<a id="L-273" name="L-273" href="#L-273"></a>    <span class="c1"># False (default): absorb individual evaluation field elements directly.</span>
+<a id="L-274" name="L-274" href="#L-274"></a>    <span class="c1"># True: first compress all evaluations with a Poseidon2 linear hash (16-element</span>
+<a id="L-275" name="L-275" href="#L-275"></a>    <span class="c1">#   output), then absorb only the digest. This keeps transcript growth bounded</span>
+<a id="L-276" name="L-276" href="#L-276"></a>    <span class="c1">#   when there are many openings (large ev_map), at the cost of one extra hash.</span>
+<a id="L-277" name="L-277" href="#L-277"></a>    <span class="c1"># The setting is fixed per-AIR in stark_struct and must match between prover and verifier.</span>
+<a id="L-278" name="L-278" href="#L-278"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">hash_commits</span><span class="p">:</span>
+<a id="L-279" name="L-279" href="#L-279"></a>        <span class="n">transcript</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">evals</span><span class="p">)</span>
+<a id="L-280" name="L-280" href="#L-280"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="L-281" name="L-281" href="#L-281"></a>        <span class="n">evals_as_ints</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">evals</span><span class="p">]</span>
+<a id="L-282" name="L-282" href="#L-282"></a>        <span class="n">evals_hash</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">linear_hash</span><span class="p">(</span><span class="n">evals_as_ints</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">POSEIDON2_LINEAR_HASH_WIDTH</span><span class="p">))</span>
+<a id="L-283" name="L-283" href="#L-283"></a>        <span class="n">transcript</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">evals_hash</span><span class="p">)</span>
+<a id="L-284" name="L-284" href="#L-284"></a>
+<a id="L-285" name="L-285" href="#L-285"></a>    <span class="c1"># === STAGE FRI ===</span>
+<a id="L-286" name="L-286" href="#L-286"></a>    <span class="c1"># FRI proves low-degree of quotient polynomial via recursive folding</span>
+<a id="L-287" name="L-287" href="#L-287"></a>
+<a id="L-288" name="L-288" href="#L-288"></a>    <span class="n">fri_stage</span> <span class="o">=</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">n_stages</span> <span class="o">+</span> <span class="mi">3</span>
+<a id="L-289" name="L-289" href="#L-289"></a>    <span class="n">fri_challenges</span> <span class="o">=</span> <span class="n">derive_challenges_for_stage</span><span class="p">(</span>
+<a id="L-290" name="L-290" href="#L-290"></a>        <span class="n">transcript</span><span class="p">,</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">challenges_map</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">fri_stage</span>
+<a id="L-291" name="L-291" href="#L-291"></a>    <span class="p">)</span>
+<a id="L-292" name="L-292" href="#L-292"></a>    <span class="n">all_challenges</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">fri_challenges</span><span class="p">)</span>
+<a id="L-293" name="L-293" href="#L-293"></a>
+<a id="L-294" name="L-294" href="#L-294"></a>    <span class="n">vf1</span> <span class="o">=</span> <span class="n">all_challenges</span><span class="p">[</span><span class="s2">&quot;std_vf1&quot;</span><span class="p">]</span>
+<a id="L-295" name="L-295" href="#L-295"></a>    <span class="n">vf2</span> <span class="o">=</span> <span class="n">all_challenges</span><span class="p">[</span><span class="s2">&quot;std_vf2&quot;</span><span class="p">]</span>
+<a id="L-296" name="L-296" href="#L-296"></a>
+<a id="L-297" name="L-297" href="#L-297"></a>    <span class="n">committer</span><span class="o">.</span><span class="n">calculateFRIPolynomial</span><span class="p">(</span>
+<a id="L-298" name="L-298" href="#L-298"></a>        <span class="n">trace</span><span class="p">,</span> <span class="n">aux_trace</span><span class="p">,</span> <span class="n">const_pols_extended</span><span class="p">,</span> <span class="n">evals</span><span class="p">,</span> <span class="n">xi</span><span class="p">,</span> <span class="n">vf1</span><span class="p">,</span> <span class="n">vf2</span><span class="p">,</span> <span class="n">prover_helpers</span>
+<a id="L-299" name="L-299" href="#L-299"></a>    <span class="p">)</span>
+<a id="L-300" name="L-300" href="#L-300"></a>
+<a id="L-301" name="L-301" href="#L-301"></a>    <span class="n">fri_pol_offset</span> <span class="o">=</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">map_offsets</span><span class="p">[(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)]</span>
+<a id="L-302" name="L-302" href="#L-302"></a>    <span class="n">n_fri_elements</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">fri_fold_steps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">domain_bits</span>
+<a id="L-303" name="L-303" href="#L-303"></a>    <span class="n">fri_pol_size</span> <span class="o">=</span> <span class="n">n_fri_elements</span> <span class="o">*</span> <span class="n">FIELD_EXTENSION_DEGREE</span>
+<a id="L-304" name="L-304" href="#L-304"></a>    <span class="n">fri_pol_numpy</span> <span class="o">=</span> <span class="n">aux_trace</span><span class="p">[</span><span class="n">fri_pol_offset</span> <span class="p">:</span> <span class="n">fri_pol_offset</span> <span class="o">+</span> <span class="n">fri_pol_size</span><span class="p">]</span>
+<a id="L-305" name="L-305" href="#L-305"></a>    <span class="n">fri_pol</span> <span class="o">=</span> <span class="n">ff3_from_interleaved_numpy</span><span class="p">(</span><span class="n">fri_pol_numpy</span><span class="p">,</span> <span class="n">n_fri_elements</span><span class="p">)</span>
+<a id="L-306" name="L-306" href="#L-306"></a>
+<a id="L-307" name="L-307" href="#L-307"></a>    <span class="n">fri_config</span> <span class="o">=</span> <span class="n">FriPcsConfig</span><span class="p">(</span>
+<a id="L-308" name="L-308" href="#L-308"></a>        <span class="n">n_bits_ext</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">fri_fold_steps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">domain_bits</span><span class="p">,</span>
+<a id="L-309" name="L-309" href="#L-309"></a>        <span class="n">fri_round_log_sizes</span><span class="o">=</span><span class="p">[</span><span class="n">step</span><span class="o">.</span><span class="n">domain_bits</span> <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">fri_fold_steps</span><span class="p">],</span>
+<a id="L-310" name="L-310" href="#L-310"></a>        <span class="n">n_queries</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">n_queries</span><span class="p">,</span>
+<a id="L-311" name="L-311" href="#L-311"></a>        <span class="n">merkle_arity</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">merkle_tree_arity</span><span class="p">,</span>
+<a id="L-312" name="L-312" href="#L-312"></a>        <span class="n">pow_bits</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">pow_bits</span><span class="p">,</span>
+<a id="L-313" name="L-313" href="#L-313"></a>        <span class="n">last_level_verification</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">last_level_verification</span><span class="p">,</span>
+<a id="L-314" name="L-314" href="#L-314"></a>        <span class="n">hash_commits</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">hash_commits</span><span class="p">,</span>
+<a id="L-315" name="L-315" href="#L-315"></a>        <span class="n">transcript_arity</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">transcript_arity</span><span class="p">,</span>
+<a id="L-316" name="L-316" href="#L-316"></a>        <span class="n">merkle_tree_custom</span><span class="o">=</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">merkle_tree_custom</span><span class="p">,</span>
+<a id="L-317" name="L-317" href="#L-317"></a>    <span class="p">)</span>
+<a id="L-318" name="L-318" href="#L-318"></a>
+<a id="L-319" name="L-319" href="#L-319"></a>    <span class="n">fri_pcs</span> <span class="o">=</span> <span class="n">FriPcs</span><span class="p">(</span><span class="n">fri_config</span><span class="p">)</span>
+<a id="L-320" name="L-320" href="#L-320"></a>    <span class="n">fri_proof</span> <span class="o">=</span> <span class="n">fri_pcs</span><span class="o">.</span><span class="n">prove</span><span class="p">(</span><span class="n">fri_pol</span><span class="p">,</span> <span class="n">transcript</span><span class="p">)</span>
+<a id="L-321" name="L-321" href="#L-321"></a>
+<a id="L-322" name="L-322" href="#L-322"></a>    <span class="c1"># === STAGE QUERY PROOFS ===</span>
+<a id="L-323" name="L-323" href="#L-323"></a>    <span class="c1"># Collect Merkle authentication paths for all queried polynomial evaluations</span>
+<a id="L-324" name="L-324" href="#L-324"></a>
+<a id="L-325" name="L-325" href="#L-325"></a>    <span class="c1"># &lt;doc-anchor id=&quot;collect-query-proofs&quot;&gt;</span>
+<a id="L-326" name="L-326" href="#L-326"></a>    <span class="n">query_indices</span> <span class="o">=</span> <span class="n">fri_proof</span><span class="o">.</span><span class="n">query_indices</span>
+<a id="L-327" name="L-327" href="#L-327"></a>
+<a id="L-328" name="L-328" href="#L-328"></a>    <span class="n">const_query_proofs</span> <span class="o">=</span> <span class="n">_collect_const_query_proofs</span><span class="p">(</span><span class="n">committer</span><span class="p">,</span> <span class="n">query_indices</span><span class="p">)</span>
+<a id="L-329" name="L-329" href="#L-329"></a>    <span class="n">stage_query_proofs</span> <span class="o">=</span> <span class="n">_collect_stage_query_proofs</span><span class="p">(</span><span class="n">committer</span><span class="p">,</span> <span class="n">stark_info</span><span class="p">,</span> <span class="n">query_indices</span><span class="p">)</span>
+<a id="L-330" name="L-330" href="#L-330"></a>    <span class="n">last_level_nodes</span> <span class="o">=</span> <span class="n">_collect_last_level_nodes</span><span class="p">(</span><span class="n">committer</span><span class="p">,</span> <span class="n">stark_info</span><span class="p">,</span> <span class="n">fri_pcs</span><span class="p">)</span>
+<a id="L-331" name="L-331" href="#L-331"></a>
+<a id="L-332" name="L-332" href="#L-332"></a>    <span class="c1"># === ASSEMBLE PROOF ===</span>
+<a id="L-333" name="L-333" href="#L-333"></a>
+<a id="L-334" name="L-334" href="#L-334"></a>    <span class="k">return</span> <span class="p">{</span>
+<a id="L-335" name="L-335" href="#L-335"></a>        <span class="s2">&quot;evals&quot;</span><span class="p">:</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">evals</span><span class="p">],</span>
+<a id="L-336" name="L-336" href="#L-336"></a>        <span class="s2">&quot;airgroup_values&quot;</span><span class="p">:</span> <span class="n">airgroup_values</span><span class="p">,</span>
+<a id="L-337" name="L-337" href="#L-337"></a>        <span class="s2">&quot;air_values&quot;</span><span class="p">:</span> <span class="n">air_values</span><span class="p">,</span>
+<a id="L-338" name="L-338" href="#L-338"></a>        <span class="s2">&quot;nonce&quot;</span><span class="p">:</span> <span class="n">fri_proof</span><span class="o">.</span><span class="n">nonce</span><span class="p">,</span>
+<a id="L-339" name="L-339" href="#L-339"></a>        <span class="s2">&quot;fri_proof&quot;</span><span class="p">:</span> <span class="n">fri_proof</span><span class="p">,</span>
+<a id="L-340" name="L-340" href="#L-340"></a>        <span class="s2">&quot;roots&quot;</span><span class="p">:</span> <span class="n">commitments</span><span class="p">,</span>
+<a id="L-341" name="L-341" href="#L-341"></a>        <span class="s2">&quot;stage_query_proofs&quot;</span><span class="p">:</span> <span class="n">stage_query_proofs</span><span class="p">,</span>
+<a id="L-342" name="L-342" href="#L-342"></a>        <span class="s2">&quot;const_query_proofs&quot;</span><span class="p">:</span> <span class="n">const_query_proofs</span><span class="p">,</span>
+<a id="L-343" name="L-343" href="#L-343"></a>        <span class="s2">&quot;query_indices&quot;</span><span class="p">:</span> <span class="n">query_indices</span><span class="p">,</span>
+<a id="L-344" name="L-344" href="#L-344"></a>        <span class="s2">&quot;last_level_nodes&quot;</span><span class="p">:</span> <span class="n">last_level_nodes</span><span class="p">,</span>
+<a id="L-345" name="L-345" href="#L-345"></a>        <span class="c1"># Global challenge seed used to initialize the Fiat-Shamir transcript.</span>
+<a id="L-346" name="L-346" href="#L-346"></a>        <span class="c1"># Pass to stark_verify as global_challenge to reconstruct the transcript.</span>
+<a id="L-347" name="L-347" href="#L-347"></a>        <span class="s2">&quot;global_challenge&quot;</span><span class="p">:</span> <span class="n">transcript_seed</span><span class="p">,</span>
+<a id="L-348" name="L-348" href="#L-348"></a>    <span class="p">}</span>
+<a id="L-349" name="L-349" href="#L-349"></a>
+<a id="L-350" name="L-350" href="#L-350"></a>
+<a id="L-351" name="L-351" href="#L-351"></a><span class="c1"># --- Main Entry Point ---</span>
+<a id="L-352" name="L-352" href="#L-352"></a>
+<a id="L-353" name="L-353" href="#L-353"></a>
+<div class="viewcode-block" id="gen_proof">
+<a class="viewcode-back" href="../../api/protocol/prover/index.html#protocol.prover.gen_proof">[docs]</a>
+<a id="L-354" name="L-354" href="#L-354"></a><span class="k">def</span><span class="w"> </span><span class="nf">gen_proof</span><span class="p">(</span>
+<a id="L-355" name="L-355" href="#L-355"></a>    <span class="n">air_config</span><span class="p">:</span> <span class="n">AirConfig</span><span class="p">,</span>
+<a id="L-356" name="L-356" href="#L-356"></a>    <span class="n">trace</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-357" name="L-357" href="#L-357"></a>    <span class="n">const_pols</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-358" name="L-358" href="#L-358"></a>    <span class="n">const_pols_extended</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-359" name="L-359" href="#L-359"></a>    <span class="n">public_inputs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="L-360" name="L-360" href="#L-360"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<a id="L-361" name="L-361" href="#L-361"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate complete STARK proof via VADCOP protocol.</span>
+<a id="L-362" name="L-362" href="#L-362"></a>
+<a id="L-363" name="L-363" href="#L-363"></a><span class="sd">    Commits stage-1 witness, derives global challenge via lattice expansion,</span>
+<a id="L-364" name="L-364" href="#L-364"></a><span class="sd">    then runs stages 2 through FRI to produce the full proof.</span>
+<a id="L-365" name="L-365" href="#L-365"></a>
+<a id="L-366" name="L-366" href="#L-366"></a><span class="sd">    Args:</span>
+<a id="L-367" name="L-367" href="#L-367"></a><span class="sd">        air_config: AIR configuration with stark_info and global_info</span>
+<a id="L-368" name="L-368" href="#L-368"></a><span class="sd">        trace: Stage 1 witness trace buffer (N * cm1_cols)</span>
+<a id="L-369" name="L-369" href="#L-369"></a><span class="sd">        const_pols: Constant polynomials on base domain</span>
+<a id="L-370" name="L-370" href="#L-370"></a><span class="sd">        const_pols_extended: Constant polynomials on extended domain</span>
+<a id="L-371" name="L-371" href="#L-371"></a><span class="sd">        public_inputs: Public inputs array (optional)</span>
+<a id="L-372" name="L-372" href="#L-372"></a>
+<a id="L-373" name="L-373" href="#L-373"></a><span class="sd">    Returns:</span>
+<a id="L-374" name="L-374" href="#L-374"></a><span class="sd">        Dictionary containing serialized proof, including global_challenge.</span>
+<a id="L-375" name="L-375" href="#L-375"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-376" name="L-376" href="#L-376"></a>    <span class="c1"># _commit_stage1 returns five objects:</span>
+<a id="L-377" name="L-377" href="#L-377"></a>    <span class="c1">#   verkey:      Merkle root of the constant polynomial tree (4 ints).</span>
+<a id="L-378" name="L-378" href="#L-378"></a>    <span class="c1">#                Passed to derive_global_challenge to bind the AIR&#39;s constants.</span>
+<a id="L-379" name="L-379" href="#L-379"></a>    <span class="c1">#   root1:       Merkle root of the stage-1 witness commitment (4 ints).</span>
+<a id="L-380" name="L-380" href="#L-380"></a>    <span class="c1">#                Passed to derive_global_challenge to bind the stage-1 trace.</span>
+<a id="L-381" name="L-381" href="#L-381"></a>    <span class="c1">#   aux_trace:   Zeroed flat buffer for stage 2+ polynomial data (see _commit_stage1).</span>
+<a id="L-382" name="L-382" href="#L-382"></a>    <span class="c1">#   commitments: Mutable list starting as [root1]. Stages 2 and Q append their roots</span>
+<a id="L-383" name="L-383" href="#L-383"></a>    <span class="c1">#                here; the final list becomes proof[&quot;roots&quot;] read by the verifier.</span>
+<a id="L-384" name="L-384" href="#L-384"></a>    <span class="c1">#   committer:   Stateful PolynomialCommitter that already holds the const_tree and</span>
+<a id="L-385" name="L-385" href="#L-385"></a>    <span class="c1">#                stage_trees[1]; needed to commit stages 2 and Q, evaluate polys, etc.</span>
+<a id="L-386" name="L-386" href="#L-386"></a>    <span class="c1"># root1 and commitments[0] are the same value — root1 is kept separately because</span>
+<a id="L-387" name="L-387" href="#L-387"></a>    <span class="c1"># derive_global_challenge needs it as a standalone argument, while commitments grows.</span>
+<a id="L-388" name="L-388" href="#L-388"></a>    <span class="n">verkey</span><span class="p">,</span> <span class="n">root1</span><span class="p">,</span> <span class="n">aux_trace</span><span class="p">,</span> <span class="n">commitments</span><span class="p">,</span> <span class="n">committer</span> <span class="o">=</span> <span class="n">_commit_stage1</span><span class="p">(</span>
+<a id="L-389" name="L-389" href="#L-389"></a>        <span class="n">air_config</span><span class="p">,</span> <span class="n">trace</span><span class="p">,</span> <span class="n">const_pols_extended</span>
+<a id="L-390" name="L-390" href="#L-390"></a>    <span class="p">)</span>
+<a id="L-391" name="L-391" href="#L-391"></a>
+<a id="L-392" name="L-392" href="#L-392"></a>    <span class="c1"># Derive global challenge via lattice expansion (VADCOP protocol).</span>
+<a id="L-393" name="L-393" href="#L-393"></a>    <span class="c1"># Binds all per-AIR stage-1 contributions to a shared global challenge.</span>
+<a id="L-394" name="L-394" href="#L-394"></a>    <span class="n">lattice_size</span> <span class="o">=</span> <span class="n">DEFAULT_LATTICE_SIZE</span>
+<a id="L-395" name="L-395" href="#L-395"></a>    <span class="k">if</span> <span class="n">air_config</span><span class="o">.</span><span class="n">global_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-396" name="L-396" href="#L-396"></a>        <span class="n">lattice_size</span> <span class="o">=</span> <span class="n">air_config</span><span class="o">.</span><span class="n">global_info</span><span class="o">.</span><span class="n">lattice_size</span>
+<a id="L-397" name="L-397" href="#L-397"></a>    <span class="c1"># air_values: per-AIR instance values — a buffer used by complex AIRs to pass</span>
+<a id="L-398" name="L-398" href="#L-398"></a>    <span class="c1"># accumulator state between stages (e.g., bus totals in a VADCOP proof). For all</span>
+<a id="L-399" name="L-399" href="#L-399"></a>    <span class="c1"># currently-supported AIRs, this buffer remains all zeros.</span>
+<a id="L-400" name="L-400" href="#L-400"></a>    <span class="n">air_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">air_config</span><span class="o">.</span><span class="n">stark_info</span><span class="o">.</span><span class="n">air_values_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+<a id="L-401" name="L-401" href="#L-401"></a>    <span class="c1"># air_values_stage1: the subset of air_values written during stage 1. These enter</span>
+<a id="L-402" name="L-402" href="#L-402"></a>    <span class="c1"># the global challenge hash so verifiers can check cross-AIR state. Returns [] for</span>
+<a id="L-403" name="L-403" href="#L-403"></a>    <span class="c1"># all currently-supported AIRs.</span>
+<a id="L-404" name="L-404" href="#L-404"></a>    <span class="n">air_values_stage1</span> <span class="o">=</span> <span class="n">_get_air_values_stage1</span><span class="p">(</span><span class="n">air_config</span><span class="p">,</span> <span class="n">air_values</span><span class="p">)</span>
+<a id="L-405" name="L-405" href="#L-405"></a>    <span class="c1"># proof_values_stage1: cross-AIR boundary values (e.g., bus message totals) at stage 1.</span>
+<a id="L-406" name="L-406" href="#L-406"></a>    <span class="c1"># These also enter the global challenge hash. Returns [] for all currently-supported AIRs.</span>
+<a id="L-407" name="L-407" href="#L-407"></a>    <span class="n">proof_values_stage1</span> <span class="o">=</span> <span class="n">_get_proof_values_stage1</span><span class="p">(</span><span class="n">air_config</span><span class="p">)</span>
+<a id="L-408" name="L-408" href="#L-408"></a>    <span class="n">computed_challenge</span> <span class="o">=</span> <span class="n">derive_global_challenge</span><span class="p">(</span>
+<a id="L-409" name="L-409" href="#L-409"></a>        <span class="n">stark_info</span><span class="o">=</span><span class="n">air_config</span><span class="o">.</span><span class="n">stark_info</span><span class="p">,</span>
+<a id="L-410" name="L-410" href="#L-410"></a>        <span class="n">publics</span><span class="o">=</span><span class="n">public_inputs</span><span class="p">,</span>
+<a id="L-411" name="L-411" href="#L-411"></a>        <span class="n">root1</span><span class="o">=</span><span class="n">root1</span><span class="p">,</span>
+<a id="L-412" name="L-412" href="#L-412"></a>        <span class="n">verkey</span><span class="o">=</span><span class="n">verkey</span><span class="p">,</span>
+<a id="L-413" name="L-413" href="#L-413"></a>        <span class="n">air_values</span><span class="o">=</span><span class="n">air_values_stage1</span><span class="p">,</span>
+<a id="L-414" name="L-414" href="#L-414"></a>        <span class="n">proof_values_stage1</span><span class="o">=</span><span class="n">proof_values_stage1</span><span class="p">,</span>
+<a id="L-415" name="L-415" href="#L-415"></a>        <span class="n">lattice_size</span><span class="o">=</span><span class="n">lattice_size</span><span class="p">,</span>
+<a id="L-416" name="L-416" href="#L-416"></a>    <span class="p">)</span>
+<a id="L-417" name="L-417" href="#L-417"></a>    <span class="n">transcript_seed</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">computed_challenge</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span>
+<a id="L-418" name="L-418" href="#L-418"></a>
+<a id="L-419" name="L-419" href="#L-419"></a>    <span class="k">return</span> <span class="n">_gen_proof_stage2_plus</span><span class="p">(</span>
+<a id="L-420" name="L-420" href="#L-420"></a>        <span class="n">air_config</span><span class="p">,</span>
+<a id="L-421" name="L-421" href="#L-421"></a>        <span class="n">trace</span><span class="p">,</span>
+<a id="L-422" name="L-422" href="#L-422"></a>        <span class="n">const_pols</span><span class="p">,</span>
+<a id="L-423" name="L-423" href="#L-423"></a>        <span class="n">const_pols_extended</span><span class="p">,</span>
+<a id="L-424" name="L-424" href="#L-424"></a>        <span class="n">aux_trace</span><span class="p">,</span>
+<a id="L-425" name="L-425" href="#L-425"></a>        <span class="n">commitments</span><span class="p">,</span>
+<a id="L-426" name="L-426" href="#L-426"></a>        <span class="n">transcript_seed</span><span class="p">,</span>
+<a id="L-427" name="L-427" href="#L-427"></a>        <span class="n">committer</span><span class="p">,</span>
+<a id="L-428" name="L-428" href="#L-428"></a>        <span class="n">air_values</span><span class="p">,</span>
+<a id="L-429" name="L-429" href="#L-429"></a>    <span class="p">)</span></div>
+
+<a id="L-430" name="L-430" href="#L-430"></a>
+<a id="L-431" name="L-431" href="#L-431"></a>
+<a id="L-432" name="L-432" href="#L-432"></a><span class="c1"># --- Polynomial Evaluations ---</span>
+<a id="L-433" name="L-433" href="#L-433"></a>
+<a id="L-434" name="L-434" href="#L-434"></a>
+<a id="L-435" name="L-435" href="#L-435"></a><span class="k">def</span><span class="w"> </span><span class="nf">_compute_all_evals</span><span class="p">(</span>
+<a id="L-436" name="L-436" href="#L-436"></a>    <span class="n">stark_info</span><span class="p">:</span> <span class="n">StarkInfo</span><span class="p">,</span>
+<a id="L-437" name="L-437" href="#L-437"></a>    <span class="n">committer</span><span class="p">:</span> <span class="n">PolynomialCommitter</span><span class="p">,</span>
+<a id="L-438" name="L-438" href="#L-438"></a>    <span class="n">trace</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-439" name="L-439" href="#L-439"></a>    <span class="n">aux_trace</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-440" name="L-440" href="#L-440"></a>    <span class="n">const_pols_extended</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-441" name="L-441" href="#L-441"></a>    <span class="n">xi</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<a id="L-442" name="L-442" href="#L-442"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="L-443" name="L-443" href="#L-443"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute polynomial evaluations at all opening points in batches of 4.</span>
+<a id="L-444" name="L-444" href="#L-444"></a>
+<a id="L-445" name="L-445" href="#L-445"></a><span class="sd">    For each EvMap entry, evaluates the specified polynomial at xi^row_offset.</span>
+<a id="L-446" name="L-446" href="#L-446"></a><span class="sd">    Opening points are processed in batches for efficiency - Lagrange basis</span>
+<a id="L-447" name="L-447" href="#L-447"></a><span class="sd">    evaluations (expensive) are computed once per batch and reused.</span>
+<a id="L-448" name="L-448" href="#L-448"></a>
+<a id="L-449" name="L-449" href="#L-449"></a><span class="sd">    Args:</span>
+<a id="L-450" name="L-450" href="#L-450"></a><span class="sd">        stark_info: AIR specification with opening points and ev_map configuration</span>
+<a id="L-451" name="L-451" href="#L-451"></a><span class="sd">        committer: Stage orchestrator with NTT-based evaluation methods</span>
+<a id="L-452" name="L-452" href="#L-452"></a><span class="sd">        trace: Stage 1 trace buffer (committed polynomials on base domain)</span>
+<a id="L-453" name="L-453" href="#L-453"></a><span class="sd">        aux_trace: Auxiliary trace buffer (stages 2+, quotient on extended domain)</span>
+<a id="L-454" name="L-454" href="#L-454"></a><span class="sd">        const_pols_extended: Constant polynomials on extended domain</span>
+<a id="L-455" name="L-455" href="#L-455"></a><span class="sd">        xi: FRI challenge point (extension field element as 3 ints)</span>
+<a id="L-456" name="L-456" href="#L-456"></a>
+<a id="L-457" name="L-457" href="#L-457"></a><span class="sd">    Returns:</span>
+<a id="L-458" name="L-458" href="#L-458"></a><span class="sd">        evals: Polynomial evaluations at opening points (n_evals * 3 field elements, interleaved)</span>
+<a id="L-459" name="L-459" href="#L-459"></a><span class="sd">            Each evaluation is an FF3 element corresponding to an EvMap entry</span>
+<a id="L-460" name="L-460" href="#L-460"></a>
+<a id="L-461" name="L-461" href="#L-461"></a><span class="sd">    Notes:</span>
+<a id="L-462" name="L-462" href="#L-462"></a><span class="sd">        Batch size of 4 matches C++ implementation for consistency.</span>
+<a id="L-463" name="L-463" href="#L-463"></a><span class="sd">        Each batch shares Lagrange evaluations L_j(xi^offset) to reduce computation.</span>
+<a id="L-464" name="L-464" href="#L-464"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-465" name="L-465" href="#L-465"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">primitives.field</span><span class="w"> </span><span class="kn">import</span> <span class="n">FIELD_EXTENSION_DEGREE</span>
+<a id="L-466" name="L-466" href="#L-466"></a>
+<a id="L-467" name="L-467" href="#L-467"></a>    <span class="c1"># Allocate evaluations buffer</span>
+<a id="L-468" name="L-468" href="#L-468"></a>    <span class="c1"># stark_info.ev_map: List[EvMap] defining which polynomials to evaluate and at what offsets</span>
+<a id="L-469" name="L-469" href="#L-469"></a>    <span class="n">n_evals</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">stark_info</span><span class="o">.</span><span class="n">ev_map</span><span class="p">)</span>
+<a id="L-470" name="L-470" href="#L-470"></a>    <span class="n">evals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_evals</span> <span class="o">*</span> <span class="n">FIELD_EXTENSION_DEGREE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+<a id="L-471" name="L-471" href="#L-471"></a>
+<a id="L-472" name="L-472" href="#L-472"></a>    <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4</span>
+<a id="L-473" name="L-473" href="#L-473"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">stark_info</span><span class="o">.</span><span class="n">opening_points</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">):</span>
+<a id="L-474" name="L-474" href="#L-474"></a>        <span class="n">batch</span> <span class="o">=</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">opening_points</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
+<a id="L-475" name="L-475" href="#L-475"></a>        <span class="c1"># Compute Lagrange basis evaluations L_j(xi^offset) for this batch of offsets</span>
+<a id="L-476" name="L-476" href="#L-476"></a>        <span class="c1"># These are shared across all polynomials evaluated at the same offset</span>
+<a id="L-477" name="L-477" href="#L-477"></a>        <span class="n">lagrange_evaluations</span> <span class="o">=</span> <span class="n">committer</span><span class="o">.</span><span class="n">computeLEv</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+<a id="L-478" name="L-478" href="#L-478"></a>        <span class="c1"># Evaluate all polynomials in ev_map that use offsets in this batch</span>
+<a id="L-479" name="L-479" href="#L-479"></a>        <span class="c1"># Results written directly into evals array at appropriate indices</span>
+<a id="L-480" name="L-480" href="#L-480"></a>        <span class="n">committer</span><span class="o">.</span><span class="n">computeEvals</span><span class="p">(</span>
+<a id="L-481" name="L-481" href="#L-481"></a>            <span class="n">trace</span><span class="p">,</span> <span class="n">aux_trace</span><span class="p">,</span> <span class="n">const_pols_extended</span><span class="p">,</span> <span class="n">evals</span><span class="p">,</span> <span class="n">lagrange_evaluations</span><span class="p">,</span> <span class="n">batch</span>
+<a id="L-482" name="L-482" href="#L-482"></a>        <span class="p">)</span>
+<a id="L-483" name="L-483" href="#L-483"></a>
+<a id="L-484" name="L-484" href="#L-484"></a>    <span class="k">return</span> <span class="n">evals</span>
+<a id="L-485" name="L-485" href="#L-485"></a>
+<a id="L-486" name="L-486" href="#L-486"></a>
+<a id="L-487" name="L-487" href="#L-487"></a><span class="c1"># --- Query Proof Collection ---</span>
+<a id="L-488" name="L-488" href="#L-488"></a>
+<a id="L-489" name="L-489" href="#L-489"></a>
+<a id="L-490" name="L-490" href="#L-490"></a><span class="k">def</span><span class="w"> </span><span class="nf">_collect_const_query_proofs</span><span class="p">(</span>
+<a id="L-491" name="L-491" href="#L-491"></a>    <span class="n">committer</span><span class="p">:</span> <span class="n">PolynomialCommitter</span><span class="p">,</span> <span class="n">query_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+<a id="L-492" name="L-492" href="#L-492"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">QueryProof</span><span class="p">]:</span>
+<a id="L-493" name="L-493" href="#L-493"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Collect Merkle query proofs for constant polynomials.</span>
+<a id="L-494" name="L-494" href="#L-494"></a>
+<a id="L-495" name="L-495" href="#L-495"></a><span class="sd">    Args:</span>
+<a id="L-496" name="L-496" href="#L-496"></a><span class="sd">        committer: Stage orchestrator with const_tree (if AIR has constants)</span>
+<a id="L-497" name="L-497" href="#L-497"></a><span class="sd">        query_indices: FRI-selected random indices to prove</span>
+<a id="L-498" name="L-498" href="#L-498"></a>
+<a id="L-499" name="L-499" href="#L-499"></a><span class="sd">    Returns:</span>
+<a id="L-500" name="L-500" href="#L-500"></a><span class="sd">        List of QueryProof objects (one per query index), empty if no constants.</span>
+<a id="L-501" name="L-501" href="#L-501"></a><span class="sd">        Each QueryProof contains: evaluation values and Merkle authentication path.</span>
+<a id="L-502" name="L-502" href="#L-502"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-503" name="L-503" href="#L-503"></a>    <span class="k">if</span> <span class="n">committer</span><span class="o">.</span><span class="n">const_tree</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-504" name="L-504" href="#L-504"></a>        <span class="k">return</span> <span class="p">[]</span>
+<a id="L-505" name="L-505" href="#L-505"></a>    <span class="k">return</span> <span class="p">[</span><span class="n">committer</span><span class="o">.</span><span class="n">get_const_query_proof</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">elem_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">query_indices</span><span class="p">]</span>
+<a id="L-506" name="L-506" href="#L-506"></a>
+<a id="L-507" name="L-507" href="#L-507"></a>
+<a id="L-508" name="L-508" href="#L-508"></a><span class="k">def</span><span class="w"> </span><span class="nf">_collect_stage_query_proofs</span><span class="p">(</span>
+<a id="L-509" name="L-509" href="#L-509"></a>    <span class="n">committer</span><span class="p">:</span> <span class="n">PolynomialCommitter</span><span class="p">,</span> <span class="n">stark_info</span><span class="p">:</span> <span class="n">StarkInfo</span><span class="p">,</span> <span class="n">query_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+<a id="L-510" name="L-510" href="#L-510"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">StageNum</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">QueryProof</span><span class="p">]]:</span>
+<a id="L-511" name="L-511" href="#L-511"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Collect Merkle query proofs for all polynomial commitment stages.</span>
+<a id="L-512" name="L-512" href="#L-512"></a>
+<a id="L-513" name="L-513" href="#L-513"></a><span class="sd">    Args:</span>
+<a id="L-514" name="L-514" href="#L-514"></a><span class="sd">        committer: Stage orchestrator with stage_trees dict</span>
+<a id="L-515" name="L-515" href="#L-515"></a><span class="sd">        stark_info: AIR specification (n_stages determines which stages exist)</span>
+<a id="L-516" name="L-516" href="#L-516"></a><span class="sd">        query_indices: FRI-selected random indices to prove</span>
+<a id="L-517" name="L-517" href="#L-517"></a>
+<a id="L-518" name="L-518" href="#L-518"></a><span class="sd">    Returns:</span>
+<a id="L-519" name="L-519" href="#L-519"></a><span class="sd">        Dict mapping stage number -&gt; list of QueryProof objects.</span>
+<a id="L-520" name="L-520" href="#L-520"></a><span class="sd">        Stages: 1 (witness), 2 (intermediate), Q (quotient) = n_stages + 1.</span>
+<a id="L-521" name="L-521" href="#L-521"></a><span class="sd">        Each QueryProof contains: polynomial evaluations and Merkle authentication path.</span>
+<a id="L-522" name="L-522" href="#L-522"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-523" name="L-523" href="#L-523"></a>    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">StageNum</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">QueryProof</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="L-524" name="L-524" href="#L-524"></a>    <span class="k">for</span> <span class="n">stage</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">n_stages</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+<a id="L-525" name="L-525" href="#L-525"></a>        <span class="k">if</span> <span class="n">stage</span> <span class="ow">in</span> <span class="n">committer</span><span class="o">.</span><span class="n">stage_trees</span><span class="p">:</span>
+<a id="L-526" name="L-526" href="#L-526"></a>            <span class="n">tree</span> <span class="o">=</span> <span class="n">committer</span><span class="o">.</span><span class="n">stage_trees</span><span class="p">[</span><span class="n">stage</span><span class="p">]</span>
+<a id="L-527" name="L-527" href="#L-527"></a>            <span class="n">result</span><span class="p">[</span><span class="n">stage</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tree</span><span class="o">.</span><span class="n">get_query_proof</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">elem_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">query_indices</span><span class="p">]</span>
+<a id="L-528" name="L-528" href="#L-528"></a>    <span class="k">return</span> <span class="n">result</span>
+<a id="L-529" name="L-529" href="#L-529"></a>
+<a id="L-530" name="L-530" href="#L-530"></a>
+<a id="L-531" name="L-531" href="#L-531"></a><span class="k">def</span><span class="w"> </span><span class="nf">_collect_last_level_nodes</span><span class="p">(</span>
+<a id="L-532" name="L-532" href="#L-532"></a>    <span class="n">committer</span><span class="p">:</span> <span class="n">PolynomialCommitter</span><span class="p">,</span> <span class="n">stark_info</span><span class="p">:</span> <span class="n">StarkInfo</span><span class="p">,</span> <span class="n">fri_pcs</span><span class="p">:</span> <span class="n">FriPcs</span>
+<a id="L-533" name="L-533" href="#L-533"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+<a id="L-534" name="L-534" href="#L-534"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Collect last-level Merkle nodes for all trees if verification is enabled.</span>
+<a id="L-535" name="L-535" href="#L-535"></a>
+<a id="L-536" name="L-536" href="#L-536"></a><span class="sd">    When last_level_verification &gt; 0, this optimization sends the bottom k levels</span>
+<a id="L-537" name="L-537" href="#L-537"></a><span class="sd">    of each Merkle tree instead of individual authentication paths, reducing proof size.</span>
+<a id="L-538" name="L-538" href="#L-538"></a>
+<a id="L-539" name="L-539" href="#L-539"></a><span class="sd">    Args:</span>
+<a id="L-540" name="L-540" href="#L-540"></a><span class="sd">        committer: Stage orchestrator with const_tree and stage_trees</span>
+<a id="L-541" name="L-541" href="#L-541"></a><span class="sd">        stark_info: AIR specification with last_level_verification setting</span>
+<a id="L-542" name="L-542" href="#L-542"></a><span class="sd">        fri_pcs: FRI protocol instance with fri_trees from recursive folding</span>
+<a id="L-543" name="L-543" href="#L-543"></a>
+<a id="L-544" name="L-544" href="#L-544"></a><span class="sd">    Returns:</span>
+<a id="L-545" name="L-545" href="#L-545"></a><span class="sd">        Dict mapping tree name -&gt; list of hash values for bottom k levels.</span>
+<a id="L-546" name="L-546" href="#L-546"></a><span class="sd">        Tree names: &#39;const&#39;, &#39;cm1&#39;, &#39;cm2&#39;, &#39;cmQ&#39;, &#39;fri0&#39;, &#39;fri1&#39;, ...</span>
+<a id="L-547" name="L-547" href="#L-547"></a><span class="sd">        Empty dict if last_level_verification == 0.</span>
+<a id="L-548" name="L-548" href="#L-548"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-549" name="L-549" href="#L-549"></a>    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="L-550" name="L-550" href="#L-550"></a>
+<a id="L-551" name="L-551" href="#L-551"></a>    <span class="c1"># Collect constant polynomial tree nodes</span>
+<a id="L-552" name="L-552" href="#L-552"></a>    <span class="k">if</span> <span class="n">committer</span><span class="o">.</span><span class="n">const_tree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-553" name="L-553" href="#L-553"></a>        <span class="n">nodes</span> <span class="o">=</span> <span class="n">committer</span><span class="o">.</span><span class="n">const_tree</span><span class="o">.</span><span class="n">get_last_level_nodes</span><span class="p">()</span>
+<a id="L-554" name="L-554" href="#L-554"></a>        <span class="k">if</span> <span class="n">nodes</span><span class="p">:</span>
+<a id="L-555" name="L-555" href="#L-555"></a>            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;const&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span>
+<a id="L-556" name="L-556" href="#L-556"></a>
+<a id="L-557" name="L-557" href="#L-557"></a>    <span class="c1"># Collect stage commitment tree nodes (stages 1, 2, Q)</span>
+<a id="L-558" name="L-558" href="#L-558"></a>    <span class="k">for</span> <span class="n">stage</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">stark_info</span><span class="o">.</span><span class="n">n_stages</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+<a id="L-559" name="L-559" href="#L-559"></a>        <span class="k">if</span> <span class="n">stage</span> <span class="ow">in</span> <span class="n">committer</span><span class="o">.</span><span class="n">stage_trees</span><span class="p">:</span>
+<a id="L-560" name="L-560" href="#L-560"></a>            <span class="n">nodes</span> <span class="o">=</span> <span class="n">committer</span><span class="o">.</span><span class="n">stage_trees</span><span class="p">[</span><span class="n">stage</span><span class="p">]</span><span class="o">.</span><span class="n">get_last_level_nodes</span><span class="p">()</span>
+<a id="L-561" name="L-561" href="#L-561"></a>            <span class="k">if</span> <span class="n">nodes</span><span class="p">:</span>
+<a id="L-562" name="L-562" href="#L-562"></a>                <span class="n">result</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;cm</span><span class="si">{</span><span class="n">stage</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span>
+<a id="L-563" name="L-563" href="#L-563"></a>
+<a id="L-564" name="L-564" href="#L-564"></a>    <span class="c1"># Collect FRI folding round tree nodes (all rounds except final)</span>
+<a id="L-565" name="L-565" href="#L-565"></a>    <span class="k">for</span> <span class="n">step_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">stark_info</span><span class="o">.</span><span class="n">stark_struct</span><span class="o">.</span><span class="n">fri_fold_steps</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+<a id="L-566" name="L-566" href="#L-566"></a>        <span class="k">if</span> <span class="n">step_idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">fri_pcs</span><span class="o">.</span><span class="n">fri_trees</span><span class="p">):</span>
+<a id="L-567" name="L-567" href="#L-567"></a>            <span class="n">nodes</span> <span class="o">=</span> <span class="n">fri_pcs</span><span class="o">.</span><span class="n">fri_trees</span><span class="p">[</span><span class="n">step_idx</span><span class="p">]</span><span class="o">.</span><span class="n">get_last_level_nodes</span><span class="p">()</span>
+<a id="L-568" name="L-568" href="#L-568"></a>            <span class="k">if</span> <span class="n">nodes</span><span class="p">:</span>
+<a id="L-569" name="L-569" href="#L-569"></a>                <span class="n">result</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;fri</span><span class="si">{</span><span class="n">step_idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span>
+<a id="L-570" name="L-570" href="#L-570"></a>
+<a id="L-571" name="L-571" href="#L-571"></a>    <span class="k">return</span> <span class="n">result</span>
+</pre></div>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

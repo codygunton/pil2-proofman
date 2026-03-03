@@ -1,0 +1,928 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>witness.base &#8212; ZisK Prover Spec</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=eabb6712" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/witness/base';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">ZisK Prover Spec</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-stark/index.html">STARK Protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/notation.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/building-blocks.html">Building Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/commitment-phase.html">STARK Protocol: Commitment Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/query-phase.html">STARK Protocol: Query Phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/challenge-binding.html">Multi-AIR Challenge Binding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/appendix-constraints.html">Constraint Polynomial Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/appendix-batching.html">FRI Polynomial Batching Formula</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/full-protocol.html">The Full Protocol, Rolled Out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-stark/glossary.html">Glossary of Notation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-machine/index.html">ZisK Machine</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/architecture.html">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/buses.html">Bus Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/cpu-main.html">CPU: Main AIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/memory.html">Memory Subsystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/coprocessors.html">Computation Coprocessors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/precompiles.html">Precompiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-machine/global-constraints.html">Lookup Tables</a></li>
+
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../part-recursion/index.html">Recursion Pipeline</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/pipeline.html">Pipeline Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/basic-stage.html">Basic STARK Proof (Stage 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/compressor.html">Compressor (Stage 2, Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/recursive1.html">Recursive1: Per-AIR Normalization (Stage 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/recursive2.html">Recursive2: Tree Aggregation (Stage 4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/vadcop-final.html">VadcopFinal (Stage 5)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../part-recursion/distributed.html">Distributed Proving</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/index.html">executable-spec/</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/constraints/index.html">constraints</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/base/index.html">constraints.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/bytecode_adapter/index.html">constraints.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/lookup2_12/index.html">constraints.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/permutation1_6/index.html">constraints.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/constraints/simple_left/index.html">constraints.simple_left</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/primitives/index.html">primitives</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/batch_inverse/index.html">primitives.batch_inverse</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/primitives/expression_bytecode/index.html">primitives.expression_bytecode</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/expression_evaluator/index.html">primitives.expression_bytecode.expression_evaluator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/expressions_bin/index.html">primitives.expression_bytecode.expressions_bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/primitives/expression_bytecode/witness_generation/index.html">primitives.expression_bytecode.witness_generation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/field/index.html">primitives.field</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/goldilocks_jit/index.html">primitives.goldilocks_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_prover/index.html">primitives.merkle_prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_tree/index.html">primitives.merkle_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/merkle_verifier/index.html">primitives.merkle_verifier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/ntt/index.html">primitives.ntt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/pol_map/index.html">primitives.pol_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/polynomial/index.html">primitives.polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/primitives/transcript/index.html">primitives.transcript</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/protocol/index.html">protocol</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/air_config/index.html">protocol.air_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/data/index.html">protocol.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/fri/index.html">protocol.fri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/fri_polynomial/index.html">protocol.fri_polynomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/global_info/index.html">protocol.global_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/pcs/index.html">protocol.pcs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/proof/index.html">protocol.proof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/prover/index.html">protocol.prover</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/simple_pilout/index.html">protocol.simple_pilout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/stages/index.html">protocol.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/stark_info/index.html">protocol.stark_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/protocol/verifier/index.html">protocol.verifier</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/witness/index.html">witness</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/base/index.html">witness.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/bytecode_adapter/index.html">witness.bytecode_adapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/lookup2_12/index.html">witness.lookup2_12</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/permutation1_6/index.html">witness.permutation1_6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/simple_left/index.html">witness.simple_left</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/simple_right/index.html">witness.simple_right</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/specified_ranges/index.html">witness.specified_ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/u16_air/index.html">witness.u16_air</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/witness/u8_air/index.html">witness.u8_air</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="../../_static/zisk-prover-spec.pdf" target="_blank"
+   class="btn btn-sm btn-download-pdf-button"
+   title="Download PDF"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+
+</a>
+
+
+
+<a href="https://github.com/codygunton/pil2-proofman/tree/executable-specs" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for witness.base</h1><div class="highlight"><pre>
+<span></span><a id="L-1" name="L-1" href="#L-1"></a><span class="sd">&quot;&quot;&quot;Base class for witness generation.&quot;&quot;&quot;</span>
+<a id="L-2" name="L-2" href="#L-2"></a>
+<a id="L-3" name="L-3" href="#L-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<a id="L-4" name="L-4" href="#L-4"></a>
+<a id="L-5" name="L-5" href="#L-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">constraints.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstraintContext</span>
+<a id="L-6" name="L-6" href="#L-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">primitives.field</span><span class="w"> </span><span class="kn">import</span> <span class="n">FF3Poly</span>
+<a id="L-7" name="L-7" href="#L-7"></a>
+<a id="L-8" name="L-8" href="#L-8"></a>
+<div class="viewcode-block" id="WitnessModule">
+<a class="viewcode-back" href="../../api/witness/base/index.html#witness.base.WitnessModule">[docs]</a>
+<a id="L-9" name="L-9" href="#L-9"></a><span class="k">class</span><span class="w"> </span><span class="nc">WitnessModule</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<a id="L-10" name="L-10" href="#L-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-AIR witness generation. Used by prover only.</span>
+<a id="L-11" name="L-11" href="#L-11"></a>
+<a id="L-12" name="L-12" href="#L-12"></a><span class="sd">    Each AIR (Algebraic Intermediate Representation) may have its own witness</span>
+<a id="L-13" name="L-13" href="#L-13"></a><span class="sd">    module that computes intermediate polynomials and grand sums needed for</span>
+<a id="L-14" name="L-14" href="#L-14"></a><span class="sd">    lookups and permutations. Unlike ConstraintModule, this is only used by</span>
+<a id="L-15" name="L-15" href="#L-15"></a><span class="sd">    the prover - the verifier checks constraints but doesn&#39;t generate witnesses.</span>
+<a id="L-16" name="L-16" href="#L-16"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-17" name="L-17" href="#L-17"></a>
+<a id="L-18" name="L-18" href="#L-18"></a>    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="WitnessModule.compute_intermediates">
+<a class="viewcode-back" href="../../api/witness/base/index.html#witness.base.WitnessModule.compute_intermediates">[docs]</a>
+<a id="L-19" name="L-19" href="#L-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute_intermediates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">ConstraintContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">FF3Poly</span><span class="p">]]:</span>
+<a id="L-20" name="L-20" href="#L-20"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute im_cluster polynomials.</span>
+<a id="L-21" name="L-21" href="#L-21"></a>
+<a id="L-22" name="L-22" href="#L-22"></a><span class="sd">        Args:</span>
+<a id="L-23" name="L-23" href="#L-23"></a><span class="sd">            ctx: ConstraintContext providing access to columns, constants, challenges</span>
+<a id="L-24" name="L-24" href="#L-24"></a>
+<a id="L-25" name="L-25" href="#L-25"></a><span class="sd">        Returns:</span>
+<a id="L-26" name="L-26" href="#L-26"></a><span class="sd">            Dictionary mapping cluster names to their indexed polynomials.</span>
+<a id="L-27" name="L-27" href="#L-27"></a><span class="sd">            Example: {&#39;im_cluster&#39;: {0: poly0, 1: poly1, ...}}</span>
+<a id="L-28" name="L-28" href="#L-28"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="L-29" name="L-29" href="#L-29"></a>        <span class="k">pass</span></div>
+
+<a id="L-30" name="L-30" href="#L-30"></a>
+<a id="L-31" name="L-31" href="#L-31"></a>    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="WitnessModule.compute_grand_sums">
+<a class="viewcode-back" href="../../api/witness/base/index.html#witness.base.WitnessModule.compute_grand_sums">[docs]</a>
+<a id="L-32" name="L-32" href="#L-32"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute_grand_sums</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">ConstraintContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FF3Poly</span><span class="p">]:</span>
+<a id="L-33" name="L-33" href="#L-33"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute gsum/gprod running sum polynomials.</span>
+<a id="L-34" name="L-34" href="#L-34"></a>
+<a id="L-35" name="L-35" href="#L-35"></a><span class="sd">        Args:</span>
+<a id="L-36" name="L-36" href="#L-36"></a><span class="sd">            ctx: ConstraintContext providing access to columns, constants, challenges</span>
+<a id="L-37" name="L-37" href="#L-37"></a>
+<a id="L-38" name="L-38" href="#L-38"></a><span class="sd">        Returns:</span>
+<a id="L-39" name="L-39" href="#L-39"></a><span class="sd">            Dictionary mapping polynomial names to their values.</span>
+<a id="L-40" name="L-40" href="#L-40"></a><span class="sd">            Example: {&#39;gsum&#39;: gsum_poly}</span>
+<a id="L-41" name="L-41" href="#L-41"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="L-42" name="L-42" href="#L-42"></a>        <span class="k">pass</span></div>
+
+<a id="L-43" name="L-43" href="#L-43"></a>
+<a id="L-44" name="L-44" href="#L-44"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_cumulative_sum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row_values</span><span class="p">:</span> <span class="n">FF3Poly</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FF3Poly</span><span class="p">:</span>
+<a id="L-45" name="L-45" href="#L-45"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute cumulative sum: result[i] = sum(row_values[0:i+1]).&quot;&quot;&quot;</span>
+<a id="L-46" name="L-46" href="#L-46"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">row_values</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="L-47" name="L-47" href="#L-47"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">row_values</span><span class="p">)):</span>
+<a id="L-48" name="L-48" href="#L-48"></a>            <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">row_values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+<a id="L-49" name="L-49" href="#L-49"></a>        <span class="k">return</span> <span class="n">result</span>
+<a id="L-50" name="L-50" href="#L-50"></a>
+<a id="L-51" name="L-51" href="#L-51"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_cumulative_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row_values</span><span class="p">:</span> <span class="n">FF3Poly</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FF3Poly</span><span class="p">:</span>
+<a id="L-52" name="L-52" href="#L-52"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute cumulative product: result[i] = prod(row_values[0:i+1]).&quot;&quot;&quot;</span>
+<a id="L-53" name="L-53" href="#L-53"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">row_values</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="L-54" name="L-54" href="#L-54"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">row_values</span><span class="p">)):</span>
+<a id="L-55" name="L-55" href="#L-55"></a>            <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">row_values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+<a id="L-56" name="L-56" href="#L-56"></a>        <span class="k">return</span> <span class="n">result</span></div>
+
+</pre></div>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Derived from the Python Executable Specification
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
